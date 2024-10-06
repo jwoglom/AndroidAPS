@@ -16,9 +16,8 @@ fun GlucoseValue.SourceSensor.fromDb(): SourceSensor =
         GlucoseValue.SourceSensor.DEXCOM_G4_NET_XBRIDGE     -> SourceSensor.DEXCOM_G4_NET_XBRIDGE
         GlucoseValue.SourceSensor.DEXCOM_G4_NET_CLASSIC     -> SourceSensor.DEXCOM_G4_NET_CLASSIC
         GlucoseValue.SourceSensor.DEXCOM_G5_XDRIP           -> SourceSensor.DEXCOM_G5_XDRIP
-        GlucoseValue.SourceSensor.DEXCOM_G6_NATIVE_XDRIP    -> SourceSensor.DEXCOM_G6_NATIVE_XDRIP
         GlucoseValue.SourceSensor.DEXCOM_G5_NATIVE_XDRIP    -> SourceSensor.DEXCOM_G5_NATIVE_XDRIP
-        GlucoseValue.SourceSensor.DEXCOM_G6_G5_NATIVE_XDRIP -> SourceSensor.DEXCOM_G6_G5_NATIVE_XDRIP
+        GlucoseValue.SourceSensor.DEXCOM_G6_NATIVE_XDRIP    -> SourceSensor.DEXCOM_G6_NATIVE_XDRIP
         GlucoseValue.SourceSensor.DEXCOM_G7_NATIVE_XDRIP    -> SourceSensor.DEXCOM_G7_NATIVE_XDRIP
         GlucoseValue.SourceSensor.LIBRE_1_OTHER             -> SourceSensor.LIBRE_1_OTHER
         GlucoseValue.SourceSensor.LIBRE_1_NET               -> SourceSensor.LIBRE_1_NET
@@ -40,6 +39,8 @@ fun GlucoseValue.SourceSensor.fromDb(): SourceSensor =
         GlucoseValue.SourceSensor.AIDEX                     -> SourceSensor.AIDEX
         GlucoseValue.SourceSensor.RANDOM                    -> SourceSensor.RANDOM
         GlucoseValue.SourceSensor.UNKNOWN                   -> SourceSensor.UNKNOWN
+        GlucoseValue.SourceSensor.OTTAI                     -> SourceSensor.OTTAI
+        GlucoseValue.SourceSensor.SYAI_TAG                  -> SourceSensor.SYAI_TAG
 
         GlucoseValue.SourceSensor.IOB_PREDICTION            -> SourceSensor.IOB_PREDICTION
         GlucoseValue.SourceSensor.A_COB_PREDICTION          -> SourceSensor.A_COB_PREDICTION
@@ -61,9 +62,8 @@ fun SourceSensor.toDb(): GlucoseValue.SourceSensor =
         SourceSensor.DEXCOM_G4_NET_XBRIDGE     -> GlucoseValue.SourceSensor.DEXCOM_G4_NET_XBRIDGE
         SourceSensor.DEXCOM_G4_NET_CLASSIC     -> GlucoseValue.SourceSensor.DEXCOM_G4_NET_CLASSIC
         SourceSensor.DEXCOM_G5_XDRIP           -> GlucoseValue.SourceSensor.DEXCOM_G5_XDRIP
-        SourceSensor.DEXCOM_G6_NATIVE_XDRIP    -> GlucoseValue.SourceSensor.DEXCOM_G6_NATIVE_XDRIP
         SourceSensor.DEXCOM_G5_NATIVE_XDRIP    -> GlucoseValue.SourceSensor.DEXCOM_G5_NATIVE_XDRIP
-        SourceSensor.DEXCOM_G6_G5_NATIVE_XDRIP -> GlucoseValue.SourceSensor.DEXCOM_G6_G5_NATIVE_XDRIP
+        SourceSensor.DEXCOM_G6_NATIVE_XDRIP    -> GlucoseValue.SourceSensor.DEXCOM_G6_NATIVE_XDRIP
         SourceSensor.DEXCOM_G7_NATIVE_XDRIP    -> GlucoseValue.SourceSensor.DEXCOM_G7_NATIVE_XDRIP
         SourceSensor.LIBRE_1_OTHER             -> GlucoseValue.SourceSensor.LIBRE_1_OTHER
         SourceSensor.LIBRE_1_NET               -> GlucoseValue.SourceSensor.LIBRE_1_NET
@@ -85,6 +85,8 @@ fun SourceSensor.toDb(): GlucoseValue.SourceSensor =
         SourceSensor.AIDEX                     -> GlucoseValue.SourceSensor.AIDEX
         SourceSensor.RANDOM                    -> GlucoseValue.SourceSensor.RANDOM
         SourceSensor.UNKNOWN                   -> GlucoseValue.SourceSensor.UNKNOWN
+        SourceSensor.OTTAI                     -> GlucoseValue.SourceSensor.OTTAI
+        SourceSensor.SYAI_TAG                  -> GlucoseValue.SourceSensor.SYAI_TAG
 
         SourceSensor.IOB_PREDICTION            -> GlucoseValue.SourceSensor.IOB_PREDICTION
         SourceSensor.A_COB_PREDICTION          -> GlucoseValue.SourceSensor.A_COB_PREDICTION

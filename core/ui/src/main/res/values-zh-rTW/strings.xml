@@ -23,7 +23,7 @@
     <string name="mgdl">mg/dl</string>
     <string name="mmol">mmol/l</string>
     <string name="save">儲存</string>
-    <string name="snooze">延遲提醒</string>
+    <string name="snooze">延後提醒</string>
     <string name="virtual_pump">虛擬幫浦</string>
     <string name="constraints">限制</string>
     <string name="superbolus">超級注射</string>
@@ -40,7 +40,7 @@
     <string name="ue_export_to_csv">匯出使用者輸入到 Excel (csv)</string>
     <string name="confirm">確認</string>
     <string name="pump">幫浦</string>
-    <string name="missed_bg_readings">遺失的血糖讀數</string>
+    <string name="missed_bg_readings">遺失血糖讀數</string>
     <string name="treatments_iob_label_string">IOB：</string>
     <string name="mute5min">靜音 5 分鐘</string>
     <string name="mute">靜音</string>
@@ -121,7 +121,7 @@
     <string name="notconfigured">未配置</string>
     <string name="loopsuspended">循環已暫停</string>
     <string name="trend_arrow">趨勢箭頭</string>
-    <string name="a11y_autosens_label">自動感應</string>
+    <string name="a11y_autosens_label">自動感應(autosens)</string>
     <string name="required">需要</string>
     <string name="a11y_arrow_double_down">快速下降</string>
     <string name="a11y_arrow_single_down">下降</string>
@@ -136,7 +136,7 @@
     <string name="a11y_inrange">在範圍內</string>
     <string name="a11y_low">低</string>
     <string name="average">平均</string>
-    <string name="tir">TIR</string>
+    <string name="tir">目標範圍內的時間占比(TIR)</string>
     <string name="none"><![CDATA[<無>]]></string>
     <string name="remove_label">移除</string>
     <string name="activate_profile">啟用設定檔</string>
@@ -159,7 +159,7 @@
     <string name="stoptemptarget">停止臨時目標</string>
     <string name="closedloop">閉環</string>
     <string name="openloop">開環</string>
-    <string name="lowglucosesuspend">低血糖暫停</string>
+    <string name="lowglucosesuspend">低血糖暫停(LGS)</string>
     <string name="dia">DIA</string>
     <string name="ic_short">IC</string>
     <string name="isf_short">ISF</string>
@@ -263,7 +263,7 @@
     <string name="expweight">指數加權 TDD</string>
     <string name="basalrate">基礎率</string>
     <string name="bolus">注射</string>
-    <string name="tdd">TDD</string>
+    <string name="tdd">每日總劑量(TDD)</string>
     <string name="ratio">比率</string>
     <string name="amount_days">天數</string>
     <string name="weight">權重</string>
@@ -421,7 +421,7 @@
     <string name="bolus_advisor">注射顧問</string>
     <string name="bolus_advisor_message">您的血糖過高。建議不要立即用餐，等待血糖恢復正常。您想現在進行修正注射，並提醒您何時用餐嗎？這種情況下不會記錄碳水化合物，當我們提醒您時，您必須再次使用嚮導。</string>
     <string name="cobvsiob">COB 對 IOB</string>
-    <string name="slowabsorptiondetected"><![CDATA[<font color=\'%1$s\'>!!!!! 檢測到碳水化合物吸收緩慢：%2$d%% 的時間。請再次檢查您的計算。COB 可能被高估，因此可能會注射更多的胰島素 !!!!!</font>]]></string>
+    <string name="slowabsorptiondetected"><![CDATA[<font color=\'%1$s\'>!!!!! 檢測到碳水化合物吸收緩慢：%2$d%% 的時間。請再次檢查您的計算。COB 可能被高估，因此可能會導致給予過多的胰島素 (建議取消計算機中的COB後再重新計算)!!!!!</font>]]></string>
     <string name="partialboluswizard">傳送一部分的注射嚮導結果 [%]</string>
     <string name="partialboluswizard_reset_time">舊血糖時間閾值 [分鐘]</string>
     <string name="bolus_constraint_applied_warn">注射限制已套用：%1$.2f U 至 %2$.2f U</string>
@@ -432,7 +432,7 @@
     <string name="wizard_no_insulin_required">不需要胰島素！</string>
     <string name="wizard_no_actual_bg">沒有最近的血糖值可用於計算！</string>
     <string name="wizard_no_active_profile">未設置活動設定檔！</string>
-    <string name="wizard_no_cob">未知的 COB！血糖讀數丟失或最近的應用程式重啟？</string>
+    <string name="wizard_no_cob">未知的 COB！缺少血糖讀數或最近的應用程式重啟？</string>
     <string name="wizard_carbs_constraint">碳水化合物限制違規！</string>
     <string name="wizard_explain_calc">計算（IC：%1$.1f，ISF：%2$.1f）</string>
     <string name="wizard_explain_carbs">碳水化合物：%1$.2fU</string>
@@ -473,7 +473,7 @@
     <string name="clicked_connect_to_pump" comment="26 characters max for translation">已點擊連線到幫浦</string>
     <string name="reservoir_value">%1$.0f / %2$d U</string>
     <string name="daily_units">每日單位</string>
-    <string name="pump_icon">幫浦圖標</string>
+    <string name="pump_icon">幫浦圖示</string>
     <string name="view_profile">查看設定檔</string>
     <string name="pump_history">幫浦歷史</string>
     <string name="stats">統計</string>

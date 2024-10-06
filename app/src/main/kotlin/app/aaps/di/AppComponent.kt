@@ -1,7 +1,6 @@
 package app.aaps.di
 
 import app.aaps.MainApp
-import app.aaps.core.keys.di.KeysModule
 import app.aaps.core.objects.di.CoreModule
 import app.aaps.core.validators.di.ValidatorsModule
 import app.aaps.database.di.DatabaseModule
@@ -68,7 +67,6 @@ import info.nightscout.androidaps.dependencyInjection.TandemModule
         LoggerModule::class,
         UiModule::class,
         ValidatorsModule::class,
-        KeysModule::class,
         PluginsConstraintsModule::class,
         SourceModule::class,
         SyncModule::class,
