@@ -61,6 +61,7 @@ import app.aaps.pump.danars.DanaRSPlugin
 import app.aaps.pump.danarv2.DanaRv2Plugin
 import app.aaps.pump.equil.EquilPumpPlugin
 import app.aaps.pump.insight.InsightPlugin
+import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
 import app.aaps.pump.virtual.VirtualPumpPlugin
 import dagger.Binds
 import dagger.Module
@@ -73,7 +74,6 @@ import info.nightscout.androidaps.plugins.pump.omnipod.eros.OmnipodErosPumpPlugi
 import info.nightscout.pump.combov2.ComboV2Plugin
 import info.nightscout.pump.diaconn.DiaconnG8Plugin
 import info.nightscout.pump.medtrum.MedtrumPlugin
-import app.aaps.pump.tandem.TandemPumpPlugin
 import javax.inject.Qualifier
 
 @Suppress("unused")
@@ -215,12 +215,6 @@ abstract class PluginsListModule {
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(164)
-    abstract fun bindTandemPlugin(plugin: TandemPumpPlugin): PluginBase
-
-    @Binds
-    @PumpDriver
-    @IntoMap
     @IntKey(160)
     abstract fun bindMedtrumPlugin(plugin: MedtrumPlugin): PluginBase
 
@@ -229,6 +223,12 @@ abstract class PluginsListModule {
     @IntoMap
     @IntKey(170)
     abstract fun bindEquilPumpPlugin(plugin: EquilPumpPlugin): PluginBase
+
+    @Binds
+    @PumpDriver
+    @IntoMap
+    @IntKey(172)
+    abstract fun bindTandemMobiPumpPlugin(plugin: TandemMobiPumpPlugin): PluginBase
 
     @Binds
     @AllConfigs

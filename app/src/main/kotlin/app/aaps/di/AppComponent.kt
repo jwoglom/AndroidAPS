@@ -41,7 +41,7 @@ import info.nightscout.pump.common.di.PumpCommonModule
 import info.nightscout.pump.diaconn.di.DiaconnG8Module
 import info.nightscout.pump.medtrum.di.MedtrumModule
 import javax.inject.Singleton
-import info.nightscout.androidaps.dependencyInjection.TandemModule
+import app.aaps.pump.tandem.di.TandemModule
 
 @Singleton
 @Component(
