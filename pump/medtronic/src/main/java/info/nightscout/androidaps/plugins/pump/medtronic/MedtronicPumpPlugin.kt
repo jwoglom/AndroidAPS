@@ -72,11 +72,12 @@ import info.nightscout.androidaps.plugins.pump.medtronic.service.RileyLinkMedtro
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicConst
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil.Companion.isSame
-import info.nightscout.pump.common.data.PumpStatus
+import app.aaps.pump.common.data.PumpStatus
 import info.nightscout.pump.common.defs.PumpDriverState
-import info.nightscout.pump.common.sync.PumpDbEntryTBR
-import info.nightscout.pump.common.sync.PumpSyncStorage
-import info.nightscout.pump.common.utils.ProfileUtil
+import app.aaps.pump.common.sync.PumpDbEntryTBR
+import app.aaps.pump.common.sync.PumpSyncEntriesCreator
+import app.aaps.pump.common.sync.PumpSyncStorage
+import app.aaps.pump.common.utils.ProfileUtil
 import org.joda.time.LocalDateTime
 import java.util.Calendar
 import java.util.GregorianCalendar
@@ -125,7 +126,7 @@ class MedtronicPumpPlugin @Inject constructor(
         .description(R.string.description_pump_medtronic),  //
     PumpType.MEDTRONIC_522_722,  // we default to most basic model, correct model from config is loaded later
     rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage, MedtronicPumpDriverConfiguration(), decimalFormatter, instantiator
-), Pump, RileyLinkPumpDevice, info.nightscout.pump.common.sync.PumpSyncEntriesCreator {
+), Pump, RileyLinkPumpDevice, PumpSyncEntriesCreator {
 
     private var rileyLinkMedtronicService: RileyLinkMedtronicService? = null
 

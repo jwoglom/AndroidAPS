@@ -34,11 +34,11 @@ import info.nightscout.androidaps.plugins.pump.medtronic.defs.PumpBolusType
 import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpStatus
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicConst
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil
-import info.nightscout.pump.common.sync.PumpDbEntry
-import info.nightscout.pump.common.sync.PumpDbEntryBolus
-import info.nightscout.pump.common.sync.PumpDbEntryCarbs
-import info.nightscout.pump.common.sync.PumpDbEntryTBR
-import info.nightscout.pump.common.sync.PumpSyncStorage
+import app.aaps.pump.common.sync.PumpDbEntry
+import app.aaps.pump.common.sync.PumpDbEntryBolus
+import app.aaps.pump.common.sync.PumpDbEntryCarbs
+import app.aaps.pump.common.sync.PumpDbEntryTBR
+import app.aaps.pump.common.sync.PumpSyncStorage
 import org.apache.commons.lang3.StringUtils
 import org.joda.time.LocalDateTime
 import java.util.GregorianCalendar

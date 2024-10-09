@@ -13,8 +13,8 @@ import info.nightscout.androidaps.plugins.pump.medtronic.defs.BasalProfileStatus
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.BatteryType
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicDeviceType
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicConst
-import info.nightscout.pump.common.data.PumpStatus
-import info.nightscout.pump.common.sync.PumpDbEntryTBR
+import app.aaps.pump.common.data.PumpStatus
+import app.aaps.pump.common.sync.PumpDbEntryTBR
 import java.util.Calendar
 import java.util.GregorianCalendar
 import javax.inject.Inject
