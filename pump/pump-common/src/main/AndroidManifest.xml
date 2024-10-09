@@ -8,7 +8,7 @@
 
     <application>
         <activity
-            android:name="info.nightscout.pump.common.ui.PumpBLEConfigActivity"
+            android:name="app.aaps.pump.common.ui.PumpBLEConfigActivity"
             android:theme="@style/AppTheme"
             android:exported="false">
             <intent-filter>
@@ -17,7 +17,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="info.nightscout.aaps.pump.common.ui.PumpHistoryActivity" />
+        <activity android:name="app.aaps.pump.common.ui.PumpHistoryActivity" />
 
     </application>
 
