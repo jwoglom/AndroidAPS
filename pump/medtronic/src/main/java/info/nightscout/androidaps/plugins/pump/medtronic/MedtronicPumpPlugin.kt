@@ -39,6 +39,7 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.utils.DateTimeUtil
+import app.aaps.pump.common.PumpPluginAbstract
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.common.events.EventRileyLinkDeviceStatusChange
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.RileyLinkConst
@@ -113,7 +114,7 @@ class MedtronicPumpPlugin @Inject constructor(
     pumpSyncStorage: PumpSyncStorage,
     decimalFormatter: DecimalFormatter,
     instantiator: Instantiator
-) : info.nightscout.pump.common.PumpPluginAbstract(
+) : PumpPluginAbstract(
     PluginDescription() //
         .mainType(PluginType.PUMP) //
         .fragmentClass(MedtronicFragment::class.java.name) //

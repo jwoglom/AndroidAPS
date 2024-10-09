@@ -1,9 +1,10 @@
 package info.nightscout.androidaps.plugins.pump.medtronic.driver
 
-import info.nightscout.aaps.pump.common.driver.PumpDriverConfiguration
-import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelector
-import info.nightscout.aaps.pump.common.driver.db.PumpDriverDatabaseOperation
-import info.nightscout.aaps.pump.common.driver.history.PumpHistoryDataProvider
+import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.pump.common.driver.PumpDriverConfiguration
+import app.aaps.pump.common.driver.ble.PumpBLESelector
+import app.aaps.pump.common.driver.db.PumpDriverDatabaseOperation
+import app.aaps.pump.common.driver.history.PumpHistoryDataProvider
 
 class MedtronicPumpDriverConfiguration: PumpDriverConfiguration {
 
@@ -19,6 +20,10 @@ class MedtronicPumpDriverConfiguration: PumpDriverConfiguration {
 
     override fun getPumpDriverDatabaseOperation(): PumpDriverDatabaseOperation {
         TODO("Not yet implemented")
+    }
+
+    override fun getPumpType(): PumpType {
+        return PumpType.MEDTRONIC_523_723_REVEL
     }
 
     override var logPrefix: String = "MedtronicPumpPlugin::"
