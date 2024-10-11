@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/omnipod_pod_management"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".t_mobi.ui.TandemMobiSettingsActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="15dp"
+            android:text="@string/tandem_mobi_mgmt_load_cartridge" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/Actions_Row_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/Actions_Row_1_horizontal_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                app:layout_constraintGuide_percent="0" />
+
+            <app.aaps.core.ui.elements.SingleClickButton
+                android:id="@+id/button_change_cartridge"
+                style="@style/ButtonMediumFontStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:drawableTop="@drawable/ic_pod_activate_pod"
+                android:text="@string/tandem_mobi_mgmt_cart_change_cartridge"
+                android:textAllCaps="false"
+                android:visibility="visible"
+                app:layout_constrainedHeight="@+id/Actions_Row_1_horizontal_guideline"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toLeftOf="@+id/Actions_Col_1_Row_1_vertical_guideline"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/Actions_Col_1_Row_1_vertical_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.5" />
+
+            <app.aaps.core.ui.elements.SingleClickButton
+                android:id="@+id/button_fill_tubing"
+                style="@style/ButtonMediumFontStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:drawableTop="@drawable/ic_pod_deactivate_pod"
+                android:text="@string/tandem_mobi_mgmt_cart_fill_tubing"
+                android:textAllCaps="false"
+                android:visibility="visible"
+                app:layout_constrainedHeight="@+id/Actions_Row_1_horizontal_guideline"
+                app:layout_constraintLeft_toRightOf="@+id/Actions_Col_1_Row_1_vertical_guideline"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+
+            android:id="@+id/Actions_Row_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/Actions_Row_2_horizontal_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                app:layout_constraintGuide_percent="0" />
+
+            <app.aaps.core.ui.elements.SingleClickButton
+                android:id="@+id/button_fill_cannula"
+                style="@style/ButtonMediumFontStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:drawableTop="@drawable/ic_pod_activate_pod"
+                android:text="@string/tandem_mobi_mgmt_cart_fill_cannula"
+                android:textAllCaps="false"
+                android:visibility="visible"
+                app:layout_constrainedHeight="@+id/Actions_Row_2_horizontal_guideline"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toLeftOf="@+id/Actions_Col_2_Row_2_vertical_guideline"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/Actions_Col_2_Row_2_vertical_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.5" />
+
+            <app.aaps.core.ui.elements.SingleClickButton
+                android:id="@+id/button_site_reminder"
+                style="@style/ButtonMediumFontStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:drawableTop="@drawable/ic_pod_activate_pod"
+                android:text="@string/tandem_mobi_mgmt_cart_site_reminder"
+                android:textAllCaps="false"
+                android:visibility="visible"
+                app:layout_constrainedHeight="@+id/Actions_Row_2_horizontal_guideline"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintLeft_toRightOf="@+id/Actions_Col_2_Row_2_vertical_guideline"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="15dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="15dp"
+            android:text="@string/tandem_mobi_mgmt_other_actions" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+
+            android:id="@+id/Tools_Row_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/Tools_Row_1_horizontal_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                app:layout_constraintGuide_percent="0" />
+
+            <app.aaps.core.ui.elements.SingleClickButton
+                android:id="@+id/button_delivery_limit"
+                style="@style/ButtonMediumFontStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:drawableTop="@drawable/ic_pod_activate_pod"
+                android:text="@string/tandem_mobi_mgmt_act_delivery_limit"
+                android:textAllCaps="false"
+                android:visibility="visible"
+                app:layout_constrainedHeight="@+id/Tools_Row_1_horizontal_guideline"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toLeftOf="@+id/Tools_Col_1_vertical_guideline"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/Tools_Col_1_vertical_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.5" />
+
+            <app.aaps.core.ui.elements.SingleClickButton
+                android:id="@+id/button_pump_info"
+                style="@style/ButtonMediumFontStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:drawableTop="@drawable/ic_pod_activate_pod"
+                android:text="@string/tandem_mobi_mgmt_act_pump_info"
+                android:textAllCaps="false"
+                android:visibility="visible"
+                app:layout_constrainedHeight="@+id/Tools_Row_1_horizontal_guideline"
+                app:layout_constraintLeft_toRightOf="@+id/Tools_Col_1_vertical_guideline"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/Tools_Row_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/Tools_Row_2_horizontal_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                app:layout_constraintGuide_percent="0" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/Tools_Col_1_Row_2_vertical_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.5" />
+
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </LinearLayout>
+
+</ScrollView>

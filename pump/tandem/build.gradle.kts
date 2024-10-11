@@ -38,7 +38,6 @@ dependencies {
     implementation(project(":core:keys"))
     implementation(project(":implementation"))
 
-    //implementation project(':pump:pump-core')
     implementation(project(":pump:pump-common"))
 
     api(Libs.AndroidX.fragment)
@@ -53,9 +52,22 @@ dependencies {
     kapt(Libs.Dagger.androidProcessor)
 
 
-    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.3.0")
-    implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.3.0")
-    implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.3.0")
+    // temporary linking of local files until ne w t-mobi library version is released
+    // implementation(files("libs/com.jwoglom.pumpx2.core-1.3.2.aar"))
+    // implementation(files("libs/com.jwoglom.pumpx2.messages-1.3.2.jar"))
+    // implementation(files("libs/com.jwoglom.pumpx2.shared-1.3.2.jar"))
+
+    // implementation("com.github.jwoglom.pumpX2:pumpx2-android:1.3.2")
+    // implementation("com.github.jwoglom.pumpX2:pumpx2-messages:1.3.2")
+    // implementation("com.github.jwoglom.pumpX2:pumpx2-shared:1.3.2")dd
+
+
+    implementation("com.atech-software.pumpX2:pumpx2-android:1.3.2.4")
+    implementation("com.atech-software.pumpX2:pumpx2-messages:1.3.2.4")
+    implementation("com.atech-software.pumpX2:pumpx2-shared:1.3.2.4")
+
+
+
     implementation("com.github.weliem:blessed-android:2.2.0")
     implementation("com.jakewharton.timber:timber:5.0.1")
 

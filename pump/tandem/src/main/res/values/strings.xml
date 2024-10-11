@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Tandem - Base -->
-    <string name="tandem_name" translatable="false">Tandem</string>
-    <string name="tandem_name_short" translatable="false">Tandem</string>
-    <string name="description_pump_tandem">Pump integration for Tandem with version 2.2 (and higher) you can use Closed Loop, all other modules are Open Loop only.</string>
+    <string name="tandem_name_mobi" translatable="false">t:mobi</string>
+    <string name="tandem_name_mobi_short" translatable="false">t:mobi</string>
+    <string name="description_pump_tandem_mobi">Pump integration for Tandem t:mobi</string>
 
+    <string name="tandem_name_slim" translatable="false">t:slim X2</string>
+    <string name="tandem_name_slim_short" translatable="false">t:slim</string>
+    <string name="description_pump_tandem_slim">Pump integration for Tandem t:slim with version 2.2 (and higher) you can use Closed Loop, all other modules are Open Loop only.</string>
 
     <!-- Overview -->
     <string name="pump_refresh">Refresh</string>
@@ -13,6 +16,7 @@
     <string name="pump_firmware_label">Pump Firmware</string>
     <string name="pump_last_bolus" translatable="false">%1$.1f %2$s (%3$s)</string>
     <string name="pump_firmware_open_loop_only">%s (Open-Loop only)</string>
+    <string name="pump_settings">Settings</string>
 
 
     <!-- Command Errors -->
@@ -33,6 +37,7 @@
     <string name="key_tandem_pair_status" translatable="false">pref_tandem_pair_status</string>
     <string name="key_tandem_pair_code" translatable="false">pref_tandem_pair_code</string>
     <string name="key_tandem_api_version" translatable="false">pref_tandem_api_version</string>
+    <string name="key_tandem_pump_version" translatable="false">pref_tandem_pump_version</string>
     <string name="key_tandem_error" translatable="false">pref_tandem_error</string>
     <string name="key_tandem_version_response" translatable="false">pref_tandem_version_response</string>
 <!--    <string name="key_ypsopump_bonded" translatable="false">pref_ypsopump_bonded</string>-->
@@ -59,10 +64,36 @@
     <string name="tandem_history_date_changed">Date Changed: %s</string>
     <string name="tandem_history_time_changed">Time Changed: %s</string>
 
+    <!-- Tandem Mobi Management  -->
+    <string name="tandem_mobi_management">t:mobi Management</string>
+    <string name="tandem_sett_delivery_limits">Delivery Limits</string>
+    <string name="tandem_sett_load_cartridge">Load Cartridge</string>
+    <string name="tandem_sett_pump_info">Pump info</string>
+
+    <string name="tandem_mobi_mgmt_load_cartridge">Load Cartridge</string>
+    <string name="tandem_mobi_mgmt_cart_change_cartridge">Change Cartridge</string>
+    <string name="tandem_mobi_mgmt_cart_fill_tubing">Fill Tubing</string>
+    <string name="tandem_mobi_mgmt_cart_fill_cannula">Fill Cannula</string>
+    <string name="tandem_mobi_mgmt_cart_site_reminder">Site Reminder</string>
+
+    <string name="tandem_mobi_mgmt_other_actions">Other Actions</string>
+    <string name="tandem_mobi_mgmt_act_delivery_limit">Delivery Limit</string>
+    <string name="tandem_mobi_mgmt_act_pump_info">Pump Info</string>
+
+
+    <!-- Tandem UI - 2.5 Forced Open Loop -->
+    <string name="tandem_fol_closed_loop_not_allowed_x2">Closed Loop not available with Firmware less than 2.5</string>
+    <string name="tandem_fol_closed_loop_not_allowed_firmware">Closed Loop not available with Firmware less than 2.5</string>
+    <string name="tandem_fol_smb_not_allowed">SMB not available with Firmware less than 2.5</string>
+
+
+    <!-- Tandem Pump History -->
+    <string name="tandem_pump_history">Tandem Pump History</string>
+    <string name="tandem_pump_history_type">Type:</string>
+
+
 
     <!-- YpsoPump History -->
-    <string name="ypsopump_pump_history">YpsoPump History</string>
-    <string name="ypsopump_pump_history_type">Type:</string>
     <string name="ypsopump_history_alarm">Alarm: %s</string>
     <string name="ypsopump_history_configuration_changed">%s: %s</string>
     <string name="ypsopump_history_tbr">Rate: %d %%, Duration: %d minutes</string>
@@ -100,10 +131,7 @@
 
     <!-- YpsoPump Error -->
 
-    <!-- Tandem UI - 2.5 Forced Open Loop -->
-    <string name="tandem_fol_closed_loop_not_allowed_x2">Closed Loop not available with Firmware less than 2.5</string>
-    <string name="tandem_fol_closed_loop_not_allowed_firmware">Closed Loop not available with Firmware less than 2.5</string>
-    <string name="tandem_fol_smb_not_allowed">SMB not available with Firmware less than 2.5</string>
+
 
     <!-- YpsoPump UI - 1.5 Open Loop commands -->
     <string name="ypsopump_cmd_exec_title_set_profile">Manually Set Profile on Pump</string>
@@ -146,12 +174,9 @@
     <!-- MDT Errors -->
     <string name="medtronic_error_serial_not_set">Serial # not set.</string>
     <string name="medtronic_error_serial_invalid">Serial # invalid.</string>
-    <string name="medtronic_error_rileylink_address_invalid">RileyLink Address invalid.</string>
-    <string name="medtronic_error_pump_type_set_differs_from_detected">Pump type detected is not the same as configured type.</string>
 
     <string name="medtronic_error_pump_basal_profiles_not_enabled">Basal profiles/patterns setting is not enabled on pump. Enable it on the pump.</string>
     <string name="medtronic_error_pump_incorrect_basal_profile_selected">Basal profile set on pump is incorrect (must be STD).</string>
-    <string name="medtronic_error_pump_wrong_tbr_type_set">Wrong TBR type set on pump (must be Absolute).</string>
     <string name="medtronic_error_pump_wrong_max_bolus_set">Wrong Max Bolus set on Pump (must be %1$.2f).</string>
     <string name="medtronic_error_pump_wrong_max_basal_set">Wrong Max Basal set on Pump (must be %1$.2f).</string>
     <string name="medtronic_error_operation_not_possible_no_configuration">Operation is not possible.\n\n You need to configure Medtronic Pump first, before you can use this operation.</string>
@@ -185,7 +210,6 @@
     <string name="medtronic_pump_status_pump_unreachable">Pump unreachable</string>
     <string name="medtronic_warning">Warning</string>  <!-- medtronic_warning -->
     <string name="medtronic_pump_connected_now">Now</string> <!-- combo_pump_connected_now -->
-    <string name="ago">ago</string>
     <string name="medtronic_notification_check_time_date">Pump clock update needed</string> <!-- combo_notification_check_time_date -->
     <string name="common_on">On</string>
     <string name="common_off">Off</string>

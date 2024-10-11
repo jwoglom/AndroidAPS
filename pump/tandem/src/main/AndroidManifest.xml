@@ -8,14 +8,17 @@
 
     <application>
         <activity
-            android:name="info.nightscout.aaps.pump.tandem.ui.TandemPumpBLEConfigActivity"
+            android:name=".common.ui.TandemPumpBLEConfigActivity"
             android:theme="@style/AppTheme"
             android:exported="false">
             <intent-filter>
-                <action android:name="info.nightscout.androidaps.plugins.pump.tandem.dialogs.TandemPumpBLEConfigActivity" />
+                <action android:name="app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <activity android:name="app.aaps.pump.tandem.t_mobi.ui.TandemMobiSettingsActivity" />
+
 
         <!--        <uses-library android:name="org.apache.http.legacy" android:required="false"/>-->
     </application>
