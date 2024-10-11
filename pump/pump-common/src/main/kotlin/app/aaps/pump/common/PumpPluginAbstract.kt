@@ -41,6 +41,7 @@ import com.google.gson.GsonBuilder
 import app.aaps.pump.common.defs.PumpDriverAction
 import info.nightscout.pump.common.R
 import app.aaps.pump.common.data.PumpStatus
+import app.aaps.pump.common.driver.PumpDriverConfigurationCapable
 import info.nightscout.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.sync.PumpDbEntryCarbs
 import app.aaps.pump.common.sync.PumpSyncEntriesCreator
@@ -68,10 +69,11 @@ abstract class PumpPluginAbstract protected constructor(
     var aapsSchedulers: AapsSchedulers,
     var pumpSync: PumpSync,
     var pumpSyncStorage: PumpSyncStorage,
-    var pumpDriverConfiguration: PumpDriverConfiguration,
+    val pumpDriverConfigurationInternal: PumpDriverConfiguration,
     var decimalFormatter: DecimalFormatter,
     var instantiator: Instantiator
-) : PumpPluginBase(pluginDescription, aapsLogger, rh, commandQueue), Pump, PluginConstraints, /*Constraints,*/ PumpSyncEntriesCreator {
+) : PumpPluginBase(pluginDescription, aapsLogger, rh, commandQueue), Pump, PluginConstraints,
+    PumpDriverConfigurationCapable, /*Constraints,*/ PumpSyncEntriesCreator {
 
     protected val disposable = CompositeDisposable()
 
@@ -98,7 +100,7 @@ abstract class PumpPluginAbstract protected constructor(
     abstract fun initPumpStatusData()
 
     open fun hasService(): Boolean {
-        return pumpDriverConfiguration.hasService
+        return pumpDriverConfigurationInternal.hasService
     }
 
     override fun onStart() {
@@ -370,7 +372,7 @@ abstract class PumpPluginAbstract protected constructor(
 
     override fun manufacturer(): ManufacturerType = pumpType.manufacturer ?: ManufacturerType.AAPS
     override fun model(): PumpType = pumpType
-    override fun canHandleDST(): Boolean = pumpDriverConfiguration.canHandleDST
+    override fun canHandleDST(): Boolean = pumpDriverConfigurationInternal.canHandleDST
 
     protected abstract fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult
 
@@ -394,11 +396,15 @@ abstract class PumpPluginAbstract protected constructor(
 
     }
 
-    var logPrefix : String = pumpDriverConfiguration.logPrefix
+    var logPrefix : String = pumpDriverConfigurationInternal.logPrefix
 
     override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
         aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed (type=$timeChangeType). ")
         this.timeChangeType = timeChangeType
+    }
+
+    override fun getPumpDriverConfiguration(): PumpDriverConfiguration {
+        return this.pumpDriverConfigurationInternal
     }
 
 }

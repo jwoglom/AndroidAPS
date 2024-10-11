@@ -1,4 +1,4 @@
-package info.nightscout.aaps.pump.tandem.data.events
+package app.aaps.pump.common.events
 
 import app.aaps.core.interfaces.rx.events.Event
 
