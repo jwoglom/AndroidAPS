@@ -536,7 +536,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:drawableTop="@drawable/equil_ic_settings"
+                    android:drawableTop="@drawable/ic_settings"
                     android:paddingLeft="0dp"
                     android:paddingRight="0dp"
                     android:text="@string/pump_settings" />

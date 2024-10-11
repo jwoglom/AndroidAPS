@@ -284,6 +284,12 @@ class TandemMobiPumpPlugin @Inject constructor(
     //  maybe also X2 at later time
     // Constraints interface
     override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
+
+        if (pumpStatus.pumpDriverMode==PumpDriverMode.Demo) {
+            value.set(true)
+            return value
+        }
+
         if (value.value()) {
             value.set(
                 //aapsLogger,
@@ -296,6 +302,12 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
+
+        if (pumpStatus.pumpDriverMode==PumpDriverMode.Demo) {
+            value.set(true)
+            return value
+        }
+
         if (value.value()) {
             value.set(
                 //aapsLogger,
@@ -344,8 +356,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         val driverStatus = tandemUtil.driverStatus
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
-        //return pumpState == PumpDriverState.Connecting;
-        return driverStatus == PumpDriverState.Connecting || /*driverStatus == PumpDriverState.Connected ||*/ driverStatus == PumpDriverState.EncryptCommunication
+
+        return driverStatus == PumpDriverState.Connecting || driverStatus == PumpDriverState.EncryptCommunication
     }
 
     override fun connect(reason: String) {

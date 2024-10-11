@@ -57,11 +57,6 @@ dependencies {
     // implementation(files("libs/com.jwoglom.pumpx2.messages-1.3.2.jar"))
     // implementation(files("libs/com.jwoglom.pumpx2.shared-1.3.2.jar"))
 
-    // implementation("com.github.jwoglom.pumpX2:pumpx2-android:1.3.2")
-    // implementation("com.github.jwoglom.pumpX2:pumpx2-messages:1.3.2")
-    // implementation("com.github.jwoglom.pumpX2:pumpx2-shared:1.3.2")dd
-
-
     implementation("com.atech-software.pumpX2:pumpx2-android:1.3.2.4")
     implementation("com.atech-software.pumpX2:pumpx2-messages:1.3.2.4")
     implementation("com.atech-software.pumpX2:pumpx2-shared:1.3.2.4")

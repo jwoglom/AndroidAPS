@@ -355,6 +355,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
     override fun executeCustomCommand(commandType: CustomCommandTypeInterface): DataCommandResponse<AdditionalResponseDataInterface?> {
+
+
+
         return DataCommandResponse(
             PumpCommandType.CustomCommand, false, "Command ${commandType.getKey()} not available.", null)
     }
