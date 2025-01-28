@@ -324,7 +324,7 @@ class TandemPumpConnectionManager @Inject constructor(
 
     override fun postProcessConfiguration(valueMap: MutableMap<PumpConfigurationTypeInterface, Any>??) {
         // TODO
-        //TODO("Not yet implemented")
+        //TODO("postProcessConfiguration Not yet implemented")
         if (valueMap!=null) {
             for (entry in valueMap.entries) {
                 aapsLogger.info(TAG, "TANDEMDBG: Settings ${entry.key} = ${entry.value}")
@@ -343,7 +343,7 @@ class TandemPumpConnectionManager @Inject constructor(
 
 
     init {
-        // TODO remove remove dummyConnector when not needed anymore
+        // TODO TandemPumpConnectionManager - remove dummyConnector when not needed anymore
         dummyConnector = PumpDummyConnector(pumpStatus, pumpUtil, injector, aapsLogger)
     }
 }

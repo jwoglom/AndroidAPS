@@ -1,6 +1,7 @@
 package app.aaps.pump.common.data
 
 import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.pump.common.defs.PumpRunningState
 import info.nightscout.pump.common.defs.TempBasalPair
 import java.util.Date
@@ -16,8 +17,9 @@ abstract class PumpStatus(var pumpType: PumpType) {
     var previousConnection = 0L // here should be stored last connection of previous session (so needs to be
 
     // bolus
-    var lastBolusTime: Date? = null
-    var lastBolusAmount: Double? = null
+    var lastBolusTime: Date? = null  // legacy
+    var lastBolusAmount: Double? = null // legqacy
+    var lastBolus: DetailedBolusInfo? = null
 
     // other pump settings
     //var activeProfileName = "0"
@@ -45,6 +47,7 @@ abstract class PumpStatus(var pumpType: PumpType) {
     // temp basal
     var currentTempBasal: TempBasalPair? = null
     var currentTempBasalEstimatedEnd: Long? = null
+    var tempBasalLegacyMode = false
 
     // time
     var pumpTime: PumpTimeDifferenceDto? = null
@@ -74,6 +77,11 @@ abstract class PumpStatus(var pumpType: PumpType) {
     fun setLastCommunicationToNow() {
         lastDataTime = System.currentTimeMillis()
         lastConnection = System.currentTimeMillis()
+    }
+
+    fun clearTbr() {
+        this.currentTempBasal = null
+        this.currentTempBasalEstimatedEnd = null
     }
 
     abstract val errorInfo: String?

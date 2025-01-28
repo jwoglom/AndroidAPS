@@ -109,7 +109,8 @@ class TandemDataConverter @Inject constructor(
         tempBasal.insulinRate = message.percentage.toDouble()
         tempBasal.isActive = message.active
         tempBasal.durationMinutes = message.duration.toInt()
-        tempBasal.setStartTime(pumpUtil.getTimeFromPumpAsEpochMillis(message.startTime))
+        // TODO problem with 1.4.4
+        //tempBasal.setStartTime(pumpUtil.getTimeFromPumpAsEpochMillis(message.startTime))
 
         return DataCommandResponse(
             PumpCommandType.GetTemporaryBasal, true, null, tempBasal)
@@ -271,6 +272,7 @@ class TandemDataConverter @Inject constructor(
 
             // not supported (and won't be supported)
                     -> historyLog.subObject = null
+
             else                               -> historyLog.subObject = null
         }
 
@@ -309,26 +311,83 @@ class TandemDataConverter @Inject constructor(
     }
 
 
+
+    private fun test() {
+
+        // BasalDeliveryHistoryLog.java
+        // BasalRateChangeHistoryLog.java
+        // BGHistoryLog.java
+        // BolexActivatedHistoryLog.java
+        // BolexCompletedHistoryLog.java
+        // BolusActivatedHistoryLog.java
+        // BolusCompletedHistoryLog.java
+        // BolusDeliveryHistoryLog.java
+        // BolusRequestedMsg1HistoryLog.java
+        // BolusRequestedMsg2HistoryLog.java
+        // BolusRequestedMsg3HistoryLog.java
+        // CannulaFilledHistoryLog.java
+        // CarbEnteredHistoryLog.java
+        // CartridgeFilledHistoryLog.java
+        // CgmCalibrationGxHistoryLog.java
+        // CgmCalibrationHistoryLog.java
+        // CgmDataGxHistoryLog.java
+        // CgmDataSampleHistoryLog.java
+        // CGMHistoryLog.java
+        // ControlIQPcmChangeHistoryLog.java
+        // ControlIQUserModeChangeHistoryLog.java
+        // CorrectionDeclinedHistoryLog.java
+        // DailyBasalHistoryLog.java
+        // DataLogCorruptionHistoryLog.java
+        // DateChangeHistoryLog.java
+        // FactoryResetHistoryLog.java
+        //
+        // HypoMinimizerResumeHistoryLog.java
+        // HypoMinimizerSuspendHistoryLog.java
+        //
+        // LogErasedHistoryLog.java
+        // NewDayHistoryLog.java
+        // ParamChangeGlobalSettingsHistoryLog.java
+        // ParamChangePumpSettingsHistoryLog.java
+        // ParamChangeReminderHistoryLog.java
+        // ParamChangeRemSettingsHistoryLog.java
+        // PumpingResumedHistoryLog.java
+        // PumpingSuspendedHistoryLog.java
+        //
+        // TempRateActivatedHistoryLog.java
+        // TempRateCompletedHistoryLog.java
+        // TimeChangedHistoryLog.java
+        // TubingFilledHistoryLog.java
+        // UnknownHistoryLog.java
+
+
+
+
+    }
+
+
+
+
+
+
+
     private fun createBolusRecord(bolusLog: BolexCompletedHistoryLog): HistoryLogObject {
 
         val bolus = Bolus(bolusId = bolusLog.bolusId,
                           immediateAmount = bolusLog.insulinDelivered.toDouble(),
                           isCancelled = false,
-                          isRunning = bolusLog.completionStatus == 0  // TODO completionStatus Bolus
+                          isRunning = bolusLog.completionStatus == 0  // TODO createBolusRecord::completionStatus Bolus
         )
-
-
 
         return bolus
 
     }
 
     private fun createBolusRecord(historyLogPump: BolusActivatedHistoryLog): HistoryLogObject? {
-        TODO("Not yet implemented")
+        TODO("createBolusRecord(BolusActivatedHistoryLog) Not yet implemented")
     }
 
     private fun createBolusRecord(historyLogPump: BolexActivatedHistoryLog): HistoryLogObject? {
-        TODO("Not yet implemented")
+        TODO("createBolusRecord(BolexActivatedHistoryLog)  Not yet implemented")
     }
 
 
@@ -346,7 +405,7 @@ class TandemDataConverter @Inject constructor(
 
 
     private fun createTBRRecord(historyLogPump: TempRateCompletedHistoryLog): HistoryLogObject? {
-        // TODO("Not yet implemented")
+        // TODO("createTBRRecord(TempRateCompletedHistoryLog)  Not yet implemented")
         //return TemporaryBasal(historyLogPump.)
 
 
@@ -379,11 +438,11 @@ class TandemDataConverter @Inject constructor(
 
 
     private fun createAlertRecord(historyLogPump: AlertActivatedHistoryLog): HistoryLogObject? {
-        TODO("Not yet implemented")
+        TODO("createAlertRecord Not yet implemented")
     }
 
     private fun createAlarmRecord(historyLogPump: AlarmActivatedHistoryLog): HistoryLogObject? {
-        TODO("Not yet implemented")
+        TODO("createAlarmRecord Not yet implemented")
     }
 
 

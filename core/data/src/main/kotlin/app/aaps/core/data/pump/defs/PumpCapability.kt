@@ -30,6 +30,7 @@ enum class PumpCapability {
     EopatchCapabilities(arrayOf(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, BasalRate30min)),
     MedtrumCapabilities(arrayOf(Bolus, TempBasal, BasalProfileSet, BasalRate30min, TDD)), // Technically the pump supports ExtendedBolus, but not implemented (yet)
     TandemCapabilities(arrayOf(Refill, ReplaceBattery)),
+    TandemMobiCapabilities(arrayOf(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, Refill, ReplaceBattery)), // need to be changed a little
     BasalRate_Duration15minAllowed,
     BasalRate_Duration30minAllowed,
     BasalRate_Duration15and30minAllowed(arrayOf(BasalRate_Duration15minAllowed, BasalRate_Duration30minAllowed)),

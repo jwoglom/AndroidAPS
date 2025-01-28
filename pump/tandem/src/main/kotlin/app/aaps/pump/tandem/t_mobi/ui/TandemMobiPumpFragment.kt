@@ -25,6 +25,7 @@ import app.aaps.core.interfaces.rx.events.EventTempBasalChange
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.ui.dialogs.OKDialog
+import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.tandem.R
 import dagger.android.support.DaggerFragment
 
@@ -229,13 +230,12 @@ class TandemMobiPumpFragment : DaggerFragment() {
         if (updateType == PumpUpdateFragmentType.TreatmentValues || updateType == PumpUpdateFragmentType.Full) {
             // Last Bolus, TBR (Profile Change)
 
-            val bolusState: PumpSync.PumpState.Bolus? = pumpState.bolus
+            //val bolusState: PumpSync.PumpState.Bolus? = pumpState.bolus
             
             // last bolus
-            val bolus = pumpStatus.lastBolusAmount
-            val bolusTime = pumpStatus.lastBolusTime
-            if (bolus != null && bolusTime != null) {
-                val agoMsc = System.currentTimeMillis() - pumpStatus.lastBolusTime!!.time
+           val bolus = pumpStatus.lastBolus
+            if (bolus != null) {
+                val agoMsc = System.currentTimeMillis() - bolus.bolusTimestamp!!
                 val bolusMinAgo = agoMsc.toDouble() / 60.0 / 1000.0
                 val unit = resourceHelper.gs(app.aaps.core.ui.R.string.insulin_unit_shortname)
                 val ago: String
@@ -246,34 +246,45 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 } else {
                     ago = dateUtil.hourAgo(pumpStatus.lastBolusTime!!.time, resourceHelper)
                 }
-                binding.pumpLastBolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus, unit, ago)
+                binding.pumpLastBolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus.insulin, unit, ago)
             } else {
-                binding.pumpLastBolus.text = ""
+                binding.pumpLastBolus.text = "-"
             }
 
             // base basal rate
-            binding.pumpBaseBasalRate.text = ("(" + pumpStatus.activeProfileName + ")  "
-                + resourceHelper.gs(app.aaps.core.ui.R.string.pump_base_basal_rate, pumpStatus.baseBasalRate))
+            binding.pumpBaseBasalRate.text = resourceHelper.gs(info.nightscout.pump.common.R.string.pump_base_basal_rate_with_profile,
+                                                               pumpStatus.activeProfileName, tandemPumpPlugin.baseBasalRate)
+
+            // tbr (always saved on pumpStatus)
+            if (pumpStatus.currentTempBasal==null || System.currentTimeMillis() > pumpStatus.currentTempBasalEstimatedEnd!!) {
+                pumpStatus.clearTbr();
+                binding.pumpTempBasal.text = "-"
+            } else {
+                val msDiff = pumpStatus.currentTempBasalEstimatedEnd!! - System.currentTimeMillis()
+                val min = msDiff / (60.0 * 1000.0)
+
+                binding.pumpTempBasal.text = resourceHelper.gs(info.nightscout.pump.common.R.string.pump_tbr_remaining_percent,
+                                                              pumpStatus.currentTempBasal!!.insulinRate.toInt(), min.toInt())
+            }
 
             //TBR TODO
-            // binding.pumpTempBasal.text = activePlugin.activeTreatments.getTempBasalFromHistory(System.currentTimeMillis())?.toStringFull()
+            //binding.pumpTempBasal.text = activePlugin.getTempBasalFromHistory(System.currentTimeMillis())?.toStringFull()
             //     ?: ""
         }
 
         if (updateType == PumpUpdateFragmentType.Configuration || updateType == PumpUpdateFragmentType.Full) {
             // Firmware, Errors
-//            if (pumpStatus.ypsopumpFirmware != null) {
-            if (pumpStatus.tandemPumpFirmware.isClosedLoopPossible) {
-                binding.pumpFirmware.text = pumpStatus.tandemPumpFirmware.description
+            if (pumpStatus.pumpDriverMode == PumpDriverMode.Demo) {
+                binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_demo)
             } else {
-                binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_open_loop_only, pumpStatus.tandemPumpFirmware.description)
+                if (pumpStatus.tandemPumpFirmware.isClosedLoopPossible) {
+                    binding.pumpFirmware.text = pumpStatus.tandemPumpFirmware.description
+                } else {
+                    binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_open_loop_only, pumpStatus.tandemPumpFirmware.description)
+                }
             }
-            // }
-            // else {
-            //     binding.pumpFirmware.text = "Unknown"
-            // }
 
-            //pump_errors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
+            //binding.pump_errors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
         }
 
         if (updateType == PumpUpdateFragmentType.OtherValues || updateType == PumpUpdateFragmentType.Full) {
@@ -323,13 +334,13 @@ class TandemMobiPumpFragment : DaggerFragment() {
         }
     }
 
-    enum class UpdateGui {
-        Status, // Pump Status (Error)
-        Queue, // Queue
-        TreatmentValues, // Last Bolus, TBR, Profile Change
-        Full,
-        Configuration,  // Firmware, Errors
-        OtherValues // Battery, Reservoir
-    }
+    // enum class UpdateGui {
+    //     Status, // Pump Status (Error)
+    //     Queue, // Queue
+    //     TreatmentValues, // Last Bolus, TBR, Profile Change
+    //     Full,
+    //     Configuration,  // Firmware, Errors
+    //     OtherValues // Battery, Reservoir
+    // }
 
 }

@@ -21,6 +21,7 @@ import app.aaps.pump.danars.di.DanaRSModule
 import app.aaps.pump.equil.di.EquilModule
 import app.aaps.pump.insight.di.InsightDatabaseModule
 import app.aaps.pump.insight.di.InsightModule
+import app.aaps.pump.tandem.di.TandemModule
 import app.aaps.pump.virtual.di.VirtualPumpModule
 import app.aaps.shared.impl.di.LoggerModule
 import app.aaps.shared.impl.di.SharedImplModule
@@ -93,6 +94,7 @@ import javax.inject.Singleton
         PumpCommonModule::class,
         RileyLinkModule::class,
         MedtrumModule::class,
+        TandemModule::class,
         VirtualPumpModule::class
     ]
 )

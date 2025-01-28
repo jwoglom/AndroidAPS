@@ -328,20 +328,20 @@ enum class PumpType {
     ),
 
     TANDEM_T_MOBI_BT(
-        description = "Tandem t:mobi X2",
+        description = "Tandem t:mobi",
         manufacturer = ManufacturerType.Tandem,
         model = "t:mobi",
         bolusSize = 0.01,
         specialBolusSize = null,
         extendedBolusSettings = DoseSettings(0.01, 15, 8 * 60, 0.4),
         pumpTempBasalType = PumpTempBasalType.Percent,
-        tbrSettings = DoseSettings(1.0, 15, 8 * 60, 0.0, 250.0),
+        tbrSettings = DoseSettings(1.0, 15, 72 * 60, 0.0, 250.0),
         specialBasalDurations = PumpCapability.BasalRate_Duration15and30minAllowed,
         baseBasalMinValue = 0.1,
         baseBasalStep = 0.001,
         baseBasalSpecialSteps = null,
-        //reservoirSize = 200,
-        pumpCapability = PumpCapability.TandemCapabilities,
+        // reservoirSize = 200,
+        pumpCapability = PumpCapability.TandemMobiCapabilities,
         source = Source.Tandem
     ),
 

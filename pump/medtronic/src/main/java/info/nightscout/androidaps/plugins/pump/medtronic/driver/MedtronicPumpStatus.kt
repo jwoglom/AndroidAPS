@@ -65,6 +65,7 @@ class MedtronicPumpStatus @Inject constructor(
         if (serial != null) {
             serialNumber = serial
         }
+        this.tempBasalLegacyMode = true
     }
 
     private fun createMedtronicDeviceTypeMap() {

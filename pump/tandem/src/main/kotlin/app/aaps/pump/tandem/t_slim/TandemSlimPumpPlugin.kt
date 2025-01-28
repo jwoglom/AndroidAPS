@@ -65,7 +65,7 @@ import javax.inject.Singleton
  * @author Andy Rozman (andy.rozman@gmail.com)
  */
 @Singleton
-class TandemSlimPumpPlugin @Inject constructor(
+class TandemSlimPumpPlugin constructor(
     injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
     rxBus: RxBus,
@@ -716,7 +716,7 @@ class TandemSlimPumpPlugin @Inject constructor(
 
             val commandResponse = pumpConnectionManager.deliverBolus(detailedBolusInfo)
 
-            if (commandResponse!=null && commandResponse.isSuccess) {
+            if (commandResponse.isSuccess) {
                 val now = System.currentTimeMillis()
 
                 detailedBolusInfo.bolusTimestamp = now
@@ -818,7 +818,7 @@ class TandemSlimPumpPlugin @Inject constructor(
             // now start new TBR
             val commandResponse = pumpConnectionManager.setTemporaryBasal(percent, durationInMinutes)
             aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent - setTBR. Response: " + commandResponse)
-            if (commandResponse!=null && commandResponse.isSuccess) {
+            if (commandResponse.isSuccess) {
                 pumpStatus.tempBasalStart = System.currentTimeMillis()
                 pumpStatus.tempBasalPercent = percent
                 pumpStatus.tempBasalDuration = durationInMinutes

@@ -6,7 +6,7 @@ import app.aaps.pump.tandem.common.data.history.DateTimeChanged
 import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
 
 
-// TODO refactor this for Tandem
+// TODO TandemHistoryRecordEntity refactor this for Tandem N-5
 
 @Entity(tableName = "history_records", primaryKeys = ["id", "serial"])
 data class TandemHistoryRecordEntity(
@@ -19,7 +19,7 @@ data class TandemHistoryRecordEntity(
     var payload: String,
     @Embedded(prefix = "datetime_") var dateTimeRecord: DateTimeChanged?,
 
-    // TODO add more history types
+    // TODO add more history types N-5
     // @Embedded(prefix = "temporaryBasal_") var temporaryBasalRecord: TemporaryBasal?,
     // @Embedded(prefix = "bolus_") var bolusRecord: Bolus?,
     // @Embedded(prefix = "tdd_") var tddRecord: TotalDailyInsulin?,

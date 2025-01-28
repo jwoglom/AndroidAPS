@@ -12,6 +12,7 @@ import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity
+import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiSettingsActivity
 
 @Module(includes = [TandemDatabaseModule::class])
@@ -45,7 +46,7 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpFragment(): TandemMobiPumpFragment
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpDriverConfiguration(): TandemMobiPumpDriverConfiguration
     @ContributesAndroidInjector abstract fun contributesTandemMobiSettingsActivity(): TandemMobiSettingsActivity
-
+    @ContributesAndroidInjector abstract fun contributesTandemMobiPumpPlugin(): TandemMobiPumpPlugin
 
 
     // T-Slim Package - Activites and Fragments (disabled for now, TSlim not supported, it is not loopable)

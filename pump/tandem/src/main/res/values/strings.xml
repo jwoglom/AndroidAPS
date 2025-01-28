@@ -16,6 +16,7 @@
     <string name="pump_firmware_label">Pump Firmware</string>
     <string name="pump_last_bolus" translatable="false">%1$.1f %2$s (%3$s)</string>
     <string name="pump_firmware_open_loop_only">%s (Open-Loop only)</string>
+    <string name="pump_firmware_demo">Ignored. Demo mode</string>
     <string name="pump_settings">Settings</string>
 
 

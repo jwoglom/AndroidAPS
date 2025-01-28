@@ -51,24 +51,18 @@ dependencies {
     kapt(Libs.Dagger.compiler)
     kapt(Libs.Dagger.androidProcessor)
 
+    // temporarily X2 released under atech-software instead of jwoglom (some problems with linking)
+    implementation("com.atech-software.pumpX2:pumpx2-android:v1.4.4.0")
+    implementation("com.atech-software.pumpX2:pumpx2-messages:v1.4.4.0")
+    implementation("com.atech-software.pumpX2:pumpx2-shared:v1.4.4.0")
 
-    // temporary linking of local files until ne w t-mobi library version is released
-    // implementation(files("libs/com.jwoglom.pumpx2.core-1.3.2.aar"))
-    // implementation(files("libs/com.jwoglom.pumpx2.messages-1.3.2.jar"))
-    // implementation(files("libs/com.jwoglom.pumpx2.shared-1.3.2.jar"))
+    // implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.4.4")
+    // implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.4.4")
+    // implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.4.4")
 
-    implementation("com.atech-software.pumpX2:pumpx2-android:1.3.2.4")
-    implementation("com.atech-software.pumpX2:pumpx2-messages:1.3.2.4")
-    implementation("com.atech-software.pumpX2:pumpx2-shared:1.3.2.4")
-
-
-
-    implementation("com.github.weliem:blessed-android:2.2.0")
+    // needed by X2
+    implementation("com.github.weliem:blessed-android:2.4.0")
     implementation("com.jakewharton.timber:timber:5.0.1")
-
-    // implementation("com.github.jwoglom.pumpX2:pumpx2-android:$jwoglom_pumpx2_version")
-    // implementation("com.github.jwoglom.pumpX2:pumpx2-messages:$jwoglom_pumpx2_version")
-    // implementation("com.github.jwoglom.pumpX2:pumpx2-shared:$jwoglom_pumpx2_version")
 
 
 }

@@ -27,7 +27,7 @@ class TandemPumpStatus @Inject constructor(val resourceHelper: ResourceHelper,
 
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
-    var tandemPumpFirmware: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1
+    var tandemPumpFirmware: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1_to_2_4
     var isFirmwareSet = false
     @JvmField var baseBasalRate = 0.0
     var serialNumber: Long = 0
@@ -38,16 +38,12 @@ class TandemPumpStatus @Inject constructor(val resourceHelper: ResourceHelper,
     // statuses
     var pumpDeviceState = PumpDeviceState.NeverContacted
 
-    // TODO determine if this is needed
+
     var basalProfileStatus = BasalProfileStatus.NotInitialized
     var basalProfile: Profile? = null
 
-    //var connectionStatus = YpsoConnectionStatus.NOT_CONNECTED
-    //var settingsServiceVersion: String? = null
-
-    // var lastConfigurationUpdate: Long = 0
-    // var configChanged: Boolean = false
     var bolusStep: Double = 0.1
+
     var maxBolus: Double? = null
     var maxBasal: Double? = null
 

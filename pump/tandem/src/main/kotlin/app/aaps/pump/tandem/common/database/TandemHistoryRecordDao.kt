@@ -4,7 +4,7 @@ import androidx.room.*
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 
-// TODO refactor this for Tandem
+// TODO TandemHistoryRecordDao refactor this for Tandem  N-8
 
 @Dao
 abstract class TandemHistoryRecordDao {

@@ -66,26 +66,33 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
 
     override fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?> {
         pumpUtil.sleepSeconds(10)
-            // TODO legacyMode
-        return if (pumpStatus.tempBasalStart == null ||
-            pumpStatus.tempBasalEnd == null ||
-            System.currentTimeMillis() > pumpStatus.tempBasalEnd!!) {
-            DataCommandResponse(
-                PumpCommandType.GetTemporaryBasal, true, null, TempBasalPair(0.0, true, 0))
-        } else {
-            val tempBasalPair = TempBasalPair()
-            tempBasalPair.insulinRate = pumpStatus.tempBasalAmount!!
-            val diff = pumpStatus.tempBasalStart!! - System.currentTimeMillis()
-            val diffMin = (diff / (1000 * 60)).toInt()
-            tempBasalPair.durationMinutes = (pumpStatus.tempBasalDuration!! - diffMin)
 
-            DataCommandResponse(
-                PumpCommandType.GetTemporaryBasal, true, null, tempBasalPair)
-        }
+        return if (pumpStatus.currentTempBasal == null ||
+                System.currentTimeMillis() > pumpStatus.currentTempBasalEstimatedEnd!!
+            ) {
+                // tbr not set
+                DataCommandResponse(
+                    PumpCommandType.GetTemporaryBasal, true, null, TempBasalPair(0.0, true, 0)
+                )
+            } else {
+                DataCommandResponse(
+                    PumpCommandType.GetTemporaryBasal, true, null, pumpStatus.currentTempBasal
+                )
+            }
     }
+
 
     override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
         pumpUtil.sleepSeconds(10)
+
+        // val tempBasalPair = TempBasalPair()
+        // tempBasalPair.isPercent = true
+        // tempBasalPair.insulinRate = value.toDouble()
+        // tempBasalPair.durationMinutes = duration
+        //
+        // this.pumpStatus.currentTempBasal = tempBasalPair
+        // this.pumpStatus.currentTempBasalEstimatedEnd = System.currentTimeMillis() + (duration * 60 * 1000)
+
         return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTemporaryBasal)
     }
 

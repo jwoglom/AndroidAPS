@@ -7,7 +7,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import javax.inject.Inject
 
-// TODO refactor this for Tandem
+// TODO HistoryMapper refactor this for Tandem  N-3
 
 class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var aapsLogger: AAPSLogger) {
 
@@ -71,7 +71,7 @@ class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var 
 
 
 
-        // TODO implement domainToEntity
+        // TODO HistoryMapper implement domainToEntity  N-3
         return tandemHistoryRecordEntity
     }
 
@@ -91,7 +91,7 @@ class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var 
         )
 
         //
-        // // TODO include subObject2 - done, not tested
+        // // TODO HistoryMapper include subObject2 - done, not tested   N-3
         //
         // if (entity.bolusRecord != null) {
         //     eventDto.subObject = entity.bolusRecord
@@ -116,7 +116,7 @@ class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var 
         // }
         //
 
-        // TODO extend with new subObject's
+        // TODO HistoryMapper  extend with new subObject's N-3
         return historyLogDto
     }
 

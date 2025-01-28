@@ -44,6 +44,7 @@ import app.aaps.pump.tandem.common.events.EventPumpPairingCodeProvided
 
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import com.jwoglom.pumpx2.pump.messages.response.authentication.AbstractCentralChallengeResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.jwoglom.pumpx2.util.timber.LConfigurator
 
@@ -54,7 +55,7 @@ import java.util.*
 /**
  * This is low-level driver that does pairing with pump
  */
-// TODO: maybe add some more dialogs in case of success, error
+// TODO: TandemPairingManager maybe add some more dialogs in case of success, error  N-5
 class TandemPairingManager constructor(
     var context: Context,
     var aapsLogger: AAPSLogger,
@@ -83,7 +84,7 @@ class TandemPairingManager constructor(
 
         createBluetoothHandler()
 
-        showToast( "Staring pairing with Tandem, this can take some time, please don't press anything until its done.") // TODO
+        showToast( "Staring pairing with Tandem, this can take some time, please don't press anything until its done.") // TODO TandemPairingManager N-5
 
         bluetoothHandler!!.startScan()
     }
@@ -95,7 +96,7 @@ class TandemPairingManager constructor(
     fun showToast(text:String) {
 
         runOnUiThread {
-            Toast.makeText(context, text, Toast.LENGTH_LONG).show() // TODO
+            Toast.makeText(context, text, Toast.LENGTH_LONG).show() // TODO TandemPairingManager N-5
         }
 
     }
@@ -108,7 +109,7 @@ class TandemPairingManager constructor(
             return bluetoothHandler
         }
 
-        LConfigurator.enableTimber()  // TODO enableTimer
+        LConfigurator.enableTimber()
         bluetoothHandler = TandemBluetoothHandler.getInstance(context, this)
         return bluetoothHandler
     }
@@ -164,7 +165,7 @@ class TandemPairingManager constructor(
 
             rxBus.send(EventPumpConnectionParametersChanged())
 
-            showToast("Pairing with Tandem was SUCCESS.") // TODO
+            showToast("Pairing with Tandem was SUCCESS.") // TODO TandemPairingManager N-5
 
             if (finishActivity) {
                 activity.finish()
@@ -177,7 +178,7 @@ class TandemPairingManager constructor(
         aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s", events)
     }
 
-    override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral, centralChallenge: CentralChallengeResponse) {
+    override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: AbstractCentralChallengeResponse?) {
 
         aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode:")
 
@@ -189,7 +190,7 @@ class TandemPairingManager constructor(
             .subscribe({ hasPairingCode(peripheral, btAddress, centralChallenge, it.pairingCode) }, { aapsLogger.error(TAG, "pumpHasPairingCode disposable error", it) })
 
         try {
-            // TODO
+            // TODO TandemPairingManager N-5
 
             rxBus.send(EventPumpNeedsPairingCode(centralChallenge.toString()))
             // runOnUiThread {
@@ -205,47 +206,48 @@ class TandemPairingManager constructor(
 
     }
 
-    private fun hasPairingCode(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse, pairingCode: String) {
+    private fun hasPairingCode(peripheral: BluetoothPeripheral?, btAddress: String, challenge: AbstractCentralChallengeResponse?, pairingCode: String) {
         aapsLogger.info(LTag.PUMPBTCOMM, "Device ${btAddress} hasPairingCode: ${pairingCode}")
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
         sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
         pair(peripheral, challenge, pairingCode)
     }
 
-    override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse?) {
-
-        aapsLogger.info(TAG, "TANDEMDBG: onInvalidPairingCode")
-
-        sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
-        pumpUtil.errorType = PumpErrorType.PumpPairInvalidPairCode
-
-        aapsLogger.error(TAG, "PairingCode WAS INVALID.")
-
-        showToast("PairingCode WAS INVALID. Try again.") // TODO
-
-        //PumpState.failedPumpConnectionAttempts++
-
-        rxBus.send(EventPumpDriverStateChanged(PumpDriverState.ErrorCommunicatingWithPump))
-
-        if (finishActivity) {
-            activity.finish()
-        }
-
-        // AlertDialog.Builder(context)
-        //     .setTitle("Pump Connection")
-        //     .setMessage("The pump rejected the pairing code. You need to unpair and re-pair the device in Bluetooth Settings. Press OK to enter the new code.")
-        //     .setPositiveButton(R.string.yes) { dialog, which ->
-        //         val intent = Intent(PUMP_CONNECTED_STAGE1_INTENT)
-        //         intent.putExtra("address", peripheral!!.address)
-        //         intent.putExtra("name", peripheral!!.name)
-        //         context.sendBroadcast(intent)
-        //     }
-        //     .setNegativeButton(R.string.no, null)
-        //     .setIcon(R.drawable.ic_dialog_alert)
-        //     .show()
-
-        // rxBus.send()
-    }
+    // TODO 1.4.4
+    // override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse?) {
+    //
+    //     aapsLogger.info(TAG, "TANDEMDBG: onInvalidPairingCode")
+    //
+    //     sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
+    //     pumpUtil.errorType = PumpErrorType.PumpPairInvalidPairCode
+    //
+    //     aapsLogger.error(TAG, "PairingCode WAS INVALID.")
+    //
+    //     showToast("PairingCode WAS INVALID. Try again.") // TODO TandemPairingManager N-5
+    //
+    //     //PumpState.failedPumpConnectionAttempts++
+    //
+    //     rxBus.send(EventPumpDriverStateChanged(PumpDriverState.ErrorCommunicatingWithPump))
+    //
+    //     if (finishActivity) {
+    //         activity.finish()
+    //     }
+    //
+    //     // AlertDialog.Builder(context)
+    //     //     .setTitle("Pump Connection")
+    //     //     .setMessage("The pump rejected the pairing code. You need to unpair and re-pair the device in Bluetooth Settings. Press OK to enter the new code.")
+    //     //     .setPositiveButton(R.string.yes) { dialog, which ->
+    //     //         val intent = Intent(PUMP_CONNECTED_STAGE1_INTENT)
+    //     //         intent.putExtra("address", peripheral!!.address)
+    //     //         intent.putExtra("name", peripheral!!.name)
+    //     //         context.sendBroadcast(intent)
+    //     //     }
+    //     //     .setNegativeButton(R.string.no, null)
+    //     //     .setIcon(R.drawable.ic_dialog_alert)
+    //     //     .show()
+    //
+    //     // rxBus.send()
+    // }
 
     private fun triggerPairDialog(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse) {
 
@@ -373,7 +375,7 @@ class TandemPairingManager constructor(
         stringBuilder.append("PumpSerial: ${sp.getString(TandemPumpConst.Prefs.PumpSerial, "-")}\n")
         stringBuilder.append("Pump Version Response: ${sp.getString(TandemPumpConst.Prefs.PumpVersionResponse, "-")} \n")
 
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onPairingStatus: \n ${stringBuilder.toString()}") // TODO remove this
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onPairingStatus: \n ${stringBuilder.toString()}") // TODO remove this TandemPairingManager N-5
 
     }
 

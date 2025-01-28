@@ -14,9 +14,10 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
 import java.util.*
+import javax.inject.Inject
 
-// TODO refactor this for Tandem
-class TandemPumpHistory /*@Inject*/ constructor(
+// TODO TandemPumpHistory refactor this for Tandem N-3
+class TandemPumpHistory @Inject constructor(
     val pumpHistoryDao: TandemHistoryRecordDao,
     val pumpHistoryDatabase: TandemPumpDatabase,
     val historyMapper: HistoryMapper,
@@ -53,7 +54,7 @@ class TandemPumpHistory /*@Inject*/ constructor(
         var id = sequenceNum
 
 
-        // TODO Db
+        // TODO TandemPumpHistory:Db  N-5
         // when {
         //     commandType == SET_BOLUS && bolusRecord == null               ->
         //         Single.error(IllegalArgumentException("bolusRecord missing on SET_BOLUS"))
@@ -62,7 +63,7 @@ class TandemPumpHistory /*@Inject*/ constructor(
         //     else                                                          -> null
         // }?.let { return it }
 
-        return pumpHistoryDao.save(
+        return pumpHistoryDatabase.historyRecordDao().save(
             TandemHistoryRecordEntity(
                 id = sequenceNum,
                 serial = serial,
@@ -101,7 +102,7 @@ class TandemPumpHistory /*@Inject*/ constructor(
                 list.map(historyMapper::entityToDomain)
              }
 
-    fun getRecordsAfter(time: Long): Single<List<TandemHistoryRecordEntity>> = pumpHistoryDao.allSince(time)
+    fun getRecordsAfter(time: Long): Single<List<TandemHistoryRecordEntity>> = pumpHistoryDatabase.historyRecordDao().allSince(time)
 
     // fun processList(entityList: List<HistoryRecordEntity>) {
     //     var first = true
@@ -111,13 +112,13 @@ class TandemPumpHistory /*@Inject*/ constructor(
     // }
 
     fun getHistoryRecords(): List<TandemHistoryRecordEntity> {
-        val history = pumpHistoryDao.all().blockingGet()
+        val history = pumpHistoryDatabase.historyRecordDao().all().blockingGet()
         aapsLogger.info(LTag.PUMP, "History entries: ${history.size}")
         return history
     }
 
     fun getHistoryRecordsAfter(atdTime: Long): List<TandemHistoryRecordEntity> {
-        return pumpHistoryDao.allSince(atdTime).blockingGet()
+        return pumpHistoryDatabase.historyRecordDao().allSince(atdTime).blockingGet()
     }
 
     fun insertOrUpdate(event: HistoryLogDto): TandemHistoryRecordEntity? {
@@ -159,7 +160,7 @@ class TandemPumpHistory /*@Inject*/ constructor(
     }
 
     private fun prepareData(dbEntity: TandemHistoryRecordEntity, newEntity: TandemHistoryRecordEntity): TandemHistoryRecordEntity {
-        // TODO
+        // TODO prepareData  N-3
 
         // if (dbEntity.entryType != newEntity.entryType)
         //     dbEntity.entryType = newEntity.entryType
@@ -216,7 +217,7 @@ class TandemPumpHistory /*@Inject*/ constructor(
     }
 
     private fun isDifferentData(entity1: TandemHistoryRecordEntity, entity2: TandemHistoryRecordEntity): Boolean {
-        // TODO
+        // TODO isDifferentData N-3
         // if (entity1.entryType != entity2.entryType ||
         //     entity1.entryTypeAsInt != entity2.entryTypeAsInt ||
         //     entity1.value1 != entity2.value1 ||

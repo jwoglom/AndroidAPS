@@ -6,7 +6,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-// TODO refactor this for Tandem
 
 @Database(
     entities = [TandemHistoryRecordEntity::class],

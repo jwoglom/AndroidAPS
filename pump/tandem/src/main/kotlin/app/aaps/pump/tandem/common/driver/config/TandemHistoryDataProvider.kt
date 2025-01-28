@@ -29,6 +29,8 @@ class TandemHistoryDataProvider @Inject constructor(
     private var tandemPumpHistory: TandemPumpHistory
 ) : PumpHistoryDataProviderAbstract() {
 
+    //@Inject lateinit var tandemPumpHistory: TandemPumpHistory;
+
     private var groupList: List<PumpHistoryEntryGroup> = listOf()
 
     override fun getData(period: PumpHistoryPeriod): List<PumpHistoryEntry> {
@@ -40,10 +42,10 @@ class TandemHistoryDataProvider @Inject constructor(
         }
 
         if (period == PumpHistoryPeriod.ALL) {
-            dbHistoryList = tandemPumpHistory.pumpHistoryDao.allBlocking()
+            dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allBlocking()
         } else {
             val startingTimeForData = getStartingTimeForData(period)
-            dbHistoryList = tandemPumpHistory.pumpHistoryDao.allSinceBlocking(DateTimeUtil.toATechDate(startingTimeForData))
+            dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allSinceBlocking(DateTimeUtil.toATechDate(startingTimeForData))
         }
 
         for (historyRecordEntity in dbHistoryList) {

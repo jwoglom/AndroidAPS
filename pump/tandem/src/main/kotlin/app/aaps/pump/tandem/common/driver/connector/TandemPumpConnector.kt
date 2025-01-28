@@ -31,8 +31,16 @@ import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-
-
+import com.jwoglom.pumpx2.pump.messages.request.control.CancelBolusRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.ChangeCartridgeRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
+import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.ChangeCartridgeResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.StopTempRateResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.SuspendPumpingResponse
 
 import javax.inject.Inject
 
@@ -57,7 +65,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     var tandemCommunicationManager: TandemCommunicationManager? = null
     var btAddressUsed: String? = null
-    var tandemPumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1
+    var tandemPumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1_to_2_4
 
     var TAG = LTag.PUMPCOMM
 
@@ -116,7 +124,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         if (version!=null) {
             this.tandemPumpApiVersion = TandemPumpApiVersion.valueOf(version)
         } else {
-            this.tandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1
+            this.tandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1_to_2_4
         }
 
         return DataCommandResponse(
@@ -238,7 +246,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     override fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?> {
-        // TODO V1 Connector: cancelBolus
+        // TODO V1 Connector: cancelBolus N-7
+        var responseMessage: Message? = getCommunicationManager().sendCommand(CancelBolusRequest()) as CancelBolusResponse
+
         return super.cancelBolus()
     }
 
@@ -261,14 +271,24 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
+    // Mobi Only
     override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
         // TODO V2 Connector: sendTemporaryBasal
+
+        var responseMessage: Message? = getCommunicationManager().sendCommand(SetTempRateRequest()) as SetTempRateResponse
+
+
+
         return super.sendTemporaryBasal(value, duration)
     }
 
 
     override fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?> {
-        // TODO V2 Connector: cancelTemporaryBasal
+
+        var responseMessage: Message? = getCommunicationManager().sendCommand(StopTempRateRequest()) as StopTempRateResponse
+
+
+        // TODO V2 Connector: cancelTemporaryBasal N-8
         return super.cancelTemporaryBasal()
     }
 
@@ -334,7 +354,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     override fun sendBasalProfile(profile: Profile): DataCommandResponse<AdditionalResponseDataInterface?> {
-        // TODO V2 Connector: sendBasalProfile
+        // TODO V2 Connector: sendBasalProfile  (not available in protocol)
         return super.sendBasalProfile(profile)
     }
 
@@ -344,7 +364,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
     override fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?> {
-        // TODO V2 Connector: setTime
+        // TODO V2 Connector: setTime (not available in protocol)
         return super.setTime()
     }
 
@@ -389,28 +409,51 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
+    private fun suspendPump() {
+        // TODO suspendPump M-7
+        var responseMessage: Message? = getCommunicationManager().sendCommand(SuspendPumpingRequest()) as SuspendPumpingResponse
+    }
+
+
+    private fun changeCartridge() {
+        // TODO changeCartridge M-7
+        var responseMessage: Message? = getCommunicationManager().sendCommand(ChangeCartridgeRequest()) as ChangeCartridgeResponse
+    }
+
+    // private fun fillCanula_???() {
+    //     // TODO changeCartridge M-7
+    //     var responseMessage: Message? = getCommunicationManager().sendCommand(ChangeCartridgeRequest()) as ChangeCartridgeResponse
+    // }
+
+
+    private fun getPumpVersionInfo() {
+        // TODO getPumpVersionInfo M-7
+        var responseMessage: Message? = getCommunicationManager().sendCommand(PumpVersionRequest()) as PumpVersionResponse
+    }
+
+
     private fun getCorrectRequest(command: TandemCommandType): Message {
         return when(tandemPumpApiVersion) {
-            TandemPumpApiVersion.VERSION_0_x,
-            TandemPumpApiVersion.VERSION_1_x,
-            TandemPumpApiVersion.VERSION_2_0,
-            TandemPumpApiVersion.VERSION_2_1,
-            TandemPumpApiVersion.VERSION_2_2,
-            TandemPumpApiVersion.VERSION_2_3,
-            TandemPumpApiVersion.VERSION_2_4           -> {
+            TandemPumpApiVersion.VERSION_2_1_to_2_4,
+            -> {
                 when(command) {
                     TandemCommandType.ControlIQInfo  -> ControlIQInfoV1Request()
                     TandemCommandType.CurrentBattery -> CurrentBatteryV1Request()
                 }
             }
 
-            TandemPumpApiVersion.VERSION_2_5_OR_HIGHER -> {
+
+            TandemPumpApiVersion.VERSION_2_5_OR_HIGHER,
+            TandemPumpApiVersion.VERSION_3_0,
+            TandemPumpApiVersion.VERSION_3_2,
+            TandemPumpApiVersion.VERSION_3_4,
+            TandemPumpApiVersion.VERSION_4_x -> {
                 when(command) {
                     TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
                     TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
                 }
             }
-            else                                       -> throw Exception()
+            else                                                                                                                                                                                    -> throw Exception()
         }
     }
 

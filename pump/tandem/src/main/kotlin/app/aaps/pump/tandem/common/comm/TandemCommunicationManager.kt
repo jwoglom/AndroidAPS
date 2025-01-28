@@ -25,6 +25,7 @@ import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpErrorType
 import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
+import com.jwoglom.pumpx2.pump.messages.response.authentication.AbstractCentralChallengeResponse
 import org.joda.time.DateTime
 import java.util.Optional
 
@@ -111,7 +112,7 @@ class TandemCommunicationManager constructor(
             return bluetoothHandler
         }
         aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler comm")
-        LConfigurator.enableTimber()  // TODO enableTimber
+        LConfigurator.enableTimber()
         runOnUiThread {
             bluetoothHandler = TandemBluetoothHandler.getInstance(context, this);
         }
@@ -202,7 +203,7 @@ class TandemCommunicationManager constructor(
 
                 aapsLogger.info(LTag.PUMPCOMM, "Api Version: ${apiVersionResponse.majorVersion}.${apiVersionResponse.minorVersion} : ${apiVersion.name} ")
 
-                // TODO check if PumpApiVersion changed
+                // TODO check if PumpApiVersion changed   N-8
                 //sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
             } else if (message is TimeSinceResetResponse) {
 
@@ -215,7 +216,7 @@ class TandemCommunicationManager constructor(
                 val pumpTimeDifference = PumpTimeDifferenceDto(DateTime.now(), dtPump)
                 pumpStatus.pumpTime = pumpTimeDifference
 
-                // TODO check Pump Serial
+                // TODO check Pump Serial   N-8
 
                 this.connected = true
             }
@@ -236,14 +237,19 @@ class TandemCommunicationManager constructor(
         aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s", events)
     }
 
+    // override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: AbstractCentralChallengeResponse?) {
+    //     TODO("Not yet implemented")
+    // }
+
     // copied from abstract
     // override fun onPumpDiscovered(peripheral: BluetoothPeripheral, scanResult: ScanResult): Boolean {
     //     Timber.i("TandemPump: onPumpDiscovered($scanResult)", *arrayOfNulls<Any>(0))
     //     return if (filterToBluetoothMac.isPresent) filterToBluetoothMac.get() == peripheral.address else true
     // }
 
-
-    override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: CentralChallengeResponse?) {
+    // TODO 1.4.4 chanlenge type changed
+    override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: AbstractCentralChallengeResponse?) {
+    // override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: CentralChallengeResponse?) {
         aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode ")
 
         val pairingCode = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
@@ -260,10 +266,11 @@ class TandemCommunicationManager constructor(
     }
 
 
-    override fun onInvalidPairingCode(peripheral: BluetoothPeripheral?, resp: PumpChallengeResponse?) {
-        aapsLogger.error(TAG, "TANDEMDBG: onInvalidPairingCode() - PairingCode seems to be no longer valid.")
-        sendInvalidPairingCodeError()
-    }
+    // TODO 1.4.4
+    // override fun onInvalidPairingCode(peripheral: BluetoothPeripheral?, resp: PumpChallengeResponse?) {
+    //     aapsLogger.error(TAG, "TANDEMDBG: onInvalidPairingCode() - PairingCode seems to be no longer valid.")
+    //     sendInvalidPairingCodeError()
+    // }
 
     // override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
     //     super.onPumpCriticalError(peripheral, reason)

@@ -97,7 +97,8 @@ class TandemMobiPumpPlugin @Inject constructor(
         .preferencesId(R.xml.pref_tandem_mobi)
         .description(R.string.description_pump_tandem_mobi),  //
     PumpType.TANDEM_T_MOBI_BT,
-    rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage,
+    rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil,
+    aapsSchedulers, pumpSync, pumpSyncStorage,
     tandemPumpDriverConfiguration, decimalFormatter, instantiator
 ), Pump, PluginConstraints /*, PumpConstraints */ {
 
@@ -115,8 +116,8 @@ class TandemMobiPumpPlugin @Inject constructor(
     private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
     //private var pumpX2Version = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
-    private var pumpX2Version = "1.3.2.1"   // TODO driver version should be referenced form build
-    private var tandemModuleVersion = "v0.3.0"
+    private var pumpX2Version = "1.3.2.4"   // TODO driver version should be referenced form build
+    private var tandemModuleVersion = "v0.3.2"
     private var wantedDriverMode = PumpDriverMode.Demo  // TODO change this (demo mode means we are not communicating with pump)
 
     override fun onStart() {
@@ -614,10 +615,11 @@ class TandemMobiPumpPlugin @Inject constructor(
         if (!isInitialized)
             return true
 
-        // if (driverMode == PumpDriverMode.Faked) {
-        //     //this.profile = profile  // TODO remove this later
-        //     pumpStatus.basalProfile = profile
-        // }
+        if (driverMode == PumpDriverMode.Demo) {
+            //this.profile = profile  // TODO remove this later
+            pumpStatus.basalProfile = profile
+            //return true
+        }
 
         // if (driverMode == PumpDriverMode.Faked) {
         //     aapsLogger.debug(LTag.PUMP, "  Faked mode: returning true")
@@ -656,7 +658,8 @@ class TandemMobiPumpPlugin @Inject constructor(
             if (pumpStatus.basalProfile == null) {
                 aapsLogger.debug("Profile is not set: ")
                 pumpStatus.baseBasalRate = 0.0
-                0.0
+                if (pumpStatus.pumpDriverMode==PumpDriverMode.Demo)
+                    0.05 else 0.0
             } else {
                 val gc = GregorianCalendar()
                 val time = gc[Calendar.HOUR_OF_DAY] * 60 * 60 + (gc[Calendar.MINUTE] * 60).toLong()
@@ -764,10 +767,12 @@ class TandemMobiPumpPlugin @Inject constructor(
 
             val commandResponse = pumpConnectionManager.deliverBolus(detailedBolusInfo)
 
-            if (commandResponse!=null && commandResponse.isSuccess) {
+            if (commandResponse.isSuccess) {
                 val now = System.currentTimeMillis()
 
                 detailedBolusInfo.bolusTimestamp = now
+
+                this.pumpStatus.lastBolus = detailedBolusInfo
 
                 // we subtract insulin, exact amount will be visible with next remainingInsulin update.
                 //pumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin
@@ -867,15 +872,16 @@ class TandemMobiPumpPlugin @Inject constructor(
             val commandResponse = pumpConnectionManager.setTemporaryBasal(percent, durationInMinutes)
             aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent - setTBR. Response: " + commandResponse)
             if (commandResponse!=null && commandResponse.isSuccess) {
-                pumpStatus.tempBasalStart = System.currentTimeMillis()
-                pumpStatus.tempBasalPercent = percent
-                pumpStatus.tempBasalDuration = durationInMinutes
-                pumpStatus.tempBasalEnd = System.currentTimeMillis() + durationInMinutes * 60 * 1000
 
-                readPumpHistoryAfterAction(tempBasalInfo = TempBasalPair(
+                var tbr = TempBasalPair(
                     insulinRate = percent.toDouble(),
                     isPercent = true,
-                    durationMinutes = durationInMinutes))
+                    durationMinutes = durationInMinutes)
+
+                pumpStatus.currentTempBasal = tbr
+                pumpStatus.currentTempBasalEstimatedEnd = System.currentTimeMillis() + (durationInMinutes * 60 * 1000)
+
+                readPumpHistoryAfterAction(tempBasalInfo = tbr)
 
                 incrementStatistics(TandemPumpConst.Statistics.TBRsSet)
                 PumpEnactResultObject(rh).success(true).enacted(true) //
@@ -922,7 +928,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     private fun readPumpHistoryAfterAction(bolusInfo: DetailedBolusInfo? = null,
                                            tempBasalInfo: TempBasalPair? = null,
                                            profile: Profile? = null) {
-        // TODO
+        // TODO readPumpHistoryAfterAction
         // if (true)
         //     return
         aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistoryAfterAction N/A.")
@@ -1021,6 +1027,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 if (tbrCurrent.insulinRate == 0.0 && tbrCurrent.durationMinutes == 0) {
                     aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - TBR already canceled.")
                     finishAction("TBR")
+                    pumpStatus.clearTbr()
                     return PumpEnactResultObject(rh).success(true).enacted(false)
                 }
             } else {
@@ -1034,6 +1041,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - Cancel TBR successful.")
 
                 readPumpHistoryAfterAction(tempBasalInfo = TempBasalPair(0.0, true, 0))
+                pumpStatus.clearTbr()
 
                 PumpEnactResultObject(rh).success(true).enacted(true) //
                     .isTempCancel(true)
@@ -1052,7 +1060,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun generateTempId(objectA: Any): Long {
-        TODO("Not yet implemented")
+        return 0L
     }
 
     //    @NotNull @Override
@@ -1101,7 +1109,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 //         commandResponse = CommandResponse.builder().success(true).build()
                 //     }, null)
 
-                // TODO
+                // TODO setBasalProfile
                 resultCommandResponse = pumpConnectionManager.setBasalProfile(profile)
 
             } else {
@@ -1119,8 +1127,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 //                    .comment(getrh().gs(R.string.medtronic_cmd_set_profile_pattern_overflow, profileInvalid));
 //        }
 
-            // TODO setProfile 1.5 (Ui) and 1.6 send command
-            //val commandResponse = pumpConnectionManager.setBasalProfile(profile)
+
             aapsLogger.info(LTag.PUMP, logPrefix + "Basal Profile was set: " + resultCommandResponse)
             if (resultCommandResponse != null && resultCommandResponse.isSuccess) {
                 pumpStatus.basalProfile = profile
@@ -1177,10 +1184,6 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     // OPERATIONS not supported by Pump or Plugin
 
-
-    // override fun generateTempId(dataObject: Any?): Long {
-    //     return 0L
-    // }
 
     init {
         displayConnectionMessages = true
