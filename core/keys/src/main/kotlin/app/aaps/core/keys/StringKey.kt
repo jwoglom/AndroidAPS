@@ -10,8 +10,8 @@ enum class StringKey(
     override val dependency: BooleanPreferenceKey? = null,
     override val negativeDependency: BooleanPreferenceKey? = null,
     override val hideParentScreenIfHidden: Boolean = false,
-    val isPassword: Boolean = false,
-    val isPin: Boolean = false
+    override val isPassword: Boolean = false,
+    override val isPin: Boolean = false
 ) : StringPreferenceKey {
 
     GeneralUnits("units", "mg/dl"),
@@ -19,6 +19,8 @@ enum class StringKey(
     GeneralPatientName("patient_name", ""),
     GeneralSkin("skin", ""),
     GeneralDarkMode("use_dark_mode", "dark", defaultedBySM = true),
+
+    AapsDirectoryUri("aaps_directory", ""),
 
     ProtectionMasterPassword("master_password", "", isPassword = true),
     ProtectionSettingsPassword("settings_password", "", isPassword = true),
@@ -37,7 +39,8 @@ enum class StringKey(
     AutomationLocation("location", "PASSIVE", hideParentScreenIfHidden = true),
 
     SmsAllowedNumbers("smscommunicator_allowednumbers", ""),
-    SmsOtpPassword("smscommunicator_otp_password", "", dependency = BooleanKey.SmsAllowRemoteCommands),
+    SmsOtpPassword("smscommunicator_otp_password", "", dependency = BooleanKey.SmsAllowRemoteCommands, isPassword = true),
+    SmsOtpSecret("smscommunicator_otp_secret", ""), // Move to StringNonKey
 
     VirtualPumpType("virtualpump_type", "Generic AAPS"),
 
@@ -48,4 +51,5 @@ enum class StringKey(
     TidepoolUsername("tidepool_username", ""),
     TidepoolPassword("tidepool_password", "", isPassword = true),
     TidepoolTestLogin(key = "tidepool_test_login", ""),
+    GarminRequestKey(key = "garmin_aaps_key", defaultValue = ""),
 }

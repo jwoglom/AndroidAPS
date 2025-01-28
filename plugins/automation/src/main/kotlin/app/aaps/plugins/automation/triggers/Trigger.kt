@@ -17,7 +17,6 @@ import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.Preferences
 import app.aaps.plugins.automation.R
@@ -38,7 +37,6 @@ abstract class Trigger(val injector: HasAndroidInjector) {
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var profileUtil: ProfileUtil
-    @Inject lateinit var sp: SP
     @Inject lateinit var preferences: Preferences
     @Inject lateinit var locationDataContainer: LastLocationDataContainer
     @Inject lateinit var persistenceLayer: PersistenceLayer
@@ -96,6 +94,7 @@ abstract class Trigger(val injector: HasAndroidInjector) {
                 TriggerBTDevice::class.java.simpleName           -> TriggerBTDevice(injector).fromJSON(data.toString())
                 TriggerSensorAge::class.java.simpleName          -> TriggerSensorAge(injector).fromJSON(data.toString())
                 TriggerCannulaAge::class.java.simpleName         -> TriggerCannulaAge(injector).fromJSON(data.toString())
+                TriggerPodChange::class.java.simpleName          -> TriggerPodChange(injector).fromJSON(data.toString())
                 TriggerInsulinAge::class.java.simpleName         -> TriggerInsulinAge(injector).fromJSON(data.toString())
                 TriggerReservoirLevel::class.java.simpleName     -> TriggerReservoirLevel(injector).fromJSON(data.toString())
                 TriggerPumpBatteryAge::class.java.simpleName     -> TriggerPumpBatteryAge(injector).fromJSON(data.toString())
@@ -115,6 +114,7 @@ abstract class Trigger(val injector: HasAndroidInjector) {
                 TriggerTime::class.java.simpleName               -> TriggerTime(injector).fromJSON(data.toString())
                 TriggerTimeRange::class.java.simpleName          -> TriggerTimeRange(injector).fromJSON(data.toString())
                 TriggerWifiSsid::class.java.simpleName           -> TriggerWifiSsid(injector).fromJSON(data.toString())
+                TriggerStepsCount::class.java.simpleName         -> TriggerStepsCount(injector).fromJSON(data.toString())
 
                 else                                             -> TriggerConnector(injector)
             }

@@ -88,7 +88,7 @@ class OpenAPSAMAPlugin @Inject constructor(
         .shortName(R.string.oaps_shortname)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
         .preferencesVisibleInSimpleMode(false)
-        .showInList(config.APS)
+        .showInList { config.APS }
         .description(R.string.description_ama),
     aapsLogger, rh
 ), APS, PluginConstraints {
@@ -102,15 +102,19 @@ class OpenAPSAMAPlugin @Inject constructor(
         return try {
             val pump = activePlugin.activePump
             pump.pumpDescription.isTempBasalCapable
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
             // may fail during initialization
             true
         }
     }
 
     override fun specialShowInListCondition(): Boolean {
-        val pump = activePlugin.activePump
-        return pump.pumpDescription.isTempBasalCapable
+        try {
+            val pump = activePlugin.activePump
+            return pump.pumpDescription.isTempBasalCapable
+        } catch (_: Exception) {
+            return true
+        }
     }
 
     override fun invoke(initiator: String, tempBasalFallback: Boolean) {

@@ -26,8 +26,8 @@ class NSClientSourcePlugin @Inject constructor(
         .pluginName(R.string.ns_client_bg)
         .shortName(R.string.ns_client_bg_short)
         .description(R.string.description_source_ns_client)
-        .alwaysEnabled(config.NSCLIENT)
-        .setDefault(config.NSCLIENT),
+        .alwaysEnabled(config.AAPSCLIENT)
+        .setDefault(config.AAPSCLIENT),
     aapsLogger, rh
 ), BgSource, NSClientSource {
 
@@ -40,10 +40,12 @@ class NSClientSourcePlugin @Inject constructor(
         if (glucoseValue.timestamp > lastBGTimeStamp) {
             isAdvancedFilteringEnabled = arrayOf(
                 SourceSensor.DEXCOM_NATIVE_UNKNOWN,
-                SourceSensor.DEXCOM_G6_NATIVE,
                 SourceSensor.DEXCOM_G5_NATIVE,
+                SourceSensor.DEXCOM_G6_NATIVE,
+                SourceSensor.DEXCOM_G7_NATIVE,
+                SourceSensor.DEXCOM_G5_NATIVE_XDRIP,
                 SourceSensor.DEXCOM_G6_NATIVE_XDRIP,
-                SourceSensor.DEXCOM_G5_NATIVE_XDRIP
+                SourceSensor.DEXCOM_G7_NATIVE_XDRIP,
             ).any { it == glucoseValue.sourceSensor }
             lastBGTimeStamp = glucoseValue.timestamp
         }

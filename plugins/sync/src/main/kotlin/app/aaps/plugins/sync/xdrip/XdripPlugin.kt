@@ -19,6 +19,7 @@ import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.ProcessedTbrEbData
+import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -90,7 +91,8 @@ class XdripPlugin @Inject constructor(
     private val dateUtil: DateUtil,
     aapsLogger: AAPSLogger,
     private val config: Config,
-    private val decimalFormatter: DecimalFormatter
+    private val decimalFormatter: DecimalFormatter,
+    private val glucoseStatusProvider: GlucoseStatusProvider
 ) : XDripBroadcast, Sync, PluginBase(
     PluginDescription()
         .mainType(PluginType.SYNC)
@@ -108,7 +110,7 @@ class XdripPlugin @Inject constructor(
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val disposable = CompositeDisposable()
-    private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
+    private var handler: Handler? = null
     private val listLog: MutableList<EventXdripNewLog> = ArrayList()
 
     // Not used Sync interface members
@@ -118,6 +120,7 @@ class XdripPlugin @Inject constructor(
 
     override fun onStart() {
         super.onStart()
+        handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
         disposable += rxBus
             .toObservable(EventAppExit::class.java)
             .observeOn(aapsSchedulers.io)
@@ -152,12 +155,13 @@ class XdripPlugin @Inject constructor(
 
     override fun onStop() {
         super.onStop()
-        handler.removeCallbacksAndMessages(null)
+        handler?.removeCallbacksAndMessages(null)
+        handler = null
         disposable.clear()
     }
 
     fun clearLog() {
-        handler.post {
+        handler?.post {
             synchronized(listLog) { listLog.clear() }
             rxBus.send(EventXdripUpdateGUI())
         }
@@ -181,7 +185,7 @@ class XdripPlugin @Inject constructor(
                 for (log in listLog) newTextLog.append(log.toPreparedHtml())
             }
             return HtmlHelper.fromHtml(newTextLog.toString())
-        } catch (e: OutOfMemoryError) {
+        } catch (_: OutOfMemoryError) {
             uiInteraction.showToastAndNotification(context, "Out of memory!\nStop using this phone !!!", app.aaps.core.ui.R.raw.error)
         }
         return HtmlHelper.fromHtml("")
@@ -257,7 +261,7 @@ class XdripPlugin @Inject constructor(
                 .append("|")
                 .append(decimalFormatter.to2Decimal(basalIob.basaliob))
                 .append(")")
-        if (preferences.get(BooleanKey.XdripSendBgi)) {
+        if (preferences.get(BooleanKey.XdripSendBgi) && glucoseStatusProvider.glucoseStatusData != null) {
             val bgi = -(bolusIob.activity + basalIob.activity) * 5 * profileUtil.fromMgdlToUnits(profile.getIsfMgdl("XdripPlugin"))
             status.append(" ")
                 .append(if (bgi >= 0) "+" else "")
@@ -283,7 +287,7 @@ class XdripPlugin @Inject constructor(
             aapsLogger.debug(rh.gs(R.string.xdrip_not_installed))
             false
         } else {
-            ToastUtils.errorToast(context, R.string.calibration_sent)
+            ToastUtils.infoToast(context, R.string.calibration_sent)
             aapsLogger.debug(rh.gs(R.string.calibration_sent))
             true
         }

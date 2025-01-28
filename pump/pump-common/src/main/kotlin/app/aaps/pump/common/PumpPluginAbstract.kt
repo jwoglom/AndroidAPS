@@ -4,11 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.text.format.DateFormat
-import app.aaps.core.data.model.BS
 import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
-import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -29,23 +27,16 @@ import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventAppExit
 import app.aaps.core.interfaces.rx.events.EventCustomActionsChanged
-import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
-import app.aaps.implementation.pump.PumpEnactResultObject
-import app.aaps.pump.common.driver.PumpDriverConfiguration
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import app.aaps.pump.common.defs.PumpDriverAction
-import info.nightscout.pump.common.R
 import app.aaps.pump.common.data.PumpStatus
-import app.aaps.pump.common.driver.PumpDriverConfigurationCapable
-import info.nightscout.pump.common.defs.PumpDriverState
-import app.aaps.pump.common.sync.PumpDbEntryCarbs
+import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.sync.PumpSyncEntriesCreator
 import app.aaps.pump.common.sync.PumpSyncStorage
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import org.json.JSONException
 import org.json.JSONObject
@@ -71,12 +62,11 @@ abstract class PumpPluginAbstract protected constructor(
     var pumpSyncStorage: PumpSyncStorage,
     val pumpDriverConfigurationInternal: PumpDriverConfiguration,
     var decimalFormatter: DecimalFormatter,
-    var instantiator: Instantiator
+    protected var instantiator: Instantiator
 ) : PumpPluginBase(pluginDescription, aapsLogger, rh, commandQueue), Pump, PluginConstraints,
     PumpDriverConfigurationCapable, /*Constraints,*/ PumpSyncEntriesCreator {
 
     protected val disposable = CompositeDisposable()
-
 
     // Pump capabilities
     final override var pumpDescription = PumpDescription()
@@ -272,7 +262,7 @@ abstract class PumpPluginAbstract protected constructor(
             extended.put("Version", version)
             try {
                 extended.put("ActiveProfile", profileName)
-            } catch (ignored: Exception) {
+            } catch (_: Exception) {
             }
             val tb = pumpSync.expectedPumpState().temporaryBasal
             if (tb != null) {
@@ -314,8 +304,8 @@ abstract class PumpPluginAbstract protected constructor(
                 ret += "LastBolus: ${decimalFormatter.to2Decimal(pumpStatusData.lastBolusAmount!!)}U @${DateFormat.format("HH:mm", it)}\n"
             }
         }
-        pumpSync.expectedPumpState().temporaryBasal?.let { ret += "Temp: ${it.toStringFull(dateUtil, decimalFormatter)}\n" }
-        pumpSync.expectedPumpState().extendedBolus?.let { ret += "Extended: ${it.toStringFull(dateUtil, decimalFormatter)}\n" }
+        pumpSync.expectedPumpState().temporaryBasal?.let { ret += "Temp: ${it.toStringFull(dateUtil, rh)}\n" }
+        pumpSync.expectedPumpState().extendedBolus?.let { ret += "Extended: ${it.toStringFull(dateUtil, rh)}\n" }
         ret += "IOB: ${pumpStatusData.iob}U\n"
         ret += "Reserv: ${decimalFormatter.to0Decimal(pumpStatusData.reservoirRemainingUnits)}U\n"
         ret += "Batt: ${pumpStatusData.batteryRemaining}\n"
@@ -370,7 +360,7 @@ abstract class PumpPluginAbstract protected constructor(
         rxBus.send(EventCustomActionsChanged())
     }
 
-    override fun manufacturer(): ManufacturerType = pumpType.manufacturer ?: ManufacturerType.AAPS
+    override fun manufacturer(): ManufacturerType = pumpType.manufacturer() ?: ManufacturerType.AAPS
     override fun model(): PumpType = pumpType
     override fun canHandleDST(): Boolean = pumpDriverConfigurationInternal.canHandleDST
 
@@ -378,14 +368,8 @@ abstract class PumpPluginAbstract protected constructor(
 
     protected abstract fun triggerUIChange()
 
-    protected fun incrementStatistics(statsKey: String) {
-        var currentCount: Long = sp.getLong(statsKey, 0L)
-        currentCount++
-        sp.putLong(statsKey, currentCount)
-    }
-
     private fun getOperationNotSupportedWithCustomText(resourceId: Int): PumpEnactResult =
-        PumpEnactResultObject(rh).success(false).enacted(false).comment(resourceId)
+        instantiator.providePumpEnactResult().success(false).enacted(false).comment(resourceId)
 
     init {
         pumpDescription.fillFor(pumpType)

@@ -30,30 +30,6 @@
             android:value="@integer/google_play_services_version" />
 
         <service
-            android:name=".watchfaces.AapsLargeWatchface"
-            android:allowEmbedded="true"
-            android:exported="false"
-            android:label="@string/label_watchface_large"
-            android:permission="android.permission.BIND_WALLPAPER">
-            <meta-data
-                android:name="android.service.wallpaper"
-                android:resource="@xml/watch_face" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.preview"
-                android:resource="@drawable/watchface_dark" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.wearableConfigurationAction"
-                android:value="watch_face_configuration_largehome" />
-
-            <intent-filter>
-                <action android:name="android.service.wallpaper.WallpaperService" />
-                <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
-
-                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
-                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
-            </intent-filter>
-        </service>
-        <service
             android:name=".watchfaces.CircleWatchface"
             android:allowEmbedded="true"
             android:exported="false"
@@ -225,6 +201,42 @@
             android:exported="true"
             android:icon="@drawable/ic_br_cob_iob"
             android:label="@string/complication_br_cob_iob"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="300" />
+        </service>
+
+        <service
+            android:name=".complications.BrIobComplication"
+            android:exported="true"
+            android:icon="@drawable/ic_br_iob"
+            android:label="@string/complication_br_iob"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="300" />
+        </service>
+
+        <service
+            android:name=".complications.BrComplication"
+            android:exported="true"
+            android:icon="@drawable/ic_br"
+            android:label="@string/complication_br"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -448,6 +460,34 @@
                 android:resource="@drawable/quick_wizard_tile_preview" />
         </service>
 
+        <service
+            android:name=".tile.UserActionTileService"
+            android:exported="true"
+            android:label="@string/label_user_action_tile"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/user_action_tiles" />
+        </service>
+
+        <service
+            android:name=".tile.LoopStateTileService"
+            android:exported="true"
+            android:label="@string/label_loop_state_title"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/loop_states_tile" />
+        </service>
+
         <receiver android:name=".complications.ComplicationTapBroadcastReceiver" />
 
         <activity
@@ -518,6 +558,10 @@
             android:exported="true" />
 
         <activity
+            android:name=".interaction.actions.LoopStateTimedActivity"
+            android:exported="true" />
+
+        <activity
             android:name=".interaction.ConfigurationActivity"
             android:exported="true">
             <intent-filter>
@@ -525,7 +569,6 @@
                 <action android:name="watch_face_configuration_circle" />
                 <action android:name="watch_face_configuration_custom" />
                 <action android:name="watch_face_configuration_digitalstyle" />
-                <action android:name="watch_face_configuration_largehome" />
 
                 <category android:name="com.google.android.wearable.watchface.category.WEARABLE_CONFIGURATION" />
                 <category android:name="android.intent.category.DEFAULT" />

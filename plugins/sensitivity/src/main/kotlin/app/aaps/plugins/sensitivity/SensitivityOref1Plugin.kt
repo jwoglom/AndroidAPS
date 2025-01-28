@@ -146,7 +146,7 @@ class SensitivityOref1Plugin @Inject constructor(
             if (deviations.size < deviationCategory[i]) {
                 val pad = ((1 - deviations.size.toDouble() / deviationCategory[i]) * 18).roundToInt()
                 aapsLogger.debug(LTag.AUTOSENS, "Adding $pad more zero deviations")
-                for (d in 0 until pad) {
+                (0 until pad).forEach {
                     deviations.add(0.0)
                 }
             }
@@ -243,7 +243,7 @@ class SensitivityOref1Plugin @Inject constructor(
             key = "sensitivity_oref1_settings"
             title = rh.gs(R.string.absorption_settings_title)
             initialExpandedChildrenCount = 0
-            addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsAmaMin5MinCarbsImpact, dialogMessage = R.string.openapsama_min_5m_carb_impact_summary, title = R.string.openapsama_min_5m_carb_impact))
+            addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsSmbMin5MinCarbsImpact, dialogMessage = R.string.openapsama_min_5m_carb_impact_summary, title = R.string.openapsama_min_5m_carb_impact))
             addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AbsorptionCutOff, dialogMessage = R.string.absorption_cutoff_summary, title = R.string.absorption_cutoff_title))
             addPreference(preferenceManager.createPreferenceScreen(context).apply {
                 key = "absorption_oref1_advanced"

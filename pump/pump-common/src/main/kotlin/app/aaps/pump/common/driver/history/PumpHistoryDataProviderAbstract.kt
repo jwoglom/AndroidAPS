@@ -1,6 +1,6 @@
 package app.aaps.pump.common.driver.history
 
-import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
+import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import java.util.Calendar
 import java.util.GregorianCalendar
 

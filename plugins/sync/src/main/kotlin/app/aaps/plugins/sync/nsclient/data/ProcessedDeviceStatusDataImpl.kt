@@ -7,7 +7,6 @@ import app.aaps.core.interfaces.nsclient.NSSettingsStatus
 import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.objects.Instantiator
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.keys.IntKey
@@ -21,7 +20,6 @@ import javax.inject.Singleton
 class ProcessedDeviceStatusDataImpl @Inject constructor(
     private val rh: ResourceHelper,
     private val dateUtil: DateUtil,
-    private val sp: SP,
     private val preferences: Preferences,
     private val instantiator: Instantiator
 ) : ProcessedDeviceStatusData {
@@ -80,12 +78,14 @@ class ProcessedDeviceStatusDataImpl @Inject constructor(
             val suggested = openAPSData.suggested
             if (enacted != null && openAPSData.clockEnacted != openAPSData.clockSuggested) string
                 .append("<b>")
+                .append("Enacted: </br>")
                 .append(dateUtil.minAgo(rh, openAPSData.clockEnacted))
                 .append("</b> ")
                 .append(enacted.reason)
                 .append("<br>")
             if (suggested != null) string
                 .append("<b>")
+                .append("Suggested: </br>")
                 .append(dateUtil.minAgo(rh, openAPSData.clockSuggested))
                 .append("</b> ")
                 .append(suggested.reason)
@@ -146,7 +146,7 @@ class ProcessedDeviceStatusDataImpl @Inject constructor(
                 val uploader = pair.value as ProcessedDeviceStatusData.Uploader
                 if (minBattery >= uploader.battery) {
                     minBattery = uploader.battery
-                    isCharging = uploader.isCharging ?: false
+                    isCharging = uploader.isCharging == true
                     found = true
                 }
             }

@@ -69,8 +69,9 @@ data class GlucoseValue(
 
     enum class SourceSensor {
         DEXCOM_NATIVE_UNKNOWN,
-        DEXCOM_G6_NATIVE,
         DEXCOM_G5_NATIVE,
+        DEXCOM_G6_NATIVE,
+        DEXCOM_G7_NATIVE,
         DEXCOM_G4_WIXEL,
         DEXCOM_G4_XBRIDGE,
         DEXCOM_G4_NATIVE,
@@ -82,6 +83,7 @@ data class GlucoseValue(
         DEXCOM_G5_NATIVE_XDRIP,
         DEXCOM_G6_NATIVE_XDRIP,
         DEXCOM_G7_NATIVE_XDRIP,
+        DEXCOM_G7_XDRIP,
         LIBRE_1_OTHER,
         LIBRE_1_NET,
         LIBRE_1_BLUE,
@@ -93,7 +95,9 @@ data class GlucoseValue(
         LIBRE_1_BUBBLE,
         LIBRE_1_ATOM,
         LIBRE_1_GLIMP,
+        LIBRE_2,
         LIBRE_2_NATIVE,
+        LIBRE_3,
         POCTECH_NATIVE,
         GLUNOVO_NATIVE,
         INTELLIGO_NATIVE,

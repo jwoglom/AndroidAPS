@@ -14,15 +14,14 @@ import androidx.recyclerview.widget.RecyclerView
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
-import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
+import app.aaps.pump.common.R
+import app.aaps.pump.common.databinding.PumpHistoryActivityBinding
+import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.common.driver.PumpDriverConfigurationCapable
 import app.aaps.pump.common.driver.history.PumpHistoryDataProvider
 import app.aaps.pump.common.driver.history.PumpHistoryEntry
 import app.aaps.pump.common.driver.history.PumpHistoryText
-import info.nightscout.pump.common.R
-import info.nightscout.pump.common.databinding.PumpHistoryActivityBinding
-import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
 import javax.inject.Inject
 
 class PumpHistoryActivity : TranslatedDaggerAppCompatActivity() {
@@ -156,7 +155,7 @@ class PumpHistoryActivity : TranslatedDaggerAppCompatActivity() {
 
     class TypeList internal constructor(var entryGroup: PumpHistoryEntryGroup) {
 
-        var name: String
+        var name: String = entryGroup.translated!!
         override fun toString(): String {
             return name
         }
@@ -195,15 +194,9 @@ class PumpHistoryActivity : TranslatedDaggerAppCompatActivity() {
 
         class HistoryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
-            var timeView: TextView
-            var typeView: TextView
-            var valueView: TextView
-
-            init {
-                timeView = itemView.findViewById(R.id.pump_history_time)
-                typeView = itemView.findViewById(R.id.pump_history_source)
-                valueView = itemView.findViewById(R.id.pump_history_description)
-            }
+            var timeView: TextView = itemView.findViewById(R.id.pump_history_time)
+            var typeView: TextView = itemView.findViewById(R.id.pump_history_source)
+            var valueView: TextView = itemView.findViewById(R.id.pump_history_description)
         }
 
     }

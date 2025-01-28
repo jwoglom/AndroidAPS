@@ -1,8 +1,8 @@
 package app.aaps.pump.common.driver.history
 
 import androidx.annotation.StringRes
-import info.nightscout.pump.common.R
-import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
+import app.aaps.pump.common.R
+import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 
 interface PumpHistoryDataProvider {
 
@@ -43,7 +43,7 @@ interface PumpHistoryDataProvider {
 
 }
 
-enum class PumpHistoryPeriod constructor(
+enum class PumpHistoryPeriod(
     @StringRes var stringId: Int,
     var isHours: Boolean = false
 ) {

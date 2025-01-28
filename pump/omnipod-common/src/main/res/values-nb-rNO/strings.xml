@@ -35,7 +35,6 @@
     <string name="omnipod_common_error_unexpected_exception">En uventet feil oppstod. Vennligst rapporter! (%1$s: %2$s).</string>
     <!-- Omnipod - Confirmation -->
     <string name="omnipod_common_confirmation">Bekreftelse</string>
-    <string name="omnipod_common_confirmation_time_or_timezone_change">Tid og/eller tidssone endret på Pod.</string>
     <string name="omnipod_common_confirmation_expiration_alerts_updated">Varselinnstillinger har blitt oppdatert på Pod.</string>
     <string name="omnipod_common_confirmation_time_on_pod_updated">Tiden på Pod har blitt oppdatert.</string>
     <string name="omnipod_common_confirmation_suspended_delivery">All insulinlevering har blitt pauset.</string>
@@ -117,9 +116,10 @@
     <string name="omnipod_common_preferences_category_alerts">Varsler</string>
     <string name="omnipod_common_preferences_category_confirmation_beeps">Bekreftelseslyd</string>
     <string name="omnipod_common_preferences_category_notifications">Varsler</string>
-    <string name="omnipod_common_preferences_notification_uncertain_tbr_sound_enabled">Lydvarsel for ubekreftet midlertidig basaldosering (TBR) er aktivert</string>
-    <string name="omnipod_common_preferences_notification_uncertain_smb_sound_enabled">Lydvarsel for ubekreftet SMB er aktivert</string>
-    <string name="omnipod_common_preferences_notification_uncertain_bolus_sound_enabled">Lydvarsel for ubekreftet bolus er aktivert</string>
+    <string name="omnipod_common_preferences_notification_uncertain_tbr_sound_enabled">Lydvarsel for ubekreftet midlertidig basal</string>
+    <string name="omnipod_common_preferences_notification_uncertain_smb_sound_enabled">Lydvarsel for ubekreftet SMB</string>
+    <string name="omnipod_common_preferences_notification_uncertain_bolus_sound_enabled">Lydvarsel for ubekreftet bolus</string>
+    <string name="omnipod_dash_use_bonding">Bond BT-enhet på Android 15+ (alternativ løsning for Pixel-telefoner)</string>
     <!-- Omnipod - Pod Status -->
     <string name="omnipod_common_pod_status_no_active_pod">Ingen aktiv Pod</string>
     <string name="omnipod_common_pod_status_waiting_for_activation">Oppsett pågår (venter på Pod-aktivering)</string>
@@ -128,7 +128,6 @@
     <string name="omnipod_common_pod_status_normal">Normal</string>
     <string name="omnipod_common_pod_status_suspended">Pauset</string>
     <string name="omnipod_common_pod_status_pod_fault">Pod-feil</string>
-    <string name="omnipod_common_pod_status_activation_time_exceeded">Aktiveringstiden er overskredet</string>
     <string name="omnipod_common_pod_status_inactive">Inaktiv</string>
     <string name="omnipod_common_pod_status_pod_fault_description">Pod feil: %1$03d %2$s</string>
     <!-- Omnipod - Commands -->
@@ -154,7 +153,6 @@
     <string name="omnipod_common_cmd_set_fake_suspended_tbr">Angi vilkårlig midlertidig basal fordi Pod er pauset</string>
     <string name="omnipod_common_cmd_cancel_fake_suspended_tbr">Avbryt vilkårlig midlertidig basal som er opprettet fordi Pod var pauset</string>
     <string name="omnipod_common_cmd_split_tbr">Del midlertidig basal fordi en uavklart feil ble oppdaget ved kanselleringen</string>
-    <string name="omnipod_common_cmd_beep_config">Lydinnstillinger</string>
     <string name="omnipod_common_cmd_play_test_beep">Spill av testlyd</string>
     <!-- Omnipod - Alerts -->
     <string name="omnipod_common_alert_finish_pairing_reminder">Påminnelse om å fullføre sammenkobling</string>
@@ -167,8 +165,8 @@
     <!-- Omnipod - Short status -->
     <string name="omnipod_common_short_status_no_active_pod">Ingen aktiv Pod</string>
     <string name="omnipod_common_short_status_last_connection">Siste tilkobling: %1$d min siden</string>
-    <string name="omnipod_common_short_status_last_bolus">Siste bolus: %1$s @ %2$s</string>
-    <string name="omnipod_common_short_status_temp_basal">Temp: %1$s</string>
+    <string name="omnipod_common_short_status_last_bolus">Siste bolus: %1$s E @%2$s</string>
+    <string name="omnipod_common_short_status_temp_basal">Midl. basal: %1$s</string>
     <string name="omnipod_common_short_status_extended_bolus">Forlenget: %1$s</string>
     <string name="omnipod_common_short_status_reservoir">Reservoar: %1$s E</string>
     <!-- Omnipod - Other -->

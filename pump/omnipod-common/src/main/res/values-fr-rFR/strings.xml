@@ -35,7 +35,6 @@
     <string name="omnipod_common_error_unexpected_exception">Erreur inconnue. Veuillez signaler ! (%1$s : %2$s).</string>
     <!-- Omnipod - Confirmation -->
     <string name="omnipod_common_confirmation">Confirmation</string>
-    <string name="omnipod_common_confirmation_time_or_timezone_change">Heure et/ou fuseau horaire changé sur le Pod.</string>
     <string name="omnipod_common_confirmation_expiration_alerts_updated">Configuration des alertes mise à jour dans le Pod.</string>
     <string name="omnipod_common_confirmation_time_on_pod_updated">L\'heure du Pod a été mise à jour.</string>
     <string name="omnipod_common_confirmation_suspended_delivery">Toutes les injections d\'insuline ont été suspendues.</string>
@@ -118,7 +117,6 @@
     <string name="omnipod_common_preferences_category_confirmation_beeps">Bips de confirmation</string>
     <string name="omnipod_common_preferences_category_notifications">Notifications</string>
     <string name="omnipod_common_preferences_notification_uncertain_tbr_sound_enabled">Son pour les notifications DBT incertains activé</string>
-    <string name="omnipod_common_preferences_notification_uncertain_smb_sound_enabled">Son pour les notifications SMB incertains activé</string>
     <string name="omnipod_common_preferences_notification_uncertain_bolus_sound_enabled">Son pour les notifications bolus incertains activé</string>
     <!-- Omnipod - Pod Status -->
     <string name="omnipod_common_pod_status_no_active_pod">Pas de Pod actif</string>
@@ -128,7 +126,6 @@
     <string name="omnipod_common_pod_status_normal">Normal</string>
     <string name="omnipod_common_pod_status_suspended">Suspendu</string>
     <string name="omnipod_common_pod_status_pod_fault">Défaut Pod</string>
-    <string name="omnipod_common_pod_status_activation_time_exceeded">Délai d\'activation dépassé</string>
     <string name="omnipod_common_pod_status_inactive">Inactif</string>
     <string name="omnipod_common_pod_status_pod_fault_description">Défaut du Pod : %1$03d %2$s</string>
     <!-- Omnipod - Commands -->
@@ -154,7 +151,6 @@
     <string name="omnipod_common_cmd_set_fake_suspended_tbr">Définir un faux débit de basal temporaire car le Pod est suspendu</string>
     <string name="omnipod_common_cmd_cancel_fake_suspended_tbr">Annuler le faux débit de basal temporaire créé à cause du Pod suspendu</string>
     <string name="omnipod_common_cmd_split_tbr">Fractionner la basale temporaire en raison de l\'incertitude de l\'annulation</string>
-    <string name="omnipod_common_cmd_beep_config">Configuration bips</string>
     <string name="omnipod_common_cmd_play_test_beep">Tester bips</string>
     <!-- Omnipod - Alerts -->
     <string name="omnipod_common_alert_finish_pairing_reminder">Rappel fin d\'appairage</string>
@@ -167,7 +163,7 @@
     <!-- Omnipod - Short status -->
     <string name="omnipod_common_short_status_no_active_pod">Pas de Pod actif</string>
     <string name="omnipod_common_short_status_last_connection">Dernière connexion : il y a %1$d min</string>
-    <string name="omnipod_common_short_status_last_bolus">Dernier bolus : %1$s @ %2$s</string>
+    <string name="omnipod_common_short_status_last_bolus">Dernier bolus: %1$sU @ %2$s</string>
     <string name="omnipod_common_short_status_temp_basal">Temps : %1$s</string>
     <string name="omnipod_common_short_status_extended_bolus">Étendu : %1$s</string>
     <string name="omnipod_common_short_status_reservoir">Réserve : %1$sU</string>

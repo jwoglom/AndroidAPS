@@ -2,6 +2,7 @@ package app.aaps.core.interfaces.rx.weardata
 
 import app.aaps.core.interfaces.rx.events.Event
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.protobuf.ProtoBuf
@@ -9,6 +10,7 @@ import java.util.Date
 import java.util.Objects
 
 @Serializable
+@OptIn(InternalSerializationApi::class)
 sealed class EventData : Event() {
 
     var sourceNodeId = ""
@@ -22,14 +24,14 @@ sealed class EventData : Event() {
 
         fun deserialize(json: String) = try {
             Json.decodeFromString(serializer(), json)
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
             Error(System.currentTimeMillis())
         }
 
         @ExperimentalSerializationApi
         fun deserializeByte(byteArray: ByteArray) = try {
             ProtoBuf.decodeFromByteArray(serializer(), byteArray)
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
             Error(System.currentTimeMillis())
         }
     }
@@ -104,6 +106,21 @@ sealed class EventData : Event() {
     data class ActionQuickWizardPreCheck(val guid: String) : EventData()
 
     @Serializable
+    data class ActionUserActionPreCheck(val id: Int, val title: String) : EventData()
+
+    @Serializable
+    data class ActionUserActionConfirmed(val id: Int, val title: String) : EventData()
+
+    @Serializable
+    data class LoopStatesRequest(val timeStamp: Long) : EventData()
+
+    @Serializable
+    data class LoopStateSelected(val timeStamp: Long, val index: Int, val duration: Int? = null) : EventData()
+
+    @Serializable
+    data class LoopStateConfirmed(val timeStamp: Long, val index: Int, val duration: Int? = null) : EventData()
+
+    @Serializable
     data class ActionHeartRate(
         val duration: Long,
         val timestamp: Long,
@@ -169,6 +186,37 @@ sealed class EventData : Event() {
     @Serializable
     data class OpenLoopRequestConfirmed(val timeStamp: Long) : EventData()
 
+    @Serializable
+    data class LoopStatesList(val timeStamp: Long, val states: List<AvailableLoopState>, val currentState: AvailableLoopState) : EventData() {
+        @Serializable
+        data class AvailableLoopState(
+            val state: LoopState,
+            val durations: List<Int>? = null,
+            val title: String? = null, // used for FAKE_DIVIDER
+        ) {
+            @Serializable
+            enum class LoopState {
+                // See LoopDialog
+                LOOP_OPEN,
+                LOOP_LGS,
+                LOOP_CLOSED,
+
+                LOOP_DISABLE,
+                LOOP_ENABLE,
+
+                LOOP_SUSPEND, // 1h, 2h, 3h, 10h
+                LOOP_RESUME,
+
+                PUMP_DISCONNECT, // 15m, 30m, 1h, 2h, 3h
+                PUMP_RECONNECT,
+
+                // Returned current statuses
+                LOOP_UNKNOWN,
+                SUPERBOLUS,
+            }
+        }
+    }
+
     // Mobile -> Wear
     @Serializable
     data class CancelNotification(val timeStamp: Long) : EventData()
@@ -189,8 +237,14 @@ sealed class EventData : Event() {
     @Serializable
     data class BolusProgress(val percent: Int, val status: String) : EventData()
 
+    interface EventDataSet {
+
+        var dataset: Int
+    }
+
     @Serializable
     data class SingleBg(
+        override var dataset: Int,
         var timeStamp: Long,
         val sgvString: String = "---",
         val glucoseUnits: String = "-",
@@ -205,8 +259,9 @@ sealed class EventData : Event() {
         val low: Double, // lowLine
         val color: Int = 0,
         val deltaMgdl: Double? = null,
-        val avgDeltaMgdl: Double? = null
-    ) : EventData(), Comparable<SingleBg> {
+        val avgDeltaMgdl: Double? = null,
+        val id: Int = 0
+    ) : EventDataSet, EventData(), Comparable<SingleBg> {
 
         override fun equals(other: Any?): Boolean =
             when {
@@ -267,6 +322,7 @@ sealed class EventData : Event() {
 
     @Serializable
     data class Status(
+        override var dataset: Int,
         val externalStatus: String,
         val iobSum: String,
         val iobDetail: String,
@@ -276,8 +332,14 @@ sealed class EventData : Event() {
         val rigBattery: String,
         val openApsStatus: Long,
         val bgi: String,
-        val batteryLevel: Int
-    ) : EventData()
+        val batteryLevel: Int,
+        val patientName: String = "",
+        val tempTarget: String,
+        val tempTargetLevel: Int,
+        val reservoirString: String,
+        val reservoir: Double,
+        val reservoirLevel: Int
+    ) : EventData(), EventDataSet
 
     @Serializable
     data class Preferences(
@@ -309,6 +371,19 @@ sealed class EventData : Event() {
     }
 
     @Serializable
+    data class UserAction(
+        val entries: ArrayList<UserActionEntry>
+    ) : EventData() {
+
+        @Serializable
+        data class UserActionEntry(
+            val timeStamp: Long,
+            val id: Int,
+            val title: String
+        ) : EventData()
+    }
+
+    @Serializable
     data class ActionSetCustomWatchface(val customWatchfaceData: CwfData) : EventData()
 
     @Serializable
@@ -332,4 +407,11 @@ sealed class EventData : Event() {
     @Serializable
     data class SnoozeAlert(val timeStamp: Long) : EventData()
 
+    // Wear -> Wear (workaround)
+    @Serializable
+    data class LoopStatePreSelect(
+        val timeStamp: Long,
+        val stateIndex: Int,
+        val durations: List<Int>
+    ) : EventData()
 }

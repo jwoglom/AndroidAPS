@@ -54,7 +54,7 @@ class LoopTest @Inject constructor() {
     @Inject lateinit var persistenceLayer: PersistenceLayer
 
     @get:Rule
-    var runtimePermissionRule = GrantPermissionRule.grant(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)!!
+    var runtimePermissionRule = GrantPermissionRule.grant(android.Manifest.permission.READ_EXTERNAL_STORAGE)!!
 
     private val context = ApplicationProvider.getApplicationContext<TestApplication>()
 
@@ -110,7 +110,7 @@ class LoopTest @Inject constructor() {
         assertThat((loopStatusEvent.second as EventLoopSetLastRunGui).text).contains("NO PROFILE SET")
 
         // Set Profile in ProfilePlugin
-        nsIncomingDataProcessor.processProfile(JSONObject(profileData))
+        nsIncomingDataProcessor.processProfile(JSONObject(profileData), false)
         assertThat(activePlugin.activeProfileSource.profile).isNotNull()
 
         // Create a profile switch

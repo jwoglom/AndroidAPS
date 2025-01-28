@@ -32,7 +32,6 @@ import app.aaps.activities.HistoryBrowseActivity
 import app.aaps.activities.PreferencesActivity
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
-import app.aaps.core.interfaces.androidPermissions.AndroidPermission
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
@@ -43,11 +42,11 @@ import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.protection.ExportPasswordDataStore
 import app.aaps.core.interfaces.protection.ProtectionCheck
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.events.EventAppExit
 import app.aaps.core.interfaces.rx.events.EventAppInitialized
-import app.aaps.core.interfaces.rx.events.EventNewNotification
 import app.aaps.core.interfaces.rx.events.EventPreferenceChange
 import app.aaps.core.interfaces.rx.events.EventRebuildTabs
 import app.aaps.core.interfaces.sharedPreferences.SP
@@ -57,7 +56,6 @@ import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.interfaces.versionChecker.VersionCheckerUtils
 import app.aaps.core.keys.BooleanKey
-import app.aaps.core.keys.Preferences
 import app.aaps.core.keys.StringKey
 import app.aaps.core.objects.crypto.CryptoUtil
 import app.aaps.core.ui.UIRunnable
@@ -68,6 +66,7 @@ import app.aaps.core.utils.isRunningRealPumpTest
 import app.aaps.databinding.ActivityMainBinding
 import app.aaps.plugins.configuration.activities.DaggerAppCompatActivityWithResult
 import app.aaps.plugins.configuration.activities.SingleFragmentActivity
+import app.aaps.plugins.configuration.maintenance.MaintenancePlugin
 import app.aaps.plugins.configuration.setupwizard.SetupWizardActivity
 import app.aaps.plugins.constraints.signatureVerifier.SignatureVerifierPlugin
 import app.aaps.ui.activities.ProfileHelperActivity
@@ -81,7 +80,6 @@ import com.joanzapata.iconify.Iconify
 import com.joanzapata.iconify.fonts.FontAwesomeModule
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
-import java.io.File
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.system.exitProcess
@@ -91,9 +89,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
     private val disposable = CompositeDisposable()
 
     @Inject lateinit var aapsSchedulers: AapsSchedulers
-    @Inject lateinit var androidPermission: AndroidPermission
     @Inject lateinit var sp: SP
-    @Inject lateinit var preferences: Preferences
     @Inject lateinit var versionCheckerUtils: VersionCheckerUtils
     @Inject lateinit var smsCommunicator: SmsCommunicator
     @Inject lateinit var loop: Loop
@@ -104,10 +100,13 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
     @Inject lateinit var iconsProvider: IconsProvider
     @Inject lateinit var constraintChecker: ConstraintsChecker
     @Inject lateinit var signatureVerifierPlugin: SignatureVerifierPlugin
+    @Inject lateinit var maitenancePlugin: MaintenancePlugin
     @Inject lateinit var uel: UserEntryLogger
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var fileListProvider: FileListProvider
     @Inject lateinit var cryptoUtil: CryptoUtil
+    @Inject lateinit var exportPasswordDataStore: ExportPasswordDataStore
+    @Inject lateinit var uiInteraction: UiInteraction
 
     private lateinit var actionBarDrawerToggle: ActionBarDrawerToggle
     private var pluginPreferencesMenuItem: MenuItem? = null
@@ -290,7 +289,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         }
         androidPermission.notifyForStoragePermission(this)
         androidPermission.notifyForBatteryOptimizationPermission(this)
-        if (!config.NSCLIENT) androidPermission.notifyForLocationPermissions(this)
+        if (!config.AAPSCLIENT) androidPermission.notifyForLocationPermissions(this)
         if (config.PUMPDRIVERS) {
             if (smsCommunicator.isEnabled())
                 androidPermission.notifyForSMSPermissions(this)
@@ -298,8 +297,44 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
             androidPermission.notifyForBtConnectPermission(this)
         }
         passwordResetCheck(this)
+        exportPasswordResetCheck(this)
+
+        // check if identification is set
+        if (config.isDev() && preferences.get(StringKey.MaintenanceIdentification).isBlank())
+            uiInteraction.addNotificationWithAction(
+                id = Notification.IDENTIFICATION_NOT_SET,
+                text = rh.gs(R.string.identification_not_set),
+                level = Notification.INFO,
+                buttonText = R.string.set,
+                action = Runnable {
+                    preferences.put(BooleanKey.GeneralSimpleMode, false)
+                    startActivity(
+                        Intent(this@MainActivity, PreferencesActivity::class.java)
+                            .setAction("info.nightscout.androidaps.MainActivity")
+                            .putExtra(UiInteraction.PLUGIN_NAME, MaintenancePlugin::class.java.simpleName)
+                    )
+                },
+                validityCheck = { config.isDev() && preferences.get(StringKey.MaintenanceIdentification).isBlank() }
+            )
+
         if (preferences.get(StringKey.ProtectionMasterPassword) == "")
-            rxBus.send(EventNewNotification(Notification(Notification.MASTER_PASSWORD_NOT_SET, rh.gs(R.string.master_password_not_set), Notification.NORMAL)))
+            uiInteraction.addNotificationWithAction(
+                id = Notification.MASTER_PASSWORD_NOT_SET,
+                text = rh.gs(app.aaps.core.ui.R.string.master_password_not_set),
+                level = Notification.NORMAL,
+                buttonText = R.string.set,
+                action = { startActivity(Intent(this@MainActivity, PreferencesActivity::class.java).setAction("info.nightscout.androidaps.MainActivity").putExtra(UiInteraction.PREFERENCE, UiInteraction.Preferences.PROTECTION)) },
+                validityCheck = { preferences.get(StringKey.ProtectionMasterPassword) == "" }
+            )
+        if (preferences.getIfExists(StringKey.AapsDirectoryUri).isNullOrEmpty())
+            uiInteraction.addNotificationWithAction(
+                id = Notification.AAPS_DIR_NOT_SELECTED,
+                text = rh.gs(app.aaps.core.ui.R.string.aaps_directory_not_selected),
+                level = Notification.IMPORTANCE_HIGH,
+                buttonText = R.string.select,
+                action = { maitenancePlugin.selectAapsDirectory(this) },
+                validityCheck = { preferences.getIfExists(StringKey.AapsDirectoryUri).isNullOrEmpty() }
+            )
     }
 
     private fun startWizard(): Boolean =
@@ -404,8 +439,8 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
                 v.getGlobalVisibleRect(outRect)
                 if (!outRect.contains(event.rawX.toInt(), event.rawY.toInt())) {
                     v.clearFocus()
-                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0)
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
                 }
             }
         }
@@ -420,7 +455,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         val result = super.onMenuOpened(featureId, menu)
         menu.findItem(R.id.nav_treatments)?.isEnabled = profileFunction.getProfile() != null
         if (binding.mainPager.currentItem >= 0) {
-            val plugin = (binding.mainPager.adapter as TabPageAdapter).getPluginAt(binding.mainPager.currentItem)
+            val plugin = (binding.mainPager.adapter as TabPageAdapter?)?.getPluginAt(binding.mainPager.currentItem) ?: return result
             this.menu?.findItem(R.id.nav_plugin_preferences)?.title = rh.gs(R.string.nav_preferences_plugin, plugin.name)
             pluginPreferencesMenuItem?.isEnabled = (binding.mainPager.adapter as TabPageAdapter).getPluginAt(binding.mainPager.currentItem).preferencesId != PluginDescription.PREFERENCE_NONE
         }
@@ -459,7 +494,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         val hashes: List<String> = signatureVerifierPlugin.shortHashes()
         if (hashes.isNotEmpty()) fabricPrivacy.setUserProperty("Hash", hashes[0])
         activePlugin.activePump.let { fabricPrivacy.setUserProperty("Pump", it::class.java.simpleName) }
-        if (!config.NSCLIENT && !config.PUMPCONTROL)
+        if (!config.AAPSCLIENT && !config.PUMPCONTROL)
             activePlugin.activeAPS.let { fabricPrivacy.setUserProperty("Aps", it::class.java.simpleName) }
         activePlugin.activeBgSource.let { fabricPrivacy.setUserProperty("BgSource", it::class.java.simpleName) }
         fabricPrivacy.setUserProperty("Profile", activePlugin.activeProfileSource.javaClass.simpleName)
@@ -481,12 +516,33 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
      * reset password to SN of active pump if file exists
      */
     private fun passwordResetCheck(context: Context) {
-        val passwordReset = File(fileListProvider.ensureExtraDirExists(), "PasswordReset")
-        if (passwordReset.exists()) {
-            val sn = activePlugin.activePump.serialNumber()
-            preferences.put(StringKey.ProtectionMasterPassword, cryptoUtil.hashPassword(sn))
-            passwordReset.delete()
-            ToastUtils.okToast(context, context.getString(app.aaps.core.ui.R.string.password_set))
+        val fh = fileListProvider.ensureExtraDirExists()?.findFile("PasswordReset")
+        if (fh?.exists() == true) {
+            Thread {
+                // Wait for virtual pump. SN is not available immediately
+                while (activePlugin.activePump.serialNumber().isEmpty()) {
+                    Thread.sleep(100)
+                }
+                preferences.put(StringKey.ProtectionMasterPassword, cryptoUtil.hashPassword(activePlugin.activePump.serialNumber()))
+                fh.delete()
+                // Also clear any stored password
+                exportPasswordDataStore.clearPasswordDataStore(context)
+                ToastUtils.okToast(context, context.getString(app.aaps.core.ui.R.string.password_set))
+            }.start()
         }
     }
+
+    /**
+     * Check for existing ExportPasswordReset file and
+     * clear password stored in datastore if file exists
+     */
+    private fun exportPasswordResetCheck(context: Context) {
+        val fh = fileListProvider.ensureExtraDirExists()?.findFile("ExportPasswordReset")
+        if (fh?.exists() == true) {
+            exportPasswordDataStore.clearPasswordDataStore(context)
+            fh.delete()
+            ToastUtils.okToast(context, context.getString(app.aaps.core.ui.R.string.datastore_password_cleared))
+        }
+    }
+
 }
