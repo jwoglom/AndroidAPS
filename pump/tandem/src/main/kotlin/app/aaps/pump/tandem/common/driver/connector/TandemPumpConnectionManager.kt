@@ -11,7 +11,7 @@ import app.aaps.pump.common.driver.connector.PumpDummyConnector
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import info.nightscout.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP

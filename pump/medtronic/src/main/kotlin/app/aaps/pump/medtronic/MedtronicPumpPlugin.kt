@@ -77,6 +77,7 @@ import app.aaps.pump.medtronic.util.MedtronicUtil
 import app.aaps.pump.medtronic.util.MedtronicUtil.Companion.isSame
 import dagger.android.HasAndroidInjector
 import app.aaps.pump.common.events.EventRileyLinkDeviceStatusChange
+import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpDriverConfiguration
 import org.joda.time.LocalDateTime
 import java.util.Calendar
 import java.util.GregorianCalendar

@@ -11,7 +11,7 @@ import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDat
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
-import info.nightscout.pump.common.defs.TempBasalPair
+import app.aaps.pump.common.defs.TempBasalPair
 
 interface PumpConnectorInterface {
 

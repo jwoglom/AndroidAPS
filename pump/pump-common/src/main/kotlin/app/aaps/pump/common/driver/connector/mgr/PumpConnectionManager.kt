@@ -19,8 +19,8 @@ import app.aaps.pump.common.driver.connector.commands.response.DataCommandRespon
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
-import info.nightscout.pump.common.defs.PumpDriverState
-import info.nightscout.pump.common.defs.TempBasalPair
+import app.aaps.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.utils.PumpUtil
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 

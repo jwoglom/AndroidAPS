@@ -19,7 +19,7 @@ import app.aaps.pump.common.driver.connector.commands.data.FirmwareVersionInterf
 import app.aaps.pump.common.driver.connector.commands.parameters.PumpHistoryFilterInterface
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
-import info.nightscout.pump.common.defs.TempBasalPair
+import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.PumpDummyConnector
 
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
@@ -60,10 +60,10 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                               injector: HasAndroidInjector,
                                               var sp: SP,
                                               aapsLogger: AAPSLogger,
-                                              var tandemDataConverter: TandemDataConverter
+                                              private var tandemDataConverter: TandemDataConverter
 ): PumpDummyConnector(tandemPumpStatus, tandemPumpUtil, injector, aapsLogger) {
 
-    var tandemCommunicationManager: TandemCommunicationManager? = null
+    private var tandemCommunicationManager: TandemCommunicationManager? = null
     var btAddressUsed: String? = null
     var tandemPumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1_to_2_4
 
@@ -79,7 +79,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     override fun connectToPump(): Boolean {
         var newBtAddress = sp.getStringOrNull(TandemPumpConst.Prefs.PumpAddress, null)
 
-        aapsLogger.info(TAG, "TANDEMDBG: connectToPump with ${newBtAddress}")
+        aapsLogger.info(TAG, "TANDEMDBG: connectToPump with $newBtAddress")
 
         if (!btAddressUsed.isNullOrEmpty()) {
             if (btAddressUsed.equals(newBtAddress)) {
@@ -207,7 +207,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         var responseText = checkResponse(responseMessage, "HistoryLogStatusRequest")
 
         if (responseText!=null) {
-            return DataCommandResponse<List<Any>?>(PumpCommandType.GetHistory, false, responseText, null)
+            return DataCommandResponse(PumpCommandType.GetHistory, false, responseText, null)
         }
 
         var historyLogStatus = responseMessage as HistoryLogStatusResponse

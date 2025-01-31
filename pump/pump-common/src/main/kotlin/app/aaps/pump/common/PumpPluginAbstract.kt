@@ -7,6 +7,7 @@ import android.text.format.DateFormat
 import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -27,14 +28,21 @@ import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventAppExit
 import app.aaps.core.interfaces.rx.events.EventCustomActionsChanged
+import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.implementation.pump.PumpEnactResultObject
 import app.aaps.pump.common.data.PumpStatus
+import app.aaps.pump.common.defs.PumpDriverAction
 import app.aaps.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.driver.PumpDriverConfiguration
+import app.aaps.pump.common.driver.PumpDriverConfigurationCapable
+import app.aaps.pump.common.sync.PumpDbEntryCarbs
 import app.aaps.pump.common.sync.PumpSyncEntriesCreator
 import app.aaps.pump.common.sync.PumpSyncStorage
+import app.aaps.core.data.model.BS
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -325,6 +333,11 @@ abstract class PumpPluginAbstract protected constructor(
         }
     }
 
+    protected fun incrementStatistics(statsKey: String) {
+        var currentCount: Long = sp.getLong(statsKey, 0L)
+        currentCount++
+        sp.putLong(statsKey, currentCount)
+    }
 
     // TODO check deliverTreatmentMy
     @Synchronized

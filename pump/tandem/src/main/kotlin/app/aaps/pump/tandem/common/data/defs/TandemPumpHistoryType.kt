@@ -1,6 +1,6 @@
 package app.aaps.pump.tandem.common.data.defs
 
-import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
+import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 
 enum class TandemPumpHistoryType(val code: Int, val group: PumpHistoryEntryGroup, val resourceId: Int? = null) {
 

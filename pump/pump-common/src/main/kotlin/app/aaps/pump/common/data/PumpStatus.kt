@@ -1,7 +1,9 @@
 package app.aaps.pump.common.data
 
 import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.pump.common.defs.PumpRunningState
+import app.aaps.pump.common.defs.TempBasalPair
 import java.util.Date
 
 /**
@@ -20,7 +22,6 @@ abstract class PumpStatus(var pumpType: PumpType) {
     var lastBolus: DetailedBolusInfo? = null
 
     // other pump settings
-    var activeProfileName = "0"
     var reservoirRemainingUnits = 0.0
     var reservoirFullUnits = 0
     var batteryRemaining = 0 // percent, so 0-100

@@ -42,9 +42,10 @@ import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 
-import info.nightscout.pump.common.defs.*
+import app.aaps.pump.common.defs.*
 import app.aaps.pump.tandem.common.util.AAPSTimberTree
 import app.aaps.pump.common.defs.PumpDriverMode
+import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface

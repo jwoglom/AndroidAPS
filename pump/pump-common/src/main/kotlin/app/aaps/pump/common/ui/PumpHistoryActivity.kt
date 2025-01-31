@@ -22,6 +22,7 @@ import app.aaps.pump.common.driver.PumpDriverConfigurationCapable
 import app.aaps.pump.common.driver.history.PumpHistoryDataProvider
 import app.aaps.pump.common.driver.history.PumpHistoryEntry
 import app.aaps.pump.common.driver.history.PumpHistoryText
+import app.aaps.core.interfaces.resources.ResourceHelper
 import javax.inject.Inject
 
 class PumpHistoryActivity : TranslatedDaggerAppCompatActivity() {

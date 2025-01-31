@@ -1,7 +1,7 @@
 package app.aaps.pump.common.driver.connector.defs
 
 import androidx.annotation.StringRes
-import info.nightscout.pump.common.R
+import app.aaps.pump.common.R
 
 enum class PumpCommandType(@param:StringRes val resourceId: Int) {
 

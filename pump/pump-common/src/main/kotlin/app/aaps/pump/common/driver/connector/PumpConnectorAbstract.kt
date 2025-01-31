@@ -13,7 +13,7 @@ import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDat
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.commands.response.ResultCommandResponse
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
-import info.nightscout.pump.common.defs.TempBasalPair
+import app.aaps.pump.common.defs.TempBasalPair
 
 
 abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,

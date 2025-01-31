@@ -1,7 +1,7 @@
 package app.aaps.pump.common.defs
 
 import androidx.annotation.StringRes
-import info.nightscout.pump.common.R
+import app.aaps.pump.common.R
 
 enum class PumpBolusType(@StringRes var resourceId: Int) {
     NORMAL(R.string.pump_bolus_normal),

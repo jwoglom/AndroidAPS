@@ -6,6 +6,8 @@ import app.aaps.pump.common.driver.ble.PumpBLESelector
 import app.aaps.pump.common.driver.db.PumpDriverDatabaseOperation
 import app.aaps.pump.common.driver.history.PumpHistoryDataProvider
 
+// At the moment this class is not used, but since Medtronic is using PumpPluginAbstract, it needs it
+// and changes could be made to use this, which would deduplicate History and BLE Activity screens
 class MedtronicPumpDriverConfiguration: PumpDriverConfiguration {
 
     override fun getPumpBLESelector(): PumpBLESelector? {
@@ -27,13 +29,7 @@ class MedtronicPumpDriverConfiguration: PumpDriverConfiguration {
     }
 
     override var logPrefix: String = "MedtronicPumpPlugin::"
-        //get() = "MedtronicPumpPlugin::"
-
     override var canHandleDST: Boolean = false
-        // get() = TODO("Not yet implemented")
-        // set(value) {}
-
     override var hasService: Boolean = true
-        // get() = true
-        // set(value) {}
+
 }

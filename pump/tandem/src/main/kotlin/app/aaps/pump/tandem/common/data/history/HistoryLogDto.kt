@@ -7,8 +7,9 @@ import app.aaps.pump.common.driver.history.PumpHistoryEntry
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
 import app.aaps.pump.common.defs.PumpBolusType
+import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.tandem.R
-import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
+
 import java.util.*
 
 sealed class HistoryLogObject {

@@ -34,7 +34,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetRes
 //import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
 import app.aaps.pump.common.defs.PumpErrorType
-import info.nightscout.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
 import app.aaps.pump.common.ui.PumpBLEConfigActivity

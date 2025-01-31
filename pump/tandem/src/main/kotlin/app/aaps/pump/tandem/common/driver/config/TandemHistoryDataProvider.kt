@@ -1,6 +1,5 @@
 package app.aaps.pump.tandem.common.driver.config
 
-import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.common.driver.history.PumpHistoryDataProviderAbstract
 import app.aaps.pump.common.driver.history.PumpHistoryEntry
 import app.aaps.pump.common.driver.history.PumpHistoryPeriod
@@ -13,6 +12,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.utils.DateTimeUtil
 import app.aaps.pump.common.defs.PumpDriverMode
+import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.data.history.Bolus
 import app.aaps.pump.tandem.common.data.history.HistoryLogDto

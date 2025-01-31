@@ -29,7 +29,7 @@ import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.tandem.R
 import dagger.android.support.DaggerFragment
 
-import info.nightscout.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
@@ -252,7 +252,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
             }
 
             // base basal rate
-            binding.pumpBaseBasalRate.text = resourceHelper.gs(info.nightscout.pump.common.R.string.pump_base_basal_rate_with_profile,
+            binding.pumpBaseBasalRate.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_base_basal_rate_with_profile,
                                                                pumpStatus.activeProfileName, tandemPumpPlugin.baseBasalRate)
 
             // tbr (always saved on pumpStatus)
@@ -263,7 +263,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 val msDiff = pumpStatus.currentTempBasalEstimatedEnd!! - System.currentTimeMillis()
                 val min = msDiff / (60.0 * 1000.0)
 
-                binding.pumpTempBasal.text = resourceHelper.gs(info.nightscout.pump.common.R.string.pump_tbr_remaining_percent,
+                binding.pumpTempBasal.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_tbr_remaining_percent,
                                                               pumpStatus.currentTempBasal!!.insulinRate.toInt(), min.toInt())
             }
 

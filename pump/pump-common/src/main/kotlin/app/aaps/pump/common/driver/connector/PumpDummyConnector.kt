@@ -14,7 +14,7 @@ import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDat
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
-import info.nightscout.pump.common.defs.TempBasalPair
+import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.utils.PumpUtil
 import org.joda.time.DateTime
 import javax.inject.Singleton

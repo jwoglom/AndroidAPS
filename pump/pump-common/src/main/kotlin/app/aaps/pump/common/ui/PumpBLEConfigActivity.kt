@@ -1,5 +1,6 @@
 package app.aaps.pump.common.ui
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -10,15 +11,19 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.BaseAdapter
 import android.widget.TextView
+import androidx.core.app.ActivityCompat
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
@@ -27,6 +32,7 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
 import app.aaps.core.ui.dialogs.OKDialog
+import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.pump.common.R
 import app.aaps.pump.common.databinding.PumpBleConfigActivityBinding
 import app.aaps.pump.common.driver.PumpDriverConfigurationCapable
@@ -36,7 +42,7 @@ import org.apache.commons.lang3.StringUtils
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
-class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
+open class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
 
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var sp: SP
@@ -46,14 +52,14 @@ class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
     @Inject lateinit var rxBus: RxBus
 
     private lateinit var binding: PumpBleConfigActivityBinding
-    private lateinit var bleSelector: PumpBLESelector
+    lateinit var bleSelector: PumpBLESelector
 
     private var settings: ScanSettings? = null
     private var filters: List<ScanFilter>? = null
     private var bleScanner: BluetoothLeScanner? = null
     private var deviceListAdapter = LeDeviceListAdapter()
-    private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
-    private val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
+    val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
+    val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
     var scanning = false
     private val devicesMap: MutableMap<String, BluetoothDevice> = HashMap()
 

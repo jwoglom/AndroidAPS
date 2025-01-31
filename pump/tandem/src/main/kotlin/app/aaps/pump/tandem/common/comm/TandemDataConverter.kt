@@ -10,7 +10,7 @@ import app.aaps.pump.common.driver.connector.commands.response.DataCommandRespon
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import info.nightscout.pump.common.defs.TempBasalPair
+import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.history.PumpDataConverter
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag

@@ -13,7 +13,7 @@ import app.aaps.pump.common.defs.PumpErrorType
 import app.aaps.pump.common.defs.NotificationTypeInterface
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
-import info.nightscout.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.defs.PumpDriverState
 
 open class PumpUtil constructor(
     val aapsLogger: AAPSLogger,

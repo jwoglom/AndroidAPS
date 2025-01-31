@@ -28,7 +28,7 @@ import app.aaps.core.ui.dialogs.OKDialog
 import app.aaps.pump.tandem.R
 import dagger.android.support.DaggerFragment
 
-import info.nightscout.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
