@@ -5,43 +5,71 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
-import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.*
-import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
-import dagger.android.HasAndroidInjector
 import app.aaps.pump.common.data.BasalProfileDto
+import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
+import app.aaps.pump.common.defs.TempBasalPair
+import app.aaps.pump.common.driver.connector.PumpDummyConnector
 import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import app.aaps.pump.common.driver.connector.commands.data.FirmwareVersionInterface
 import app.aaps.pump.common.driver.connector.commands.parameters.PumpHistoryFilterInterface
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
-import app.aaps.pump.common.data.PumpTimeDifferenceDto
-import app.aaps.pump.common.defs.TempBasalPair
-import app.aaps.pump.common.driver.connector.PumpDummyConnector
-
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
-import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.data.defs.TandemCommandType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
+import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.driver.connector.def.ControlCommandResponse
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import com.jwoglom.pumpx2.pump.PumpState
+import com.jwoglom.pumpx2.pump.bluetooth.TandemConfig
+import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.models.PairingCodeType
 import com.jwoglom.pumpx2.pump.messages.request.control.CancelBolusRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ChangeCartridgeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BasalIQStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BasalLimitSettingsRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV1Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV2Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV1Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV2Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.GlobalMaxBolusSettingsRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.IDPSegmentRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.IDPSettingsRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ProfileStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpVersionRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
+import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.ChangeCartridgeResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.StopTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SuspendPumpingResponse
-
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalIQStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalLimitSettingsResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV2Response
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GlobalMaxBolusSettingsResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ProfileStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
+import dagger.android.HasAndroidInjector
 import javax.inject.Inject
 
 /**
@@ -58,6 +86,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                               var context: Context,
                                               var tandemPumpUtil: TandemPumpUtil,
                                               injector: HasAndroidInjector,
+                                              var rxBus: RxBus,
                                               var sp: SP,
                                               aapsLogger: AAPSLogger,
                                               private var tandemDataConverter: TandemDataConverter
@@ -92,13 +121,19 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         }
 
         if (!newBtAddress.isNullOrEmpty()) {
+
+            val cfg = TandemConfig()
+                .withFilterToBluetoothMac(newBtAddress)
+                .withPairingCodeType(PairingCodeType.SHORT_6CHAR)
+
             tandemCommunicationManager = TandemCommunicationManager(
                 context = context,
                 aapsLogger = aapsLogger,
                 sp = sp,
                 pumpUtil = tandemPumpUtil,
                 pumpStatus = tandemPumpStatus,
-                btAddress = newBtAddress
+                pumpConfig = cfg,
+                rxBus = rxBus
             )
             this.btAddressUsed = newBtAddress
         }
@@ -127,6 +162,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             this.tandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1_to_2_4
         }
 
+        aapsLogger.info(TAG, "retrieveFirmwareVersion result: ${version}")
+
         return DataCommandResponse(
             PumpCommandType.GetFirmwareVersion, true, null, this.tandemPumpApiVersion)
     }
@@ -140,13 +177,18 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             addToSettings(TandemPumpSettingType.CONTROL_IQ_ENABLED, map, getCommunicationManager().sendCommand(getCorrectRequest(TandemCommandType.ControlIQInfo)))
             addToSettings(TandemPumpSettingType.BASAL_LIMIT, map, getCommunicationManager().sendCommand(BasalLimitSettingsRequest()))
             addToSettings(TandemPumpSettingType.MAX_BOLUS, map, getCommunicationManager().sendCommand(GlobalMaxBolusSettingsRequest()))
+            addToSettings(TandemPumpSettingType.BASAL_IQ_ENABLED, map, getCommunicationManager().sendCommand(BasalIQStatusRequest()))
+
+            val settings = tandemPumpUtil.gson.toJson(map)
+
+            aapsLogger.info(TAG, "retrieveConfiguration result: ${settings}")
 
             return DataCommandResponse(
                 PumpCommandType.GetSettings, true, null, map
             )
         } catch(ex: Exception) {
             return DataCommandResponse(
-                PumpCommandType.GetSettings, false, "Problem with reading some data: Ex: " + ex.toString(), map)
+                PumpCommandType.GetSettings, false, "Problem reading settings. Ex: " + ex.toString(), map)
         }
     }
 
@@ -158,7 +200,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             is ControlIQInfoV2Response -> {  settingsMap.put(settingType, message.closedLoopEnabled) }
             is BasalLimitSettingsResponse -> {  settingsMap.put(settingType, message.basalLimit)  }
             is GlobalMaxBolusSettingsResponse -> {  settingsMap.put(settingType, message.maxBolus) }
-            is ErrorResponse -> {
+            is BasalIQStatusResponse          -> {  settingsMap.put(settingType, message.basalIQStatusState)  }
+            is ErrorResponse                  -> {
                 aapsLogger.error(LTag.PUMPBTCOMM, "Problem with packets from Tandem: requestedCodeId=${message.requestCodeId}, errorCode: ${message.errorCode}")
                 throw Exception("Problem with packets from Tandem: requestedCodeId=${message.requestCodeId}, errorCode: ${message.errorCode}")
             }
@@ -177,6 +220,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             getCorrectRequest(TandemCommandType.CurrentBattery))
         {   rawData -> tandemDataConverter.getBatteryResponse(rawData as CurrentBatteryAbstractResponse) }
 
+        aapsLogger.info(TAG, "retrieveBatteryStatus result: ${responseData.value}")
+
         return responseData
 
     }
@@ -188,6 +233,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             PumpCommandType.GetRemainingInsulin,
             InsulinStatusRequest())
         {  rawContent -> tandemDataConverter.getInsulinStatus(rawContent as InsulinStatusResponse) }
+
+        aapsLogger.info(TAG, "retrieveRemainingInsulin result: ${responseData.value}")
 
         return responseData
     }
@@ -273,23 +320,54 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     // Mobi Only
     override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
-        // TODO V2 Connector: sendTemporaryBasal
 
-        var responseMessage: Message? = getCommunicationManager().sendCommand(SetTempRateRequest()) as SetTempRateResponse
+        if (TandemPumpApiVersion.isMobi(tandemPumpApiVersion)) {
+            aapsLogger.warn(LTag.PUMPCOMM, "Running on TandemApiVersion that doesn't support TBR, running open loop.")
+            return super.sendTemporaryBasal(value, duration)
+        }
 
+        val responseMessage: SetTempRateResponse? = getCommunicationManager().sendCommand(
+            SetTempRateRequest(duration, value)) as SetTempRateResponse?
 
-
-        return super.sendTemporaryBasal(value, duration)
+        if (responseMessage!=null) {
+            return DataCommandResponse(
+                PumpCommandType.SetTemporaryBasal, responseMessage.status == 1,
+                if (responseMessage.status==1) null else "Error sending TBR: status=${responseMessage.status}",
+                ControlCommandResponse(responseMessage.id, responseMessage.status)
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.SetTemporaryBasal, false,
+                "Error getting response from sending TBR: null",
+                null
+            )
+        }
     }
 
 
     override fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?> {
 
-        var responseMessage: Message? = getCommunicationManager().sendCommand(StopTempRateRequest()) as StopTempRateResponse
+        if (TandemPumpApiVersion.isMobi(tandemPumpApiVersion)) {
+            aapsLogger.warn(LTag.PUMPCOMM, "Running on TandemApiVersion that doesn't support cancelTBR, running closed loop.")
+            return super.cancelTemporaryBasal()
+        }
 
+        val responseMessage: StopTempRateResponse? = getCommunicationManager()
+            .sendCommand(StopTempRateRequest()) as StopTempRateResponse?
 
-        // TODO V2 Connector: cancelTemporaryBasal N-8
-        return super.cancelTemporaryBasal()
+        if (responseMessage!=null) {
+            return DataCommandResponse(
+                PumpCommandType.SetTemporaryBasal, responseMessage.status == 1,
+                if (responseMessage.status==1) null else "Error sending cancelTBR: status=${responseMessage.status}",
+                ControlCommandResponse(responseMessage.id, responseMessage.status)
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.SetTemporaryBasal, false,
+                "Error getting response from sending cancelTBR: null",
+                null
+            )
+        }
     }
 
 
@@ -300,38 +378,64 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         var responseText = checkResponse(responseMessage, "ProfileStatusRequest")
 
         if (responseText!=null) {
-            return DataCommandResponse<BasalProfileDto?>(PumpCommandType.SetBasalProfile, false, responseText, null)
+            return DataCommandResponse<BasalProfileDto?>(PumpCommandType.GetBasalProfile, false, responseText, null)
         }
 
         val profileStatusResponse = responseMessage as ProfileStatusResponse
 
+        var gsonText = pumpUtil.gson.toJson(profileStatusResponse);
+
+        aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile status response: $gsonText")
+
         val idpId = profileStatusResponse.idpSlot0Id
+
+        aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile idpId response: $idpId")
 
         responseMessage = getCommunicationManager().sendCommand(IDPSettingsRequest(idpId))
 
         responseText = checkResponse(responseMessage, "IDPSettingsRequest (idpId=${idpId}")
 
         if (responseText!=null) {
-            return DataCommandResponse<BasalProfileDto?>(PumpCommandType.SetBasalProfile, false, responseText, null)
+            return DataCommandResponse<BasalProfileDto?>(PumpCommandType.GetBasalProfile, false, responseText, null)
         }
 
         val mapSegments = mutableMapOf<Int,IDPSegmentResponse>()
 
         val settings = responseMessage as IDPSettingsResponse
-        for (i in 1..settings.numberOfProfileSegments) {
+
+        gsonText = pumpUtil.gson.toJson(settings);
+
+        aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile IDPSettingsResponse response: $gsonText")
+
+        // for (i in 1..settings.numberOfProfileSegments)
+        for (i in 0..settings.numberOfProfileSegments-1) {
+
+            aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile IDPSegmentRequest [idpId=${settings.idpId},segmentIndex=$i]")
+
             responseMessage = getCommunicationManager().sendCommand(IDPSegmentRequest(settings.idpId, i))
 
             responseText = checkResponse(responseMessage, "IDPSegmentRequest (idpId=${settings.idpId}, segmentNumber=${i})")
 
+            val rspMsg = responseMessage as IDPSegmentResponse
+
+            gsonText = pumpUtil.gson.toJson(rspMsg);
+
+            aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile IDPSegmentResponse response: $gsonText")
+
             if (responseText!=null) {
                 return DataCommandResponse<BasalProfileDto?>(PumpCommandType.SetBasalProfile, false, responseText, null)
             } else {
-                mapSegments.put(i, responseMessage as IDPSegmentResponse)
+                mapSegments.put(i, rspMsg)
             }
         }
 
-        return tandemDataConverter.getBasalProfileResponse(settings, mapSegments)
+        gsonText = pumpUtil.gson.toJson(mapSegments);
 
+        aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile IdpSegments response: $gsonText")
+
+        val basalProfileResponse = tandemDataConverter.getBasalProfileResponse(settings, mapSegments)
+
+        return basalProfileResponse
     }
 
 
@@ -447,6 +551,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             TandemPumpApiVersion.VERSION_3_0,
             TandemPumpApiVersion.VERSION_3_2,
             TandemPumpApiVersion.VERSION_3_4,
+            TandemPumpApiVersion.VERSION_3_5_MOBI,
+            TandemPumpApiVersion.VERSION_3_6_MOBI,
             TandemPumpApiVersion.VERSION_4_x -> {
                 when(command) {
                     TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()

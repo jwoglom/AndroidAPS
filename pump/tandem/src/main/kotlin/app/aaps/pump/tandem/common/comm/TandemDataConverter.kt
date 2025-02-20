@@ -143,8 +143,12 @@ class TandemDataConverter @Inject constructor(
             basalArray[time] = if (currentSegment!!.profileBasalRate==0) 0.0 else currentSegment.profileBasalRate/1000.0
         }
 
+        val basalProfile = BasalProfileDto(basalArray, settings.name)
+
+        aapsLogger.info(LTag.PUMPCOMM, "Received Basal Profile: $basalProfile")
+
         return DataCommandResponse(
-            PumpCommandType.GetBasalProfile, true, null, BasalProfileDto(basalArray, settings.name)
+            PumpCommandType.GetBasalProfile, true, null, basalProfile
         )
 
     }
@@ -188,6 +192,7 @@ class TandemDataConverter @Inject constructor(
 
     fun decodeHistoryLog(historyLogPump: HistoryLog): HistoryLogDto? {
 
+        // TODO this is not correctly implemented yet
         if (!isLogTypeSupported(historyLogPump)) {
             return null
         }
@@ -207,8 +212,8 @@ class TandemDataConverter @Inject constructor(
             is BolusActivatedHistoryLog        -> historyLog.subObject = createBolusRecord(historyLogPump)
 
             // Pump Status Changes - WIP
-            is PumpingResumedHistoryLog        -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpRunning)
-            is PumpingSuspendedHistoryLog      -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpSuspended, historyLogPump.reasonId) // TODO maybe different handling?
+            // is PumpingResumedHistoryLog        -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpRunning)
+            // is PumpingSuspendedHistoryLog      -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpSuspended, historyLogPump.reasonId) // TODO maybe different handling?
 
             // TBR
             is TempRateActivatedHistoryLog     -> historyLog.subObject = createTBRRecord(historyLogPump)

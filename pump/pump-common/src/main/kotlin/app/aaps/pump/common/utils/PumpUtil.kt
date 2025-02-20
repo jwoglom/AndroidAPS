@@ -7,13 +7,19 @@ import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventNewNotification
-import com.google.gson.GsonBuilder
 import app.aaps.pump.common.data.DateTimeDto
-import app.aaps.pump.common.defs.PumpErrorType
 import app.aaps.pump.common.defs.NotificationTypeInterface
+import app.aaps.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.defs.PumpErrorType
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
-import app.aaps.pump.common.defs.PumpDriverState
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonPrimitive
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 
 open class PumpUtil constructor(
     val aapsLogger: AAPSLogger,
@@ -26,7 +32,11 @@ open class PumpUtil constructor(
 
     //private var driverStatusInternal: PumpDriverState
     private var pumpCommandType: PumpCommandType? = null
-    var gson = GsonBuilder().setPrettyPrinting().create()
+    var gson = GsonBuilder()
+        .registerTypeAdapter(DateTime::class.java,
+                             JsonSerializer<DateTime?> { json, typeOfSrc, context -> JsonPrimitive(ISODateTimeFormat.dateTime().print(json)) })
+        .setPrettyPrinting().create()
+
     var gsonRegular = GsonBuilder().create()
 
 
@@ -195,6 +205,11 @@ open class PumpUtil constructor(
 
         @JvmStatic private var driverStatusInternal: PumpDriverState = PumpDriverState.Sleeping
         @JvmStatic private var errorTypeInternal: PumpErrorType? = null
+
+        // var gson: Gson = GsonBuilder()
+        //     .registerTypeAdapter(DateTime::class.java,
+        //                          JsonSerializer<DateTime?> { json, typeOfSrc, context -> JsonPrimitive(ISODateTimeFormat.dateTime().print(json)) })
+        //     .create()
 
     }
 }

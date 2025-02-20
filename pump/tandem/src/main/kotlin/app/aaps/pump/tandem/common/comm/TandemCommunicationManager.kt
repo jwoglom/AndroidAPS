@@ -5,29 +5,34 @@ package app.aaps.pump.tandem.common.comm
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.ui.extensions.runOnUiThread
+import app.aaps.pump.common.data.PumpTimeDifferenceDto
+import app.aaps.pump.common.defs.PumpDriverMode
+import app.aaps.pump.common.defs.PumpErrorType
+import app.aaps.pump.common.defs.PumpUpdateFragmentType
+import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
+import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
+import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
+import com.jwoglom.pumpx2.pump.bluetooth.TandemConfig
 import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.response.authentication.CentralChallengeResponse
-import com.jwoglom.pumpx2.pump.messages.response.authentication.PumpChallengeResponse
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ApiVersionRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
+import com.jwoglom.pumpx2.pump.messages.response.authentication.AbstractCentralChallengeResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
-import app.aaps.pump.common.data.PumpTimeDifferenceDto
-import app.aaps.pump.common.defs.PumpDriverMode
-import app.aaps.pump.common.defs.PumpErrorType
-import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
-import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
-import com.jwoglom.pumpx2.pump.messages.response.authentication.AbstractCentralChallengeResponse
 import org.joda.time.DateTime
-import java.util.Optional
+import timber.log.Timber
 
 /**
  * This is low-level driver that does all communication with pump, with exception of pairing.
@@ -35,11 +40,13 @@ import java.util.Optional
 class TandemCommunicationManager constructor(
     var context: Context,
     var aapsLogger: AAPSLogger,
+    var rxBus: RxBus,
     var sp: SP,
     var pumpUtil: TandemPumpUtil,
     var pumpStatus: TandemPumpStatus,
-    var btAddress: String
-) : TandemPump(context, Optional.of(btAddress)) {
+    var pumpConfig: TandemConfig
+
+) : TandemPump(context, pumpConfig) {
 
     lateinit var peripheral: BluetoothPeripheral
     var connected = false
@@ -57,6 +64,8 @@ class TandemCommunicationManager constructor(
 
 
     fun connect(): Boolean {
+
+        aapsLogger.info(TAG, "TANDEMDBG: connect() called")
 
         if (pumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
             aapsLogger.info(TAG, "TANDEMDBG: connect() - Faked")
@@ -91,6 +100,8 @@ class TandemCommunicationManager constructor(
 
     fun disconnect() {
 
+        aapsLogger.info(TAG, "TANDEMDBG: disconnect() called")
+
         if (pumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
             aapsLogger.info(TAG, "TANDEMDBG: disconnect() - Faked")
             return
@@ -111,13 +122,15 @@ class TandemCommunicationManager constructor(
         if (bluetoothHandler != null) {
             return bluetoothHandler
         }
-        aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler comm")
+        aapsLogger.info(TAG, "createBluetoothHandler for Communication")
         LConfigurator.enableTimber()
+
         runOnUiThread {
             bluetoothHandler = TandemBluetoothHandler.getInstance(context, this);
         }
+
         while (bluetoothHandler == null) {
-            aapsLogger.info(TAG, "TANDEMDBG: waiting for bluetoothHandler on ui thread")
+            aapsLogger.debug(TAG, "Waiting for bluetoothHandler on ui thread")
             pumpUtil.sleep(500)
         }
 
@@ -131,27 +144,36 @@ class TandemCommunicationManager constructor(
 
 
     override fun onInitialPumpConnection(peripheral: BluetoothPeripheral)  {
-        aapsLogger.info(TAG, "TANDEMDBG: onInitialPumpConnection: %s", peripheral)
+        aapsLogger.info(TAG, "TANDEMDBG: onInitialPumpConnection: $peripheral")
 
         this.peripheral = peripheral
         super.onInitialPumpConnection(peripheral)
     }
 
+    override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
+        aapsLogger.info(TAG, "TANDEMDBG: onPumpConnected: $peripheral")
+        super.onPumpConnected(peripheral)
+    }
+
 
     fun sendCommand(request: Message): Message? {
         var times = 0
+
         while (!::peripheral.isInitialized && times < 10) {
             aapsLogger.warn(LTag.PUMPCOMM, "TANDEMDBG: Waiting for peripheral for sendCommand with ${request.opCode()} - ${request.javaClass.name}")
             pumpUtil.sleep(1000)
+            times++
         }
+
         if (!::peripheral.isInitialized) {
             aapsLogger.warn(LTag.PUMPCOMM, "TANDEMDBG: Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
             return null;
         }
         this.commandRequestModeRunning = true
         this.commandRequest = request
+        this.commandResponse = null
 
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: Sending Request: ${request.opCode()} - ${request.javaClass.name} ")
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
 
         sendCommand(peripheral, request)
 
@@ -169,27 +191,6 @@ class TandemCommunicationManager constructor(
     }
 
 
-    // fun sendCommand(request: Message): Message? {
-    //     this.commandRequestModeRunning = true
-    //     this.commandRequest = request
-    //
-    //     aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: Sending Request: ${request.opCode()} - ${request.javaClass.name} ")
-    //
-    //     sendCommand(peripheral, request)
-    //
-    //     while(commandRequestModeRunning) {
-    //
-    //         if (commandResponse!=null) {
-    //             this.commandRequestModeRunning = false
-    //             return commandResponse
-    //         }
-    //
-    //         pumpUtil.sleep(1000)
-    //     }
-    //
-    //     return null
-    // }
-
 
     override fun onReceiveMessage(peripheral: BluetoothPeripheral, message: Message) {
         aapsLogger.info(LTag.PUMPBTCOMM, "TANDEMDBG: Received Response: ${message.opCode()} - ${message.javaClass.name} ")
@@ -202,6 +203,12 @@ class TandemCommunicationManager constructor(
                 val apiVersion = TandemPumpApiVersion.getApiVersionFromResponse(apiVersionResponse)
 
                 aapsLogger.info(LTag.PUMPCOMM, "Api Version: ${apiVersionResponse.majorVersion}.${apiVersionResponse.minorVersion} : ${apiVersion.name} ")
+
+                pumpStatus.tandemPumpFirmware = apiVersion
+
+                sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
+
+                rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
 
                 // TODO check if PumpApiVersion changed   N-8
                 //sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
@@ -216,9 +223,14 @@ class TandemCommunicationManager constructor(
                 val pumpTimeDifference = PumpTimeDifferenceDto(DateTime.now(), dtPump)
                 pumpStatus.pumpTime = pumpTimeDifference
 
+                var timeDiffJson = pumpUtil.gson.toJson(pumpTimeDifference)
+
+                aapsLogger.info(LTag.PUMPCOMM, "Pump Time: ${timeDiffJson}")
+
                 // TODO check Pump Serial   N-8
 
                 this.connected = true
+
             }
         } else {
 
@@ -226,10 +238,18 @@ class TandemCommunicationManager constructor(
             //     this.commandResponse = message
             // }
 
-            if (message.opCode() == commandRequest!!.getResponseOpCode()) {
-                this.commandResponse = message
-            }
+            if (this.commandRequest==null) {
+                aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: No Command Requested, but received message [code=${message.opCode()}]")
+            } else {
+                aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: receivedMessage [code=${message.opCode()},expected=${commandRequest!!.getResponseOpCode()},class=${message::class.simpleName}]")
 
+                if (message.opCode() == commandRequest!!.getResponseOpCode()) {
+                    aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: not in connect mode, but response received ${message.opCode()}")
+                    this.commandResponse = message
+                } else {
+                    aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: discarding Message [code=${message.opCode()}")
+                }
+            }
         }
     }
 
@@ -237,15 +257,6 @@ class TandemCommunicationManager constructor(
         aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s", events)
     }
 
-    // override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: AbstractCentralChallengeResponse?) {
-    //     TODO("Not yet implemented")
-    // }
-
-    // copied from abstract
-    // override fun onPumpDiscovered(peripheral: BluetoothPeripheral, scanResult: ScanResult): Boolean {
-    //     Timber.i("TandemPump: onPumpDiscovered($scanResult)", *arrayOfNulls<Any>(0))
-    //     return if (filterToBluetoothMac.isPresent) filterToBluetoothMac.get() == peripheral.address else true
-    // }
 
     // TODO 1.4.4 chanlenge type changed
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: AbstractCentralChallengeResponse?) {
@@ -256,13 +267,16 @@ class TandemCommunicationManager constructor(
 
         aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode. Pairing Code: ${pairingCode} ")
 
-        if (pairingCode.isNullOrBlank()) {
-            aapsLogger.error(LTag.PUMPCOMM, "TandemPump: onWaitingForPairingCode. It seems you Pairing code was not saved.")
-            sendInvalidPairingCodeError()
-            return
-        }
+        // if (pairingCode.isNullOrBlank()) {
+        //     aapsLogger.error(LTag.PUMPCOMM, "TandemPump: onWaitingForPairingCode. It seems you Pairing code was not saved.")
+        //     sendInvalidPairingCodeError()
+        //     return
+        // }
 
-        pair(peripheral, centralChallenge, pairingCode)
+        // TODO pairingCode needs to be read from user interface
+        pair(peripheral, centralChallenge, "158360")
+
+        //pair(peripheral, centralChallenge, pairingCode)
     }
 
 

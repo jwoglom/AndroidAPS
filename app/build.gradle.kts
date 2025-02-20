@@ -105,7 +105,8 @@ android {
         targetSdk = Versions.targetSdk
 
         buildConfigField("String", "VERSION", "\"$version\"")
-        buildConfigField("String", "BUILDVERSION", "\"${generateGitBuild()}-${generateDate()}\"")
+        //buildConfigField("String", "BUILDVERSION", "\"${generateGitBuild()}-${generateDate()}\"")
+        buildConfigField("String", "BUILDVERSION", "\"tandem-0.4.1.0\"")
         buildConfigField("String", "REMOTE", "\"${generateGitRemote()}\"")
         buildConfigField("String", "HEAD", "\"${generateGitBuild()}\"")
         buildConfigField("String", "COMMITTED", "\"${allCommitted()}\"")

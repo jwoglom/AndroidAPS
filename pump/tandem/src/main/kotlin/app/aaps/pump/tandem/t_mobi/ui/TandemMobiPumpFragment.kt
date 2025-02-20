@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.WarnColors
@@ -22,6 +23,7 @@ import app.aaps.core.interfaces.rx.events.EventExtendedBolusChange
 import app.aaps.core.interfaces.rx.events.EventQueueChanged
 import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
 import app.aaps.core.interfaces.rx.events.EventTempBasalChange
+import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.ui.dialogs.OKDialog
@@ -42,6 +44,7 @@ import app.aaps.pump.tandem.databinding.TandemMobiFragmentBinding
 
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.common.ui.PumpHistoryActivity
+import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -63,6 +66,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
     @Inject lateinit var pumpSync: PumpSync
     @Inject lateinit var tandemPumpPlugin: TandemMobiPumpPlugin
     @Inject lateinit var aapsSchedulers: AapsSchedulers
+    @Inject lateinit var sp: SP
 
     private var disposable: CompositeDisposable = CompositeDisposable()
 
@@ -87,23 +91,6 @@ class TandemMobiPumpFragment : DaggerFragment() {
         return binding.root
     }
 
-    //private var _binding: YpsoPumpFragmentBinding? = null
-
-    //private var _bind: YpsoPumpFragment? = null
-
-    // TODO re-add
-    // private var _binding: YpsoPumpFragmentBinding? = null
-    //
-    // // This property is only valid between onCreateView and
-    // // onDestroyView.
-    // private val binding get() = _binding!!
-    //
-    // override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-    //     MedtronicFragmentBinding.inflate(inflater, container, false).also { _binding = it }.root
-    //
-    // override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-    //     return inflater.inflate(R.layout.ypsopump_fragment, container, false)
-    // }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -160,6 +147,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
             .subscribe({ updateGUI(PumpUpdateFragmentType.Queue) }, { fabricPrivacy.logException(it) })
 
         updateGUI(PumpUpdateFragmentType.Full)
+        this.binding.pumpDriverVersion.text = tandemPumpPlugin.version
     }
 
     @Synchronized
@@ -213,7 +201,6 @@ class TandemMobiPumpFragment : DaggerFragment() {
             val pumpDriverState: PumpDriverState = pumpUtil.driverStatus
 
             updatePumpStatus(pumpDriverState)
-
         }
 
         if (updateType == PumpUpdateFragmentType.Queue || updateType == PumpUpdateFragmentType.Full) {
@@ -274,6 +261,11 @@ class TandemMobiPumpFragment : DaggerFragment() {
 
         if (updateType == PumpUpdateFragmentType.Configuration || updateType == PumpUpdateFragmentType.Full) {
             // Firmware, Errors
+
+            aapsLogger.info(LTag.PUMP,
+                            "Firmware (driverMode=${pumpStatus.pumpDriverMode}, " +
+                                "pumpFirmware=${pumpStatus.tandemPumpFirmware})")
+
             if (pumpStatus.pumpDriverMode == PumpDriverMode.Demo) {
                 binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_demo)
             } else {
@@ -284,7 +276,9 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 }
             }
 
-            //binding.pump_errors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
+            binding.pumpSerialNo.text = sp.getString(TandemPumpConst.Prefs.PumpSerial, "-")
+            binding.pumpAddress.text = sp.getString(TandemPumpConst.Prefs.PumpAddress, "-")
+
         }
 
         if (updateType == PumpUpdateFragmentType.OtherValues || updateType == PumpUpdateFragmentType.Full) {
@@ -299,6 +293,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
             warnColors.setColorInverse(binding.pumpReservoir, pumpStatus.reservoirRemainingUnits, 50, 20)
         }
 
+        binding.pumpErrors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
     }
 
     private fun updatePumpStatus(pumpDriverState: PumpDriverState?) {

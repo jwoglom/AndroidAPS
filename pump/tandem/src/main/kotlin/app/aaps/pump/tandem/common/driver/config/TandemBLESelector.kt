@@ -27,6 +27,7 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.pump.common.ui.PumpBLEConfigActivity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import com.jwoglom.pumpx2.pump.PumpState
 
 import javax.inject.Inject
 

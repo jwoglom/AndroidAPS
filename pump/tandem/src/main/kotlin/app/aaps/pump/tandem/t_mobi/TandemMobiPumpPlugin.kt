@@ -56,7 +56,9 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
 import app.aaps.pump.tandem.common.data.defs.TandemStatusRefreshType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
+import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
+import timber.log.Timber
 
 import java.util.*
 import javax.inject.Inject
@@ -109,17 +111,16 @@ class TandemMobiPumpPlugin @Inject constructor(
     private val statusRefreshMap: MutableMap<TandemStatusRefreshType?, Long?> = mutableMapOf()
     private var isInitialized = false
     private var hasTimeDateOrTimeZoneChanged = false
-    private var driverMode = PumpDriverMode.Demo // TODO when implementation fully done, default should be automatic
+    private var driverMode = PumpDriverMode.Automatic // TODO when implementation fully done, default should be automatic
 
     private var driverInitialized = false
-    private var pumpAddress: String = ""
-    private var pumpBonded: Boolean = false
+    //private var pumpAddress: String = ""
+    //private var pumpBonded: Boolean = false
     private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
-    //private var pumpX2Version = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
-    private var pumpX2Version = "1.3.2.4"   // TODO driver version should be referenced form build
-    private var tandemModuleVersion = "v0.3.2"
-    private var wantedDriverMode = PumpDriverMode.Demo  // TODO change this (demo mode means we are not communicating with pump)
+    private var pumpX2Version = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
+    private var tandemModuleVersion = "v0.4.5.3"
+    private var wantedDriverMode = PumpDriverMode.Automatic  // TODO change this (demo mode means we are not communicating with pump)
 
     override fun onStart() {
         aapsLogger.debug(LTag.PUMP, model().model + " started - ${tandemModuleVersion} (pumpX2 ${pumpX2Version})")
@@ -135,7 +136,10 @@ class TandemMobiPumpPlugin @Inject constructor(
             val value: String? = sp.getStringOrNull(R.string.key_tandem_serial, null)
             pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
         }
+
         aapsLogger.info(LTag.PUMP, "Preference: $pref")
+
+        checkInitializationState()
     }
 
     //override var logPrefix: String = "TandemPumpPlugin::"
@@ -161,13 +165,13 @@ class TandemMobiPumpPlugin @Inject constructor(
         pumpStatus.serialNumber = sp.getLong(TandemPumpConst.Prefs.PumpSerial, 0)
 
         pumpStatus.pumpType = PumpType.TANDEM_T_MOBI_BT
-        pumpStatus.pumpDriverMode = this.driverMode
+        pumpStatus.pumpDriverMode = this.wantedDriverMode
     }
 
     override fun onStartScheduledPumpActions() {
 
         // Enable logging in jwoglom's X2 library
-        //Timber.plant(aapsTimberTree)
+        Timber.plant(aapsTimberTree)
 
         // disposable.add(rxBus
         //                    .toObservable(EventPreferenceChange::class.java)
@@ -265,19 +269,35 @@ class TandemMobiPumpPlugin @Inject constructor(
             return
         }
 
-        pumpAddress = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
+        val pumpAddress = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
 
         val pumpBondStatus = sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
+
+        aapsLogger.debug(LTag.PUMP, "TANDEMDBG: Mobi [address=$pumpAddress,bondStatus=$pumpBondStatus]")
 
         driverInitialized = (!pumpAddress.isEmpty() &&
             pumpBondStatus == 100 &&
             !tandemUtil.preventConnect)
 
         aapsLogger.info(LTag.PUMP, "TANDEMDBG: initialization status: $driverInitialized")
+
+        if (!driverInitialized) {
+            pumpStatus.errorDescription = rh.gs(R.string.tandem_error_not_bonded)
+            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Full))
+        } else {
+            if (!pumpStatus.errorDescription.isNullOrEmpty()) {
+                pumpStatus.errorDescription = null
+                rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
+            }
+        }
+
     }
 
     override val serviceClass: Class<*>?
         get() = null
+
+    val version: String
+        get() = "${tandemModuleVersion} ($pumpX2Version)"
 
     override val pumpStatusData: PumpStatus
         get() = pumpStatus
@@ -294,9 +314,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         if (value.value()) {
             value.set(
-                //aapsLogger,
-                false, //driverMode == PumpDriverMode.Automatic,
-                rh.gs(R.string.tandem_fol_closed_loop_not_allowed_x2),
+                pumpStatus.tandemPumpFirmware.isClosedLoopPossible,
+                rh.gs(R.string.tandem_fol_closed_loop_not_allowed_x2), // TODO allowed Closed Loop on right firmware
                 this
             )
         }
@@ -313,7 +332,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         if (value.value()) {
             value.set(
                 //aapsLogger,
-                driverMode == PumpDriverMode.Automatic, // TODO
+                driverMode == PumpDriverMode.Automatic, // TODO allowed SMB on right firmware
                 rh.gs(R.string.tandem_fol_smb_not_allowed),
                 this
             )
@@ -359,14 +378,20 @@ class TandemMobiPumpPlugin @Inject constructor(
         val driverStatus = tandemUtil.driverStatus
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
 
-        return driverStatus == PumpDriverState.Connecting || driverStatus == PumpDriverState.EncryptCommunication
+        return driverStatus == PumpDriverState.Connecting
     }
 
     override fun connect(reason: String) {
-        if (!driverInitialized)
+        if (!driverInitialized) {
             return
+        }
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "connect (reason=$reason).")
-        pumpConnectionManager.connectToPump() //deviceMac = pumpAddress, deviceBonded = pumpBonded)
+
+        if (tandemUtil.preventConnect) {
+            aapsLogger.info(LTag.PUMP, "in prevent connect mode (probably pairing in process)")
+        } else {
+            pumpConnectionManager.connectToPump() //deviceMac = pumpAddress, deviceBonded = pumpBonded)
+        }
     }
 
     override fun disconnect(reason: String) {
@@ -374,7 +399,14 @@ class TandemMobiPumpPlugin @Inject constructor(
             return
 
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "disconnect (reason=$reason).")
-        pumpConnectionManager.disconnectFromPump()
+
+        val driverStatus = tandemUtil.driverStatus
+
+        if (driverStatus==PumpDriverState.Connected) {
+            pumpConnectionManager.disconnectFromPump()
+        } else {
+            aapsLogger.debug(LTag.PUMP, "pump was not connected, so disconnect not required.")
+        }
     }
 
     override fun stopConnecting() {
@@ -506,14 +538,11 @@ class TandemMobiPumpPlugin @Inject constructor(
         //     return false
         // }
 
-        setRefreshButtonEnabled(false)
-        pumpState = PumpDriverState.Connected
-
-        // TODO remove
-        //startUITest()
+        //setRefreshButtonEnabled(false)
+        //pumpState = PumpDriverState.Connected
 
         // firmware version
-        pumpConnectionManager.determineFirmwareVersion()
+        //pumpConnectionManager.determineFirmwareVersion()
         setDriverMode()
 
         // TODO time (1h) - setting time command not available
@@ -525,11 +554,11 @@ class TandemMobiPumpPlugin @Inject constructor(
         // TODO readPumpHistory
         readPumpHistory()
 
-        // TODO remaining insulin (>50 = 4h; 50-20 = 1h; 15m) -
+        // remaining insulin (>50 = 4h; 50-20 = 1h; 15m) -
         pumpConnectionManager.getRemainingInsulin() // (command not available)
         scheduleNextRefresh(TandemStatusRefreshType.RemainingInsulin, 10)
 
-        // TODO remaining power (1h) -
+        // remaining power (1h) -
         pumpConnectionManager.getBatteryLevel()
         scheduleNextRefresh(TandemStatusRefreshType.BatteryStatus, 20)
 
@@ -537,7 +566,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         pumpConnectionManager.getConfiguration()
 
         // TODO V2 read profile (once, later its controlled by isThisProfileSet method)
-        //pumpConnectionManager.getBasalProfile()
+        pumpConnectionManager.getBasalProfile()
 
         pumpStatus.setLastCommunicationToNow()
         setRefreshButtonEnabled(true)
@@ -552,33 +581,33 @@ class TandemMobiPumpPlugin @Inject constructor(
         return true
     }
 
-    private fun startUITest() {
-        aapsLogger.debug(LTag.PUMP, "Before UI Test")
-
-        var resultCommandResponse: ResultCommandResponse? = null
-
-
-        Thread(Runnable {
-            SystemClock.sleep(500)
-            //ErrorHelperActivity.runAlarm(context, rh.gs(R.string.medtronic_cmd_cancel_bolus_not_supported), rh.gs(R.string.medtronic_warning), R.raw.boluserror)
-
-            OKDialog.showConfirmation(context = context,
-                                      title = rh.gs(R.string.ypsopump_cmd_exec_title_set_profile),
-                                      message = rh.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
-                                      { _: DialogInterface?, _: Int ->
-                                          //commandResponse = CommandResponse.builder().success(true).build()
-                                          aapsLogger.debug(LTag.PUMP, "UI Test -> Success")
-                                      }, { _: DialogInterface?, _: Int ->
-                                          //commandResponse = CommandResponse.builder().success(true).build()
-                                          aapsLogger.debug(LTag.PUMP, "UI Test -> Cancel")
-                                      })
-
-        }).start()
-
-        //Looper.prepare()
-
-        aapsLogger.debug(LTag.PUMP, "After UI Test: $resultCommandResponse")
-    }
+    // private fun startUITest() {
+    //     aapsLogger.debug(LTag.PUMP, "Before UI Test")
+    //
+    //     var resultCommandResponse: ResultCommandResponse? = null
+    //
+    //
+    //     Thread(Runnable {
+    //         SystemClock.sleep(500)
+    //         //ErrorHelperActivity.runAlarm(context, rh.gs(R.string.medtronic_cmd_cancel_bolus_not_supported), rh.gs(R.string.medtronic_warning), R.raw.boluserror)
+    //
+    //         OKDialog.showConfirmation(context = context,
+    //                                   title = rh.gs(R.string.ypsopump_cmd_exec_title_set_profile),
+    //                                   message = rh.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
+    //                                   { _: DialogInterface?, _: Int ->
+    //                                       //commandResponse = CommandResponse.builder().success(true).build()
+    //                                       aapsLogger.debug(LTag.PUMP, "UI Test -> Success")
+    //                                   }, { _: DialogInterface?, _: Int ->
+    //                                       //commandResponse = CommandResponse.builder().success(true).build()
+    //                                       aapsLogger.debug(LTag.PUMP, "UI Test -> Cancel")
+    //                                   })
+    //
+    //     }).start()
+    //
+    //     //Looper.prepare()
+    //
+    //     aapsLogger.debug(LTag.PUMP, "After UI Test: $resultCommandResponse")
+    // }
 
     private fun setDriverMode() {
         // TODO setDriverMode

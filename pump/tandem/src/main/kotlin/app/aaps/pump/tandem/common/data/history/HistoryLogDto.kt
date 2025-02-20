@@ -194,30 +194,32 @@ data class TemporaryBasal(
 ) : HistoryLogObject() {
 
     override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
-        return resourceHelper.gs(R.string.ypsopump_history_tbr, percent, minutes)
+        return "x"
+        //return resourceHelper.gs(R.string.ypsopump_history_tbr, percent, minutes)
     }
 }
 
 enum class ConfigurationType(@StringRes var stringId: Int) {
-    BolusStepChanged(R.string.ypsopump_config_bolus_step_changed),
-    BolusAmountCapChanged(R.string.ypsopump_config_bolus_amount_cap_changed),
-    BasalAmountCapChanged(R.string.ypsopump_config_basal_amount_cap_changed),
-    BasalProfileChanged(R.string.ypsopump_config_basal_profile_changed)
+    // BolusStepChanged(R.string.ypsopump_config_bolus_step_changed),
+    // BolusAmountCapChanged(R.string.ypsopump_config_bolus_amount_cap_changed),
+    // BasalAmountCapChanged(R.string.ypsopump_config_basal_amount_cap_changed),
+    // BasalProfileChanged(R.string.ypsopump_config_basal_profile_changed)
 }
 
 data class ConfigurationChanged(var configurationType: ConfigurationType,
                                 var value: String) : HistoryLogObject() {
     override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
-        return resourceHelper.gs(R.string.ypsopump_history_configuration_changed, resourceHelper.gs(configurationType.stringId), value)
+        return "x"
+        //return resourceHelper.gs(R.string.ypsopump_history_configuration_changed, resourceHelper.gs(configurationType.stringId), value)
     }
 }
 
 enum class PumpStatusType(@StringRes var stringId: Int) {
-    PumpRunning(R.string.ypsopump_pump_status_type_pump_running),
-    PumpSuspended(R.string.ypsopump_pump_status_type_pump_suspended),
-    Priming(R.string.ypsopump_pump_status_type_priming),
-    Rewind(R.string.ypsopump_pump_status_type_rewind),
-    BatteryRemoved(R.string.ypsopump_pump_status_type_battery_removed)
+    // PumpRunning(R.string.ypsopump_pump_status_type_pump_running),
+    // PumpSuspended(R.string.ypsopump_pump_status_type_pump_suspended),
+    // Priming(R.string.ypsopump_pump_status_type_priming),
+    // Rewind(R.string.ypsopump_pump_status_type_rewind),
+    // BatteryRemoved(R.string.ypsopump_pump_status_type_battery_removed)
 }
 
 
@@ -226,11 +228,12 @@ data class PumpStatusChanged(var pumpStatusType: PumpStatusType,
                              var additonalData: String? = null): HistoryLogObject() {
 
     override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
-        return if (pumpStatusType == PumpStatusType.Priming) {
-            resourceHelper.gs(pumpStatusType.stringId, additonalData)
-        } else {
-            resourceHelper.gs(pumpStatusType.stringId)
-        }
+        // return if (pumpStatusType == PumpStatusType.Priming) {
+        //     resourceHelper.gs(pumpStatusType.stringId, additonalData)
+        // } else {
+        //     resourceHelper.gs(pumpStatusType.stringId)
+        // }
+        return "x"
     }
 }
 
