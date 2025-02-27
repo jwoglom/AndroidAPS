@@ -6,12 +6,14 @@ import app.aaps.pump.tandem.common.driver.config.TandemBLESelector
 import app.aaps.pump.tandem.common.driver.config.TandemHistoryDataProvider
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
+import app.aaps.pump.tandem.common.ui.DebugActionsActivity
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
 import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity
+import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiSettingsActivity
 
@@ -42,11 +44,19 @@ abstract class TandemModule {
 
 
     // T-Mobi Package - Activites and Fragments
-
+    @ContributesAndroidInjector abstract fun contributeAAPSTimber(): PumpX2L
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpFragment(): TandemMobiPumpFragment
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpDriverConfiguration(): TandemMobiPumpDriverConfiguration
     @ContributesAndroidInjector abstract fun contributesTandemMobiSettingsActivity(): TandemMobiSettingsActivity
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpPlugin(): TandemMobiPumpPlugin
+
+
+    @ContributesAndroidInjector abstract fun contributesDebugActionsActivity(): DebugActionsActivity
+    //@ContributesAndroidInjector abstract fun contributesDebugActionsFragment(): DebugActionsFragment
+    //@ContributesAndroidInjector abstract fun contributesTandemChangeFillManager(): TandemChangeFillManager
+
+
+    // @ContributesAndroidInjector abstract fun contributesTandemWizardDialogFragment(): TandemWizardDialogFragment
 
 
     // T-Slim Package - Activites and Fragments (disabled for now, TSlim not supported, it is not loopable)

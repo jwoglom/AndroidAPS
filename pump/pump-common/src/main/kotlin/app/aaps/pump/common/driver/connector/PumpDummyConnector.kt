@@ -34,6 +34,9 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
     var successfulResponseForSet =
         DataCommandResponse<AdditionalResponseDataInterface?>(PumpCommandType.SetBolus, true, null, null)
 
+    var successfulBooleanResponseForSet =
+        DataCommandResponse<Boolean?>(PumpCommandType.SetBolus, true, null, true)
+
 
     var supportedCommandsList: Set<PumpCommandType>
 
@@ -113,9 +116,11 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         }
     }
 
-    override fun sendBasalProfile(profile: Profile): DataCommandResponse<AdditionalResponseDataInterface?> {
+    override fun sendBasalProfile(profile: Profile): DataCommandResponse<Boolean?> {
         pumpUtil.sleepSeconds(10)
-        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBasalProfile)
+        // return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBasalProfile)
+        return DataCommandResponse(
+            PumpCommandType.SetBasalProfile, true, null, true)
     }
 
     override fun retrieveRemainingInsulin(): DataCommandResponse<Double?> {
@@ -148,8 +153,15 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         )
     }
 
-    override fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?> {
-        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTime)
+    // override fun getPumpStatus(): DataCommandResponse<AdditionalResponseDataInterface?> {
+    //     return DataCommandResponse(
+    //         PumpCommandType.GetPumpStatus, true, null, null)
+    //
+    // }
+
+
+    override fun setTime(): DataCommandResponse<Boolean?> {
+        return successfulBooleanResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTime)
     }
 
     override fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<Any>?> {
@@ -157,7 +169,11 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
             PumpCommandType.GetHistory, true, null, listOf())
     }
 
-    override fun executeCustomCommand(commandType: CustomCommandTypeInterface): DataCommandResponse<AdditionalResponseDataInterface?> {
+    override fun getPumpStatus(): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.GetPumpStatus)
+    }
+
+    override fun executeCustomCommand(commandType: CustomCommandTypeInterface, data: Any?): DataCommandResponse<AdditionalResponseDataInterface?> {
         return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.CustomCommand)
     }
 

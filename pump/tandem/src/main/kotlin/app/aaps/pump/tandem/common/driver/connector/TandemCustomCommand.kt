@@ -1,18 +1,31 @@
 package app.aaps.pump.tandem.common.driver.connector
 
+import androidx.annotation.IdRes
+import androidx.annotation.StringRes
+import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
+import app.aaps.pump.tandem.R
 
-class TandemCustomCommand : CustomCommandTypeInterface {
+enum class TandemCustomCommand(@StringRes var resourceId: Int) : CustomCommandTypeInterface {
 
+    SET_MAX_BOLUS(R.string.tandem_custom_command_set_max_bolus),
+    SET_CONTROL_IQ(R.string.tandem_custom_command_disable_control_iq)
+    ;
 
+    override fun getKey() = name
 
+    var descriptionInternal : String? = null
 
+    override fun getDescription() = descriptionInternal!!
 
-    override fun getKey(): String {
-        TODO("Not yet implemented")
+    companion object {
+
+        @JvmStatic
+        fun translateKeywords(rh: ResourceHelper) {
+            for (entry in entries) {
+                entry.descriptionInternal = rh.gs(entry.resourceId)
+            }
+        }
     }
 
-    override fun getDescription(): String {
-        TODO("Not yet implemented")
-    }
 }

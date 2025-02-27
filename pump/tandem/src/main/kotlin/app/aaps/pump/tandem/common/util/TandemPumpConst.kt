@@ -19,6 +19,12 @@ object TandemPumpConst {
         @JvmField val PumpApiVersion = R.string.key_tandem_api_version
         @JvmField val PumpVersionResponse = R.string.key_tandem_pump_version
 
+        @JvmField val DisplayDriverVersion = R.string.key_tandem_display_driver_version
+        @JvmField val MaxBasal = R.string.key_tandem_max_basal
+        @JvmField val MaxBolus = R.string.key_tandem_max_bolus
+
+
+
 
 
 
@@ -36,8 +42,5 @@ object TandemPumpConst {
         const val TBRsSet = StatsPrefix + "tbrs_set"
         const val StandardBoluses = StatsPrefix + "std_boluses_delivered"
         const val SMBBoluses = StatsPrefix + "smb_boluses_delivered"
-    //        public static final String LastPumpHistoryEntry = StatsPrefix + "pump_history_entry";
-        //        public static final String LastPrime = StatsPrefix + "last_sent_prime";
-        //        public static final String LastRewind = StatsPrefix + "last_sent_rewind";
     }
 }

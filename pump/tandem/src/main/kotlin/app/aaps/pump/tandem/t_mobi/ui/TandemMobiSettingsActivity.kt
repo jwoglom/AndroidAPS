@@ -1,33 +1,39 @@
 package app.aaps.pump.tandem.t_mobi.ui
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventQueueChanged
-import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
-import app.aaps.core.ui.extensions.toVisibility
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
+import app.aaps.pump.tandem.common.ui.DebugActionsActivity
+import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.databinding.TandemMobiSettingsBinding
-import app.aaps.pump.tandem.t_mobi.mgr.TandemMobiManager
+import com.google.firebase.crashlytics.internal.model.CrashlyticsReport.Session.User
 import dagger.android.HasAndroidInjector
 import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.kotlin.plusAssign
 import javax.inject.Inject
 
 class TandemMobiSettingsActivity : TranslatedDaggerAppCompatActivity() {
 
-    @Inject lateinit var fabricPrivacy: FabricPrivacy
-    @Inject lateinit var commandQueue: CommandQueue
-    @Inject lateinit var injector: HasAndroidInjector
+    //@Inject lateinit var fabricPrivacy: FabricPrivacy
+    //@Inject lateinit var commandQueue: CommandQueue
+    //@Inject lateinit var injector: HasAndroidInjector
     @Inject lateinit var context: Context
-    @Inject lateinit var aapsSchedulers: AapsSchedulers
-    @Inject lateinit var tandemMobiManager: TandemMobiManager
-    @Inject lateinit var uiInteraction: UiInteraction
+    //@Inject lateinit var aapsSchedulers: AapsSchedulers
+
+    //@Inject lateinit var tandemMobiManager: TandemMobiManager  // TODO remove
+    //@Inject lateinit var tandemCommunicationManager: TandemCommunicationManager
+
+    //@Inject lateinit var uiInteraction: UiInteraction
+    @Inject lateinit var tandemPumpUtil: TandemPumpUtil
+    @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var rxBus: RxBus
 
@@ -64,6 +70,45 @@ class TandemMobiSettingsActivity : TranslatedDaggerAppCompatActivity() {
         }
 
         binding.buttonChangeCartridge.setOnClickListener {
+
+
+            // val tandemChangeFillManager = TandemChangeFillManager(
+            //     tandemCommunicationManager = tandemPumpConnector.getCommunicationManager(),
+            //     aapsLogger = aapsLogger,
+            //     pumpUtil = tandemPumpUtil
+            // )
+            //
+            // val changeCartridgeStateMachine =
+            //     ChangeCartridgeStateMachine(tandemChangeFillManager = tandemChangeFillManager,
+            //                                 tandemPumpUtil = tandemPumpUtil,
+            //                                 aapsLogger = aapsLogger)
+
+
+            val intent = Intent(this, DebugActionsActivity::class.java)
+            intent.putExtra("KEY_STATE_MACHINE", "ChangeCartridgeStateMachine")
+            startActivity(intent)
+
+            //startActivity(Intent(context, DebugActionsActivity::class.java))
+
+
+            // val tandemChangeFillManager = TandemChangeFillManager(
+            //     tandemCommunicationManager = tandemPumpConnector.getCommunicationManager(),
+            //     aapsLogger = aapsLogger,
+            //     pumpUtil = tandemPumpUtil
+            // )
+            //
+            // val changeCartridgeStateMachine =
+            //     ChangeCartridgeStateMachine(tandemChangeFillManager = tandemChangeFillManager,
+            //                                 tandemPumpUtil = tandemPumpUtil,
+            //                                 aapsLogger = aapsLogger)
+            //
+            // val fragment = DebugActionsFragment(changeCartridgeStateMachine)
+            // //fragment.showsDialog
+            //
+            // fragment.show(getSupportFragmentManager(), "debug_action_dialog");
+
+            //TandemWizardDialogFragment(context2 = context).show(supportFragmentManager, "tandem_wizard")
+
             // OKDialog.showConfirmation(
             //     this,
             //     rh.gs(info.nightscout.androidaps.plugins.pump.omnipod.common.R.string.omnipod_common_pod_management_discard_pod_confirmation),
@@ -153,7 +198,7 @@ class TandemMobiSettingsActivity : TranslatedDaggerAppCompatActivity() {
         // }
     }
 
-    private fun displayErrorDialog(title: String, message: String, @Suppress("SameParameterValue") withSound: Boolean) {
-        uiInteraction.runAlarm(message, title, if (withSound) app.aaps.core.ui.R.raw.boluserror else 0)
-    }
+    // private fun displayErrorDialog(title: String, message: String, @Suppress("SameParameterValue") withSound: Boolean) {
+    //     uiInteraction.runAlarm(message, title, if (withSound) app.aaps.core.ui.R.raw.boluserror else 0)
+    // }
 }

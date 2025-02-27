@@ -19,6 +19,9 @@
 
         <activity android:name="app.aaps.pump.tandem.t_mobi.ui.TandemMobiSettingsActivity" />
 
+        <activity android:name="app.aaps.pump.tandem.common.ui.DebugActionsActivity" />
+
+
 
         <!--        <uses-library android:name="org.apache.http.legacy" android:required="false"/>-->
     </application>

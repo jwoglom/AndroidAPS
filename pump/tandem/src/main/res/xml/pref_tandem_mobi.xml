@@ -28,12 +28,23 @@
             <intent android:action="app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity" />
         </Preference>
 
-<!--        <ListPreference-->
-<!--            android:defaultValue="0.1"-->
-<!--            android:entries="@array/ypsoPumpBolusSize"-->
-<!--            android:entryValues="@array/ypsoPumpBolusSize"-->
-<!--            android:key="@string/key_ypsopump_bolus_size"-->
-<!--            android:title="@string/ypsopump_bolus_size" />-->
+        <app.aaps.core.validators.ValidatingEditTextPreference
+            android:defaultValue="25"
+            android:digits="0123456789."
+            android:inputType="number"
+            android:key="@string/key_tandem_max_bolus"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/tandem_pump_max_bolus"
+            validate:maxNumber="25"
+            validate:minNumber="1"
+            validate:testType="numericRange" />
+
+        <SwitchPreference
+            android:defaultValue="true"
+            android:key="@string/key_tandem_display_driver_version"
+            android:summary="@string/tandem_cfg_display_driver_version_summary"
+            android:title="@string/tandem_cfg_display_driver_version" />
 
     </PreferenceCategory>
 

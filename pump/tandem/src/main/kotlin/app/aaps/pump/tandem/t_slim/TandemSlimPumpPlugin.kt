@@ -1,7 +1,6 @@
 package app.aaps.pump.tandem.t_slim
 
 import android.content.Context
-import android.content.DialogInterface
 import android.os.SystemClock
 import androidx.preference.Preference
 import app.aaps.core.data.model.BS
@@ -29,7 +28,6 @@ import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
-import app.aaps.core.ui.dialogs.OKDialog
 import app.aaps.implementation.pump.PumpEnactResultObject
 import app.aaps.pump.tandem.R
 import dagger.android.HasAndroidInjector
@@ -43,21 +41,20 @@ import app.aaps.pump.tandem.common.driver.config.TandemPumpDriverConfiguration
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 
-import app.aaps.pump.tandem.common.util.AAPSTimberTree
+import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.defs.TempBasalPair
-import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.commands.response.ResultCommandResponse
+import app.aaps.pump.common.driver.refresh.PumpDataRefreshAction
+import app.aaps.pump.common.driver.refresh.PumpDataRefreshType
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.tandem.common.data.defs.TandemStatusRefreshType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 
 import java.util.*
-import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
@@ -100,17 +97,17 @@ class TandemSlimPumpPlugin constructor(
 ), Pump, PluginConstraints /*, PumpConstraints , PumpDriverConfigurationCapable*/ {
 
     // variables for handling statuses and history
-    private var firstRun = true
-    private var isRefresh = false
-    private val statusRefreshMap: MutableMap<TandemStatusRefreshType?, Long?> = mutableMapOf()
+    //private var firstRun = true
+    //private var isRefresh = false
+    //private val statusRefreshMap: MutableMap<TandemStatusRefreshType?, Long?> = mutableMapOf()
     private var isInitialized = false
-    private var hasTimeDateOrTimeZoneChanged = false
+    //private var hasTimeDateOrTimeZoneChanged = false
     private var driverMode = PumpDriverMode.Demo // TODO when implementation fully done, default should be automatic
 
     private var driverInitialized = false
     private var pumpAddress: String = ""
-    private var pumpBonded: Boolean = false
-    private var aapsTimberTree = AAPSTimberTree(aapsLogger)
+    //private var pumpBonded: Boolean = false
+    private var pumpX2L = PumpX2L(aapsLogger)
 
     //private var pumpX2Version = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
     private var pumpX2Version = "1.3.2"   // driver version should be referenced form build
@@ -226,7 +223,7 @@ class TandemSlimPumpPlugin constructor(
                 SystemClock.sleep(60000)
                 if (this.isInitialized) {
                     val statusRefresh = workWithStatusRefresh(
-                        StatusRefreshAction.GetData, null, null
+                        PumpDataRefreshAction.GetData, null, null
                     )
                     if (doWeHaveAnyStatusNeededRefereshing(statusRefresh)) {
                         if (!commandQueue.statusInQueue()) {
@@ -250,7 +247,7 @@ class TandemSlimPumpPlugin constructor(
             pumpBondStatus == 100 &&
             !tandemUtil.preventConnect)
 
-        aapsLogger.info(LTag.PUMP, "TANDEMDBG: initialization status: $driverInitialized");
+        aapsLogger.info(LTag.PUMP, "TANDEMDBG: initialization status: $driverInitialized")
     }
 
     override val serviceClass: Class<*>?
@@ -306,7 +303,7 @@ class TandemSlimPumpPlugin constructor(
 
     override fun isConnected(): Boolean {
         if (!driverInitialized)
-            return false;
+            return false
         val driverStatus = tandemUtil.driverStatus
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnected - " + driverStatus.name)
         return driverStatus == PumpDriverState.Ready || driverStatus == PumpDriverState.ExecutingCommand
@@ -324,14 +321,14 @@ class TandemSlimPumpPlugin constructor(
 
     override fun connect(reason: String) {
         if (!driverInitialized)
-            return;
+            return
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "connect (reason=$reason).")
         pumpConnectionManager.connectToPump() //deviceMac = pumpAddress, deviceBonded = pumpBonded)
     }
 
     override fun disconnect(reason: String) {
         if (!driverInitialized)
-            return;
+            return
 
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "disconnect (reason=$reason).")
         pumpConnectionManager.disconnectFromPump()
@@ -339,14 +336,14 @@ class TandemSlimPumpPlugin constructor(
 
     override fun stopConnecting() {
         if (!driverInitialized)
-            return;
+            return
         if (displayConnectionMessages)
             aapsLogger.debug(LTag.PUMP, "stopConnecting [PumpPluginAbstract] - default (empty) implementation.")
     }
 
     override fun isHandshakeInProgress(): Boolean {
         if (!driverInitialized)
-            return false;
+            return false
 
         if (displayConnectionMessages)
             aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - " + tandemUtil.driverStatus.name)
@@ -387,7 +384,7 @@ class TandemSlimPumpPlugin constructor(
 
     private fun refreshAnyStatusThatNeedsToBeRefreshed(): Boolean {
         val statusRefresh = workWithStatusRefresh(
-            StatusRefreshAction.GetData, null,
+            PumpDataRefreshAction.GetData, null,
             null)
         if (!doWeHaveAnyStatusNeededRefereshing(statusRefresh)) {
             return false
@@ -402,15 +399,15 @@ class TandemSlimPumpPlugin constructor(
         }
 
         // execute
-        val refreshTypesNeededToReschedule: MutableSet<TandemStatusRefreshType> = HashSet()
+        val refreshTypesNeededToReschedule: MutableSet<PumpDataRefreshType> = HashSet()
         for ((key, value) in statusRefresh!!) {
             if (value!! > 0 && System.currentTimeMillis() > value) {
                 when (key) {
-                    TandemStatusRefreshType.PumpHistory      -> {
+                    PumpDataRefreshType.PumpHistory -> {
                         readPumpHistory()
                     }
 
-                    TandemStatusRefreshType.PumpTime         -> {
+                    PumpDataRefreshType.PumpTime         -> {
                         if (checkTimeAndOptionallySetTime()) {
                             resetDisplay = true
                         }
@@ -418,15 +415,16 @@ class TandemSlimPumpPlugin constructor(
                         resetTime = true
                     }
 
-                    TandemStatusRefreshType.BatteryStatus,
-                    TandemStatusRefreshType.RemainingInsulin -> {
+                    PumpDataRefreshType.BatteryStatus,
+                    PumpDataRefreshType.RemainingInsulin -> {
                         pumpConnectionManager.getRemainingInsulin()
                         refreshTypesNeededToReschedule.add(key)
                         resetDisplay = true
                         resetTime = true
                     }
 
-                    null                                                                                -> TODO()
+                    else -> {  }
+
                 }
             }
 
@@ -442,14 +440,14 @@ class TandemSlimPumpPlugin constructor(
         return resetDisplay
     }
 
-    private fun doWeHaveAnyStatusNeededRefereshing(statusRefresh: Map<TandemStatusRefreshType?, Long?>?): Boolean {
-        for ((_, value) in statusRefresh!!) {
-            if (value!! > 0 && System.currentTimeMillis() > value) {
-                return true
-            }
-        }
-        return hasTimeDateOrTimeZoneChanged
-    }
+    // private fun doWeHaveAnyStatusNeededRefereshing(statusRefresh: Map<TandemStatusRefreshType?, Long?>?): Boolean {
+    //     for ((_, value) in statusRefresh!!) {
+    //         if (value!! > 0 && System.currentTimeMillis() > value) {
+    //             return true
+    //         }
+    //     }
+    //     return hasTimeDateOrTimeZoneChanged
+    // }
 
     private fun setRefreshButtonEnabled(enabled: Boolean) {
         rxBus.send(EventRefreshButtonState(enabled))
@@ -487,11 +485,11 @@ class TandemSlimPumpPlugin constructor(
 
         // TODO remaining insulin (>50 = 4h; 50-20 = 1h; 15m) -
         pumpConnectionManager.getRemainingInsulin() // (command not available)
-        scheduleNextRefresh(TandemStatusRefreshType.RemainingInsulin, 10)
+        scheduleNextRefresh(PumpDataRefreshType.RemainingInsulin, 10)
 
         // TODO remaining power (1h) -
         pumpConnectionManager.getBatteryLevel()
-        scheduleNextRefresh(TandemStatusRefreshType.BatteryStatus, 20)
+        scheduleNextRefresh(PumpDataRefreshType.BatteryStatus, 20)
 
         // configuration (once and then if history shows config changes)
         pumpConnectionManager.getConfiguration()
@@ -868,7 +866,7 @@ class TandemSlimPumpPlugin constructor(
 
         //        pumpConnectionManager.getPumpHistory()
 
-        scheduleNextRefresh(TandemStatusRefreshType.PumpHistory)
+        scheduleNextRefresh(PumpDataRefreshType.PumpHistory)
 
     }
 
@@ -887,27 +885,27 @@ class TandemSlimPumpPlugin constructor(
         // )
     }
 
-    private fun scheduleNextRefresh(refreshType: TandemStatusRefreshType, additionalTimeInMinutes: Int = 0) {
-        when (refreshType) {
-            TandemStatusRefreshType.RemainingInsulin -> {
-                val remaining = pumpStatus.reservoirRemainingUnits
-                val min: Int
-                min = if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
-                workWithStatusRefresh(StatusRefreshAction.Add, refreshType, getTimeInFutureFromMinutes(min))
-            }
-
-            TandemStatusRefreshType.PumpTime,
-                //YpsoPumpStatusRefreshType.Configuration,
-            TandemStatusRefreshType.BatteryStatus,
-            TandemStatusRefreshType.PumpHistory      -> {
-                workWithStatusRefresh(
-                    StatusRefreshAction.Add, refreshType,
-                    getTimeInFutureFromMinutes(getHistoryRefreshTime() + additionalTimeInMinutes)
-                )
-            }
-
-        }
-    }
+    // private fun scheduleNextRefresh(refreshType: TandemStatusRefreshType, additionalTimeInMinutes: Int = 0) {
+    //     when (refreshType) {
+    //         TandemStatusRefreshType.RemainingInsulin -> {
+    //             val remaining = pumpStatus.reservoirRemainingUnits
+    //             val min: Int
+    //             min = if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
+    //             workWithStatusRefresh(StatusRefreshAction.Add, refreshType, getTimeInFutureFromMinutes(min))
+    //         }
+    //
+    //         TandemStatusRefreshType.PumpTime,
+    //             //YpsoPumpStatusRefreshType.Configuration,
+    //         TandemStatusRefreshType.BatteryStatus,
+    //         TandemStatusRefreshType.PumpHistory      -> {
+    //             workWithStatusRefresh(
+    //                 StatusRefreshAction.Add, refreshType,
+    //                 getTimeInFutureFromMinutes(getHistoryRefreshTime() + additionalTimeInMinutes)
+    //             )
+    //         }
+    //
+    //     }
+    // }
 
     private fun getHistoryRefreshTime(): Int {
         if (this.driverMode != PumpDriverMode.Automatic) {
@@ -922,34 +920,26 @@ class TandemSlimPumpPlugin constructor(
         GetData
     }
 
-    @Synchronized
-    private fun workWithStatusRefresh(
-        action: StatusRefreshAction,  //
-        statusRefreshType: TandemStatusRefreshType?,  //
-        time: Long?
-    ): Map<TandemStatusRefreshType?, Long?>? {
-        return when (action) {
-            StatusRefreshAction.Add     -> {
-                statusRefreshMap[statusRefreshType] = time
-                null
-            }
+    // @Synchronized
+    // private fun workWithStatusRefresh(
+    //     action: StatusRefreshAction,  //
+    //     statusRefreshType: TandemStatusRefreshType?,  //
+    //     time: Long?
+    // ): Map<TandemStatusRefreshType?, Long?>? {
+    //     return when (action) {
+    //         StatusRefreshAction.Add     -> {
+    //             statusRefreshMap[statusRefreshType] = time
+    //             null
+    //         }
+    //
+    //         StatusRefreshAction.GetData -> {
+    //             HashMap(statusRefreshMap)
+    //         }
+    //
+    //         //else                        -> null
+    //     }
+    // }
 
-            StatusRefreshAction.GetData -> {
-                HashMap(statusRefreshMap)
-            }
-
-            //else                        -> null
-        }
-    }
-
-
-    private fun getTimeInFutureFromMinutes(minutes: Int): Long {
-        return System.currentTimeMillis() + getTimeInMs(minutes)
-    }
-
-    private fun getTimeInMs(minutes: Int): Long {
-        return minutes * 60 * 1000L
-    }
 
     private fun readTBR(): TempBasalPair? {
         val temporaryBasalResponse = pumpConnectionManager.getTemporaryBasal()
@@ -1039,8 +1029,8 @@ class TandemSlimPumpPlugin constructor(
         aapsLogger.info(LTag.PUMP, logPrefix + "setNewBasalProfile")
         return try {
             setRefreshButtonEnabled(false)
-            var resultCommandResponse: DataCommandResponse<AdditionalResponseDataInterface?>
-            var driverModeCurrent = driverMode
+            val resultCommandResponse: DataCommandResponse<Boolean?>
+            val driverModeCurrent = driverMode
 
             if (driverModeCurrent == PumpDriverMode.Demo) {
                 resultCommandResponse = pumpConnectionManager.setBasalProfile(profile)

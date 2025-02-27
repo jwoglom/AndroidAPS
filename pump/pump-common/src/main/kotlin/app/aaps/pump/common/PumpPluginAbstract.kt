@@ -3,6 +3,7 @@ package app.aaps.pump.common
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.os.SystemClock
 import android.text.format.DateFormat
 import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
@@ -43,11 +44,14 @@ import app.aaps.pump.common.sync.PumpDbEntryCarbs
 import app.aaps.pump.common.sync.PumpSyncEntriesCreator
 import app.aaps.pump.common.sync.PumpSyncStorage
 import app.aaps.core.data.model.BS
+import app.aaps.pump.common.driver.refresh.PumpDataRefreshAction
+import app.aaps.pump.common.driver.refresh.PumpDataRefreshType
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import org.json.JSONException
 import org.json.JSONObject
+import java.util.HashMap
 
 /**
  * Created by andy on 23.04.18.
@@ -85,6 +89,11 @@ abstract class PumpPluginAbstract protected constructor(
     protected var pumpState = PumpDriverState.NotInitialized
     protected var displayConnectionMessages = false
     protected var timeChangeType: TimeChangeType? = null
+    protected var hasTimeDateOrTimeZoneChanged = false
+    protected var isDriverInitialized = false
+    protected var firstRun = true
+    protected var isRefresh = false
+    protected val statusRefreshMap: MutableMap<PumpDataRefreshType?, Long?> = mutableMapOf()
 
     var pumpType: PumpType = PumpType.GENERIC_AAPS
         get() = field
@@ -398,10 +407,97 @@ abstract class PumpPluginAbstract protected constructor(
     override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
         aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed (type=$timeChangeType). ")
         this.timeChangeType = timeChangeType
+        this.hasTimeDateOrTimeZoneChanged = true
     }
 
     override fun getPumpDriverConfiguration(): PumpDriverConfiguration {
         return this.pumpDriverConfigurationInternal
     }
+
+    protected fun getTimeInFutureFromMinutes(minutes: Int): Long {
+        return System.currentTimeMillis() + getTimeInMs(minutes)
+    }
+
+    protected fun getTimeInMs(minutes: Int): Long {
+        return minutes * 60 * 1000L
+    }
+
+
+    // PumpDataRefreshCapable
+
+    protected fun startRefreshOfPumpCommands() {
+
+        // check status every minute (if any status needs refresh we send readStatus command)
+        Thread {
+            do {
+                SystemClock.sleep(60000)
+                if (this.isDriverInitialized && !isInPreventConnectMode()) {
+                    val statusRefresh = workWithStatusRefresh(
+                        PumpDataRefreshAction.GetData, null, null
+                    )
+                    if (doWeHaveAnyStatusNeededRefereshing(statusRefresh)) {
+                        if (!commandQueue.statusInQueue()) {
+                            commandQueue.readStatus("Scheduled Status Refresh", null)
+                        }
+                    }
+                }
+            } while (serviceRunning)
+        }.start()
+
+    }
+
+
+    @Synchronized
+    protected fun workWithStatusRefresh(
+        action: PumpDataRefreshAction,
+        statusRefreshType: PumpDataRefreshType?,
+        time: Long?
+    ): Map<PumpDataRefreshType?, Long?>? {
+        return when (action) {
+            PumpDataRefreshAction.Add     -> {
+                statusRefreshMap[statusRefreshType] = time
+                null
+            }
+
+            PumpDataRefreshAction.GetData -> {
+                HashMap(statusRefreshMap)
+            }
+        }
+    }
+
+    protected fun doWeHaveAnyStatusNeededRefereshing(statusRefresh: Map<PumpDataRefreshType?, Long?>?): Boolean {
+        for ((_, value) in statusRefresh!!) {
+            if (value!! > 0 && System.currentTimeMillis() > value) {
+                return true
+            }
+        }
+        return hasTimeDateOrTimeZoneChanged
+    }
+
+    // protected fun scheduleNextRefresh(refreshType: PumpDataRefreshType) {
+    //     scheduleNextRefresh(refreshType, 0)
+    // }
+
+    protected fun scheduleNextRefresh(refreshType: PumpDataRefreshType, additionalTimeInMinutes: Int = 0) {
+        val refreshTime = getRefreshTime(refreshType)
+
+        if (refreshTime>0) {
+            workWithStatusRefresh(
+                PumpDataRefreshAction.Add, refreshType,
+                getTimeInFutureFromMinutes(refreshTime + additionalTimeInMinutes)
+            )
+        }
+    }
+
+    // this method needs to be overwriten in your driver and implement PumpDataRefreshCapable
+    open fun getRefreshTime(pumpDataRefreshType: PumpDataRefreshType): Int {
+        return -1
+    }
+
+
+    open fun isInPreventConnectMode(): Boolean {
+        return false
+    }
+
 
 }

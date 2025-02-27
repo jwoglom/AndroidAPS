@@ -6,7 +6,9 @@ enum class TandemPumpSettingType : PumpConfigurationTypeInterface {
     CONTROL_IQ_ENABLED,
     BASAL_LIMIT,
     MAX_BOLUS,
-    BASAL_IQ_ENABLED
+    BASAL_IQ_ENABLED,
+    PUMP_FEATURES_1,
+    PUMP_FEATURES_2
 
 
     ;

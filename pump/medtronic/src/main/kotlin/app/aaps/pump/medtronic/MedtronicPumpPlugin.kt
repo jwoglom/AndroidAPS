@@ -42,6 +42,9 @@ import app.aaps.core.utils.DateTimeUtil
 import app.aaps.pump.common.PumpPluginAbstract
 import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.driver.refresh.PumpDataRefreshAction
+import app.aaps.pump.common.driver.refresh.PumpDataRefreshCapable
+import app.aaps.pump.common.driver.refresh.PumpDataRefreshType
 import app.aaps.pump.common.hw.rileylink.RileyLinkConst
 import app.aaps.pump.common.hw.rileylink.defs.RileyLinkPumpDevice
 import app.aaps.pump.common.hw.rileylink.defs.RileyLinkPumpInfo
@@ -66,7 +69,6 @@ import app.aaps.pump.medtronic.defs.MedtronicCommandType
 import app.aaps.pump.medtronic.defs.MedtronicCommandType.Companion.getSettings
 import app.aaps.pump.medtronic.defs.MedtronicCustomActionType
 import app.aaps.pump.medtronic.defs.MedtronicNotificationType
-import app.aaps.pump.medtronic.defs.MedtronicStatusRefreshType
 import app.aaps.pump.medtronic.defs.MedtronicUIResponseType
 import app.aaps.pump.medtronic.driver.MedtronicPumpStatus
 import app.aaps.pump.medtronic.events.EventMedtronicPumpConfigurationChanged
@@ -77,6 +79,7 @@ import app.aaps.pump.medtronic.util.MedtronicUtil
 import app.aaps.pump.medtronic.util.MedtronicUtil.Companion.isSame
 import dagger.android.HasAndroidInjector
 import app.aaps.pump.common.events.EventRileyLinkDeviceStatusChange
+import app.aaps.pump.medtronic.defs.MedtronicDeviceType
 import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpDriverConfiguration
 import org.joda.time.LocalDateTime
 import java.util.Calendar
@@ -126,18 +129,18 @@ class MedtronicPumpPlugin @Inject constructor(
         .description(R.string.description_pump_medtronic),  //
     PumpType.MEDTRONIC_522_722,  // we default to most basic model, correct model from config is loaded later
     rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage, MedtronicPumpDriverConfiguration(), decimalFormatter, instantiator
-), Pump, RileyLinkPumpDevice, PumpSyncEntriesCreator {
+), Pump, RileyLinkPumpDevice, PumpSyncEntriesCreator, PumpDataRefreshCapable {
 
     private var rileyLinkMedtronicService: RileyLinkMedtronicService? = null
 
     // variables for handling statuses and history
-    private var firstRun = true
-    private var isRefresh = false
-    private val statusRefreshMap: MutableMap<MedtronicStatusRefreshType, Long> = mutableMapOf()
-    private var isInitialized = false
+    //private var firstRun = true
+    //private var isRefresh = false
+    //private val statusRefreshMap: MutableMap<MedtronicStatusRefreshType, Long> = mutableMapOf()
+    //private var isInitialized = false
     private var lastPumpHistoryEntry: PumpHistoryEntry? = null
     private val busyTimestamps: MutableList<Long> = ArrayList()
-    private var hasTimeDateOrTimeZoneChanged = false
+    //private var hasTimeDateOrTimeZoneChanged = false
     private var isBusy = false
 
     override fun onStart() {
@@ -227,20 +230,21 @@ class MedtronicPumpPlugin @Inject constructor(
     override fun onStartScheduledPumpActions() {
 
         // check status every minute (if any status needs refresh we send readStatus command)
-        Thread {
-            do {
-                SystemClock.sleep(60000)
-                if (this.isInitialized) {
-                    val statusRefresh = synchronized(statusRefreshMap) { HashMap(statusRefreshMap) }
-                    if (doWeHaveAnyStatusNeededRefreshing(statusRefresh)) {
-                        if (!commandQueue.statusInQueue()) {
-                            commandQueue.readStatus(rh.gs(R.string.scheduled_status_refresh), null)
-                        }
-                    }
-                    clearBusyQueue()
-                }
-            } while (serviceRunning)
-        }.start()
+        startRefreshOfPumpCommands()
+        // Thread {
+        //     do {
+        //         SystemClock.sleep(60000)
+        //         if (this.isInitialized) {
+        //             val statusRefresh = synchronized(statusRefreshMap) { HashMap(statusRefreshMap) }
+        //             if (doWeHaveAnyStatusNeededRefreshing(statusRefresh)) {
+        //                 if (!commandQueue.statusInQueue()) {
+        //                     commandQueue.readStatus(rh.gs(R.string.scheduled_status_refresh), null)
+        //                 }
+        //             }
+        //             clearBusyQueue()
+        //         }
+        //     } while (serviceRunning)
+        // }.start()
     }
 
     override val serviceClass: Class<*> = RileyLinkMedtronicService::class.java
@@ -266,7 +270,7 @@ class MedtronicPumpPlugin @Inject constructor(
 
     override fun isInitialized(): Boolean {
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "MedtronicPumpPlugin::isInitialized")
-        return isServiceSet && isInitialized
+        return isServiceSet && isDriverInitialized
     }
 
     override fun setBusy(busy: Boolean) {
@@ -344,8 +348,13 @@ class MedtronicPumpPlugin @Inject constructor(
         }
 
     private fun refreshAnyStatusThatNeedsToBeRefreshed() {
-        val statusRefresh = synchronized(statusRefreshMap) { HashMap(statusRefreshMap) }
-        if (!doWeHaveAnyStatusNeededRefreshing(statusRefresh)) {
+        //val statusRefresh = synchronized(statusRefreshMap) { HashMap(statusRefreshMap) }
+
+        val statusRefresh = workWithStatusRefresh(
+            PumpDataRefreshAction.GetData, null,
+            null)
+
+        if (!doWeHaveAnyStatusNeededRefereshing(statusRefresh)) {
             return
         }
         var resetTime = false
@@ -363,31 +372,36 @@ class MedtronicPumpPlugin @Inject constructor(
         }
 
         // execute
-        val refreshTypesNeededToReschedule: MutableSet<MedtronicStatusRefreshType> = mutableSetOf()
-        for ((key, value) in statusRefresh) {
-            if (value > 0 && System.currentTimeMillis() > value) {
+        val refreshTypesNeededToReschedule: MutableSet<PumpDataRefreshType> = mutableSetOf()
+        for ((key, value) in statusRefresh!!) {
+            if (value!! > 0 && System.currentTimeMillis() > value) {
                 @Suppress("WHEN_ENUM_CAN_BE_NULL_IN_JAVA")
                 when (key) {
-                    MedtronicStatusRefreshType.PumpHistory                                                -> {
+                    PumpDataRefreshType.PumpHistory                                                -> {
                         readPumpHistory()
                     }
 
-                    MedtronicStatusRefreshType.PumpTime                                                   -> {
+                    PumpDataRefreshType.PumpTime                                                   -> {
                         checkTimeAndOptionallySetTime()
                         refreshTypesNeededToReschedule.add(key)
                         resetTime = true
                     }
 
-                    MedtronicStatusRefreshType.BatteryStatus, MedtronicStatusRefreshType.RemainingInsulin -> {
-                        rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(key.getCommandType(medtronicUtil.medtronicPumpModel)!!)
+                    PumpDataRefreshType.BatteryStatus,
+                    PumpDataRefreshType.RemainingInsulin -> {
+                        rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(
+                            getPumpCommandForRefresh(key, medtronicUtil.medtronicPumpModel)!!)
                         refreshTypesNeededToReschedule.add(key)
                         resetTime = true
                     }
 
-                    MedtronicStatusRefreshType.Configuration                                              -> {
-                        rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(key.getCommandType(medtronicUtil.medtronicPumpModel)!!)
+                    PumpDataRefreshType.Configuration                                              -> {
+                        rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(
+                            getPumpCommandForRefresh(key, medtronicUtil.medtronicPumpModel)!!)
                         resetTime = true
                     }
+
+                    else -> { }
                 }
             }
 
@@ -397,17 +411,18 @@ class MedtronicPumpPlugin @Inject constructor(
             }
         }
 
-        if (resetTime) medtronicPumpStatus.setLastCommunicationToNow()
+        if (resetTime)
+            medtronicPumpStatus.setLastCommunicationToNow()
     }
 
-    private fun doWeHaveAnyStatusNeededRefreshing(statusRefresh: Map<MedtronicStatusRefreshType, Long>): Boolean {
-        for ((_, value) in statusRefresh) {
-            if (value > 0 && System.currentTimeMillis() > value) {
-                return true
-            }
-        }
-        return hasTimeDateOrTimeZoneChanged
-    }
+    // private fun doWeHaveAnyStatusNeededRefreshing(statusRefresh: Map<MedtronicStatusRefreshType, Long>): Boolean {
+    //     for ((_, value) in statusRefresh) {
+    //         if (value > 0 && System.currentTimeMillis() > value) {
+    //             return true
+    //         }
+    //     }
+    //     return hasTimeDateOrTimeZoneChanged
+    // }
 
     private fun setRefreshButtonEnabled(enabled: Boolean) {
         rxBus.send(EventRefreshButtonState(enabled))
@@ -445,11 +460,11 @@ class MedtronicPumpPlugin @Inject constructor(
 
         // remaining insulin (>50 = 4h; 50-20 = 1h; 15m)
         rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.GetRemainingInsulin)
-        scheduleNextRefresh(MedtronicStatusRefreshType.RemainingInsulin, 10)
+        scheduleNextRefresh(PumpDataRefreshType.RemainingInsulin, 10)
 
         // remaining power (1h)
         rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.GetBatteryStatus)
-        scheduleNextRefresh(MedtronicStatusRefreshType.BatteryStatus, 20)
+        scheduleNextRefresh(PumpDataRefreshType.BatteryStatus, 20)
 
         // configuration (once and then if history shows config changes)
         rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(getSettings(medtronicUtil.medtronicPumpModel))
@@ -468,7 +483,7 @@ class MedtronicPumpPlugin @Inject constructor(
         if (!isRefresh) {
             pumpState = PumpDriverState.Initialized
         }
-        isInitialized = true
+        isDriverInitialized = true
         // this.pumpState = PumpDriverState.Initialized;
         firstRun = false
         return true
@@ -485,7 +500,7 @@ class MedtronicPumpPlugin @Inject constructor(
     @Synchronized
     override fun isThisProfileSet(profile: Profile): Boolean {
         aapsLogger.debug(LTag.PUMP, "isThisProfileSet: basalInitialized=" + medtronicPumpStatus.basalProfileStatus)
-        if (!isInitialized) return true
+        if (!isDriverInitialized) return true
         if (medtronicPumpStatus.basalProfileStatus === BasalProfileStatus.NotInitialized) {
             // this shouldn't happen, but if there was problem we try again
             basalProfiles
@@ -592,7 +607,7 @@ class MedtronicPumpPlugin @Inject constructor(
         } else {
             aapsLogger.info(LTag.PUMP, String.format(Locale.ENGLISH, "MedtronicPumpPlugin::checkTimeAndOptionallySetTime - Time difference is %d s. Do nothing.", timeDiff))
         }
-        scheduleNextRefresh(MedtronicStatusRefreshType.PumpTime, 0)
+        scheduleNextRefresh(PumpDataRefreshType.PumpTime, 0)
     }
 
     @Synchronized
@@ -871,12 +886,12 @@ class MedtronicPumpPlugin @Inject constructor(
 //        if (isLoggingEnabled())
 //            LOG.error(getLogPrefix() + "readPumpHistory WIP.");
         readPumpHistoryLogic()
-        scheduleNextRefresh(MedtronicStatusRefreshType.PumpHistory)
+        scheduleNextRefresh(PumpDataRefreshType.PumpHistory)
         if (medtronicHistoryData.hasRelevantConfigurationChanged()) {
-            scheduleNextRefresh(MedtronicStatusRefreshType.Configuration, -1)
+            scheduleNextRefresh(PumpDataRefreshType.Configuration, -1)
         }
         if (medtronicHistoryData.hasPumpTimeChanged()) {
-            scheduleNextRefresh(MedtronicStatusRefreshType.PumpTime, -1)
+            scheduleNextRefresh(PumpDataRefreshType.PumpTime, -1)
         }
         if (medtronicPumpStatus.basalProfileStatus !== BasalProfileStatus.NotInitialized
             && medtronicHistoryData.hasBasalProfileChanged()
@@ -982,27 +997,20 @@ class MedtronicPumpPlugin @Inject constructor(
             }
         }
 
-    private fun scheduleNextRefresh(refreshType: MedtronicStatusRefreshType, additionalTimeInMinutes: Int = 0) {
-        when (refreshType) {
-            MedtronicStatusRefreshType.RemainingInsulin                                                                                                                     -> {
-                val remaining = medtronicPumpStatus.reservoirRemainingUnits
-                val min: Int = if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
-                synchronized(statusRefreshMap) { statusRefreshMap[refreshType] = getTimeInFutureFromMinutes(min) }
-            }
+    // private fun scheduleNextRefresh(refreshType: MedtronicStatusRefreshType, additionalTimeInMinutes: Int = 0) {
+    //     when (refreshType) {
+    //         MedtronicStatusRefreshType.RemainingInsulin                                                                                                                     -> {
+    //             val remaining = medtronicPumpStatus.reservoirRemainingUnits
+    //             val min: Int = if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
+    //             synchronized(statusRefreshMap) { statusRefreshMap[refreshType] = getTimeInFutureFromMinutes(min) }
+    //         }
+    //
+    //         MedtronicStatusRefreshType.PumpTime, MedtronicStatusRefreshType.Configuration, MedtronicStatusRefreshType.BatteryStatus, MedtronicStatusRefreshType.PumpHistory -> {
+    //             synchronized(statusRefreshMap) { statusRefreshMap[refreshType] = getTimeInFutureFromMinutes(refreshType.refreshTime + additionalTimeInMinutes) }
+    //         }
+    //     }
+    // }
 
-            MedtronicStatusRefreshType.PumpTime, MedtronicStatusRefreshType.Configuration, MedtronicStatusRefreshType.BatteryStatus, MedtronicStatusRefreshType.PumpHistory -> {
-                synchronized(statusRefreshMap) { statusRefreshMap[refreshType] = getTimeInFutureFromMinutes(refreshType.refreshTime + additionalTimeInMinutes) }
-            }
-        }
-    }
-
-    private fun getTimeInFutureFromMinutes(minutes: Int): Long {
-        return System.currentTimeMillis() + getTimeInMs(minutes)
-    }
-
-    private fun getTimeInMs(minutes: Int): Long {
-        return minutes * 60 * 1000L
-    }
 
     private fun readTBR(): TempBasalPair? {
         val responseTask = rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.ReadTemporaryBasal)
@@ -1241,6 +1249,49 @@ class MedtronicPumpPlugin @Inject constructor(
             customActionResetRLConfig.isEnabled = isEnabled
         }
         refreshCustomActionsList()
+    }
+
+
+    override fun getRefreshTime(pumpDataRefreshType: PumpDataRefreshType): Int {
+        return (
+            when(pumpDataRefreshType) {
+                PumpDataRefreshType.PumpHistory      -> 5
+                PumpDataRefreshType.RemainingInsulin -> {
+                    val remaining = medtronicPumpStatus.reservoirRemainingUnits
+
+                    if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
+                }
+                PumpDataRefreshType.BatteryStatus    -> 55
+                PumpDataRefreshType.PumpTime         -> 300
+                else                                 -> -1
+            })
+    }
+
+    // PumpHistory(5, null),  //
+    // Configuration(0, null),  //
+    // RemainingInsulin(-1, MedtronicCommandType.GetRemainingInsulin),  //
+    // BatteryStatus(55, MedtronicCommandType.GetBatteryStatus),  //
+    // PumpTime(60, MedtronicCommandType.GetRealTimeClock //
+    // );
+    //
+    // fun getCommandType(medtronicDeviceType: MedtronicDeviceType): MedtronicCommandType? {
+    //     return if (this == Configuration) {
+    //         MedtronicCommandType.getSettings(medtronicDeviceType)
+    //     } else
+    //         commandType
+    // }
+
+
+    fun getPumpCommandForRefresh(pumpDataRefreshType: PumpDataRefreshType, medtronicDeviceType: MedtronicDeviceType) : MedtronicCommandType? {
+        return when (pumpDataRefreshType) {
+            PumpDataRefreshType.Configuration    -> MedtronicCommandType.getSettings(medtronicDeviceType)
+            PumpDataRefreshType.RemainingInsulin -> MedtronicCommandType.GetRemainingInsulin
+            PumpDataRefreshType.BatteryStatus    -> MedtronicCommandType.GetBatteryStatus
+            PumpDataRefreshType.PumpTime         -> MedtronicCommandType.GetRealTimeClock
+            else
+                -> null
+        }
+
     }
 
 }

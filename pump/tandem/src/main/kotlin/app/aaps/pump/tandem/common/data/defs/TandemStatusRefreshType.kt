@@ -14,7 +14,7 @@ enum class TandemStatusRefreshType(//    public PumpCommandType getCommandType(Y
     //Configuration(0, null), //
     RemainingInsulin(-1, PumpCommandType.GetRemainingInsulin),  //
     BatteryStatus(55, PumpCommandType.GetBatteryStatus),  //
-    PumpTime(60, PumpCommandType.GetTime) //
+    PumpTime(300, PumpCommandType.GetTime) // 5h
 
     ////        if (this == Configuration) {
     ////            return MedtronicCommandType.getSettings(medtronicDeviceType);

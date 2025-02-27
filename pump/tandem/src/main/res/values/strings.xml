@@ -21,9 +21,19 @@
     <string name="pump_settings">Settings</string>
     <string name="driver_version">Driver Version</string>
     <string name="pump_serial_number">Serial Number</string>
+    <string name="pump_current_activity_label">Current Activity</string>
 
     <!-- Errors -->
     <string name="tandem_error_not_bonded">Pump not configured or fully bonded</string>
+    <string name="tandem_error_problem_with_request">Pump reset connection, wrong/invalid command was sent</string>
+    <string name="tandem_error_pump_critical_error">Pump Critical Error: %s</string>
+
+    <!-- State Machines -->
+    <string name="state_machine_common_cancel">Cancel</string>
+    <string name="state_machine_common_continue">Continue</string>
+    <string name="state_machine_common_no">No</string>
+    <string name="state_machine_common_yes">Yes</string>
+<!--    <string name="tandem_state_machine_error_pump_critical_error">Pump Critical Error: %s</string>-->
 
 
     <!-- Command Errors -->
@@ -37,7 +47,6 @@
 
 
     <!-- Tandem Config -->
-
     <string name="key_tandem_address" translatable="false">pref_tandem_address</string>
     <string name="key_tandem_serial" translatable="false">pref_tandem_serial</string>
     <string name="key_tandem_name" translatable="false">pref_tandem_name</string>
@@ -46,12 +55,21 @@
     <string name="key_tandem_api_version" translatable="false">pref_tandem_api_version</string>
     <string name="key_tandem_pump_version" translatable="false">pref_tandem_pump_version</string>
     <string name="key_tandem_error" translatable="false">pref_tandem_error</string>
-    <string name="key_tandem_version_response" translatable="false">pref_tandem_version_response</string>
-<!--    <string name="key_ypsopump_bonded" translatable="false">pref_ypsopump_bonded</string>-->
-<!--    <string name="key_ypsopump_status_list" translatable="false">pref_ypsopump_status_list</string>-->
-<!--    <string name="key_ypsopump_bolus_size" translatable="false">pref_ypsopump_bolus_size</string>-->
-<!--    <string name="ypsopump_bolus_size">Bolus size</string>-->
+    <string name="key_tandem_max_basal" translatable="false">pref_tandem_max_basal</string>
+    <string name="key_tandem_max_bolus" translatable="false">pref_tandem_max_bolus</string>
+    <string name="key_tandem_display_driver_version" translatable="false">pref_tandem_display_driver_version</string>
+<!--    <string name="key_tandem_version_response" translatable="false">pref_tandem_version_response</string>-->
+
     <string name="tandem_configuration">Tandem Configuration</string>
+    <string name="tandem_pump_max_bolus">Max Bolus on Pump (U)</string>
+    <string name="tandem_pump_max_basal">Max Basal on Pump (U/h)</string>
+    <string name="tandem_cfg_display_driver_version">Display Driver Version</string>
+    <string name="tandem_cfg_display_driver_version_summary">Shows driver version</string>
+
+    <!-- Commands -->
+    <string name="tandem_custom_command_disable_control_iq">Disable ControlIQ</string>
+    <string name="tandem_custom_command_set_max_bolus">Set Max Bolus</string>
+
 
     <!-- Tandem BLE Config -->
     <string name="tandem_ble_config_scan_title">Tandem Scan</string>

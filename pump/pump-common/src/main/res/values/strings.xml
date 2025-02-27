@@ -12,6 +12,7 @@
     <!-- PumpCommon - Overview fragment -->
     <string name="pump_base_basal_rate_with_profile">(%1s) %2$.2f U/h</string>
     <string name="pump_tbr_remaining_percent">%1$d%% (%2$d min remaining)</string>
+    <string name="pump_current_activity">%s   %s</string>
 
     <!-- PumpCommon - Pump Status -->
     <string name="pump_status_not_initialized">Not initialized</string>
@@ -23,6 +24,9 @@
     <string name="pump_status_sleeping">Sleeping</string>
     <string name="pump_status_error_communicating_with_pump">Error Communicating With Pump</string>
     <string name="pump_status_executing_command">Executing Command</string>
+    <string name="pump_status_running">Running</string>
+    <string name="pump_status_unknown">Unknown</string>
+
 
     <!-- PumpCommon - History Group -->
     <string name="history_group_basal">Basals</string>

@@ -28,19 +28,20 @@ interface PumpConnectorInterface {
     fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
 
     fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?>
-    fun sendBasalProfile(profile: Profile): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
+    fun sendBasalProfile(profile: Profile): DataCommandResponse<Boolean?>  //ResultCommandResponse
 
     fun retrieveConfiguration(): DataCommandResponse<MutableMap<PumpConfigurationTypeInterface, Any>?>
     fun retrieveRemainingInsulin(): DataCommandResponse<Double?>
     fun retrieveBatteryStatus(): DataCommandResponse<Int?>
+    fun getPumpStatus(): DataCommandResponse<AdditionalResponseDataInterface?>
 
     fun getTime(): DataCommandResponse<PumpTimeDifferenceDto?>
-    fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?>
+    fun setTime(): DataCommandResponse<Boolean?>
 
     fun getPumpHistory(): DataCommandResponse<List<Any>?>
     fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<Any>?>
 
-    fun executeCustomCommand(commandType: CustomCommandTypeInterface): DataCommandResponse<AdditionalResponseDataInterface?>
+    fun executeCustomCommand(commandType: CustomCommandTypeInterface, data: Any?): DataCommandResponse<AdditionalResponseDataInterface?>
 
     fun getSupportedCommands(): Set<PumpCommandType>
 }

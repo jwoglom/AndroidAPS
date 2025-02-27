@@ -26,6 +26,9 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
     var unSuccessfulResponseForSet =
         DataCommandResponse<AdditionalResponseDataInterface?>(PumpCommandType.SetBolus, false, "Command not implemented.", null)
 
+    var unSuccessfulBooleanResponseForSet =
+        DataCommandResponse<Boolean?>(PumpCommandType.SetBolus, false, "Command not implemented.", false)
+
     var unSucessfulDataResponse =
         DataCommandResponse<FirmwareVersionInterface?>(
             PumpCommandType.GetFirmwareVersion,
@@ -71,8 +74,10 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
             PumpCommandType.GetBasalProfile, false, "Command not implemented.", null)
     }
 
-    override fun sendBasalProfile(profile: Profile): DataCommandResponse<AdditionalResponseDataInterface?> {
-        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBasalProfile)
+    override fun sendBasalProfile(profile: Profile): DataCommandResponse<Boolean?> {
+        return DataCommandResponse<Boolean?>(
+            PumpCommandType.GetBasalProfile, false, "Command not implemented.", false)
+        // return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBasalProfile)
     }
 
 
@@ -97,8 +102,8 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
             PumpCommandType.GetTime, false, "Command not implemented.", null)
     }
 
-    override fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?> {
-        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTime)
+    override fun setTime(): DataCommandResponse<Boolean?> {
+        return unSuccessfulBooleanResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTime)
     }
 
     override fun getPumpHistory(): DataCommandResponse<List<Any>?> {

@@ -64,7 +64,7 @@ abstract class PumpConnectionManager constructor(
 
     abstract fun getConnector(commandType: PumpCommandType?): PumpConnectorInterface
 
-    abstract fun postProcessConfiguration(value: MutableMap<PumpConfigurationTypeInterface, Any>?)
+    abstract fun postProcessConfiguration(valueMap: MutableMap<PumpConfigurationTypeInterface, Any>?)
 
 
     fun connectToPumpX(): Boolean {
@@ -333,14 +333,28 @@ abstract class PumpConnectionManager constructor(
     }
 
 
-    fun setBasalProfile(profile: Profile?): DataCommandResponse<AdditionalResponseDataInterface?> {
+    fun getPumpStatus(): DataCommandResponse<AdditionalResponseDataInterface?> {
 
-        val responseData: DataCommandResponse<AdditionalResponseDataInterface?> = getConnectorData(PumpCommandType.SetBasalProfile)
+        val responseData: DataCommandResponse<AdditionalResponseDataInterface?> = getConnectorData(PumpCommandType.GetPumpStatus)
+        {
+            getConnector(PumpCommandType.GetPumpStatus).getPumpStatus()
+        }
+
+        checkAdditionalResponseData(PumpCommandType.GetPumpStatus, responseData)
+
+        return responseData
+    }
+
+
+
+    fun setBasalProfile(profile: Profile?): DataCommandResponse<Boolean?> {
+
+        val responseData: DataCommandResponse<Boolean?> = getConnectorData(PumpCommandType.SetBasalProfile)
         {
             getConnector(PumpCommandType.SetBasalProfile).sendBasalProfile(profile!!) // TODO refactor this not to use AAPS object
         }
 
-        checkAdditionalResponseData(PumpCommandType.SetBasalProfile, responseData)
+        //checkAdditionalResponseData(PumpCommandType.SetBasalProfile, responseData)
 
         return responseData
     }
@@ -352,7 +366,7 @@ abstract class PumpConnectionManager constructor(
             getConnector(PumpCommandType.CancelTemporaryBasal).cancelTemporaryBasal() // TODO refactor this not to use AAPS object
         }
 
-        checkAdditionalResponseData(PumpCommandType.CancelTemporaryBasal, responseData)
+        //checkAdditionalResponseData(PumpCommandType.CancelTemporaryBasal, responseData)
 
         return responseData
     }
@@ -381,7 +395,7 @@ abstract class PumpConnectionManager constructor(
         }
 
         if (responseData.isSuccess) {
-            postProcessConfiguration(responseData.value);
+            postProcessConfiguration(responseData.value)
         }
 
         return responseData
@@ -420,14 +434,14 @@ abstract class PumpConnectionManager constructor(
     }
 
 
-    fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?> {
+    fun setTime(): DataCommandResponse<Boolean?> {
 
-        val responseData: DataCommandResponse<AdditionalResponseDataInterface?> = getConnectorData(PumpCommandType.SetTime)
+        val responseData: DataCommandResponse<Boolean?> = getConnectorData(PumpCommandType.SetTime)
         {
             getConnector(PumpCommandType.SetTime).setTime() // TODO refactor this not to use AAPS object
         }
 
-        checkAdditionalResponseData(PumpCommandType.SetTime, responseData)
+        //checkAdditionalResponseData(PumpCommandType.SetTime, responseData)
 
         return responseData
 
@@ -449,11 +463,11 @@ abstract class PumpConnectionManager constructor(
     }
 
 
-    fun executeCustomCommand(command: CustomCommandTypeInterface): DataCommandResponse<AdditionalResponseDataInterface?> {
+    fun executeCustomCommand(command: CustomCommandTypeInterface, data: Any?): DataCommandResponse<AdditionalResponseDataInterface?> {
 
         val responseData: DataCommandResponse<AdditionalResponseDataInterface?> = getConnectorData(PumpCommandType.CustomCommand)
         {
-            getConnector(PumpCommandType.CustomCommand).executeCustomCommand(command)
+            getConnector(PumpCommandType.CustomCommand).executeCustomCommand(command, data)
         }
 
         if (responseData.isSuccess) {

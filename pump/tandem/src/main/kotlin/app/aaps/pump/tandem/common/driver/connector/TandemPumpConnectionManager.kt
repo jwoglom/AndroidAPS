@@ -13,6 +13,7 @@ import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
@@ -191,6 +192,18 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
 
+    // fun deliverBolusddd(detailedBolusInfo: DetailedBolusInfo?): DataCommandResponse<AdditionalResponseDataInterface?> {
+    //
+    //     val responseData: DataCommandResponse<AdditionalResponseDataInterface?> = getConnectorData(PumpCommandType.CustomCommand)
+    //     {
+    //         getConnector(PumpCommandType.CustomCommand).sendBolus(detailedBolusInfo!!)
+    //     }
+    //
+    //     checkAdditionalResponseData(PumpCommandType.Custom, responseData)
+    //
+    //     return responseData
+    // }
+
 
     override fun setCurrentPumpCommandType(commandType: PumpCommandType) {
         pumpUtil.currentCommand = commandType
@@ -212,36 +225,38 @@ class TandemPumpConnectionManager @Inject constructor(
 
         // TODO extend this when new commands are enabled
         when(commandType) {
-            // PumpCommandType.GetBasalProfile        -> return tandemConnector
-            //
-
+            // SetBasalProfile
+            // GetTemporaryBasal
             // PumpCommandType.SetTemporaryBasal,
-            // PumpCommandType.GetTime                -> return tandemConnector
+            PumpCommandType.CustomCommand,
             PumpCommandType.GetBasalProfile,
+            PumpCommandType.SetBasalProfile,
             PumpCommandType.GetSettings,
+            PumpCommandType.GetPumpStatus,
             PumpCommandType.GetRemainingInsulin,
+            PumpCommandType.GetTime,
+            PumpCommandType.SetTime,
             PumpCommandType.GetBatteryStatus          -> return tandemConnector
 
             else                    -> return dummyConnector
         }
     }
 
-    override fun postProcessConfiguration(valueMap: MutableMap<PumpConfigurationTypeInterface, Any>??) {
-        // TODO
-        //TODO("postProcessConfiguration Not yet implemented")
+
+    override fun postProcessConfiguration(valueMap: MutableMap<PumpConfigurationTypeInterface, Any>?) {
         if (valueMap!=null) {
             for (entry in valueMap.entries) {
-                aapsLogger.info(TAG, "TANDEMDBG: Settings ${entry.key} = ${entry.value}")
+                aapsLogger.debug(TAG, "Settings ${entry.key} = ${entry.value}")
             }
+
+            tandemPumpStatus.settings = valueMap
+
         } else {
-            aapsLogger.warn(TAG, "TANDEMDBG: No settings found.")
+            aapsLogger.warn(TAG, "No settings found.")
         }
     }
 
-    // override fun postProcessBasalProfile(value: BasalProfileDto) {
-    //     // TODO
-    //     //TODO("Not yet implemented")
-    // }
+
 
 
 

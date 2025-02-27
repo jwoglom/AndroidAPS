@@ -7,6 +7,7 @@ import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventNewNotification
+import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.data.DateTimeDto
 import app.aaps.pump.common.defs.NotificationTypeInterface
 import app.aaps.pump.common.defs.PumpDriverState
@@ -15,11 +16,16 @@ import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonParseException
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import java.lang.reflect.Type
 
 open class PumpUtil constructor(
     val aapsLogger: AAPSLogger,
@@ -35,10 +41,31 @@ open class PumpUtil constructor(
     var gson = GsonBuilder()
         .registerTypeAdapter(DateTime::class.java,
                              JsonSerializer<DateTime?> { json, typeOfSrc, context -> JsonPrimitive(ISODateTimeFormat.dateTime().print(json)) })
+        .registerTypeAdapter(
+            ByteArray::class.java,
+            ByteArrayToStringAdapter())
         .setPrettyPrinting().create()
 
     var gsonRegular = GsonBuilder().create()
 
+    // var gson: Gson = GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss")
+    //     .registerTypeAdapter(
+    //         ByteArray::class.java,
+    //         JsonSerializer { src: ByteArray?, typeOfSrc: Type?, context: JsonSerializationContext? -> JsonPrimitive(String(src!!)) })
+    //     .registerTypeAdapter(
+    //         ByteArray::class.java,
+    //         JsonDeserializer { json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext? -> if (json == null) null else if (json.asString == null) null else json.asString.toByteArray() })
+    //     .create()
+    //
+    class ByteArrayToStringAdapter : JsonSerializer<ByteArray?>, JsonDeserializer<ByteArray?> {
+        @Throws(JsonParseException::class) override fun deserialize(json: JsonElement, typeOfT: Type?, context: JsonDeserializationContext?): ByteArray {
+            return ByteUtil.createByteArrayFromString(json.asString)
+        }
+
+        override fun serialize(src: ByteArray?, typeOfSrc: Type?, context: JsonSerializationContext?): JsonElement {
+            return JsonPrimitive(ByteUtil.getCompactString(src))
+        }
+    }
 
     fun resetDriverStatusToConnected() {
         workWithStatusAndCommand(StatusChange.SetStatus, PumpDriverState.Ready, null)

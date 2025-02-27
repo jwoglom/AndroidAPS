@@ -15,7 +15,7 @@ import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.common.comm.TandemPairingManager
+import app.aaps.pump.tandem.common.comm.maint.TandemPairingManager
 import app.aaps.pump.common.driver.ble.PumpBLESelector
 import app.aaps.pump.common.driver.ble.PumpBLESelectorText
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -27,7 +27,7 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.pump.common.ui.PumpBLEConfigActivity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import com.jwoglom.pumpx2.pump.PumpState
+import app.aaps.pump.tandem.common.util.PumpX2L
 
 import javax.inject.Inject
 
@@ -42,7 +42,8 @@ class TandemBLESelector @Inject constructor(
     var tandemPumpUtil: TandemPumpUtil,
     var pumpSync: PumpSync,
     var pumpStatus: TandemPumpStatus,
-    var aapsSchedulers: AapsSchedulers
+    var aapsSchedulers: AapsSchedulers,
+    var pumpX2L: PumpX2L
 ) : PumpBLESelectorAbstract(resourceHelper, aapsLogger, sp, rxBus, context), PumpBLESelector {
 
     var startingAddress: String? = null
@@ -121,7 +122,8 @@ class TandemBLESelector @Inject constructor(
                     pumpStatus = pumpStatus,
                     pumpSync = pumpSync,
                     activity = activity,
-                    aapsSchedulers = aapsSchedulers
+                    aapsSchedulers = aapsSchedulers,
+                    pumpX2L = pumpX2L
                 )
                 tandemPairingManager!!.startPairing()
             } catch(ex: Exception) {
@@ -141,6 +143,7 @@ class TandemBLESelector @Inject constructor(
         sp.remove(TandemPumpConst.Prefs.PumpName)
         sp.remove(TandemPumpConst.Prefs.PumpSerial)
         sp.remove(TandemPumpConst.Prefs.PumpVersionResponse)
+        pumpStatus.resetPumpSettings()
     }
 
     private fun setSystemParameterForBT(@StringRes parameter: Int, newValue: String): Boolean {

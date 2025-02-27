@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.common.comm
+package app.aaps.pump.tandem.common.comm.maint
 
 import android.app.AlertDialog
 import android.content.Context
@@ -27,23 +27,18 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ApiVersionRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpVersionRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.authentication.CentralChallengeResponse
-import com.jwoglom.pumpx2.pump.messages.response.authentication.PumpChallengeResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 //import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
-import app.aaps.pump.common.defs.PumpErrorType
-import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
-import app.aaps.pump.common.events.EventPumpDriverStateChanged
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.common.ui.PumpBLEConfigActivity
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.config.TandemPumpConfig
-import app.aaps.pump.tandem.common.events.EventPumpNeedsPairingCode
-import app.aaps.pump.tandem.common.events.EventPumpPairingCodeProvided
+import app.aaps.pump.tandem.common.util.PumpX2L
 
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -54,7 +49,6 @@ import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.jwoglom.pumpx2.util.timber.LConfigurator
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.*
 
 /**
@@ -75,6 +69,7 @@ class TandemPairingManager constructor(
     var pumpStatus: TandemPumpStatus,
     var pumpSync: PumpSync,
     var activity: PumpBLEConfigActivity,
+    var pumpX2L: PumpX2L,
     var aapsSchedulers: AapsSchedulers
 ) : TandemPump(context, Optional.of(btAddress)) {
 
@@ -119,8 +114,8 @@ class TandemPairingManager constructor(
             return bluetoothHandler
         }
 
-        LConfigurator.enableTimber()
-        bluetoothHandler = TandemBluetoothHandler.getInstance(context, this)
+        LConfigurator.enableTimber()  // TODO not sure about this
+        bluetoothHandler = TandemBluetoothHandler.getInstance(context, this, pumpX2L)
         return bluetoothHandler
     }
 

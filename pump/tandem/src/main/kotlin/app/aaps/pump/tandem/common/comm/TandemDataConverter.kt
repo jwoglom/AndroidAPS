@@ -1,30 +1,86 @@
 package app.aaps.pump.tandem.common.comm
 
-import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.helpers.Dates
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.*
-import app.aaps.pump.common.data.BasalProfileDto
-import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
-
-import app.aaps.pump.common.driver.connector.defs.PumpCommandType
-import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
-import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.common.defs.TempBasalPair
-import app.aaps.pump.common.driver.history.PumpDataConverter
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.utils.pump.ByteUtil
-
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.profile.Profile.ProfileValue
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.utils.pump.ByteUtil
+import app.aaps.pump.common.data.BasalProfileDto
+import app.aaps.pump.common.defs.TempBasalPair
+import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
+import app.aaps.pump.common.driver.connector.defs.PumpCommandType
+import app.aaps.pump.common.driver.history.PumpDataConverter
+import app.aaps.pump.tandem.common.data.IDPSegmentDto
+import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
 import app.aaps.pump.tandem.common.data.history.Bolus
 import app.aaps.pump.tandem.common.data.history.DateTimeChanged
 import app.aaps.pump.tandem.common.data.history.HistoryLogDto
 import app.aaps.pump.tandem.common.data.history.HistoryLogObject
-import app.aaps.pump.tandem.common.data.history.PumpStatusChanged
-import app.aaps.pump.tandem.common.data.history.PumpStatusType
 import app.aaps.pump.tandem.common.data.history.TemporaryBasal
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.helpers.Dates
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalLimitSettingsResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV2Response
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GlobalMaxBolusSettingsResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlarmActivatedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlertActivatedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BGHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BasalDeliveryHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BasalRateChangeHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolexActivatedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolexCompletedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusActivatedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusCompletedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusRequestedMsg1HistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusRequestedMsg2HistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusRequestedMsg3HistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CGMHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CannulaFilledHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CarbEnteredHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CartridgeFilledHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CgmCalibrationGxHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CgmCalibrationHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CgmDataGxHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CgmDataSampleHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.ControlIQPcmChangeHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.ControlIQUserModeChangeHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CorrectionDeclinedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.DailyBasalHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.DataLogCorruptionHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.DateChangeHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.FactoryResetHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.HypoMinimizerResumeHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.HypoMinimizerSuspendHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpActionHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpActionMsg2HistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpBolusHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpListHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpTimeDependentSegmentHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.LogErasedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.NewDayHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangeGlobalSettingsHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangePumpSettingsHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangeRemSettingsHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangeReminderHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateActivatedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateCompletedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.TimeChangedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.TubingFilledHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbConnectedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbDisconnectedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbEnumeratedHistoryLog
 import org.joda.time.DateTime
 import javax.inject.Inject
 
@@ -119,28 +175,12 @@ class TandemDataConverter @Inject constructor(
 
     fun getBasalProfileResponse(settings: IDPSettingsResponse, mapSegments: MutableMap<Int, IDPSegmentResponse>): DataCommandResponse<BasalProfileDto?> {
 
-        val timedMap = mutableMapOf<Int, IDPSegmentResponse>()
-
-        for (segment in mapSegments.values) {
-            val hour = Math.floor(segment.profileStartTime/60.0).toInt()
-
-            if (!timedMap.containsKey(hour)) {
-                timedMap[hour] = segment
-            }
-        }
-
-        var currentSegment: IDPSegmentResponse? = null
-
         val basalArray: DoubleArray = doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
         for(time in 0..23) {
-            if (timedMap.containsKey(time)) {
-                currentSegment = timedMap.get(time)!!
-            }
-
-            basalArray[time] = if (currentSegment!!.profileBasalRate==0) 0.0 else currentSegment.profileBasalRate/1000.0
+            basalArray[time] = findCorrectValueInSegments((time * 100), mapSegments.values)
         }
 
         val basalProfile = BasalProfileDto(basalArray, settings.name)
@@ -150,7 +190,61 @@ class TandemDataConverter @Inject constructor(
         return DataCommandResponse(
             PumpCommandType.GetBasalProfile, true, null, basalProfile
         )
+    }
 
+    private fun findCorrectValueInSegments(targetTimeAsSeconds: Int, profileValueList : MutableCollection<IDPSegmentResponse>) : Double {
+        var targetValue = 0.0
+        for (profileValue in profileValueList) {
+            if (profileValue.profileStartTime <= targetTimeAsSeconds) {
+                targetValue = profileValue.profileBasalRate/1000.0;
+            }
+        }
+
+        return targetValue
+    }
+
+
+
+    fun getIDPSegmentsFromProfile(profile: Profile) : List<IDPSegmentDto> {
+
+        val segmentList: ArrayList<IDPSegmentDto> = arrayListOf()
+
+        val basVals = profile.getBasalValues()
+        var index = 0
+
+        for (basVal in basVals) {
+            val idp = IDPSegmentDto()
+
+            idp.segmentIndex = index
+            idp.profileStartTime = basVal.timeAsSeconds/60
+            idp.profileBasalRate = (basVal.value * 1000).toInt()
+
+            idp.profileTargetBG = findCorrectValueInProfile(basVal.timeAsSeconds, profile.getSingleTargetsMgdl()).toInt()
+
+            // TODO carbratio  & isf (insulin sentivity factor = mgdl) at the moment ignored (not needed for AAPS)
+            //idp.profileCarbRatio = findCorrectValueInProfile(basVal.timeAsSeconds, profile.getIcsValues()).toLong()
+            //idp.profileISF = findCorrectValueInProfile(basVal.timeAsSeconds, profile.getIsfsMgdlValues()).toInt()
+
+            idp.profileCarbRatio = 0
+            idp.profileISF = 0
+
+            segmentList.add(idp)
+
+            index++
+        }
+
+        return segmentList
+    }
+
+    private fun findCorrectValueInProfile(targetTimeAsSeconds: Int, profileValueList : Array<ProfileValue>) : Double {
+        var targetValue = 0.0
+        for (profileValue in profileValueList) {
+            if (profileValue.timeAsSeconds <= targetTimeAsSeconds) {
+                targetValue = profileValue.value
+            }
+        }
+
+        return targetValue
     }
 
 

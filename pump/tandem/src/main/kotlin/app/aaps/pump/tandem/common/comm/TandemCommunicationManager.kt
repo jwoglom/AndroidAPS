@@ -5,6 +5,7 @@ package app.aaps.pump.tandem.common.comm
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.ui.extensions.runOnUiThread
@@ -13,54 +14,82 @@ import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpErrorType
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
+import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
 import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import com.jwoglom.pumpx2.pump.PumpState
+import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.bluetooth.TandemConfig
 import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ApiVersionRequest
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.authentication.AbstractCentralChallengeResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
-import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
 import org.joda.time.DateTime
-import timber.log.Timber
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import javax.inject.Inject
 
 /**
  * This is low-level driver that does all communication with pump, with exception of pairing.
  */
-class TandemCommunicationManager constructor(
+class TandemCommunicationManager @Inject constructor(
     var context: Context,
+    var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,
     var rxBus: RxBus,
     var sp: SP,
     var pumpUtil: TandemPumpUtil,
     var pumpStatus: TandemPumpStatus,
-    var pumpConfig: TandemConfig
-
+    var pumpConfig: TandemConfig,
+    var timberTree: PumpX2L
 ) : TandemPump(context, pumpConfig) {
 
     lateinit var peripheral: BluetoothPeripheral
     var connected = false
-    var inConnectMode = false
+    //var inConnectMode = false
     var errorConnecting = false
     var commandRequestModeRunning = false
 
     var commandRequest: Message? = null
     var commandResponse: Message? = null
+    var communicationListener : CommunicationListener? = null
+        set(value) {  if (value==null)
+            operationMode=OperationMode.StandardOperation
+        else
+            operationMode=OperationMode.ExternalListenerOperation
+            field = value
+        }
+
     var responses: MutableMap<Int, Message> = mutableMapOf()
 
     var bluetoothHandler: TandemBluetoothHandler? = null
 
     var TAG = LTag.PUMPBTCOMM
+
+    var operationMode: OperationMode = OperationMode.None
+
+    var currentAddress : String? = null
+
+    // fun setNewAddress(btAddress: String) {
+    //     if (currentAddress==null) {
+    //         this.currentAddress = btAddress
+    //     } else {
+    //         if (!this.currentAddress.equals(btAddress)) {
+    //             this.currentAddress = btAddress
+    //             this.bluetoothHandler = null
+    //         }
+    //
+    //     }
+    //
+    // }
 
 
     fun connect(): Boolean {
@@ -80,16 +109,18 @@ class TandemCommunicationManager constructor(
         }
 
         connected = false
-        inConnectMode = true
+        // inConnectMode = true
+        operationMode = OperationMode.ConnectionMode
         bluetoothHandler!!.startScan()
 
-        while (inConnectMode) {
+        while (operationMode == OperationMode.ConnectionMode) {
             aapsLogger.info(TAG, "TANDEMDBG: inConnectMode")
             Thread.sleep(2000)
 
             if (connected || errorConnecting) {
                 aapsLogger.info(TAG, "TANDEMDBG: connected: ${connected} error: ${errorConnecting}")
-                inConnectMode = false
+                // inConnectMode = false
+                operationMode = OperationMode.StandardOperation
                 //return connected;
             }
         }
@@ -110,11 +141,12 @@ class TandemCommunicationManager constructor(
 
         aapsLogger.info(TAG, "TANDEMDBG: disconnect ")
 
-        if (bluetoothHandler!=null) {
-            bluetoothHandler!!.stop()
-        }
+        // if (bluetoothHandler!=null) {
+        //     bluetoothHandler!!.stop()
+        // }
         connected = false
-        inConnectMode = false
+        operationMode = OperationMode.None
+        // inConnectMode = false
     }
 
 
@@ -123,10 +155,10 @@ class TandemCommunicationManager constructor(
             return bluetoothHandler
         }
         aapsLogger.info(TAG, "createBluetoothHandler for Communication")
-        LConfigurator.enableTimber()
+        //LConfigurator.enableTimber()
 
         runOnUiThread {
-            bluetoothHandler = TandemBluetoothHandler.getInstance(context, this);
+            bluetoothHandler = TandemBluetoothHandler.getInstance(context, this, timberTree);
         }
 
         while (bluetoothHandler == null) {
@@ -155,8 +187,56 @@ class TandemCommunicationManager constructor(
         super.onPumpConnected(peripheral)
     }
 
+    // TODO refactor sendCommand, it should not return Message directly (See ChangeFillManager), but
+    //   return CommandResponse
 
-    fun sendCommand(request: Message): Message? {
+
+
+
+    /**
+     * Sends command to the pump, if driver is in preventConnect mode any messages will be ignored,
+     * unless we specify forceSend. Force send should be used only for ChangeFillManager
+     */
+    fun sendCommand(request: Message, forceSend: Boolean = false): Message? {
+        var times = 0
+
+        if (pumpUtil.preventConnect) {
+            // TODO handle pumpUtil.preventConnect mode
+        }
+
+        while (!::peripheral.isInitialized && times < 10) {
+            aapsLogger.warn(LTag.PUMPCOMM, "TANDEMDBG: Waiting for peripheral for sendCommand with ${request.opCode()} - ${request.javaClass.name}")
+            pumpUtil.sleep(1000)
+            times++
+        }
+
+        if (!::peripheral.isInitialized) {
+            aapsLogger.warn(LTag.PUMPCOMM, "TANDEMDBG: Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
+            return null;
+        }
+        this.commandRequestModeRunning = true
+        this.commandRequest = request
+        this.commandResponse = null
+
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
+
+        sendCommand(peripheral, request)
+
+        while(commandRequestModeRunning) {
+
+            if (commandResponse!=null) {
+                this.commandRequestModeRunning = false
+                return commandResponse
+            }
+
+            pumpUtil.sleep(1000)
+        }
+
+        return null
+    }
+
+
+    fun sendCommandWithListener(request: Message): Message? {
         var times = 0
 
         while (!::peripheral.isInitialized && times < 10) {
@@ -192,91 +272,126 @@ class TandemCommunicationManager constructor(
 
 
 
+    var apiVersionResponseReceived = false
+
+
     override fun onReceiveMessage(peripheral: BluetoothPeripheral, message: Message) {
         aapsLogger.info(LTag.PUMPBTCOMM, "TANDEMDBG: Received Response: ${message.opCode()} - ${message.javaClass.name} ")
 
-        if (inConnectMode)  {
-
-            if (message is ApiVersionResponse) {
-
-                val apiVersionResponse = message
-                val apiVersion = TandemPumpApiVersion.getApiVersionFromResponse(apiVersionResponse)
-
-                aapsLogger.info(LTag.PUMPCOMM, "Api Version: ${apiVersionResponse.majorVersion}.${apiVersionResponse.minorVersion} : ${apiVersion.name} ")
-
-                pumpStatus.tandemPumpFirmware = apiVersion
-
-                sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
-
-                rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
-
-                // TODO check if PumpApiVersion changed   N-8
-                //sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
-            } else if (message is TimeSinceResetResponse) {
-
-                val timeSince : TimeSinceResetResponse = message
-
-                aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${message}")
-
-                val dtPump = DateTime().withMillis(timeSince.currentTime * 1000L)
-
-                val pumpTimeDifference = PumpTimeDifferenceDto(DateTime.now(), dtPump)
-                pumpStatus.pumpTime = pumpTimeDifference
-
-                var timeDiffJson = pumpUtil.gson.toJson(pumpTimeDifference)
-
-                aapsLogger.info(LTag.PUMPCOMM, "Pump Time: ${timeDiffJson}")
-
-                // TODO check Pump Serial   N-8
-
-                this.connected = true
-
-            }
-        } else {
-
-            // if (message.opCode() == commandRequest!!.opCode()) {
-            //     this.commandResponse = message
-            // }
-
-            if (this.commandRequest==null) {
-                aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: No Command Requested, but received message [code=${message.opCode()}]")
-            } else {
-                aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: receivedMessage [code=${message.opCode()},expected=${commandRequest!!.getResponseOpCode()},class=${message::class.simpleName}]")
-
-                if (message.opCode() == commandRequest!!.getResponseOpCode()) {
-                    aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: not in connect mode, but response received ${message.opCode()}")
-                    this.commandResponse = message
-                } else {
-                    aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: discarding Message [code=${message.opCode()}")
-                }
+        when(operationMode) {
+            OperationMode.ConnectionMode            -> receiveMessageInConnectMode(message)
+            OperationMode.StandardOperation         -> receiveMessageInStandardMode(message)
+            OperationMode.ExternalListenerOperation -> communicationListener!!.onReceiveMessage(message)
+            else -> {
+                aapsLogger.error("We are in None operation mode and we received Pump Message.")
             }
         }
     }
 
-    override fun onReceiveQualifyingEvent(peripheral: BluetoothPeripheral, events: Set<QualifyingEvent>) {
-        aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s", events)
+
+    fun receiveMessageInConnectMode(message: Message) {
+
+        if (message is ApiVersionResponse) {
+
+            val apiVersionResponse = message
+            val apiVersion = TandemPumpApiVersion.getApiVersionFromResponse(apiVersionResponse)
+
+            aapsLogger.info(LTag.PUMPCOMM, "Api Version: ${apiVersionResponse.majorVersion}.${apiVersionResponse.minorVersion} : ${apiVersion.name} ")
+
+            pumpStatus.tandemPumpFirmware = apiVersion
+
+            sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
+
+            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
+
+        } else if (message is TimeSinceResetResponse) {
+
+            val timeSince : TimeSinceResetResponse = message
+
+            aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${message}")
+
+            val dtPumpInstant = timeSince.currentTimeInstant
+
+            val zonedDateTime: ZonedDateTime = dtPumpInstant.atZone(ZoneId.of("Europe/Dublin"))
+            //println("ZonedDateTime: $zonedDateTime")
+
+            aapsLogger.info(LTag.PUMPCOMM, "Pump Time: Zoned Time ${zonedDateTime}")
+
+            val dtPump = DateTime(dtPumpInstant.toEpochMilli())
+
+            val pumpTimeDifference = PumpTimeDifferenceDto(DateTime.now(), dtPump)
+            pumpStatus.pumpTime = pumpTimeDifference
+
+            var timeDiffJson = pumpUtil.gson.toJson(pumpTimeDifference)
+
+            aapsLogger.info(LTag.PUMPCOMM, "Pump Time: ${timeDiffJson}")
+
+            pumpStatus.pumpTime!!.displayTime(gson = pumpUtil.gson, aapsLogger = aapsLogger)
+
+            // TODO check Pump Serial   N-8
+
+            this.connected = true
+
+        }
+    }
+
+    fun receiveMessageInStandardMode(message: Message) {
+        if (this.commandRequest==null) {
+            aapsLogger.error(LTag.PUMPCOMM, "TANDEMDBG: No Command Requested, but received message [code=${message.opCode()}]")
+        } else {
+            aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: receivedMessage [code=${message.opCode()},expected=${commandRequest!!.getResponseOpCode()},class=${message::class.simpleName}]")
+
+            if (message.opCode() == commandRequest!!.getResponseOpCode()) {
+                aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: Response received ${message.opCode()}")
+                this.commandResponse = message
+            } else {
+                if (message is ApiVersionResponse) {
+                    this.apiVersionResponseReceived = true
+                    aapsLogger.error(LTag.PUMPCOMM, "Received ApiVersionResponse - problem with communication.")
+                } else if (message is TimeSinceResetResponse) {
+                    this.apiVersionResponseReceived = false
+                    pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_problem_with_request)
+                    rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+                    // TODO fix
+                } else {
+                    aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: discarding Message [code=${message.opCode()}")
+                }
+
+            }
+        }
+
     }
 
 
-    // TODO 1.4.4 chanlenge type changed
-    override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: AbstractCentralChallengeResponse?) {
-    // override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: CentralChallengeResponse?) {
-        aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode ")
+    override fun onReceiveQualifyingEvent(peripheral: BluetoothPeripheral, events: Set<QualifyingEvent>) {
+        aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s", events)
 
-        val pairingCode = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
-
-        aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode. Pairing Code: ${pairingCode} ")
-
-        // if (pairingCode.isNullOrBlank()) {
-        //     aapsLogger.error(LTag.PUMPCOMM, "TandemPump: onWaitingForPairingCode. It seems you Pairing code was not saved.")
-        //     sendInvalidPairingCodeError()
-        //     return
+        // TODO not sure what this is for
+        // Timber.i("onReceiveQualifyingEvent: $events")
+        // Toast.makeText(this@CommService, "Events: $events", Toast.LENGTH_SHORT).show()
+        // events?.forEach { event ->
+        //     event.suggestedHandlers.forEach {
+        //         Timber.i("onReceiveQualifyingEvent: running handler for $event message: ${it.get()}")
+        //         command(it.get())
+        //     }
         // }
 
-        // TODO pairingCode needs to be read from user interface
-        pair(peripheral, centralChallenge, "158360")
+    }
 
-        //pair(peripheral, centralChallenge, pairingCode)
+
+
+    override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: AbstractCentralChallengeResponse?) {
+        aapsLogger.info(TAG, "TandemCommMgr: onWaitingForPairingCode ")
+        val pairingCode = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
+        //aapsLogger.info(TAG, "TandemCommMgr: onWaitingForPairingCode. Pairing Code: ${pairingCode} ")
+
+        if (pairingCode.isNullOrBlank()) {
+            aapsLogger.error(LTag.PUMPCOMM, "TandemCommMgr: onWaitingForPairingCode. It seems you Pairing code was not saved.")
+            sendInvalidPairingCodeError()
+            return
+        }
+
+        pair(peripheral, centralChallenge, pairingCode)
     }
 
 
@@ -286,10 +401,15 @@ class TandemCommunicationManager constructor(
     //     sendInvalidPairingCodeError()
     // }
 
-    // override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
-    //     super.onPumpCriticalError(peripheral, reason)
-    //     aapsLogger.error(TAG, "TANDEMDBUG: CRITICAL ERROR: ${reason}")
-    // }
+    override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
+        aapsLogger.error(TAG, "Pump Critical Error: ${reason}")
+
+        pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_pump_critical_error,
+                                                        if (reason==null) "Unknown" else reason.message)
+        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+
+        super.onPumpCriticalError(peripheral, reason)
+    }
 
 
     fun sendInvalidPairingCodeError() {
@@ -299,6 +419,16 @@ class TandemCommunicationManager constructor(
         pumpUtil.sendNotification(TandemNotificationType.InvalidPairingCodeReconfigure)
 
         this.errorConnecting = true
+    }
+
+
+    // TODO class
+
+    enum class OperationMode {
+        None,
+        ConnectionMode,
+        StandardOperation,
+        ExternalListenerOperation,
     }
 
 

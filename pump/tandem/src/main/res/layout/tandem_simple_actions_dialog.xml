@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/aaps_theme_dark_onPrimaryContainer"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:id="@+id/tnd_action_header"
+        style="@style/StyleDialogHeader"
+        android:layout_width="match_parent"
+        android:background="@color/aaps_theme_light_onPrimary"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center">
+
+<!--        <com.tbuonomo.viewpagerdotsindicator.DotsIndicator-->
+<!--            android:id="@+id/dotsIndicator"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_gravity="center"/>-->
+
+<!--        <com.badoualy.stepperindicator.StepperIndicator-->
+<!--            android:id="@+id/stepper_indicator"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_marginStart="25dp"-->
+<!--            android:layout_marginEnd="25dp"-->
+<!--            app:stpi_circleRadius="7dp"-->
+<!--            app:stpi_stepCount="7"-->
+<!--            />-->
+        <!--            android:layout_alignTop="@+id/stepper_indicator"-->
+
+        <TextView
+            android:id="@+id/tnd_action_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+
+            android:layout_marginTop="16sp"
+            android:layout_marginStart="25dp"
+            android:layout_marginEnd="25dp"
+            android:textColor="@color/aaps_theme_dark_background"
+            android:text="Title"
+            android:textSize="26sp"
+            android:textAlignment="center"
+            />
+
+    </RelativeLayout>
+
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tnd_step_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_marginTop="18sp"
+        android:padding="8dp"
+        android:text="Title"
+        android:textSize="18sp"
+        android:textColor="@color/aaps_theme_dark_background"
+        app:layout_constraintTop_toBottomOf="@+id/tnd_action_header" />
+
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tnd_details"
+        android:layout_width="270dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="25sp"
+        android:gravity="center"
+        android:textColor="@color/aaps_theme_dark_background"
+        android:padding="8dp"
+        android:text="Details"
+        android:textSize="14sp"
+
+        app:layout_constraintTop_toBottomOf="@+id/tnd_step_title" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tnd_status"
+        android:layout_width="270dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="25sp"
+        android:gravity="center"
+        android:textColor="@color/aaps_theme_dark_background"
+        android:padding="8dp"
+        android:text="Status"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@+id/tnd_details" />
+
+
+    <ScrollView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="300dp"
+        android:layout_height="250dp"
+        android:layout_marginTop="35sp"
+        android:textColor="@color/aaps_theme_dark_background"
+        android:background="@color/aaps_theme_light_onPrimary"
+        android:fillViewport="true">
+
+        <TextView
+            android:id="@+id/tnd_debug_area"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/aaps_theme_dark_background"
+            android:text="Your long text goes here..."
+            android:textSize="12sp"
+            android:padding="16dp"/>
+    </ScrollView>
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50sp"
+        android:gravity="center"
+        android:layout_gravity="end">
+
+        <Button
+            android:id="@+id/tnd_btn_left"
+            android:layout_width="120dp"
+
+            android:layout_height="match_parent"
+            app:layout_constraintEnd_toStartOf="@+id/btn_need"
+            android:text="Left" />
+
+        <Button
+            android:id="@+id/tnd_btn_right"
+            android:layout_width="120dp"
+
+            android:layout_height="match_parent"
+            android:text="Right"
+            android:layout_marginLeft="150px"
+            app:layout_constraintBottom_toBottomOf="@+id/btn_skip"
+            app:layout_constraintEnd_toStartOf="@+id/btn_skip" />
+    </LinearLayout>
+
+
+
+</LinearLayout>

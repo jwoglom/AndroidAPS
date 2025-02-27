@@ -40,6 +40,9 @@ dependencies {
 
     implementation(project(":pump:pump-common"))
 
+    testImplementation(project(":shared:tests"))
+    testImplementation(project(":shared:impl"))
+
     // ? api(Libs.AndroidX.fragment)
     // ? api(Libs.AndroidX.navigationFragment)
 
@@ -49,31 +52,44 @@ dependencies {
     //kapt(Libs.AndroidX.Room.compiler)
 
     //api(libs.com.google.android.material)
+
+    api(libs.androidx.fragment)
+
+    //implementation ("androidx.viewpager2:viewpager2:1.0.0")
+
+    //api(libs.org.b)
+
     api(libs.androidx.room)
     api(libs.androidx.room.runtime)
     api(libs.androidx.room.rxjava3)
-
     api(libs.commons.codec)
-    //api(libs.org.b)
-
-
-
-
-    // kapt(Libs.Dagger.compiler)
-    // kapt(Libs.Dagger.androidProcessor)
 
     ksp(libs.androidx.room.compiler)
     ksp(libs.com.google.dagger.compiler)
     ksp(libs.com.google.dagger.android.processor)
+
+    //implementation ("com.tbuonomo.andrui:viewpagerdotsindicator:4.3")
+
+    // implementation ("com.github.badoualy:stepper-indicator:1.0.7") {
+    //     exclude(group = "com.android.support", module = "appcompat-v7")
+    // }
+
+    // <dependency>
+    // <groupId>com.android.support</groupId>
+    // <artifactId>appcompat-v7</artifactId>
+    // <version>26.0.0-beta2</version>
+    // <scope>compile</scope>
+    // </dependency>
+
 
     // temporarily X2 released under atech-software instead of jwoglom (some problems with linking)
     // implementation("com.atech-software.pumpX2:pumpx2-android:v1.4.4.0")
     // implementation("com.atech-software.pumpX2:pumpx2-messages:v1.4.4.0")
     // implementation("com.atech-software.pumpX2:pumpx2-shared:v1.4.4.0")
 
-    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.5.0")
-    implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.5.0")
-    implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.5.0")
+    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.5.5")
+    //implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.5.0")
+    //implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.5.0")
 
     // needed by X2
     implementation("com.github.weliem:blessed-android:2.4.0")

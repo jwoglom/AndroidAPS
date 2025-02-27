@@ -344,7 +344,7 @@ enum class PumpType(
         baseBasalStep = 0.001,
         baseBasalSpecialSteps = null,
         //reservoirSize = 200,
-        pumpCapability = PumpCapability.TandemCapabilities,
+        pumpCapability = PumpCapability.TandemSlimCapabilities,
         source = Source.Tandem
     ),
 
