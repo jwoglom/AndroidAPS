@@ -76,7 +76,11 @@ enum class ChangeCartridgeState constructor(
 
     CHECK_PUMP_STATE(title = "Pump State Check",
                   instruction = "We will now try to connect to pump, to determine its state.",
-                  image = "SUSPEND_CHECK" ) // 1_1
+                  image = "SUSPEND_CHECK",
+                  leftButtonState = EXIT,
+                  leftButtonText = R.string.state_machine_common_cancel  // TODO remove this
+
+                     ) // 1_1
     ;
 
 

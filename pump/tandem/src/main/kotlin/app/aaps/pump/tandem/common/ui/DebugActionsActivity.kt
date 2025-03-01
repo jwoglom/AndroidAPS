@@ -12,6 +12,8 @@ import androidx.annotation.StringRes
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
 import app.aaps.pump.tandem.common.comm.maint.TandemChangeFillManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
@@ -21,6 +23,8 @@ import app.aaps.pump.tandem.common.process.UIActionListener
 import app.aaps.pump.tandem.common.process.change_cartridge.ChangeCartridgeStateMachine
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.databinding.TandemSimpleActionsDialogBinding
+import io.reactivex.rxjava3.core.Completable
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class DebugActionsActivity : TranslatedDaggerAppCompatActivity(), UIActionListener {
@@ -29,6 +33,9 @@ class DebugActionsActivity : TranslatedDaggerAppCompatActivity(), UIActionListen
     @Inject lateinit var tandemPumpConnector: TandemPumpConnector
     @Inject lateinit var tandemPumpUtil: TandemPumpUtil
     @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var aapsSchedulers: AapsSchedulers
+    @Inject lateinit var rxBus: RxBus
+    //@Inject lateinit var
 
     private var _binding: TandemSimpleActionsDialogBinding? = null
     val binding get() = _binding!!
@@ -194,6 +201,24 @@ class DebugActionsActivity : TranslatedDaggerAppCompatActivity(), UIActionListen
 
         // refreshButtons()
 
+
+
+
+        Completable
+            .timer(4, TimeUnit.SECONDS)
+            .subscribeOn(aapsSchedulers.io) // where the work should be done
+            .observeOn(aapsSchedulers.main) // where the data stream should be delivered
+            .subscribe({
+                            startMachine()
+                       }, {
+                           // do something on error
+                       })
+
+
+
+    }
+
+    fun startMachine() {
         if (actionStateMachine!=null) {
             aapsLogger.info(LTag.PUMPCOMM, "StateMachine: ${actionStateMachine!!.getName()}")
             actionStateMachine!!.setUiActionListener(this)
@@ -201,9 +226,10 @@ class DebugActionsActivity : TranslatedDaggerAppCompatActivity(), UIActionListen
         } else {
             aapsLogger.info(LTag.PUMPCOMM, "StateMachine not available")
         }
-
-
     }
+
+
+
 
     override fun onPause() {
         super.onPause()

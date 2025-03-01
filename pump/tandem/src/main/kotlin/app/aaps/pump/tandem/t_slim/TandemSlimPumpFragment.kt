@@ -125,33 +125,33 @@ class TandemSlimPumpFragment : DaggerFragment() {
     override fun onResume() {
         super.onResume()
 
-        loopHandler.postDelayed(refreshLoop, T.mins(1).msecs())
-        disposable += rxBus
-            .toObservable(EventRefreshButtonState::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ binding.pumpRefresh.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
-        disposable += rxBus
-            .toObservable(EventPumpDriverStateChanged::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ updatePumpStatus(it.driverStatus) }, { fabricPrivacy.logException(it) })
-        disposable += rxBus
-            .toObservable(EventExtendedBolusChange::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ updateGUI(PumpUpdateFragmentType.TreatmentValues) }, { fabricPrivacy.logException(it) })
-        disposable += rxBus
-            .toObservable(EventTempBasalChange::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ updateGUI(PumpUpdateFragmentType.TreatmentValues) }, { fabricPrivacy.logException(it) })
-        disposable += rxBus
-            .toObservable(EventPumpFragmentValuesChanged::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ updateGUI(it.updateType) }, { fabricPrivacy.logException(it) })
-        disposable += rxBus
-            .toObservable(EventQueueChanged::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ updateGUI(PumpUpdateFragmentType.Queue) }, { fabricPrivacy.logException(it) })
-
-        updateGUI(PumpUpdateFragmentType.Full)
+        // loopHandler.postDelayed(refreshLoop, T.mins(1).msecs())
+        // disposable += rxBus
+        //     .toObservable(EventRefreshButtonState::class.java)
+        //     .observeOn(aapsSchedulers.main)
+        //     .subscribe({ binding.pumpRefresh.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
+        // disposable += rxBus
+        //     .toObservable(EventPumpDriverStateChanged::class.java)
+        //     .observeOn(aapsSchedulers.main)
+        //     .subscribe({ updatePumpStatus(it.driverStatus) }, { fabricPrivacy.logException(it) })
+        // disposable += rxBus
+        //     .toObservable(EventExtendedBolusChange::class.java)
+        //     .observeOn(aapsSchedulers.main)
+        //     .subscribe({ updateGUI(PumpUpdateFragmentType.TreatmentValues) }, { fabricPrivacy.logException(it) })
+        // disposable += rxBus
+        //     .toObservable(EventTempBasalChange::class.java)
+        //     .observeOn(aapsSchedulers.main)
+        //     .subscribe({ updateGUI(PumpUpdateFragmentType.TreatmentValues) }, { fabricPrivacy.logException(it) })
+        // disposable += rxBus
+        //     .toObservable(EventPumpFragmentValuesChanged::class.java)
+        //     .observeOn(aapsSchedulers.main)
+        //     .subscribe({ updateGUI(it.updateType) }, { fabricPrivacy.logException(it) })
+        // disposable += rxBus
+        //     .toObservable(EventQueueChanged::class.java)
+        //     .observeOn(aapsSchedulers.main)
+        //     .subscribe({ updateGUI(PumpUpdateFragmentType.Queue) }, { fabricPrivacy.logException(it) })
+        //
+        // updateGUI(PumpUpdateFragmentType.Full)
     }
 
     @Synchronized

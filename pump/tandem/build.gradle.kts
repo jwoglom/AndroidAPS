@@ -17,15 +17,26 @@ android {
 
     namespace = "app.aaps.pump.tandem"
 
-    // defaultConfig {
-    //     kapt {
-    //         arguments {
-    //             arg("room.incremental", "true")
-    //             arg("room.schemaLocation", "$projectDir/schemas")
-    //         }
-    //     }
-    // }
+    defaultConfig {
+        ksp {
+            arg("room.incremental", "true")
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
+    }
 }
+
+
+// android {
+//
+//     namespace = "app.aaps.pump.equil"
+//     defaultConfig {
+//         ksp {
+//             arg("room.incremental", "true")
+//             arg("room.schemaLocation", "$projectDir/schemas")
+//         }
+//     }
+// }
+
 
 dependencies {
     implementation(project(":core:data"))

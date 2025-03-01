@@ -2,6 +2,7 @@ package app.aaps.pump.tandem.common.process.change_cartridge
 
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.maint.TandemChangeFillManager
 import app.aaps.pump.tandem.common.process.StateMachineAbstract
 import app.aaps.pump.tandem.common.process.fill_tubing.FillTubingStateMachine
@@ -31,7 +32,7 @@ class ChangeCartridgeStateMachine constructor(
 
     override fun startStateMachine() {
         if (startPumpOperationRequired) {
-            pumpManagementController.startOperations(this)
+            //pumpManagementController.startOperations(this)
         }
 
         uiActionListener!!.setSectionName("Change Cartridge")
@@ -58,7 +59,9 @@ class ChangeCartridgeStateMachine constructor(
 
             ChangeCartridgeState.CHECK_PUMP_STATE                -> {
                 setUi(state = currentState)
-                executeShortCommandOnPump(ChangeCartridgePumpMgmtAction.CHECK_PUMP_STATE)
+
+                uiActionListener.enableButton(R.string.common_on, false)
+                //executeShortCommandOnPump(ChangeCartridgePumpMgmtAction.CHECK_PUMP_STATE)
             }
 
             ChangeCartridgeState.INVALID_SUSPEND_CHECK           -> {

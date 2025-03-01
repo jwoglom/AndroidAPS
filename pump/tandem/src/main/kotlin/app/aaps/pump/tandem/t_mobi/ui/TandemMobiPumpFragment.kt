@@ -145,10 +145,10 @@ class TandemMobiPumpFragment : DaggerFragment() {
             .toObservable(EventPumpFragmentValuesChanged::class.java)
             .observeOn(aapsSchedulers.main)
             .subscribe({ updateGUI(it.updateType) }, { fabricPrivacy.logException(it) })
-        disposable += rxBus
-            .toObservable(EventQueueChanged::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ updateGUI(PumpUpdateFragmentType.Queue) }, { fabricPrivacy.logException(it) })
+        // disposable += rxBus
+        //     .toObservable(EventQueueChanged::class.java)
+        //     .observeOn(aapsSchedulers.main)
+        //     .subscribe({ updateGUI(PumpUpdateFragmentType.Queue) }, { fabricPrivacy.logException(it) })
 
         this.binding.pumpDriverVersion.text = tandemPumpPlugin.version
 
@@ -172,7 +172,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
     @Synchronized
     fun updateGUI(updateType: PumpUpdateFragmentType) {
 
-        val pumpState = pumpSync.expectedPumpState()
+        //val pumpState = pumpSync.expectedPumpState()
 
         // last connection
         if (pumpStatus.lastConnection != 0L) {
@@ -209,16 +209,16 @@ class TandemMobiPumpFragment : DaggerFragment() {
             updatePumpStatus()
         }
 
-        if (updateType == PumpUpdateFragmentType.Queue || updateType == PumpUpdateFragmentType.Full) {
-            // Queue
-            val status = commandQueue.spannedStatus()
-            if (status.toString() == "") {
-                binding.pumpQueue.visibility = View.GONE
-            } else {
-                binding.pumpQueue.visibility = View.VISIBLE
-                binding.pumpQueue.text = status
-            }
-        }
+        // if (updateType == PumpUpdateFragmentType.Queue || updateType == PumpUpdateFragmentType.Full) {
+        //     // Queue
+        //     val status = commandQueue.spannedStatus()
+        //     if (status.toString() == "") {
+        //         binding.pumpQueue.visibility = View.GONE
+        //     } else {
+        //         binding.pumpQueue.visibility = View.VISIBLE
+        //         binding.pumpQueue.text = status
+        //     }
+        // }
 
         if (updateType == PumpUpdateFragmentType.TreatmentValues || updateType == PumpUpdateFragmentType.Full) {
             // Last Bolus, TBR (Profile Change)
@@ -268,9 +268,9 @@ class TandemMobiPumpFragment : DaggerFragment() {
         if (updateType == PumpUpdateFragmentType.Configuration || updateType == PumpUpdateFragmentType.Full) {
             // Firmware, Errors
 
-            aapsLogger.info(LTag.PUMP,
-                            "Firmware (driverMode=${pumpStatus.pumpDriverMode}, " +
-                                "pumpFirmware=${pumpStatus.tandemPumpFirmware})")
+            // aapsLogger.info(LTag.PUMP,
+            //                 "Firmware (driverMode=${pumpStatus.pumpDriverMode}, " +
+            //                     "pumpFirmware=${pumpStatus.tandemPumpFirmware})")
 
             if (pumpStatus.pumpDriverMode == PumpDriverMode.Demo) {
                 binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_demo)
@@ -313,10 +313,26 @@ class TandemMobiPumpFragment : DaggerFragment() {
         binding.showDriverLayout.visibility = if (displayDriverVersion) View.VISIBLE else View.GONE
     }
 
+
+    fun updateQueue() {
+        // Queue
+        val status = commandQueue.spannedStatus()
+        if (status.toString() == "") {
+            binding.pumpQueue.visibility = View.GONE
+        } else {
+            binding.pumpQueue.visibility = View.VISIBLE
+            binding.pumpQueue.text = status
+        }
+    }
+
+
     //var resourcesPumpCommon = app.aaps.pump.common.R
 
+    @Synchronized
     private fun updateCurrentActivity(pumpDriverState: PumpDriverState?) {
         val resActivity = app.aaps.pump.common.R.string.pump_current_activity
+
+        aapsLogger.info(LTag.PUMP, "Update Current activity")
 
         when (pumpDriverState) {
             null,
@@ -324,9 +340,9 @@ class TandemMobiPumpFragment : DaggerFragment() {
             PumpDriverState.Sleeping                   -> binding.currentActivity.text = resourceHelper.gs(resActivity, "{fa-bed} ", "")
             PumpDriverState.Connecting,
             PumpDriverState.Handshaking,
-            PumpDriverState.Disconnecting              -> binding.currentActivity.text = resourceHelper.gs(resActivity,"{fa-bluetooth-b spin} ", resourceHelper.gs(pumpDriverState.resourceId))
+            PumpDriverState.Disconnecting              -> binding.currentActivity.text = resourceHelper.gs(resActivity,"{fa-bluetooth spin} ", resourceHelper.gs(pumpDriverState.resourceId))
             PumpDriverState.Connected,
-            PumpDriverState.Disconnected               -> binding.currentActivity.text = resourceHelper.gs(resActivity,"{fa-bluetooth-b} ", resourceHelper.gs(pumpDriverState.resourceId))
+            PumpDriverState.Disconnected               -> binding.currentActivity.text = resourceHelper.gs(resActivity,"{fa-bluetooth} ", resourceHelper.gs(pumpDriverState.resourceId))
 
             PumpDriverState.ErrorCommunicatingWithPump -> {
                 binding.currentActivity.text = resourceHelper.gs(resActivity,"{fa-bed} " , "Error ???")
@@ -352,11 +368,25 @@ class TandemMobiPumpFragment : DaggerFragment() {
     }
 
     private fun updatePumpStatus() {
-        when(pumpStatus.pumpRunningState) {
-            PumpRunningState.Unknown   -> binding.pumpStatus.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_status_unknown)
-            PumpRunningState.Running   -> binding.pumpStatus.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_status_running)
-            PumpRunningState.Suspended -> binding.pumpStatus.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_status_suspended)
+        // when(pumpStatus.pumpRunningState) {
+        //     PumpRunningState.Unknown   -> binding.pumpStatus.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_status_unknown)
+        //     PumpRunningState.Running   -> binding.pumpStatus.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_status_running)
+        //     PumpRunningState.Suspended -> binding.pumpStatus.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_status_suspended)
+        // }
+
+        if (pumpStatus.pumpStatusMirror!=null) {
+            if (pumpStatus.pumpStatusMirror!!.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) {
+                binding.pumpStatus.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_status_suspended)
+            } else {
+                binding.pumpStatus.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_status_running)
+            }
+        } else {
+            // TODO add driver initialization states
+            binding.pumpStatus.text = resourceHelper.gs(app.aaps.pump.common.R.string.pump_status_unknown)
         }
+
+
+
     }
 
     // enum class UpdateGui {

@@ -11,7 +11,7 @@ import javax.inject.Singleton
 class PumpX2L @Inject constructor(val aapsLogger: AAPSLogger) : Timber.DebugTree()  {
 
     // TODO inline
-    inline override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
         if (t==null) {
             when (priority) {
                 Log.INFO -> aapsLogger.info(LTag.PUMPBTCOMM, "[$tag] - $message")

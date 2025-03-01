@@ -11,8 +11,8 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.pump.common.ui.PumpBLEConfigActivity
-import app.aaps.pump.tandem.common.events.EventPumpNeedsPairingCode
-import app.aaps.pump.tandem.common.events.EventPumpPairingCodeProvided
+// import app.aaps.pump.tandem.common.events.EventPumpNeedsPairingCode
+// import app.aaps.pump.tandem.common.events.EventPumpPairingCodeProvided
 
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -30,74 +30,75 @@ class TandemPumpBLEConfigActivity : PumpBLEConfigActivity() {
         disposable.clear()
     }
 
-    private fun askForPairingCode(e: EventPumpNeedsPairingCode) {
-        aapsLogger.info(LTag.PUMPCOMM, "askForPairingCode")
-
-        val builder = AlertDialog.Builder(this, app.aaps.core.ui.R.style.AppTheme)
-        builder.setTitle("Enter pairing code")
-        builder.setMessage(e.instructions)
-
-        // Set up the input
-        val input = EditText(this)
-        // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
-        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
-
-        builder.setView(input)
-
-        // Set up the buttons
-        builder.setPositiveButton("OK") { _, _ ->
-            val pairingCode = input.text.toString()
-            //Timber.i("pairing code inputted: %s", pairingCode)
-            //triggerImmediatePair(peripheral, pairingCode, challenge)
-
-            aapsLogger.info(LTag.PUMPCOMM, "PairingCode provided: ${pairingCode}")
-            rxBus.send(EventPumpPairingCodeProvided(pairingCode))
-
-        }
-        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
-        builder.show()
-
-        // val input = EditText(this.context)
-        // // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
-        // input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
-        //
-        // MaterialAlertDialogBuilder(context, R.style.DialogTheme)
-        //     .setCustomTitle(AlertDialogHelper.buildCustomTitle(context, "Enter pairing code"))
-        //     .setMessage(e.instructions)
-        //     .setView(input)
-        //     .setPositiveButton(context.getString(R.string.ok)) { dialog: DialogInterface, _: Int ->
-        //
-        //         dialog.dismiss()
-        //         SystemClock.sleep(100)
-        //         val pairingCode = input.text.toString()
-        //         aapsLogger.info(LTag.PUMPCOMM, "PairingCode provided: ${pairingCode}")
-        //         rxBus.send(EventPumpPairingCodeProvided(pairingCode))
-        //     }
-        //     .setNegativeButton(context.getString(R.string.cancel)) { dialog: DialogInterface, _: Int -> {
-        //         dialog.dismiss()
-        //         SystemClock.sleep(100)
-        //     }}
-        //     .show()
-        //     .setCanceledOnTouchOutside(false)
-    }
+    // private fun askForPairingCode(e: EventPumpNeedsPairingCode) {
+    //     aapsLogger.info(LTag.PUMPCOMM, "askForPairingCode")
+    //
+    //     val builder = AlertDialog.Builder(this, app.aaps.core.ui.R.style.AppTheme)
+    //     builder.setTitle("Enter pairing code")
+    //     builder.setMessage(e.instructions)
+    //
+    //     // Set up the input
+    //     val input = EditText(this)
+    //     // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+    //     input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
+    //
+    //     builder.setView(input)
+    //
+    //     // Set up the buttons
+    //     builder.setPositiveButton("OK") { _, _ ->
+    //         val pairingCode = input.text.toString()
+    //         //Timber.i("pairing code inputted: %s", pairingCode)
+    //         //triggerImmediatePair(peripheral, pairingCode, challenge)
+    //
+    //         aapsLogger.info(LTag.PUMPCOMM, "PairingCode provided: ${pairingCode}")
+    //         rxBus.send(EventPumpPairingCodeProvided(pairingCode))
+    //
+    //     }
+    //     builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    //     builder.show()
+    //
+    //     // val input = EditText(this.context)
+    //     // // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+    //     // input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
+    //     //
+    //     // MaterialAlertDialogBuilder(context, R.style.DialogTheme)
+    //     //     .setCustomTitle(AlertDialogHelper.buildCustomTitle(context, "Enter pairing code"))
+    //     //     .setMessage(e.instructions)
+    //     //     .setView(input)
+    //     //     .setPositiveButton(context.getString(R.string.ok)) { dialog: DialogInterface, _: Int ->
+    //     //
+    //     //         dialog.dismiss()
+    //     //         SystemClock.sleep(100)
+    //     //         val pairingCode = input.text.toString()
+    //     //         aapsLogger.info(LTag.PUMPCOMM, "PairingCode provided: ${pairingCode}")
+    //     //         rxBus.send(EventPumpPairingCodeProvided(pairingCode))
+    //     //     }
+    //     //     .setNegativeButton(context.getString(R.string.cancel)) { dialog: DialogInterface, _: Int -> {
+    //     //         dialog.dismiss()
+    //     //         SystemClock.sleep(100)
+    //     //     }}
+    //     //     .show()
+    //     //     .setCanceledOnTouchOutside(false)
+    // }
 
 
     override fun onResume() {
         super.onResume()
         bleSelector.onResume()
 
-        disposable += rxBus
-            .toObservable(EventPumpNeedsPairingCode::class.java)
-            .observeOn(aapsSchedulers.io)
-            .subscribe {
-                Thread {
-                    handler.post {
-                        askForPairingCode(it)
-                    }
-                }.start()
-            }
+        // disposable += rxBus
+        //     .toObservable(EventPumpNeedsPairingCode::class.java)
+        //     .observeOn(aapsSchedulers.io)
+        //     .subscribe {
+        //         Thread {
+        //             handler.post {
+        //                 askForPairingCode(it)
+        //             }
+        //         }.start()
+        //     }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+            @Suppress("DEPRECATION")
             if (bluetoothAdapter?.isEnabled != true) bluetoothAdapter?.enable()
             prepareForScanning()
             updateCurrentlySelectedBTDevice()

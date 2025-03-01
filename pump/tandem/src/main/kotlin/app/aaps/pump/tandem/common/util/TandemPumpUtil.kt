@@ -180,6 +180,11 @@ class TandemPumpUtil @Inject constructor(
         return byteArrayOf(array[3], array[2])
     }
 
+    init {
+        driverStatusInternal = PumpDriverState.Connecting
+    }
+
+
 
     companion object {
 

@@ -808,11 +808,13 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
             tandemPumpStatus.pumpStatusMirror = homeScreenMirrorDto
 
-            tandemPumpStatus.pumpRunningState = if (homeScreenMirrorDto.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) PumpRunningState.Suspended else PumpRunningState.Running
+
+            // TODO removed for now
+            //tandemPumpStatus.pumpRunningState = if (homeScreenMirrorDto.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) PumpRunningState.Suspended else PumpRunningState.Running
 
             //pumpStatus.pumpRunningState == PumpRunningState.Suspended
 
-            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
+            //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
 
             return DataCommandResponse(
                 PumpCommandType.GetPumpStatus, true,

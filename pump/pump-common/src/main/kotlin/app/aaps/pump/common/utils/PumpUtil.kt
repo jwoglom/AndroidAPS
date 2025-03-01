@@ -230,7 +230,7 @@ open class PumpUtil constructor(
         const val MAX_RETRY = 2
         //private var driverStatus = PumpDriverState.Sleeping
 
-        @JvmStatic private var driverStatusInternal: PumpDriverState = PumpDriverState.Sleeping
+        @JvmStatic var driverStatusInternal: PumpDriverState = PumpDriverState.Sleeping
         @JvmStatic private var errorTypeInternal: PumpErrorType? = null
 
         // var gson: Gson = GsonBuilder()

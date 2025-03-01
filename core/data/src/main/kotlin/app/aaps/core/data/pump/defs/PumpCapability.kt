@@ -21,7 +21,7 @@ enum class PumpCapability {
     EopatchCapabilities(arrayOf(Capability.Bolus, Capability.ExtendedBolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.BasalRate30min)),
     MedtrumCapabilities(arrayOf(Capability.Bolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.BasalRate30min, Capability.TDD)), // Technically the pump supports ExtendedBolus, but not implemented (yet)
     TandemSlimCapabilities(arrayOf(Capability.Refill, Capability.ReplaceBattery)),
-    TandemMobiCapabilities(arrayOf(Capability.Refill, Capability.BasalProfileSet)), // TODO WIP
+    TandemMobiCapabilities(arrayOf(Capability.Refill /*, Capability.BasalProfileSet*/)), // TODO WIP
     ;
 
     var children: ArrayList<Capability> = ArrayList()
