@@ -11,7 +11,7 @@
 
     <!-- Overview -->
     <string name="pump_refresh">Refresh</string>
-    <string name="pump_errors">Errors</string>
+    <string name="pump_driver_errors">Driver Errors</string>
     <string name="pump_status_label">Pump Status</string>
     <string name="pump_firmware_label">Pump Firmware</string>
     <string name="pump_address_label">BT Address</string>
@@ -22,6 +22,7 @@
     <string name="driver_version">Driver Version</string>
     <string name="pump_serial_number">Serial Number</string>
     <string name="pump_current_activity_label">Current Activity</string>
+    <string name="pump_last_event">Last Pump Event</string>
 
     <!-- Errors -->
     <string name="tandem_error_not_bonded">Pump not configured or fully bonded</string>

@@ -6,6 +6,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.utils.pump.ByteUtil
+import app.aaps.pump.common.defs.PumpDriverState
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import app.aaps.pump.common.utils.PumpUtil
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
@@ -39,6 +40,10 @@ class TandemPumpUtil @Inject constructor(
     //var gson = GsonBuilder().setPrettyPrinting().create()
     //var gsonRegular = GsonBuilder().create()
 
+
+    override fun resetDriverStatusToConnected() {
+        workWithStatusAndCommand(StatusChange.SetStatus, PumpDriverState.Connected, null)
+    }
 
 
     // var driverStatus: PumpDriverState

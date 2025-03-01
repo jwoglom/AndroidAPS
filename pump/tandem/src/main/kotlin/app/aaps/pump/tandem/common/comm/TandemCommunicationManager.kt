@@ -11,6 +11,7 @@ import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.PumpDriverMode
+import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpErrorType
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
@@ -19,6 +20,7 @@ import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
 import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -129,24 +131,26 @@ class TandemCommunicationManager @Inject constructor(
     }
 
 
-    fun disconnect() {
+    fun disconnect(): Boolean {
 
-        aapsLogger.info(TAG, "TANDEMDBG: disconnect() called")
+        // aapsLogger.info(TAG, "TANDEMDBG: disconnect() called")
 
-        if (pumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
-            aapsLogger.info(TAG, "TANDEMDBG: disconnect() - Faked")
-            return
-        }
+        // if (pumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
+        //     aapsLogger.info(TAG, "TANDEMDBG: disconnect() - Faked")
+        //     return false
+        // }
 
 
         aapsLogger.info(TAG, "TANDEMDBG: disconnect ")
 
-        // if (bluetoothHandler!=null) {
-        //     bluetoothHandler!!.stop()
-        // }
+        if (bluetoothHandler!=null) {
+            bluetoothHandler!!.stop()
+            //connected = false
+        }
         connected = false
         operationMode = OperationMode.None
         // inConnectMode = false
+        return connected
     }
 
 
@@ -179,11 +183,13 @@ class TandemCommunicationManager @Inject constructor(
         aapsLogger.info(TAG, "TANDEMDBG: onInitialPumpConnection: $peripheral")
 
         this.peripheral = peripheral
+        pumpUtil.driverStatus = PumpDriverState.Handshaking
         super.onInitialPumpConnection(peripheral)
     }
 
     override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
         aapsLogger.info(TAG, "TANDEMDBG: onPumpConnected: $peripheral")
+
         super.onPumpConnected(peripheral)
     }
 
@@ -330,6 +336,8 @@ class TandemCommunicationManager @Inject constructor(
 
             // TODO check Pump Serial   N-8
 
+            pumpUtil.driverStatus = PumpDriverState.Connected
+
             this.connected = true
 
         }
@@ -364,17 +372,11 @@ class TandemCommunicationManager @Inject constructor(
 
 
     override fun onReceiveQualifyingEvent(peripheral: BluetoothPeripheral, events: Set<QualifyingEvent>) {
-        aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s", events)
+        aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s (creating AAPS event)", events)
 
-        // TODO not sure what this is for
-        // Timber.i("onReceiveQualifyingEvent: $events")
-        // Toast.makeText(this@CommService, "Events: $events", Toast.LENGTH_SHORT).show()
-        // events?.forEach { event ->
-        //     event.suggestedHandlers.forEach {
-        //         Timber.i("onReceiveQualifyingEvent: running handler for $event message: ${it.get()}")
-        //         command(it.get())
-        //     }
-        // }
+        rxBus.send(EventHandleQualifyingEvent(events))
+
+
 
     }
 

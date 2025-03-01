@@ -11,6 +11,7 @@ import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
+import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.PumpDummyConnector
@@ -806,6 +807,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             homeScreenMirrorDto.parse(responseMessage.cargo)
 
             tandemPumpStatus.pumpStatusMirror = homeScreenMirrorDto
+
+            tandemPumpStatus.pumpRunningState = if (homeScreenMirrorDto.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) PumpRunningState.Suspended else PumpRunningState.Running
+
+            //pumpStatus.pumpRunningState == PumpRunningState.Suspended
+
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
 
             return DataCommandResponse(
@@ -1004,5 +1010,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         return supportedCommandsList
     }
 
+    fun isConnected(): Boolean {
+        return if (tandemCommunicationManager==null) {
+            false
+        } else {
+            getCommunicationManager().connected
+        }
+    }
 
 }

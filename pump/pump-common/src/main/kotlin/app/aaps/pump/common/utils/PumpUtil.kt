@@ -67,7 +67,7 @@ open class PumpUtil constructor(
         }
     }
 
-    fun resetDriverStatusToConnected() {
+    open fun resetDriverStatusToConnected() {
         workWithStatusAndCommand(StatusChange.SetStatus, PumpDriverState.Ready, null)
     }
 

@@ -30,7 +30,7 @@ abstract class TandemPumpDriverConfiguration constructor(
         TODO("Not yet implemented")
     }
 
-    override var logPrefix: String = "TandemPumpPlugin::"
+    override var logPrefix: String = "TandemMobiPlugin::"
     override var canHandleDST: Boolean = false  // TODO must be implemented
-    override var hasService: Boolean = false
+    override var hasService: Boolean = true
 }

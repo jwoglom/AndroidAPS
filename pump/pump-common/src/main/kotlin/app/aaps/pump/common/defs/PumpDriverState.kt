@@ -12,6 +12,7 @@ enum class PumpDriverState(var resourceId: Int) {
     Connected(app.aaps.core.interfaces.R.string.connected), //
     Initialized(R.string.pump_status_initialized), // this is weird state that probably won't be used, since its more driver centric that communication centric
     EncryptCommunication(R.string.pump_status_encrypt), //
+    Handshaking(R.string.pump_status_handshaking),
     Ready(R.string.pump_status_ready),
     Busy(R.string.pump_status_busy), //
     Suspended(R.string.pump_status_suspended), //

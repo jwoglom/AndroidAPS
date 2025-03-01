@@ -36,8 +36,7 @@ class TandemPumpConnectionManager @Inject constructor(
     val tandemConnector: TandemPumpConnector
 ): PumpConnectionManager(tandemPumpStatus, tandemPumpUtil, sp, injector, aapsLogger, rxBus, context) {
 
-    //private val fabricPrivacy: FabricPrivacy
-    // private val baseConnector // YpsoPumpBaseConnector
+
     //     : PumpConnectorInterface
     //private val selectedConnector: PumpConnectorInterface
 
@@ -66,12 +65,15 @@ class TandemPumpConnectionManager @Inject constructor(
 
         //pumpStatus
 
+        tandemPumpUtil.driverStatus = PumpDriverState.Connecting
+
+
         // TODO remove when in production
-        if (tandemPumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
-            aapsLogger.debug(TAG, "Connect to Pump - Dummy")
-            pumpUtil.driverStatus = PumpDriverState.Ready
-            return dummyConnector.connectToPump()
-        }
+        // if (tandemPumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
+        //     aapsLogger.debug(TAG, "Connect to Pump - Dummy")
+        //     pumpUtil.driverStatus = PumpDriverState.Ready
+        //     return dummyConnector.connectToPump()
+        // }
 
         if (inConnectMode) {
             return false;

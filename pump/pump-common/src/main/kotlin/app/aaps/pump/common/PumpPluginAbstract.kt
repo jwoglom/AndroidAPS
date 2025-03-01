@@ -84,7 +84,7 @@ abstract class PumpPluginAbstract protected constructor(
     final override var pumpDescription = PumpDescription()
     //protected set
 
-    protected var serviceConnection: ServiceConnection? = null
+    protected open var serviceConnection: ServiceConnection? = null
     protected var serviceRunning = false
     protected var pumpState = PumpDriverState.NotInitialized
     protected var displayConnectionMessages = false
@@ -114,16 +114,14 @@ abstract class PumpPluginAbstract protected constructor(
         super.onStart()
         initPumpStatusData()
         if (hasService()) {
-            serviceConnection?.let { serviceConnection ->
-                val intent = Intent(context, serviceClass)
-                context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-                disposable.add(
-                        rxBus
-                            .toObservable(EventAppExit::class.java)
-                            .observeOn(aapsSchedulers.io)
-                            .subscribe({ context.unbindService(serviceConnection) }, fabricPrivacy::logException)
-                    )
-            }
+            val intent = Intent(context, serviceClass)
+            context.bindService(intent, serviceConnection!!, Context.BIND_AUTO_CREATE)
+            disposable.add(
+                    rxBus
+                        .toObservable(EventAppExit::class.java)
+                        .observeOn(aapsSchedulers.io)
+                        .subscribe({ context.unbindService(serviceConnection!!) }, fabricPrivacy::logException)
+                )
         }
         serviceRunning = true
         onStartScheduledPumpActions()

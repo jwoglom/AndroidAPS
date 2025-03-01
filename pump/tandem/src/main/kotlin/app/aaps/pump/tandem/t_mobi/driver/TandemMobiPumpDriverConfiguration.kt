@@ -13,6 +13,7 @@ class TandemMobiPumpDriverConfiguration @Inject constructor(
                                         pumpHistoryDataProvider: TandemHistoryDataProvider
 ) : TandemPumpDriverConfiguration(pumpBLESelector,pumpHistoryDataProvider, PumpType.TANDEM_T_MOBI_BT) {
 
+    override var logPrefix: String = "TandemMobiPumpPlugin::"
 
 
 }

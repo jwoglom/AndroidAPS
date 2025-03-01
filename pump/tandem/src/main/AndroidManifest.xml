@@ -21,6 +21,12 @@
 
         <activity android:name="app.aaps.pump.tandem.common.ui.DebugActionsActivity" />
 
+        <service
+            android:name=".common.service.TandemService"
+            android:enabled="true"
+            android:exported="false"/>
+
+
 
 
         <!--        <uses-library android:name="org.apache.http.legacy" android:required="false"/>-->

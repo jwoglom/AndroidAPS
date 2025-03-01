@@ -1,11 +1,13 @@
 package app.aaps.pump.tandem.di
 
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
+import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.config.TandemBLESelector
 import app.aaps.pump.tandem.common.driver.config.TandemHistoryDataProvider
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
+import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.common.ui.DebugActionsActivity
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
@@ -40,6 +42,8 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributesTandemHistoryDataProvider(): TandemHistoryDataProvider
 
 
+    // Service
+    @ContributesAndroidInjector abstract fun contributesTandemService(): TandemService
 
 
 
@@ -49,6 +53,9 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpDriverConfiguration(): TandemMobiPumpDriverConfiguration
     @ContributesAndroidInjector abstract fun contributesTandemMobiSettingsActivity(): TandemMobiSettingsActivity
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpPlugin(): TandemMobiPumpPlugin
+
+    @ContributesAndroidInjector abstract fun contributesQualifyingEventHandler(): QualifyingEventHandler
+
 
 
     @ContributesAndroidInjector abstract fun contributesDebugActionsActivity(): DebugActionsActivity

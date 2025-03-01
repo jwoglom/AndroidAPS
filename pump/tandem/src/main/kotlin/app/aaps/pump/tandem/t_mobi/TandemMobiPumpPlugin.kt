@@ -1,6 +1,11 @@
 package app.aaps.pump.tandem.t_mobi
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.IBinder
+import android.os.SystemClock
 import androidx.preference.Preference
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.plugin.PluginType
@@ -22,6 +27,8 @@ import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventAppExit
+import app.aaps.core.interfaces.rx.events.EventExtendedBolusChange
 import app.aaps.core.interfaces.rx.events.EventNewNotification
 import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
 import app.aaps.core.interfaces.rx.events.EventRefreshOverview
@@ -53,13 +60,18 @@ import app.aaps.pump.common.driver.refresh.PumpDataRefreshAction
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshCapable
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshType
 import app.aaps.pump.common.events.EventPumpDataRefresh
+import app.aaps.pump.common.events.EventPumpForceDisconnect
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
+import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
 import app.aaps.pump.tandem.common.driver.connector.TandemCustomCommand
+import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
+import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
 import com.jwoglom.pumpx2.BuildConfig
+import io.reactivex.rxjava3.kotlin.plusAssign
 import org.json.JSONObject
 
 import java.util.*
@@ -84,6 +96,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     fabricPrivacy: FabricPrivacy,
     val tandemUtil: TandemPumpUtil,
     val pumpStatus: TandemPumpStatus,
+    val qualifyingEventHandler: QualifyingEventHandler,
     dateUtil: DateUtil,
     val pumpConnectionManager: TandemPumpConnectionManager,
     aapsSchedulers: AapsSchedulers,
@@ -110,24 +123,22 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     // variables for handling statuses and history
 
-    //private val statusRefreshMap: MutableMap<TandemStatusRefreshType?, Long?> = mutableMapOf()
-    //private var isInitialized = false
-
+    private var tandemService: TandemService? = null
     private var driverMode = PumpDriverMode.Automatic // TODO when implementation fully done, default should be automatic
 
-    private var driverInitialized = false
-    //private var pumpAddress: String = ""
-    //private var pumpBonded: Boolean = false
-    //private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
     private var pumpX2Version = BuildConfig.PUMPX2_VERSION
-    private var tandemModuleVersion = "v0.4.9.2"
+    private var tandemModuleVersion = "v0.4.10.6"
     private var wantedDriverMode = PumpDriverMode.Automatic  // TODO change this (demo mode means we are not communicating with pump)
+
+    // Service
+    //private var isServiceSet = false
 
     override fun onStart() {
         aapsLogger.debug(LTag.PUMP, model().model + " started - $tandemModuleVersion (pumpX2 ${pumpX2Version})")
         super.onStart()
     }
+
 
     override fun updatePreferenceSummary(pref: Preference) {
         super.updatePreferenceSummary(pref)
@@ -182,23 +193,26 @@ class TandemMobiPumpPlugin @Inject constructor(
         //                                   }
         //                               }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
 
-        // TODO analyze this where used
-        disposable.add(rxBus
-                           .toObservable(EventPumpConnectionParametersChanged::class.java)
-                           .observeOn(aapsSchedulers.io)
-                           .subscribe({ _ ->
-                                          checkInitializationState()
-                                      }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
 
-        rxBus.send(EventPumpConnectionParametersChanged())
-
-
-        disposable.add(rxBus
-                           .toObservable(EventPumpDataRefresh::class.java)
-                           .observeOn(aapsSchedulers.io)
-                           .subscribe({ _ ->
-                                          refreshDataFull()
-                                      }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
+        disposable += rxBus
+           .toObservable(EventPumpConnectionParametersChanged::class.java)
+           .observeOn(aapsSchedulers.io)
+           .subscribe({ reconnectAfterDataChange() },
+                      { fabricPrivacy.logException(it) })
+        disposable += rxBus
+           .toObservable(EventPumpForceDisconnect::class.java)
+           .observeOn(aapsSchedulers.io)
+           .subscribe({ tandemService!!.disconnectFromPump()},
+                      { fabricPrivacy.logException(it) })
+        disposable += rxBus
+            .toObservable(EventHandleQualifyingEvent::class.java)
+            .observeOn(aapsSchedulers.io)
+            .subscribe({ qualifyingEventHandler.handleEventReceivedFromPump(it) },
+                       { fabricPrivacy.logException(it) })
+        disposable += rxBus
+           .toObservable(EventPumpDataRefresh::class.java)
+           .observeOn(aapsSchedulers.io)
+           .subscribe({ refreshDataFull() }, { fabricPrivacy.logException(it) })
 
 
         // TODO fix me repetable start with RxJava
@@ -241,46 +255,60 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         TandemCustomCommand.translateKeywords(rh)
 
-        checkInitializationState()
+        //checkInitializationState()
 
     }
+
+    private fun reconnectAfterDataChange() {
+        aapsLogger.info(LTag.PUMP, "Connection data changed... validating parameters and reconnecting if possible.")
+        // new pump connected, we need to reset driver
+        this.isDriverInitialized = false
+        this.firstRun = true
+
+        if (tandemService!!.validateParameters()) {
+            if (tandemService!!.connectToPump()) {
+                initializePump(true)
+            }
+        }
+    }
+
 
     private fun refreshDataFull() {
         initializePump(false)
     }
 
-    private fun checkInitializationState() {
-        if (driverMode== PumpDriverMode.Demo) {
-            this.driverInitialized = true
-            return
-        }
-
-        val pumpAddress = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
-
-        val pumpBondStatus = sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
-
-        aapsLogger.debug(LTag.PUMP, "TANDEMDBG: Mobi [address=$pumpAddress,bondStatus=$pumpBondStatus]")
-
-        driverInitialized = (!pumpAddress.isEmpty() &&
-            pumpBondStatus == 100 &&
-            !tandemUtil.preventConnect)
-
-        aapsLogger.debug(LTag.PUMP, "TANDEMDBG: initialization status: $driverInitialized")
-
-        if (!driverInitialized) {
-            pumpStatus.errorDescription = rh.gs(R.string.tandem_error_not_bonded)
-            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Full))
-        } else {
-            if (!pumpStatus.errorDescription.isNullOrEmpty()) {
-                pumpStatus.errorDescription = null
-                rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
-            }
-        }
-
-    }
+    // private fun checkInitializationState() {
+    //     if (driverMode== PumpDriverMode.Demo) {
+    //         this.driverInitialized = true
+    //         return
+    //     }
+    //
+    //     val pumpAddress = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
+    //
+    //     val pumpBondStatus = sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
+    //
+    //     aapsLogger.debug(LTag.PUMP, "TANDEMDBG: Mobi [address=$pumpAddress,bondStatus=$pumpBondStatus]")
+    //
+    //     driverInitialized = (!pumpAddress.isEmpty() &&
+    //         pumpBondStatus == 100 &&
+    //         !tandemUtil.preventConnect)
+    //
+    //     aapsLogger.debug(LTag.PUMP, "TANDEMDBG: initialization status: $driverInitialized")
+    //
+    //     if (!driverInitialized) {
+    //         pumpStatus.errorDescription = rh.gs(R.string.tandem_error_not_bonded)
+    //         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Full))
+    //     } else {
+    //         if (!pumpStatus.errorDescription.isNullOrEmpty()) {
+    //             pumpStatus.errorDescription = null
+    //             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
+    //         }
+    //     }
+    //
+    // }
 
     override val serviceClass: Class<*>?
-        get() = null
+        get() = TandemService::class.java
 
     val version: String
         get() = "${tandemModuleVersion} ($pumpX2Version)"
@@ -288,15 +316,10 @@ class TandemMobiPumpPlugin @Inject constructor(
     override val pumpStatusData: PumpStatus
         get() = pumpStatus
 
-    // TODO: At the moment X2 doesn't support Closed Loop, future pump (t:mobi and t:slim X3) will support it and
-    //  maybe also X2 at later time
+
     // Constraints interface
     override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
-
-        if (pumpStatus.pumpDriverMode==PumpDriverMode.Demo) {
-            value.set(true)
-            return value
-        }
+        // TODO
 
         if (value.value()) {
             value.set(
@@ -330,12 +353,72 @@ class TandemMobiPumpPlugin @Inject constructor(
     //     return pumpDriverConfiguration
     // }
 
+    override var serviceConnection: ServiceConnection? = object : ServiceConnection {
+        override fun onServiceDisconnected(name: ComponentName) {
+            aapsLogger.info(LTag.PUMP, "Tandem Service is disconnected")
+            tandemService = null
+        }
+
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            aapsLogger.info(LTag.PUMP, "Tandem Service is connected")
+            val mLocalBinder = service as TandemService.LocalBinder
+            tandemService = mLocalBinder.serviceInstance
+            //isServiceSet = true
+
+            Thread {
+                isDriverInitialized = tandemService!!.validateParameters()
+                aapsLogger.info(LTag.PUMP, "Connection parameters valid: ${isDriverInitialized}")
+                if (isDriverInitialized) {
+                    aapsLogger.info(LTag.PUMP, "Trying to connect to: ${tandemService!!.pumpAddress}")
+                    tandemService!!.connectToPump()
+                }
+            }.start()
+
+        }
+    }
+
+//     override fun onStart() {
+//         //super.onStart()
+//         initPumpStatusData()
+//
+// //            serviceConnection?.let { serviceConnection ->
+//             val intent = Intent(context, TandemService::class.java)
+//             context.bindService(intent, serviceConnectionTandem, Context.BIND_AUTO_CREATE)
+//             disposable.add(
+//                 rxBus
+//                     .toObservable(EventAppExit::class.java)
+//                     .observeOn(aapsSchedulers.io)
+//                     .subscribe({ context.unbindService(serviceConnectionTandem) }, fabricPrivacy::logException)
+//             )
+//
+//             //          }
+//
+//         this.serviceRunning = true
+//         onStartScheduledPumpActions()
+//     }
+
+
+    // private val dddserviceConnection: ServiceConnection = object : ServiceConnection {
+    //     override fun onServiceDisconnected(name: ComponentName) {
+    //         aapsLogger.debug(LTag.PUMP, "Tandem Service is disconnected")
+    //         tandemService = null
+    //     }
+    //
+    //     override fun onServiceConnected(name: ComponentName, service: IBinder) {
+    //         aapsLogger.debug(LTag.PUMP, "Tandem Service is connected")
+    //         val mLocalBinder = service as TandemService.LocalBinder
+    //         tandemService = mLocalBinder.serviceInstance
+    //     }
+    // }
+
 
     // Pump Interface
     override fun isInitialized(): Boolean {
-        aapsLogger.debug(LTag.PUMP, "isInitialized - driverInit=$driverInitialized, preventConnect=${tandemUtil.preventConnect}")
-        return driverInitialized //&& !tandemUtil.preventConnect
+        //aapsLogger.debug(LTag.PUMP, "isInitialized - driverInit=$driverInitialized, preventConnect=${tandemUtil.preventConnect}")
+        //return driverInitialized //&& !tandemUtil.preventConnect
         //return pumpStatus.ypsopumpFirmware != null;
+        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isInitialized")
+        return isDriverInitialized
     }
 
     override fun isSuspended(): Boolean {
@@ -345,76 +428,95 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isConnected(): Boolean {
-        if (!driverInitialized)
-            return false
+        val status = tandemUtil.driverStatus
+        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix +"isConnected [status=$status]")
+        return status == PumpDriverState.Connected || status == PumpDriverState.Handshaking
+        // return isServiceSet && tandemService?.isInitialized == true
 
-        if (driverMode== PumpDriverMode.Demo) {
-            return true
-        }
 
-        val driverStatus = tandemUtil.driverStatus
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnected - " + driverStatus.name)
-        return driverStatus == PumpDriverState.Ready || driverStatus == PumpDriverState.ExecutingCommand
+        // if (!driverInitialized)
+        //     return false
+        //
+        // // if (driverMode== PumpDriverMode.Demo) {
+        // //     return true
+        // // }
+        //
+        // val driverStatus = tandemUtil.driverStatus
+        // if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnected - " + driverStatus.name)
+        // return driverStatus == PumpDriverState.Ready || driverStatus == PumpDriverState.ExecutingCommand
     }
 
     override fun isConnecting(): Boolean {
-        if (!driverInitialized)
-            return false
+        val status = tandemUtil.driverStatus
+        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isConnecting [status=$status]")
+        return status == PumpDriverState.Connecting
 
-        val driverStatus = tandemUtil.driverStatus
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
+        // return !isServiceSet || tandemService?.isInitialized != true
 
-        return driverStatus == PumpDriverState.Connecting
+        // if (!driverInitialized)
+        //     return false
+        //
+        // val driverStatus = tandemUtil.driverStatus
+        // if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
+        //
+        // return driverStatus == PumpDriverState.Connecting
     }
 
-    override fun connect(reason: String) {
-        if (!driverInitialized) {
-            return
-        }
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "connect (reason=$reason).")
+    // override fun connect(reason: String) {
+    //     if (!driverInitialized) {
+    //         return
+    //     }
+    //     if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "connect (reason=$reason).")
+    //
+    //     if (tandemUtil.preventConnect) {
+    //         aapsLogger.info(LTag.PUMP, "in prevent connect mode (probably pairing in process)")
+    //     } else {
+    //         pumpConnectionManager.connectToPump() //deviceMac = pumpAddress, deviceBonded = pumpBonded)
+    //     }
+    // }
 
-        if (tandemUtil.preventConnect) {
-            aapsLogger.info(LTag.PUMP, "in prevent connect mode (probably pairing in process)")
-        } else {
-            pumpConnectionManager.connectToPump() //deviceMac = pumpAddress, deviceBonded = pumpBonded)
-        }
-    }
+    // override fun disconnect(reason: String) {
+    //     if (!driverInitialized)
+    //         return
+    //
+    //     if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "disconnect (reason=$reason).")
+    //
+    //     val driverStatus = tandemUtil.driverStatus
+    //
+    //     if (driverStatus==PumpDriverState.Connected) {
+    //         pumpConnectionManager.disconnectFromPump()
+    //     } else {
+    //         aapsLogger.debug(LTag.PUMP, "pump was not connected, so disconnect not required.")
+    //     }
+    // }
 
-    override fun disconnect(reason: String) {
-        if (!driverInitialized)
-            return
-
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "disconnect (reason=$reason).")
-
-        val driverStatus = tandemUtil.driverStatus
-
-        if (driverStatus==PumpDriverState.Connected) {
-            pumpConnectionManager.disconnectFromPump()
-        } else {
-            aapsLogger.debug(LTag.PUMP, "pump was not connected, so disconnect not required.")
-        }
-    }
-
-    override fun stopConnecting() {
-        if (!driverInitialized)
-            return
-        if (displayConnectionMessages)
-            aapsLogger.debug(LTag.PUMP, "stopConnecting [PumpPluginAbstract] - default (empty) implementation.")
-    }
-
+    // override fun stopConnecting() {
+    //     if (!driverInitialized)
+    //         return
+    //     if (displayConnectionMessages)
+    //         aapsLogger.debug(LTag.PUMP, "stopConnecting [PumpPluginAbstract] - default (empty) implementation.")
+    // }
+    //
     override fun isHandshakeInProgress(): Boolean {
-        if (!driverInitialized)
-            return false
-
+        val status = tandemUtil.driverStatus
         if (displayConnectionMessages)
-            aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - " + tandemUtil.driverStatus.name)
-        return tandemUtil.driverStatus === PumpDriverState.Connecting
-    }
+            aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - ${status==PumpDriverState.Handshaking}")
 
-    override fun finishHandshaking() {
-        if (displayConnectionMessages)
-            aapsLogger.debug(LTag.PUMP, "finishHandshaking [PumpPluginAbstract] - default (empty) implementation.")
+        return status == PumpDriverState.Handshaking
+
+
+        // if (!driverInitialized)
+        //     return false
+        //
+        // if (displayConnectionMessages)
+        //     aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - " + tandemUtil.driverStatus.name)
+        // return tandemUtil.driverStatus === PumpDriverState.Connecting
     }
+    //
+    // override fun finishHandshaking() {
+    //     if (displayConnectionMessages)
+    //         aapsLogger.debug(LTag.PUMP, "finishHandshaking [PumpPluginAbstract] - default (empty) implementation.")
+    // }
 
     override val isFakingTempsByExtendedBoluses: Boolean
         get() = false
@@ -424,18 +526,26 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isBusy(): Boolean {
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy")
-        return false
+        if (busy || tandemUtil.preventConnect) {
+            if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy")
+            return true
+        } else
+            return false
     }
+
+    var busy = false
 
     override fun getPumpStatus(reason: String) {
         var needRefresh = true
+
         if (firstRun) {
             needRefresh = initializePump(!isRefresh)
         } else {
             refreshAnyStatusThatNeedsToBeRefreshed()
         }
-        if (needRefresh) rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Full))
+
+        if (needRefresh)
+            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Full))
     }
 
     fun resetStatusState() {
@@ -480,10 +590,14 @@ class TandemMobiPumpPlugin @Inject constructor(
                     }
 
                     PumpDataRefreshType.BatteryStatus,
+                    PumpDataRefreshType.PumpStatus,
                     PumpDataRefreshType.RemainingInsulin -> {
                         if (key == PumpDataRefreshType.RemainingInsulin) {
                             aapsLogger.info(LTag.PUMP, "Refresh_RemainingInsulin")
                             pumpConnectionManager.getRemainingInsulin()
+                        } else if (key == PumpDataRefreshType.PumpStatus) {
+                            aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus");
+                            pumpConnectionManager.getPumpStatus()
                         } else {
                             aapsLogger.info(LTag.PUMP, "Refresh_BatteryStatus");
                             pumpConnectionManager.getBatteryLevel()
@@ -519,16 +633,10 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     // TODO not implemented fully
     private fun initializePump(realInit: Boolean): Boolean {
-        if (isDriverInitialized) return false
+        //if (isDriverInitialized) return false
         aapsLogger.info(LTag.PUMP, logPrefix + "initializePump - start")
 
-        // TODO Tandem handle serial number this
-        // if (pumpStatus.serialNumber == null) {
-        //     aapsLogger.info(LTag.PUMP, logPrefix + "initializePump - serial Number is null, initialization stopped.")
-        //     return false
-        // }
-
-        //setRefreshButtonEnabled(false)
+        setRefreshButtonEnabled(false)
         //pumpState = PumpDriverState.Connected
 
         // firmware version
@@ -540,7 +648,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         checkTimeAndOptionallySetTime()
 
         // TODO read status of pump from Db
-        //ypsoPumpHistoryHandler.readCurrentStatusOfPump()
         pumpConnectionManager.getPumpStatus()
 
         // TODO readPumpHistory
@@ -576,7 +683,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             pumpState = PumpDriverState.Initialized
         }
 
-        isDriverInitialized = true
+        isDriverInitialized = true  // means that first data was read
         firstRun = false
 
         return true
@@ -732,9 +839,9 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun hasService(): Boolean {
-        return false
-    }
+    // override fun hasService(): Boolean {
+    //     return true
+    // }
 
     private var bolusDeliveryType = BolusDeliveryType.Idle
 
@@ -1252,6 +1359,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 }
                 PumpDataRefreshType.BatteryStatus    -> 55
                 PumpDataRefreshType.PumpTime         -> 300
+                PumpDataRefreshType.PumpStatus       -> 5
                 else                                 -> -1
         })
     }

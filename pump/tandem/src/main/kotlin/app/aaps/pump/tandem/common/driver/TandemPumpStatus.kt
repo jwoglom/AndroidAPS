@@ -14,7 +14,6 @@ import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
 import java.util.*
@@ -40,7 +39,7 @@ class TandemPumpStatus @Inject constructor(val resourceHelper: ResourceHelper,
     var pumpDriverMode : PumpDriverMode? = null
 
     // statuses
-    var pumpDeviceState = PumpDeviceState.NeverContacted
+    //var pumpDeviceState = PumpDriverState.NotInitialized    // TODO rename to pumpConnectionState
 
     var baseBasalRate = 0.0
     var basalProfileStatus = BasalProfileStatus.NotInitialized
@@ -51,11 +50,12 @@ class TandemPumpStatus @Inject constructor(val resourceHelper: ResourceHelper,
     //var maxBolus: Double? = null
     //var maxBasal: Double? = null
 
-
+    // Tandem specific
     var pumpStatusMirror: HomeScreenMirrorDto? = null
     var settings: MutableMap<PumpConfigurationTypeInterface, Any>? = null
     var featuresV2: PumpFeaturesV2Response? = null
     var featuresV1: PumpFeaturesV1Response? = null
+    var lastQualifyingEventsInfo: String? = null
 
     //var forceRefreshBasalProfile: Boolean = true
     //var basalProfilePump: BasalProfileDto? = null
@@ -76,7 +76,7 @@ class TandemPumpStatus @Inject constructor(val resourceHelper: ResourceHelper,
         tandemPumpFirmware = TandemPumpApiVersion.VERSION_2_1_to_2_4
         basalProfile = null
         basalProfileStatus = BasalProfileStatus.NotInitialized
-        pumpDeviceState = PumpDeviceState.NeverContacted
+        //pumpDeviceState = PumpDeviceState.NeverContacted
         serialNumber = 0
         errorDescription = null
         basalsByHour = null

@@ -25,6 +25,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.pump.common.events.EventPumpForceDisconnect
 import app.aaps.pump.common.ui.PumpBLEConfigActivity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.util.PumpX2L
@@ -51,13 +52,13 @@ class TandemBLESelector @Inject constructor(
 
     override fun onResume() {
         tandemPumpUtil.preventConnect = true
-        rxBus.send(EventPumpConnectionParametersChanged())
+        //rxBus.send(EventPumpConnectionParametersChanged())
         startingAddress = currentlySelectedPumpAddress();
     }
 
     override fun onDestroy() {
         tandemPumpUtil.preventConnect = false
-        rxBus.send(EventPumpConnectionParametersChanged())
+        //rxBus.send(EventPumpConnectionParametersChanged())
 
         // val selectedAddress = currentlySelectedPumpAddress()
         //
@@ -92,7 +93,7 @@ class TandemBLESelector @Inject constructor(
     override fun cleanupAfterDeviceRemoved() {
         sp.remove(TandemPumpConst.Prefs.PumpAddress)
         cleanSP()
-        rxBus.send(EventPumpConnectionParametersChanged())
+        rxBus.send(EventPumpForceDisconnect())
     }
 
     override fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String, activity: PumpBLEConfigActivity) {
@@ -106,7 +107,7 @@ class TandemBLESelector @Inject constructor(
             //addressChanged = true
             cleanSP()
 
-            rxBus.send(EventPumpConnectionParametersChanged())
+            //rxBus.send(EventPumpConnectionParametersChanged())
 
             aapsLogger.debug(TAG, "TANDEMDBG: Create TandemPairingManager")
 

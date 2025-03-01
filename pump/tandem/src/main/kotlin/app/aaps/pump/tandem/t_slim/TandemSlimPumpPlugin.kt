@@ -179,7 +179,7 @@ class TandemSlimPumpPlugin constructor(
                                           checkInitializationState()
                                       }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
 
-        rxBus.send(EventPumpConnectionParametersChanged())
+        //rxBus.send(EventPumpConnectionParametersChanged())
 
 
         // TODO fix me repetable start with RxJava
