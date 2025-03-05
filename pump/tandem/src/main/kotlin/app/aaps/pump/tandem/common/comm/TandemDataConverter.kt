@@ -92,7 +92,7 @@ class TandemDataConverter @Inject constructor(
 ) : PumpDataConverter {
 
     var tbrMap = HashMap<Int, TemporaryBasal>()
-
+    var TAG = LTag.PUMP
 
     // fun convertMessageToDataCommandResponse(message: Message): DataCommandResponse<Any?> {
     //
@@ -160,13 +160,20 @@ class TandemDataConverter @Inject constructor(
 
     fun getTempBasalRate(message: TempRateResponse): DataCommandResponse<TempBasalPair?> {
 
-        val tempBasal = TempBasalPair()
+        val tempBasal = TempBasalPair( insulinRate = message.percentage.toDouble(),
+                                       isPercent = true,
+                                       durationMinutes = message.duration.toInt(),
+                                       start = message.startTimeInstant.toEpochMilli())
 
-        tempBasal.insulinRate = message.percentage.toDouble()
+        //message.
+
+        //tempBasal.insulinRate = message.percentage.toDouble()
         tempBasal.isActive = message.active
-        tempBasal.durationMinutes = message.duration.toInt()
+        //tempBasal.durationMinutes = message.duration.toInt()
         // TODO problem with 1.4.4
         //tempBasal.setStartTime(pumpUtil.getTimeFromPumpAsEpochMillis(message.startTime))
+
+        aapsLogger.info(TAG, "TBR: getTempBasalRate [${tempBasal}]")
 
         return DataCommandResponse(
             PumpCommandType.GetTemporaryBasal, true, null, tempBasal)

@@ -22,9 +22,9 @@ import javax.inject.Singleton
 @Singleton
 open class PumpDummyConnector(var pumpStatus: PumpStatus,
                               var pumpUtil: PumpUtil,
-                              injector: HasAndroidInjector,
+                              //injector: HasAndroidInjector,
                               aapsLogger: AAPSLogger
-) : PumpConnectorAbstract(injector, aapsLogger) {
+) : PumpConnectorAbstract(/*injector,*/ aapsLogger) {
 
     // var pumpStatus: YpsopumpPumpStatus? = null // ???
 

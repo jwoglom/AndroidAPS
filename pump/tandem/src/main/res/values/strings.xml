@@ -21,13 +21,14 @@
     <string name="pump_settings">Settings</string>
     <string name="driver_version">Driver Version</string>
     <string name="pump_serial_number">Serial Number</string>
-    <string name="pump_current_activity_label">Current Activity</string>
+    <string name="pump_bt_state_label">BT State</string>
     <string name="pump_last_event">Last Pump Event</string>
 
     <!-- Errors -->
     <string name="tandem_error_not_bonded">Pump not configured or fully bonded</string>
     <string name="tandem_error_problem_with_request">Pump reset connection, wrong/invalid command was sent</string>
     <string name="tandem_error_pump_critical_error">Pump Critical Error: %s</string>
+    <string name="tandem_error_no_shared_conn_data">Missing Shared Connection Data (connection sharing enabled)</string>
 
     <!-- State Machines -->
     <string name="state_machine_common_cancel">Cancel</string>
@@ -61,6 +62,16 @@
     <string name="key_tandem_display_driver_version" translatable="false">pref_tandem_display_driver_version</string>
 <!--    <string name="key_tandem_version_response" translatable="false">pref_tandem_version_response</string>-->
 
+    <!-- Temporary Config - START -->
+    <string name="key_tandem_use_shared_connection" translatable="false">pref_tandem_use_shared_connection</string>
+    <string name="key_tandem_shared_connection_data" translatable="false">pref_tandem_shared_connection_data</string>
+    <string name="tandem_cfg_use_shared_connection">Use Shared Connection</string>
+    <string name="tandem_cfg_use_shared_connection_summary">Use Shared Connection with ControlX2</string>
+    <string name="tandem_cfg_shared_connection_data">Shared Connection Data</string>
+    <string name="tandem_cfg_shared_connection_data_summary">Shared Connection Data (exported from ControlX2)</string>
+    <!-- Temporary Config - END -->
+
+
     <string name="tandem_configuration">Tandem Configuration</string>
     <string name="tandem_pump_max_bolus">Max Bolus on Pump (U)</string>
     <string name="tandem_pump_max_basal">Max Basal on Pump (U/h)</string>
@@ -70,6 +81,10 @@
     <!-- Commands -->
     <string name="tandem_custom_command_disable_control_iq">Disable ControlIQ</string>
     <string name="tandem_custom_command_set_max_bolus">Set Max Bolus</string>
+    <string name="tandem_custom_command_get_pump_info">Get Pump Info</string>
+
+
+
 
 
     <!-- Tandem BLE Config -->

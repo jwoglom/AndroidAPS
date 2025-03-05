@@ -24,17 +24,21 @@ import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.bluetooth.TandemConfig
 import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ApiVersionRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.authentication.AbstractCentralChallengeResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.welie.blessed.BluetoothPeripheral
 import org.joda.time.DateTime
+import timber.log.Timber
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
@@ -179,6 +183,8 @@ class TandemCommunicationManager @Inject constructor(
     }
 
 
+
+
     override fun onInitialPumpConnection(peripheral: BluetoothPeripheral)  {
         aapsLogger.info(TAG, "TANDEMDBG: onInitialPumpConnection: $peripheral")
 
@@ -193,9 +199,18 @@ class TandemCommunicationManager @Inject constructor(
         super.onPumpConnected(peripheral)
     }
 
-    // TODO refactor sendCommand, it should not return Message directly (See ChangeFillManager), but
-    //   return CommandResponse
 
+
+    // override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
+    //     Timber.i("TandemPump: onPumpConnected")
+    //
+    //     // hack: ensure cached in PumpState.
+    //     Timber.i("JpakeDerivedSecret=%s", PumpState.getJpakeDerivedSecret(context))
+    //     Timber.i("JpakeServerNonce=%s", PumpState.getJpakeServerNonce(context))
+    //
+    //     sendCommand(peripheral, ApiVersionRequest())
+    //     sendCommand(peripheral, TimeSinceResetRequest())
+    // }
 
 
 
@@ -205,6 +220,8 @@ class TandemCommunicationManager @Inject constructor(
      */
     fun sendCommand(request: Message, forceSend: Boolean = false): Message? {
         var times = 0
+
+        operationMode = OperationMode.StandardOperation
 
         if (pumpUtil.preventConnect) {
             // TODO handle pumpUtil.preventConnect mode
@@ -245,33 +262,39 @@ class TandemCommunicationManager @Inject constructor(
     fun sendCommandWithListener(request: Message): Message? {
         var times = 0
 
+        operationMode = OperationMode.ExternalListenerOperation
+
+        aapsLogger.warn(LTag.PUMPCOMM, "STM: sendCommandWithListener sendCommand with ${request.opCode()} - ${request.javaClass.simpleName}")
+
+        aapsLogger.warn(LTag.PUMPCOMM, "STM: sendCommandWithListener connected [$connected]")
+
         while (!::peripheral.isInitialized && times < 10) {
-            aapsLogger.warn(LTag.PUMPCOMM, "TANDEMDBG: Waiting for peripheral for sendCommand with ${request.opCode()} - ${request.javaClass.name}")
+            aapsLogger.warn(LTag.PUMPCOMM, "STM: Waiting for peripheral for sendCommand with ${request.opCode()} - ${request.javaClass.name}")
             pumpUtil.sleep(1000)
             times++
         }
 
         if (!::peripheral.isInitialized) {
-            aapsLogger.warn(LTag.PUMPCOMM, "TANDEMDBG: Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
+            aapsLogger.warn(LTag.PUMPCOMM, "STM: Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
             return null;
         }
-        this.commandRequestModeRunning = true
-        this.commandRequest = request
-        this.commandResponse = null
+        // this.commandRequestModeRunning = true
+        // this.commandRequest = request
+        // this.commandResponse = null
 
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
+        aapsLogger.info(LTag.PUMPCOMM, "STM: Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
 
         sendCommand(peripheral, request)
 
-        while(commandRequestModeRunning) {
-
-            if (commandResponse!=null) {
-                this.commandRequestModeRunning = false
-                return commandResponse
-            }
-
-            pumpUtil.sleep(1000)
-        }
+        // while(commandRequestModeRunning) {
+        //
+        //     if (commandResponse!=null) {
+        //         this.commandRequestModeRunning = false
+        //         return commandResponse
+        //     }
+        //
+        //     pumpUtil.sleep(1000)
+        // }
 
         return null
     }
@@ -282,7 +305,7 @@ class TandemCommunicationManager @Inject constructor(
 
 
     override fun onReceiveMessage(peripheral: BluetoothPeripheral, message: Message) {
-        aapsLogger.info(LTag.PUMPBTCOMM, "TANDEMDBG: Received Response: ${message.opCode()} - ${message.javaClass.name} ")
+        aapsLogger.info(LTag.PUMPBTCOMM, "TANDEMDBG: Received Response: ${message.opCode()} - ${message.javaClass.simpleName} - Mode: $operationMode")
 
         when(operationMode) {
             OperationMode.ConnectionMode            -> receiveMessageInConnectMode(message)
@@ -334,11 +357,10 @@ class TandemCommunicationManager @Inject constructor(
 
             pumpStatus.pumpTime!!.displayTime(gson = pumpUtil.gson, aapsLogger = aapsLogger)
 
-            // TODO check Pump Serial   N-8
-
             pumpUtil.driverStatus = PumpDriverState.Connected
 
             this.connected = true
+            this.operationMode = OperationMode.StandardOperation  // TODO this is probably not needed
 
         }
     }
@@ -373,11 +395,7 @@ class TandemCommunicationManager @Inject constructor(
 
     override fun onReceiveQualifyingEvent(peripheral: BluetoothPeripheral, events: Set<QualifyingEvent>) {
         aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s (creating AAPS event)", events)
-
         rxBus.send(EventHandleQualifyingEvent(events))
-
-
-
     }
 
 
@@ -408,7 +426,12 @@ class TandemCommunicationManager @Inject constructor(
 
         pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_pump_critical_error,
                                                         if (reason==null) "Unknown" else reason.message)
+        pumpUtil.errorType = PumpErrorType.PumpUnreachable
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+
+        if (reason!=null && reason == TandemError.BT_CONNECTION_FAILED) {
+            // TODO
+        }
 
         super.onPumpCriticalError(peripheral, reason)
     }

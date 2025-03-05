@@ -3,22 +3,24 @@ package app.aaps.pump.tandem.common.process.change_cartridge
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.common.comm.maint.TandemChangeFillManager
+import app.aaps.pump.tandem.common.comm.maint.TandemPumpActionManager
 import app.aaps.pump.tandem.common.process.StateMachineAbstract
 import app.aaps.pump.tandem.common.process.fill_tubing.FillTubingStateMachine
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 
 
 class ChangeCartridgeStateMachine constructor(
-    tandemChangeFillManager: TandemChangeFillManager,
+    tandemPumpActionManager: TandemPumpActionManager,
     tandemPumpUtil: TandemPumpUtil,
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger
 ): StateMachineAbstract<ChangeCartridgeState>(
-    tandemChangeFillManager = tandemChangeFillManager,
+    tandemPumpActionManager = tandemPumpActionManager,
     tandemPumpUtil = tandemPumpUtil,
     resourceHelper = resourceHelper,
     aapsLogger = aapsLogger) {
+
+
 
     // var pumpManagementController : PumpManagementController = tandemChangeFillManager
     //var currentState : ChangeCartridgeStates = ChangeCartridgeStates.CHECK_PUMP_STATE
@@ -31,11 +33,15 @@ class ChangeCartridgeStateMachine constructor(
 
 
     override fun startStateMachine() {
-        if (startPumpOperationRequired) {
-            //pumpManagementController.startOperations(this)
-        }
+        // if (startPumpOperationRequired) {
+        //     //pumpManagementController.startOperations(this)
+        // }
+
+        pumpManagementController.startOperations(this)
 
         uiActionListener!!.setSectionName("Change Cartridge")
+
+        //pumpManagementController.
 
         // TODO retry mechanism - if state found that is not older than a day go to retry
         //   if not go to first step (for now we don't have retry)
@@ -61,7 +67,7 @@ class ChangeCartridgeStateMachine constructor(
                 setUi(state = currentState)
 
                 uiActionListener.enableButton(R.string.common_on, false)
-                //executeShortCommandOnPump(ChangeCartridgePumpMgmtAction.CHECK_PUMP_STATE)
+                executeShortCommandOnPump(ChangeCartridgePumpMgmtAction.CHECK_PUMP_STATE)
             }
 
             ChangeCartridgeState.INVALID_SUSPEND_CHECK           -> {
@@ -145,7 +151,7 @@ class ChangeCartridgeStateMachine constructor(
 
             ChangeCartridgeState.SWITCH_TO_FILLING_STATE_MACHINE -> {
                 val fillTubingStateMachine =
-                    FillTubingStateMachine(tandemChangeFillManager = tandemChangeFillManager,
+                    FillTubingStateMachine(tandemPumpActionManager = tandemPumpActionManager,
                                            tandemPumpUtil = tandemPumpUtil,
                                            resourceHelper = resourceHelper,
                                            aapsLogger = aapsLogger)

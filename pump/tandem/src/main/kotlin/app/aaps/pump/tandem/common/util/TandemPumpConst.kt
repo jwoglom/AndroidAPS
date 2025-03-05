@@ -23,8 +23,8 @@ object TandemPumpConst {
         @JvmField val MaxBasal = R.string.key_tandem_max_basal
         @JvmField val MaxBolus = R.string.key_tandem_max_bolus
 
-
-
+        @JvmField val UseSharedConnection = R.string.key_tandem_use_shared_connection
+        @JvmField val SharedConnectionData = R.string.key_tandem_shared_connection_data
 
 
 

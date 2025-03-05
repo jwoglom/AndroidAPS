@@ -45,6 +45,17 @@ abstract class PumpStatus(var pumpType: PumpType) {
 
     // temp basal
     var currentTempBasal: TempBasalPair? = null
+        get() = field
+        set(value) {
+            if (value!=null) {
+                this.currentTempBasalEstimatedEnd = System.currentTimeMillis() + (value.durationMinutes * 60 * 1000)
+            } else {
+                this.currentTempBasalEstimatedEnd = null
+            }
+            field = value
+        }
+
+
     var currentTempBasalEstimatedEnd: Long? = null
     var tempBasalLegacyMode = false
 

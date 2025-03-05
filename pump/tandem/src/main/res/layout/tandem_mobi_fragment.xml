@@ -234,7 +234,7 @@
                         android:layout_weight="1.5"
                         android:gravity="end"
                         android:paddingRight="5dp"
-                        android:text="@string/pump_current_activity_label"
+                        android:text="@string/pump_bt_state_label"
                         android:textSize="14sp" />
 
                     <TextView
@@ -653,9 +653,10 @@
                 <TextView
                     android:layout_width="239dp"
                     android:layout_height="157dp"
+                    android:layout_marginTop="20dp"
                     android:layout_gravity="center"
-                    android:drawableTop="@drawable/ic_tslim_128"
-                    android:paddingTop="40dp" />
+                    android:drawableTop="@drawable/t_mobi"
+                    android:paddingTop="20dp" />
 
             </LinearLayout>
 

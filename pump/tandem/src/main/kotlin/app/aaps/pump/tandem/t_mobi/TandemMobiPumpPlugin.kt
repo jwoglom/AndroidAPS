@@ -2,10 +2,8 @@ package app.aaps.pump.tandem.t_mobi
 
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import android.os.SystemClock
 import androidx.preference.Preference
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.plugin.PluginType
@@ -27,8 +25,6 @@ import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventAppExit
-import app.aaps.core.interfaces.rx.events.EventExtendedBolusChange
 import app.aaps.core.interfaces.rx.events.EventNewNotification
 import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
 import app.aaps.core.interfaces.rx.events.EventRefreshOverview
@@ -50,7 +46,6 @@ import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 
 import app.aaps.pump.common.defs.*
-import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpRunningState
@@ -66,17 +61,14 @@ import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
-import app.aaps.pump.tandem.common.driver.connector.TandemCustomCommand
+import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
-import com.jwoglom.pumpx2.BuildConfig
-import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import org.json.JSONObject
 
 import java.util.*
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -106,13 +98,13 @@ class TandemMobiPumpPlugin @Inject constructor(
     pumpSyncStorage: PumpSyncStorage,
     tandemPumpDriverConfiguration: TandemMobiPumpDriverConfiguration,
     decimalFormatter: DecimalFormatter,
-    val pumpX2L: PumpX2L,
+    //val pumpX2L: PumpX2L,
     instantiator: Instantiator
 ) : PumpPluginAbstract(
     PluginDescription() //
         .mainType(PluginType.PUMP) //
         .fragmentClass(TandemMobiPumpFragment::class.java.name) //
-        .pluginIcon(R.drawable.ic_tslim_128)
+        .pluginIcon(R.drawable.t_mobi)
         .pluginName(R.string.tandem_name_mobi) //
         .shortName(R.string.tandem_name_mobi_short) //
         .preferencesId(R.xml.pref_tandem_mobi)
@@ -136,7 +128,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     //private var isServiceSet = false
 
     override fun onStart() {
-        aapsLogger.debug(LTag.PUMP, model().model + " started - $version")
+        aapsLogger.debug(LTag.PUMP, model().model + " started (t:mobi) DUB - $version")
         super.onStart()
     }
 
@@ -150,6 +142,13 @@ class TandemMobiPumpPlugin @Inject constructor(
         } else if (pref.key == rh.gs(R.string.key_tandem_serial)) {
             val value: String? = sp.getStringOrNull(R.string.key_tandem_serial, null)
             pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
+        } else if (pref.key == rh.gs(R.string.key_tandem_shared_connection_data)) {
+            val value: String? = sp.getStringOrNull(R.string.key_tandem_shared_connection_data, null)
+            if (value!=null && value.isNotEmpty()) {
+                if (tandemService!!.validateParameters() && !tandemService!!.isConnected()) {
+                    tandemService!!.connectToPump()
+                }
+            }
         }
 
         aapsLogger.info(LTag.PUMP, "Preference: $pref")
@@ -162,9 +161,13 @@ class TandemMobiPumpPlugin @Inject constructor(
         pumpStatus.previousConnection = pumpStatus.lastConnection
         aapsLogger.debug(LTag.PUMP, "initPumpStatusData: " + pumpStatus)
 
+        pumpType = PumpType.TANDEM_T_MOBI_BT
+
         // this is only thing that can change, by being configured
         // TODO pumpDescription.maxTempAbsolute = (pumpStatus.maxBasal != null) ? pumpStatus.maxBasal : 35.0d;
         aapsLogger.debug(LTag.PUMP, "pumpDescription: " + this.pumpDescription)
+
+        //this.pumpDescription;
 
         pumpStatus.pumpDescription = this.pumpDescription
 
@@ -261,14 +264,14 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     private fun reconnectAfterDataChange() {
-        aapsLogger.info(LTag.PUMP, "Connection data changed... validating parameters and reconnecting if possible.")
+        aapsLogger.info(LTag.PUMP, "DUB Connection data changed... validating parameters and reconnecting if possible.")
         // new pump connected, we need to reset driver
         this.isDriverInitialized = false
-        this.firstRun = true
+        this.secondRun = true  // TODO
 
         if (tandemService!!.validateParameters()) {
             if (tandemService!!.connectToPump()) {
-                initializePump(true)
+                //initializePump(true)
             }
         }
     }
@@ -318,18 +321,22 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     // Constraints interface
-    override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
-        // TODO
+    // override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
+    //     // TODO
+    //
+    //
+    //
+    //
+    //     if (value.value()) {
+    //         value.set(
+    //             pumpStatus.tandemPumpFirmware.isClosedLoopPossible,
+    //             rh.gs(R.string.tandem_fol_closed_loop_not_allowed_x2), // TODO allowed Closed Loop on right firmware
+    //             this
+    //         )
+    //     }
+    //     return value
+    // }
 
-        if (value.value()) {
-            value.set(
-                pumpStatus.tandemPumpFirmware.isClosedLoopPossible,
-                rh.gs(R.string.tandem_fol_closed_loop_not_allowed_x2), // TODO allowed Closed Loop on right firmware
-                this
-            )
-        }
-        return value
-    }
 
     override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
 
@@ -437,22 +444,23 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     // Pump Interface
     override fun isInitialized(): Boolean {
+        //return false
         //aapsLogger.debug(LTag.PUMP, "isInitialized - driverInit=$driverInitialized, preventConnect=${tandemUtil.preventConnect}")
         //return driverInitialized //&& !tandemUtil.preventConnect
         //return pumpStatus.ypsopumpFirmware != null;
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isInitialized")
+        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "DUB isInitialized ${isDriverInitialized}")
         return isDriverInitialized
     }
 
     override fun isSuspended(): Boolean {
         val suspended = (pumpStatus.pumpRunningState != PumpRunningState.Running)
-        aapsLogger.debug(LTag.PUMP, "isSuspended - $suspended")
+        aapsLogger.debug(LTag.PUMP, "DUB isSuspended - $suspended")
         return suspended
     }
 
     override fun isConnected(): Boolean {
         val status = tandemUtil.driverStatus
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix +"isConnected [status=$status]")
+        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix +"DUB isConnected [status=$status]")
         return status == PumpDriverState.Connected || status == PumpDriverState.Handshaking || status == PumpDriverState.ExecutingCommand
         // return isServiceSet && tandemService?.isInitialized == true
 
@@ -471,8 +479,14 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     override fun isConnecting(): Boolean {
         val status = tandemUtil.driverStatus
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isConnecting [status=$status]")
-        return status == PumpDriverState.Connecting
+        val error = tandemUtil.errorType
+
+        aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
+
+        val unreachable = (error!=null && error==PumpErrorType.PumpUnreachable)
+
+        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
+        return status == PumpDriverState.Connecting || unreachable
 
         // return !isServiceSet || tandemService?.isInitialized != true
 
@@ -523,7 +537,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     override fun isHandshakeInProgress(): Boolean {
         val status = tandemUtil.driverStatus
         if (displayConnectionMessages)
-            aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - ${status==PumpDriverState.Handshaking}")
+            aapsLogger.debug(LTag.PUMP, "DUB isHandshakeInProgress - ${status==PumpDriverState.Handshaking}")
 
         return status == PumpDriverState.Handshaking
 
@@ -558,12 +572,41 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     var busy = false
+    var secondRun = false;
 
     override fun getPumpStatus(reason: String) {
-        var needRefresh = true
+        var needRefresh = false
+
+        // DUB
+
+        aapsLogger.info(LTag.PUMP, "DUB getPumpStatus [first_run=$firstRun,second_run=$secondRun]")
 
         if (firstRun) {
+            //pumpConnectionManager.getPumpStatus()
+
             needRefresh = initializePump(!isRefresh)
+            firstRun = false
+            //secondRun = true
+            //this.isDriverInitialized = true
+
+            //aapsLogger.info(LTag.PUMP, "DUB getPumpStatus READ")
+
+
+        //     var startup = Completable
+        //         .timer(30, TimeUnit.SECONDS)
+        //         .subscribeOn(aapsSchedulers.main) // where the work should be done
+        //         .observeOn(aapsSchedulers.main) // where the data stream should be delivered
+        //         .subscribe({
+        //                        aapsLogger.info(LTag.PUMP, "DUB command QUEUED")
+        //                        if (!commandQueue.statusInQueue()) {
+        //                            commandQueue.readStatus("Scheduled Status Refresh", null)
+        //                        }
+        //                    }, { fabricPrivacy.logException(it)  })
+        //
+        //
+        // } else if (secondRun) {
+        //     //needRefresh = initializePump(!isRefresh)
+        //     secondRun = false
         } else {
             refreshAnyStatusThatNeedsToBeRefreshed()
         }
@@ -620,8 +663,8 @@ class TandemMobiPumpPlugin @Inject constructor(
                             aapsLogger.info(LTag.PUMP, "Refresh_RemainingInsulin")
                             pumpConnectionManager.getRemainingInsulin()
                         } else if (key == PumpDataRefreshType.PumpStatus) {
-                            //aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus");
-                            //pumpConnectionManager.getPumpStatus()   // TODO
+                            aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus");
+                            pumpConnectionManager.getPumpStatus()   // TODO
                         } else {
                             aapsLogger.info(LTag.PUMP, "Refresh_BatteryStatus");
                             pumpConnectionManager.getBatteryLevel()
@@ -651,6 +694,9 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
+
+
+
     private fun setRefreshButtonEnabled(enabled: Boolean) {
         rxBus.send(EventRefreshButtonState(enabled))
     }
@@ -667,12 +713,13 @@ class TandemMobiPumpPlugin @Inject constructor(
         //pumpConnectionManager.determineFirmwareVersion()
         setDriverMode()
 
-        // TODO time (6h) - setting time command not available
+        // time (6h) - setting time command not available
         aapsLogger.info(LTag.PUMP, "Refresh_PumpTime: onInitializePump")
         checkTimeAndOptionallySetTime()
 
-        // TODO read status of pump from Db
-        //pumpConnectionManager.getPumpStatus()
+        // read status of pump from Db
+        pumpConnectionManager.getPumpStatus()
+        scheduleNextRefresh(PumpDataRefreshType.PumpStatus, 20)
 
         // TODO readPumpHistory
         // readPumpHistory()
@@ -689,10 +736,13 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         // configuration (once and then if history shows config changes)
         pumpConnectionManager.getConfiguration()
-        // TODO checkThatSettingsAreEnforced()
+        checkThatSettingsAreEnforced()
 
-
+        // TODO remove
+        //pumpConnectionManager.getConfiguration()
         //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
+
+        pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_PUMP_INFO)
 
 
         // TODO V2 read profile (once, later its controlled by isThisProfileSet method)
@@ -784,7 +834,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     //var profile: Profile? = null
 
     override fun isThisProfileSet(profile: Profile): Boolean {
-        aapsLogger.debug(LTag.PUMP, "isThisProfileSet ")
+        aapsLogger.debug(LTag.PUMP, "DUB isThisProfileSet ")
 
         //var profileJson = this.tandemUtil.gson.toJson(profile);
 
@@ -882,12 +932,12 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         if (pumpStatus.settings!=null) {
 
-            val maxBolus = (pumpStatus.settings!![TandemPumpSettingType.MAX_BOLUS]) as Int
-            val maxBolusRequired = sp.getInt(TandemPumpConst.Prefs.MaxBolus, 0)
-
-            if (maxBolus == maxBolusRequired) {
-                pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BOLUS, maxBolusRequired)
-            }
+            // val maxBolus = (pumpStatus.settings!![TandemPumpSettingType.MAX_BOLUS]) as Int
+            // val maxBolusRequired = sp.getInt(TandemPumpConst.Prefs.MaxBolus, 20)
+            //
+            // if (maxBolus == maxBolusRequired) {
+            //     pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BOLUS, maxBolusRequired)
+            // }
 
             val controlIQEnabled = (pumpStatus.settings!![TandemPumpSettingType.CONTROL_IQ_ENABLED]) as Boolean
 
@@ -1024,13 +1074,18 @@ class TandemMobiPumpPlugin @Inject constructor(
                                      enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType
     ): PumpEnactResult {
         setRefreshButtonEnabled(false)
+
+        var info = tandemUtil.gson.toJson(this.pumpDescription)
+
+        aapsLogger.info(LTag.PUMP, logPrefix + " TBR pumpDescription: ${info}")
+
         return try {
-            aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent: rate: " + percent + "%, duration=" + durationInMinutes)
+            aapsLogger.info(LTag.PUMP, logPrefix + " TBR setTempBasalPercent: rate: " + percent + "%, duration=" + durationInMinutes)
 
             // read current TBR
             val tbrCurrent = readTBR()
             if (tbrCurrent == null) {
-                aapsLogger.warn(LTag.PUMP, logPrefix + "setTempBasalPercent - Could not read current TBR, canceling operation.")
+                aapsLogger.warn(LTag.PUMP, logPrefix + " TBR setTempBasalPercent - Could not read current TBR, canceling operation.")
                 return PumpEnactResultObject(rh).success(false).enacted(false)
                     .comment(rh.gs(R.string.ypsopump_cmd_cant_read_tbr))
             } else {
@@ -1044,7 +1099,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                         sameRate = false
                     }
                     if (sameRate) {
-                        aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent - No enforceNew and same rate. Exiting.")
+                        aapsLogger.info(LTag.PUMP, logPrefix + "TBR setTempBasalPercent - No enforceNew and same rate. Exiting.")
                         return PumpEnactResultObject(rh).success(true).enacted(false)
                     }
                 }
@@ -1058,7 +1113,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 // CANCEL
                 val commandResponse = pumpConnectionManager.cancelTemporaryBasal()
                 if (commandResponse.isSuccess) {
-                    aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent - Current TBR cancelled.")
+                    aapsLogger.info(LTag.PUMP, logPrefix + " TBR setTempBasalPercent - Current TBR cancelled.")
                 } else {
                     aapsLogger.error(logPrefix + "setTempBasalPercent - Cancel TBR failed.")
                     return PumpEnactResultObject(rh).success(false).enacted(false)
@@ -1074,10 +1129,11 @@ class TandemMobiPumpPlugin @Inject constructor(
                 val tbr = TempBasalPair(
                     insulinRate = percent.toDouble(),
                     isPercent = true,
+                    start = System.currentTimeMillis(),
                     durationMinutes = durationInMinutes)
 
                 pumpStatus.currentTempBasal = tbr
-                pumpStatus.currentTempBasalEstimatedEnd = System.currentTimeMillis() + (durationInMinutes * 60 * 1000)
+                //pumpStatus.currentTempBasalEstimatedEnd = System.currentTimeMillis() + (durationInMinutes * 60 * 1000)
 
                 readPumpHistoryAfterAction(tempBasalInfo = tbr)
 
@@ -1097,7 +1153,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int, profile: Profile,
                                       enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType
     ): PumpEnactResult {
-        aapsLogger.debug(LTag.PUMP, "setTempBasalAbsolute called with a rate of $absoluteRate for $durationInMinutes min.")
+        aapsLogger.debug(LTag.PUMP, "TBR setTempBasalAbsolute called with a rate of $absoluteRate for $durationInMinutes min.")
         val unroundedPercentage = java.lang.Double.valueOf(absoluteRate / baseBasalRate * 100).toInt()
         // TODO unroundedPercentage needs to be rounded correctly
         return this.setTempBasalPercent(unroundedPercentage, durationInMinutes, profile, enforceNew, tbrType)
@@ -1237,7 +1293,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             if (commandResponse.isSuccess) {
                 aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - Cancel TBR successful.")
 
-                readPumpHistoryAfterAction(tempBasalInfo = TempBasalPair(0.0, true, 0))
+                readPumpHistoryAfterAction(tempBasalInfo = TempBasalPair(insulinRate = 0.0, isPercent = true, durationMinutes = 0))
                 pumpStatus.clearTbr()
 
                 PumpEnactResultObject(rh).success(true).enacted(true) //

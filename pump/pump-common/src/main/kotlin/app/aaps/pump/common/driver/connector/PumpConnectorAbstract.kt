@@ -16,7 +16,7 @@ import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.TempBasalPair
 
 
-abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
+abstract class PumpConnectorAbstract(/*protected var injector: HasAndroidInjector,*/
                                      protected var aapsLogger: AAPSLogger
 ) : PumpConnectorInterface {
 

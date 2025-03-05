@@ -2,11 +2,11 @@ package app.aaps.pump.tandem.common.process
 
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.pump.tandem.common.comm.maint.TandemChangeFillManager
+import app.aaps.pump.tandem.common.comm.maint.TandemPumpActionManager
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 
 abstract class StateMachineAbstract<T: ProcessState> constructor(
-    var tandemChangeFillManager: TandemChangeFillManager,
+    var tandemPumpActionManager: TandemPumpActionManager,
     var tandemPumpUtil: TandemPumpUtil,
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger
@@ -15,7 +15,7 @@ abstract class StateMachineAbstract<T: ProcessState> constructor(
     var _currentState : T? = null
     val currentState get() = _currentState!!
 
-    var pumpManagementController : PumpManagementController = tandemChangeFillManager
+    var pumpManagementController : PumpManagementController = tandemPumpActionManager
 
     var _uiActionListener: UIActionListener? = null
     val uiActionListener get() = _uiActionListener!!
@@ -86,9 +86,12 @@ abstract class StateMachineAbstract<T: ProcessState> constructor(
         uiActionListener.displayLongStatus(text)
     }
 
-    override fun sendStatusInfo(text: String) {
-        uiActionListener.showShortTextStatus(text)
+
+    override fun sendStatusInfo(text: String, withDelay: Boolean) {
+        uiActionListener.showShortTextStatus(text = text, withDelay = withDelay)
     }
+
+
 
 
 }

@@ -62,7 +62,7 @@ import javax.inject.Singleton
  *
  * @author Andy Rozman (andy.rozman@gmail.com)
  */
-@Singleton
+// @Singleton
 class TandemSlimPumpPlugin constructor(
     injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
@@ -114,7 +114,7 @@ class TandemSlimPumpPlugin constructor(
     private var tandemVersion = "v0.2.6"
 
     override fun onStart() {
-        aapsLogger.debug(LTag.PUMP, model().model + " started - ${tandemVersion} (pumpX2 ${pumpX2Version})")
+        aapsLogger.debug(LTag.PUMP, model().model + " started (TSlim) DUB - ${tandemVersion} (pumpX2 ${pumpX2Version})")
         super.onStart()
     }
 

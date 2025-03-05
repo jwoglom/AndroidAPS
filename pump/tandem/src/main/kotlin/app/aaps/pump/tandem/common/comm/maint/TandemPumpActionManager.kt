@@ -2,9 +2,6 @@ package app.aaps.pump.tandem.common.comm.maint
 
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.pump.common.defs.PumpUpdateFragmentType
-import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
-import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
 import app.aaps.pump.tandem.common.process.PumpManagementAction
@@ -13,6 +10,7 @@ import app.aaps.pump.tandem.common.process.PumpManagementListener
 import app.aaps.pump.tandem.common.process.change_cartridge.ChangeCartridgePumpMgmtAction
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.request.control.EnterChangeCartridgeModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.response.control.SuspendPumpingResponse
@@ -21,7 +19,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorR
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import javax.inject.Inject
 
-class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager: TandemCommunicationManager,
+class TandemPumpActionManager @Inject constructor(var tandemCommunicationManager: TandemCommunicationManager,
                                                   val aapsLogger: AAPSLogger,
                                                   val pumpUtil: TandemPumpUtil
         ) : CommunicationListener, PumpManagementController {
@@ -32,7 +30,7 @@ class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager
     var commandRequest: Message? = null
     var commandResponse: CommandResponse? = null
     var apiVersionResponseReceived: Boolean = false
-    val ltag = LTag.PUMPCOMM
+    private val TAG = LTag.PUMPCOMM
 
 
 
@@ -56,21 +54,25 @@ class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager
 
     fun suspendPumpCommand(): Boolean {
 
-        aapsLogger.info(ltag, "Start SuspendPump")
+        aapsLogger.info(TAG, "Start SuspendPump")
+        sendDebugInfoToUi("Sending SuspendPumpingRequest...")
+        sendStatusToUi("Trying to stop the pump...")
 
+        val responseResult = sendCommand(SuspendPumpingRequest(), CommandResponseMode.SingleCommand)
 
-        val responseMessage = sendCommand(SuspendPumpingRequest(), CommandResponseMode.SingleCommand)
+        if (responseResult.success) {
 
-        if (responseMessage.success) {
+            val suspendResponse = responseResult.responseMesage as SuspendPumpingResponse
 
-            val suspendResponse = responseMessage.responseMesage as SuspendPumpingResponse
+            aapsLogger.info(TAG, "Received response, which tells that action was ${suspendResponse.isStatusOK()}")
 
-            aapsLogger.info(ltag, "Received response, which tells that action was ${suspendResponse.statusOK}")
+            sendDebugInfoToUi("Received response SuspendPumpingResponse... ")
+            sendStatusToUi("Pump is NOT Running anymore.")
 
-            return suspendResponse.statusOK
+            return suspendResponse.isStatusOK()
 
         } else {
-            aapsLogger.error(ltag, "Received ERRORED response for SuspendPumpingRequest")
+            aapsLogger.error(TAG, "Received ERRORED response for SuspendPumpingRequest")
             return false
         }
 
@@ -82,11 +84,11 @@ class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager
 
         when (isRunning) {
             null -> {
-                aapsLogger.info(ltag, "suspendPump: status of pump could not be determined.")
+                aapsLogger.info(TAG, "suspendPump: status of pump could not be determined.")
                 return false
             }
             true -> {
-                aapsLogger.info(ltag, "Pump is running, so I will try to Stop It.")
+                aapsLogger.info(TAG, "Pump is running, so I will try to Stop It.")
 
                 return suspendPumpCommand()
 
@@ -99,33 +101,59 @@ class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager
     }
 
 
-
+    // TODO
     fun checkIfPumpIsRunning(): Boolean? {
 
-        aapsLogger.info(ltag, "Check if pump is running (sending HomeScreenMirrorRequest).")
+        aapsLogger.info(TAG, "Check if pump is running (sending HomeScreenMirrorRequest).")
+        sendDebugInfoToUi("Check if pump is running (sending HomeScreenMirrorRequest)")
+        sendStatusToUi("Check in progress...")
 
         val responseMessage = sendCommand(HomeScreenMirrorRequest(), CommandResponseMode.SingleCommand)
 
         if (responseMessage.success) {
 
-            aapsLogger.info(ltag, "Received sucessfull response: ")
+            aapsLogger.info(TAG, "Received successful response: ")
 
             val mirrorResponse = responseMessage.responseMesage as HomeScreenMirrorResponse
 
-            val pumpSuspended = mirrorResponse.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND
+            val pumpSuspended = (mirrorResponse.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND)
 
-            aapsLogger.info(ltag, "Pump is suspended: $pumpSuspended ")
+            sendDebugInfoToUi("Received HomeScreenMirrorResponse response")
+
+            if (pumpSuspended) {
+                sendDebugInfoToUi("Response is showing status SUSPEND")
+                sendStatusToUiWithDelay("Pump is SUSPENDED")
+            } else {
+                sendDebugInfoToUi("Response is showing status ${mirrorResponse.basalStatusIcon.name} which means it is not suspended.")
+                sendStatusToUiWithDelay("Pump is Running (${mirrorResponse.basalStatusIcon.name})")
+            }
+
+            //sendDebugInfoToUi("Response is showing status ")
+
+            aapsLogger.info(TAG, "Pump is suspended: $pumpSuspended ")
 
             return !pumpSuspended
 
         } else {
-            aapsLogger.error(ltag, "Received ERRORED response for HomeScreenMirrorRequest")
+            aapsLogger.error(TAG, "Received ERRORED response for HomeScreenMirrorRequest")
+            sendDebugInfoToUi("Response was in Error.")
+            sendStatusToUiWithDelay("Pump response was in Error...")
             return null
         }
 
     }
 
+    fun sendDebugInfoToUi(text: String) {
+        this.pumpManagementListener!!.sendDebugInfo(text)
+    }
 
+    fun sendStatusToUi(text: String) {
+        this.pumpManagementListener!!.sendStatusInfo(text)
+    }
+
+    fun sendStatusToUiWithDelay(text: String) {
+        this.pumpManagementListener!!.sendStatusInfo(text, true)
+    }
 
 
     fun sendCommand(request: Message, commandResponseMode: CommandResponseMode): CommandResponse {
@@ -140,7 +168,7 @@ class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager
 
             aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
 
-            tandemCommunicationManager.sendCommand(request)
+            tandemCommunicationManager.sendCommandWithListener(request)
 
             while (commandResponseMode==CommandResponseMode.SingleCommand) {
 
@@ -149,12 +177,13 @@ class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager
                     return commandResponse!!
                 }
 
-                pumpUtil.sleep(1000)
+                pumpUtil.sleep(500)
             }
 
             //return null
         } else {
-            tandemCommunicationManager.sendCommand(request)
+            this.commandRequest = request // all valid responses should still have same opNumber
+            tandemCommunicationManager.sendCommandWithListener(request)
         }
 
         return CommandResponse(null, false, "Invalid State or expectation")
@@ -190,10 +219,9 @@ class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager
                     aapsLogger.info(LTag.PUMPCOMM, "discarding Message [code=${message.opCode()}")
                 }
             }
-
-
-
         } else if (this.commandResponseMode.isStream) {
+
+            receiveStreamMessage(message)
 
         } else {
             aapsLogger.error(tag, "Message ${message.javaClass} received, but not expected.")
@@ -202,6 +230,9 @@ class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager
 
     }
 
+    private fun receiveStreamMessage(message: Message) {
+        TODO("Not yet implemented")
+    }
 
     class CommandResponse constructor(val responseMesage: Message?,
                                       val success: Boolean,
@@ -214,20 +245,36 @@ class TandemChangeFillManager @Inject constructor(var tandemCommunicationManager
         when(action) {
             is ChangeCartridgePumpMgmtAction -> {
                 when(action) {
-                    ChangeCartridgePumpMgmtAction.CHECK_PUMP_STATE            -> return checkIfPumpIsRunning()
-                    ChangeCartridgePumpMgmtAction.SUSPEND_PUMP                -> return suspendPumpCommand()
-                    else -> return null
+                    ChangeCartridgePumpMgmtAction.CHECK_PUMP_STATE    -> return checkIfPumpIsRunning()
+                    ChangeCartridgePumpMgmtAction.SUSPEND_PUMP        -> return suspendPumpCommand()
+                    else -> {
+                        aapsLogger.error(TAG, "Unknown ChangeCartridgePumpMgmtAction Pump Action (short): $action")
+                        return null
+                    }
                 }
             }
-            else -> return null
+            else -> {
+                aapsLogger.error(TAG, "Unknown Pump Action (short): $action")
+                return null
+            }
+
         }
     }
+
+
+    var currentAction: PumpManagementAction? = null
 
     override fun startLongAction(action: PumpManagementAction) {
         when(action) {
             is ChangeCartridgePumpMgmtAction -> {
                 when(action) {
-                    ChangeCartridgePumpMgmtAction.ENTER_CHANGE_CARTRIDGE_MODE -> TODO()
+                    ChangeCartridgePumpMgmtAction.ENTER_CHANGE_CARTRIDGE_MODE -> {
+                        currentAction = action
+                        this.commandResponseMode = CommandResponseMode.EnterChangeCartridge
+                        aapsLogger.info(TAG, "${commandResponseMode} starting")
+
+                        sendCommand(EnterChangeCartridgeModeRequest(), CommandResponseMode.EnterChangeCartridge)
+                    }
                     ChangeCartridgePumpMgmtAction.EXIT_CHANGE_CARTRIDGE_MODE  -> TODO()
                     else -> return
                 }

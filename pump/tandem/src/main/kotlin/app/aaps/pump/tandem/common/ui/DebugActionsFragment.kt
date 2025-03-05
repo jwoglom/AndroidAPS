@@ -158,9 +158,12 @@ class DebugActionsFragment constructor(
         }
     }
 
-    override fun showShortTextStatus(text: String) {
+    override fun showShortTextStatus(text: String, withDelay: Boolean) {
         runOnUiThread {
             this.binding.tndStatus.text = text
+            if (withDelay) {
+                Thread.sleep(4000)
+            }
         }
     }
 

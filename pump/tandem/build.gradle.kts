@@ -26,18 +26,6 @@ android {
 }
 
 
-// android {
-//
-//     namespace = "app.aaps.pump.equil"
-//     defaultConfig {
-//         ksp {
-//             arg("room.incremental", "true")
-//             arg("room.schemaLocation", "$projectDir/schemas")
-//         }
-//     }
-// }
-
-
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:interfaces"))
@@ -98,14 +86,14 @@ dependencies {
     // implementation("com.atech-software.pumpX2:pumpx2-messages:v1.4.4.0")
     // implementation("com.atech-software.pumpX2:pumpx2-shared:v1.4.4.0")
 
-    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.5.5")
+    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.5.9")
     //implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.5.0")
     //implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.5.0")
 
     // needed by X2
     implementation("com.github.weliem:blessed-android:2.4.0")
     implementation("com.jakewharton.timber:timber:5.0.1")
-    implementation("org.apache.commons:commons-lang3:3.12.0")
+    //implementation("org.apache.commons:commons-lang3:3.12.0")
 
     // implementation 'com.github.weliem:blessed-android:2.4.0'
     // implementation 'com.jakewharton.timber:timber:5.0.1'
@@ -115,8 +103,4 @@ dependencies {
     // implementation "com.google.guava:guava:31.0.1-android"
     // implementation 'org.bouncycastle:bcprov-jdk14:1.77'
 
-    // com.github.jwoglom.pumpX2:pumpx2-android:v1.4.5
-    // com.github.jwoglom.pumpX2:pumpx2-messages:v1.4.5
-    // com.github.jwoglom.pumpX2:pumpx2-cliparser:v1.4.5
-    // com.github.jwoglom.pumpX2:pumpx2-shared:v1.4.5
 }

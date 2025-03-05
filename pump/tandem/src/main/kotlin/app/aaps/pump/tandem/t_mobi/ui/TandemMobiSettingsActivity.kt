@@ -11,6 +11,7 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.ui.DebugActionsActivity
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -30,6 +31,7 @@ class TandemMobiSettingsActivity : TranslatedDaggerAppCompatActivity() {
 
     //@Inject lateinit var tandemMobiManager: TandemMobiManager  // TODO remove
     //@Inject lateinit var tandemCommunicationManager: TandemCommunicationManager
+    @Inject lateinit var tandemPumpConnector: TandemPumpConnector
 
     //@Inject lateinit var uiInteraction: UiInteraction
     @Inject lateinit var tandemPumpUtil: TandemPumpUtil
@@ -150,6 +152,17 @@ class TandemMobiSettingsActivity : TranslatedDaggerAppCompatActivity() {
             //startActivity(Intent(this, DashPodHistoryActivity::class.java))
         }
 
+        binding.buttonPumpStatus.setOnClickListener {
+            tandemPumpConnector.getPumpStatus()
+        }
+
+        binding.buttonPumpSuspend.setOnClickListener {
+
+        }
+
+        binding.buttonPumpResume.setOnClickListener {
+
+        }
 
     }
 

@@ -20,8 +20,26 @@
         <!--            validate:testErrorString="@string/error_mustbe8digitnumber"-->
         <!--            validate:testType="regexp" -->
 
-        <Preference
+        <SwitchPreference
+            android:defaultValue="true"
             android:enabled="true"
+            android:key="@string/key_tandem_use_shared_connection"
+            android:summary="@string/tandem_cfg_use_shared_connection_summary"
+            android:title="@string/tandem_cfg_use_shared_connection" />
+
+        <EditTextPreference
+            android:defaultValue=""
+            android:key="@string/key_tandem_shared_connection_data"
+            android:selectAllOnFocus="true"
+            android:singleLine="false"
+            android:enabled="true"
+            android:shouldDisableView="false"
+            android:summary="@string/tandem_cfg_shared_connection_data_summary"
+            android:title="@string/tandem_cfg_shared_connection_data"
+            />
+
+        <Preference
+            android:enabled="false"
             android:key="@string/key_tandem_address"
             android:summary=""
             android:title="Tandem Configuration">
@@ -30,13 +48,13 @@
 
         <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="25"
-            android:digits="0123456789."
+            android:digits="0123456789"
             android:inputType="number"
             android:key="@string/key_tandem_max_bolus"
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:title="@string/tandem_pump_max_bolus"
-            validate:maxNumber="25"
+            validate:maxNumber="30"
             validate:minNumber="1"
             validate:testType="numericRange" />
 

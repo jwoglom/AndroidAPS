@@ -2,21 +2,30 @@ package app.aaps.pump.common.defs
 
 import com.google.gson.annotations.Expose
 
-open class TempBasalPair {
+open class TempBasalPair constructor(
+    @Expose var insulinRate : Double,
+    @Expose var isPercent : Boolean,
+    @Expose var durationMinutes : Int,
+    var start: Long? = null
+) {
 
-    @Expose var insulinRate = 0.0
-    @Expose var durationMinutes = 0
-    @Expose var isPercent = false
-    private var start: Long? = null
     private var end: Long? = null
     var isActive: Boolean = false
 
-    constructor()
-    constructor(insulinRate: Double, isPercent: Boolean, durationMinutes: Int) {
-        this.insulinRate = insulinRate
-        this.isPercent = isPercent
-        this.durationMinutes = durationMinutes
+
+    init {
+        if (start!=null) {
+            this.end = start!! + (durationMinutes * 60 * 1000)
+        }
     }
+
+
+
+    // constructor(insulinRate: Double, isPercent: Boolean, durationMinutes: Int) {
+    //     this.insulinRate = insulinRate
+    //     this.isPercent = isPercent
+    //     this.durationMinutes = durationMinutes
+    // }
 
     fun setStartTime(startTime: Long?) {
         start = startTime

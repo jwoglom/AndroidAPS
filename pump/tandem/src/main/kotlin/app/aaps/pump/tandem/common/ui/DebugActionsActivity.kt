@@ -7,7 +7,6 @@ package app.aaps.pump.tandem.common.ui
 
 import android.os.Bundle
 import android.view.View
-import androidx.annotation.IdRes
 import androidx.annotation.StringRes
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -15,7 +14,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
-import app.aaps.pump.tandem.common.comm.maint.TandemChangeFillManager
+import app.aaps.pump.tandem.common.comm.maint.TandemPumpActionManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.process.ActionStateMachine
 import app.aaps.pump.tandem.common.process.ProcessState
@@ -170,7 +169,7 @@ class DebugActionsActivity : TranslatedDaggerAppCompatActivity(), UIActionListen
             return
         }
 
-        val tandemChangeFillManager = TandemChangeFillManager(
+        val tandemPumpActionManager = TandemPumpActionManager(
             tandemCommunicationManager = tandemPumpConnector.getCommunicationManager(),
             aapsLogger = aapsLogger,
             pumpUtil = tandemPumpUtil
@@ -178,7 +177,7 @@ class DebugActionsActivity : TranslatedDaggerAppCompatActivity(), UIActionListen
 
         if ("ChangeCartridgeStateMachine".equals(stateMachineName)) {
             this.actionStateMachine =
-                ChangeCartridgeStateMachine(tandemChangeFillManager = tandemChangeFillManager,
+                ChangeCartridgeStateMachine(tandemPumpActionManager = tandemPumpActionManager,
                                             tandemPumpUtil = tandemPumpUtil,
                                             resourceHelper = resourceHelper,
                                             aapsLogger = aapsLogger)
@@ -205,7 +204,7 @@ class DebugActionsActivity : TranslatedDaggerAppCompatActivity(), UIActionListen
 
 
         Completable
-            .timer(4, TimeUnit.SECONDS)
+            .timer(1, TimeUnit.SECONDS)
             .subscribeOn(aapsSchedulers.io) // where the work should be done
             .observeOn(aapsSchedulers.main) // where the data stream should be delivered
             .subscribe({
@@ -356,9 +355,12 @@ class DebugActionsActivity : TranslatedDaggerAppCompatActivity(), UIActionListen
         }
     }
 
-    override fun showShortTextStatus(text: String) {
+    override fun showShortTextStatus(text: String, withDelay: Boolean) {
         runOnUiThread {
             this.binding.tndStatus.text = text
+            if (withDelay) {
+                Thread.sleep(4000)
+            }
         }
     }
 

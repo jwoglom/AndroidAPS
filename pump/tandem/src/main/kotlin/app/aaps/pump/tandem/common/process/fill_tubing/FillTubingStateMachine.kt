@@ -1,15 +1,9 @@
 package app.aaps.pump.tandem.common.process.fill_tubing
 
 import app.aaps.core.interfaces.logging.AAPSLogger
-import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.pump.tandem.common.comm.maint.TandemChangeFillManager
-import app.aaps.pump.tandem.common.process.ActionStateMachine
-import app.aaps.pump.tandem.common.process.ProcessState
-import app.aaps.pump.tandem.common.process.PumpManagementController
-import app.aaps.pump.tandem.common.process.PumpManagementListener
+import app.aaps.pump.tandem.common.comm.maint.TandemPumpActionManager
 import app.aaps.pump.tandem.common.process.StateMachineAbstract
-import app.aaps.pump.tandem.common.process.UIActionListener
 import app.aaps.pump.tandem.common.process.change_cartridge.ChangeCartridgePumpMgmtAction
 import app.aaps.pump.tandem.common.process.change_cartridge.ChangeCartridgeState
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -17,12 +11,12 @@ import app.aaps.pump.tandem.common.util.TandemPumpUtil
 
 class FillTubingStateMachine constructor(
     //var uiActionListener: UIActionListener,
-    tandemChangeFillManager: TandemChangeFillManager,
+    tandemPumpActionManager: TandemPumpActionManager,
     tandemPumpUtil: TandemPumpUtil,
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger
 ): StateMachineAbstract<FillTubingState>(
-    tandemChangeFillManager = tandemChangeFillManager,
+    tandemPumpActionManager = tandemPumpActionManager,
     tandemPumpUtil = tandemPumpUtil,
     resourceHelper = resourceHelper,
     aapsLogger = aapsLogger) {
@@ -303,13 +297,13 @@ class FillTubingStateMachine constructor(
     // }
 
 
-    override fun sendDebugInfo(text: String) {
-        uiActionListener!!.displayLongStatus(text)
-    }
-
-    override fun sendStatusInfo(text: String) {
-        uiActionListener!!.showShortTextStatus(text)
-    }
+    // override fun sendDebugInfo(text: String) {
+    //     uiActionListener!!.displayLongStatus(text)
+    // }
+    //
+    // override fun sendStatusInfo(text: String) {
+    //     uiActionListener!!.showShortTextStatus(text)
+    // }
 
     override fun sendLongActionComplete() {
 

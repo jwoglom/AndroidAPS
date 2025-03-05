@@ -203,10 +203,107 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 app:layout_constraintGuide_percent="0.5" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
+
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="15dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="15dp"
+            android:text="Pump State" />
+
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+
+            android:id="@+id/PS_Tools_Row_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/PS_Tools_Row_1_horizontal_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                app:layout_constraintGuide_percent="0" />
+
+            <app.aaps.core.ui.elements.SingleClickButton
+                android:id="@+id/button_pump_status"
+                style="@style/ButtonMediumFontStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:drawableTop="@drawable/ic_pod_activate_pod"
+                android:text="Pump Status"
+                android:textAllCaps="false"
+                android:visibility="visible"
+                app:layout_constrainedHeight="@+id/PS_Tools_Row_1_horizontal_guideline"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toLeftOf="@+id/PS_Tools_Col_1_vertical_guideline"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/PS_Tools_Col_1_vertical_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.5" />
+
+            <app.aaps.core.ui.elements.SingleClickButton
+                android:id="@+id/button_pump_suspend"
+                style="@style/ButtonMediumFontStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:drawableTop="@drawable/ic_pod_activate_pod"
+                android:text="Pump Suspend"
+                android:textAllCaps="false"
+                android:visibility="visible"
+                app:layout_constrainedHeight="@+id/PS_Tools_Row_1_horizontal_guideline"
+                app:layout_constraintLeft_toRightOf="@+id/PS_Tools_Col_1_vertical_guideline"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+
+            android:id="@+id/PS_Tools_Row_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/PS_Tools_Row_2_horizontal_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                app:layout_constraintGuide_percent="0" />
+
+            <app.aaps.core.ui.elements.SingleClickButton
+                android:id="@+id/button_pump_resume"
+                style="@style/ButtonMediumFontStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:drawableTop="@drawable/ic_pod_activate_pod"
+                android:text="Pump Resume"
+                android:textAllCaps="false"
+                android:visibility="visible"
+                app:layout_constrainedHeight="@+id/PS_Tools_Row_2_horizontal_guideline"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toLeftOf="@+id/PS_Tools_R2_Col_1_vertical_guideline"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/PS_Tools_R2_Col_1_vertical_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.5" />
 
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+
 
     </LinearLayout>
 

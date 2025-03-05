@@ -12,16 +12,12 @@ enum class PumpCapability {
     InsightCapabilities(arrayOf(Capability.Bolus, Capability.ExtendedBolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.Refill, Capability.ReplaceBattery, Capability.BasalRate30min)),
     MedtronicCapabilities(arrayOf(Capability.Bolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.Refill, Capability.ReplaceBattery, Capability.TDD)),
     OmnipodCapabilities(arrayOf(Capability.Bolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.BasalRate30min)),
-    YpsomedCapabilities(
-        arrayOf(
-            Capability.Bolus, Capability.ExtendedBolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.Refill, Capability.ReplaceBattery, Capability.TDD, Capability.ManualTDDLoad
-        )
-    ),  // BasalRates (separately grouped)
+    YpsomedCapabilities(arrayOf(Capability.Bolus, Capability.ExtendedBolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.Refill, Capability.ReplaceBattery, Capability.TDD, Capability.ManualTDDLoad)),  // BasalRates (separately grouped)
     DiaconnCapabilities(arrayOf(Capability.Bolus, Capability.ExtendedBolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.Refill, Capability.ReplaceBattery, Capability.TDD, Capability.ManualTDDLoad)), //
     EopatchCapabilities(arrayOf(Capability.Bolus, Capability.ExtendedBolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.BasalRate30min)),
     MedtrumCapabilities(arrayOf(Capability.Bolus, Capability.TempBasal, Capability.BasalProfileSet, Capability.BasalRate30min, Capability.TDD)), // Technically the pump supports ExtendedBolus, but not implemented (yet)
     TandemSlimCapabilities(arrayOf(Capability.Refill, Capability.ReplaceBattery)),
-    TandemMobiCapabilities(arrayOf(Capability.Refill /*, Capability.BasalProfileSet*/)), // TODO WIP
+    TandemMobiCapabilities(arrayOf(Capability.Refill, Capability.TempBasal, Capability.BasalRate_Duration15minAllowed    /*Capability.BasalProfileSet*/)), // TODO WIP
     ;
 
     var children: ArrayList<Capability> = ArrayList()

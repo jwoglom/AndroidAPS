@@ -408,7 +408,7 @@ public class OmnipodErosPumpPlugin extends PumpPluginBase implements Pump, Riley
             if (podStateManager.hasTempBasal()) {
                 aapsLogger.warn(LTag.PUMP, "Registering TBR that AAPS was unaware of");
                 long pumpId = aapsOmnipodErosManager.addTbrSuccessToHistory(podStateManager.getTempBasalStartTime().getMillis(),
-                        new TempBasalPair(podStateManager.getTempBasalAmount(), false, (int) podStateManager.getTempBasalDuration().getStandardMinutes()));
+                        new TempBasalPair(podStateManager.getTempBasalAmount(), false, (int) podStateManager.getTempBasalDuration().getStandardMinutes(), null));
 
                 pumpSync.syncTemporaryBasalWithPumpId(
                         podStateManager.getTempBasalStartTime().getMillis(),
@@ -704,7 +704,7 @@ public class OmnipodErosPumpPlugin extends PumpPluginBase implements Pump, Riley
             }
         }
 
-        PumpEnactResult result = executeCommand(OmnipodCommandType.SET_TEMPORARY_BASAL, () -> aapsOmnipodErosManager.setTemporaryBasal(new TempBasalPair(absoluteRate, false, durationInMinutes)));
+        PumpEnactResult result = executeCommand(OmnipodCommandType.SET_TEMPORARY_BASAL, () -> aapsOmnipodErosManager.setTemporaryBasal(new TempBasalPair(absoluteRate, false, durationInMinutes, null)));
 
         aapsLogger.info(LTag.PUMP, "setTempBasalAbsolute - setTBR. Response: " + result.getSuccess());
 

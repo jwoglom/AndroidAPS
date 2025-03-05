@@ -28,10 +28,8 @@ abstract class PumpConnectionManager constructor(
     val pumpStatus: PumpStatus,
     val pumpUtil: PumpUtil,
     val sp: SP,
-    val injector: HasAndroidInjector,
     val aapsLogger: AAPSLogger,
     val rxBus: RxBus,
-    //val fabricPrivacy: FabricPrivacy,
     val context: Context,
     //val tandemDataConverter: TandemDataConverter,
     //val tandemPumpConnector: TandemPumpConnector
@@ -58,7 +56,7 @@ abstract class PumpConnectionManager constructor(
 
     abstract fun disconnectFromPump(): Boolean
 
-    abstract fun setCurrentPumpCommandType(commandType: PumpCommandType)
+    abstract fun setCurrentPumpCommandType(commandType: PumpCommandType, customCommandType: CustomCommandTypeInterface?)
 
     abstract fun resetDriverStatus()
 
@@ -67,48 +65,48 @@ abstract class PumpConnectionManager constructor(
     abstract fun postProcessConfiguration(valueMap: MutableMap<PumpConfigurationTypeInterface, Any>?)
 
 
-    fun connectToPumpX(): Boolean {
-
-        // TODO handle states
-        aapsLogger.debug(TAG, "!!!!!! Connect to Pump")
-        pumpUtil.driverStatus = PumpDriverState.Connecting
-        // pumpUtil.sleepSeconds(15)
-
-        val connected = getConnector(null).connectToPump()
-
-        if (connected) {
-            pumpUtil.driverStatus = PumpDriverState.Connected
-            pumpUtil.driverStatus = PumpDriverState.Ready
-        } else {
-            pumpUtil.driverStatus = PumpDriverState.ErrorCommunicatingWithPump
-        }
-
-        // pumpUtil.driverStatus = PumpDriverState.Connected
-        // pumpUtil.sleepSeconds(5)
-        // pumpUtil.driverStatus = PumpDriverState.EncryptCommunication
-        // pumpUtil.sleepSeconds(5)
-        // pumpUtil.driverStatus = PumpDriverState.Ready
-
-
-        // Thread thread = new Thread() {
-        //     public void run() {
-        //         println("Thread Running")
-        //         aapsLogger.debug(TAG, "!!!!!! Connect to Pump - Thread running")
-        //         ypsopumpUtil.driverStatus = PumpDriverState.Connecting
-        //         ypsopumpUtil.sleepSeconds(15)
-        //         ypsopumpUtil.driverStatus = PumpDriverState.Connected
-        //         ypsopumpUtil.sleepSeconds(5)
-        //         ypsopumpUtil.driverStatus = PumpDriverState.EncryptCommunication
-        //         ypsopumpUtil.sleepSeconds(5)
-        //         ypsopumpUtil.driverStatus = PumpDriverState.Ready
-        //
-        //     }
-        // };
-        //
-        // thread.start();
-
-        return connected
-    }
+    // fun connectToPumpX(): Boolean {
+    //
+    //     // TODO handle states
+    //     aapsLogger.debug(TAG, "!!!!!! Connect to Pump")
+    //     pumpUtil.driverStatus = PumpDriverState.Connecting
+    //     // pumpUtil.sleepSeconds(15)
+    //
+    //     val connected = getConnector(null).connectToPump()
+    //
+    //     if (connected) {
+    //         pumpUtil.driverStatus = PumpDriverState.Connected
+    //         pumpUtil.driverStatus = PumpDriverState.Ready
+    //     } else {
+    //         pumpUtil.driverStatus = PumpDriverState.ErrorCommunicatingWithPump
+    //     }
+    //
+    //     // pumpUtil.driverStatus = PumpDriverState.Connected
+    //     // pumpUtil.sleepSeconds(5)
+    //     // pumpUtil.driverStatus = PumpDriverState.EncryptCommunication
+    //     // pumpUtil.sleepSeconds(5)
+    //     // pumpUtil.driverStatus = PumpDriverState.Ready
+    //
+    //
+    //     // Thread thread = new Thread() {
+    //     //     public void run() {
+    //     //         println("Thread Running")
+    //     //         aapsLogger.debug(TAG, "!!!!!! Connect to Pump - Thread running")
+    //     //         ypsopumpUtil.driverStatus = PumpDriverState.Connecting
+    //     //         ypsopumpUtil.sleepSeconds(15)
+    //     //         ypsopumpUtil.driverStatus = PumpDriverState.Connected
+    //     //         ypsopumpUtil.sleepSeconds(5)
+    //     //         ypsopumpUtil.driverStatus = PumpDriverState.EncryptCommunication
+    //     //         ypsopumpUtil.sleepSeconds(5)
+    //     //         ypsopumpUtil.driverStatus = PumpDriverState.Ready
+    //     //
+    //     //     }
+    //     // };
+    //     //
+    //     // thread.start();
+    //
+    //     return connected
+    // }
 
 
 //     fun connectToPump(deviceMac: String, deviceBonded: Boolean): Boolean {
@@ -366,7 +364,7 @@ abstract class PumpConnectionManager constructor(
             getConnector(PumpCommandType.CancelTemporaryBasal).cancelTemporaryBasal() // TODO refactor this not to use AAPS object
         }
 
-        //checkAdditionalResponseData(PumpCommandType.CancelTemporaryBasal, responseData)
+        checkAdditionalResponseData(PumpCommandType.CancelTemporaryBasal, responseData)
 
         return responseData
     }
@@ -463,15 +461,15 @@ abstract class PumpConnectionManager constructor(
     }
 
 
-    fun executeCustomCommand(command: CustomCommandTypeInterface, data: Any?): DataCommandResponse<AdditionalResponseDataInterface?> {
+    fun executeCustomCommand(command: CustomCommandTypeInterface, data: Any? = null): DataCommandResponse<AdditionalResponseDataInterface?> {
 
-        val responseData: DataCommandResponse<AdditionalResponseDataInterface?> = getConnectorData(PumpCommandType.CustomCommand)
+        val responseData: DataCommandResponse<AdditionalResponseDataInterface?> = getConnectorData(PumpCommandType.CustomCommand, command)
         {
             getConnector(PumpCommandType.CustomCommand).executeCustomCommand(command, data)
         }
 
         if (responseData.isSuccess) {
-            postProcessCustomCommand(responseData)
+            postProcessCustomCommand(command, responseData)
         }
 
         return responseData
@@ -491,7 +489,8 @@ abstract class PumpConnectionManager constructor(
     }
 
 
-    open fun postProcessCustomCommand(responseData: DataCommandResponse<AdditionalResponseDataInterface?>) {
+    open fun postProcessCustomCommand(command: CustomCommandTypeInterface, responseData: DataCommandResponse<AdditionalResponseDataInterface?>) {
+
 
     }
 
@@ -511,7 +510,7 @@ abstract class PumpConnectionManager constructor(
 
         // TODO check if command is available, if not return error
 
-        setCurrentPumpCommandType(commandType)
+        setCurrentPumpCommandType(commandType, customCommandType)
         val response = getData()
         resetDriverStatus()
 

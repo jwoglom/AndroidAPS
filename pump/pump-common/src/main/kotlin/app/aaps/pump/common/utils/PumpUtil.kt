@@ -12,6 +12,7 @@ import app.aaps.pump.common.data.DateTimeDto
 import app.aaps.pump.common.defs.NotificationTypeInterface
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpErrorType
+import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
 import com.google.gson.Gson
@@ -107,6 +108,7 @@ open class PumpUtil constructor(
             workWithStatusAndCommand(StatusChange.SetError, null, null, error)
         }
 
+    var customCommandType: CustomCommandTypeInterface? = null
 
     @Synchronized
     fun workWithStatusAndCommand(
