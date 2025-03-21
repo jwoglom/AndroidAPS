@@ -5,11 +5,13 @@ plugins {
     id("android-module-dependencies")
     id("test-module-dependencies")
     id("jacoco-module-dependencies")
+    alias(libs.plugins.compose.compiler)
 }
 
 // buildscript {
 //     ext {
 //         jwoglom_pumpx2_version = 'v1.2.9'
+//         compose_version = '1.3.1'
 //     }
 // }
 
@@ -22,6 +24,15 @@ android {
             arg("room.incremental", "true")
             arg("room.schemaLocation", "$projectDir/schemas")
         }
+    }
+
+
+    buildFeatures {
+        compose=true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion="1.5.3"
     }
 }
 
@@ -86,21 +97,32 @@ dependencies {
     // implementation("com.atech-software.pumpX2:pumpx2-messages:v1.4.4.0")
     // implementation("com.atech-software.pumpX2:pumpx2-shared:v1.4.4.0")
 
-    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.5.9")
-    //implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.5.0")
-    //implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.5.0")
+    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.6.2")
+//    implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.5.10")
+//    implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.5.10")
 
     // needed by X2
     implementation("com.github.weliem:blessed-android:2.4.0")
     implementation("com.jakewharton.timber:timber:5.0.1")
     //implementation("org.apache.commons:commons-lang3:3.12.0")
 
-    // implementation 'com.github.weliem:blessed-android:2.4.0'
-    // implementation 'com.jakewharton.timber:timber:5.0.1'
-    // implementation "me.champeau.openbeans:openbeans:1.0.2"
-    // implementation "commons-codec:commons-codec:1.15"
-    // implementation "org.apache.commons:commons-lang3:3.12.0"
-    // implementation "com.google.guava:guava:31.0.1-android"
-    // implementation 'org.bouncycastle:bcprov-jdk14:1.77'
 
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+
+    //implementation("androidx.activity:activity-compose:1.10.1")
+    //implementation("androidx.compose:compose-bom")
+
+
+    //implementation("androidx.compose.ui:ui:1.3.1")
+    //implementation("androidx.compose.ui:ui-tooling:1.3.1")
+    //implementation("androidx.compose.ui:ui-tooling-preview:1.3.1")
+    //implementation("androidx.compose.material3:material3:1.1.0-alpha03")
+    implementation("androidx.navigation:navigation-compose:2.5.3")
+    implementation("androidx.compose.material:material:1.3.1")
+    implementation("androidx.compose.runtime:runtime-livedata:1.3.1")
 }

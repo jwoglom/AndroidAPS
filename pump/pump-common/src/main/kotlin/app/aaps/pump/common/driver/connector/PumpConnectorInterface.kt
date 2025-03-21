@@ -24,7 +24,7 @@ interface PumpConnectorInterface {
     fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
 
     fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?>
-    fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
+    fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<TempBasalPair?>  //ResultCommandResponse
     fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
 
     fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?>

@@ -1,17 +1,17 @@
 package app.aaps.pump.common.defs
 
+import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface
 import com.google.gson.annotations.Expose
 
 open class TempBasalPair constructor(
     @Expose var insulinRate : Double,
     @Expose var isPercent : Boolean,
     @Expose var durationMinutes : Int,
-    var start: Long? = null
-) {
+    @Expose var start: Long? = null ) : AdditionalResponseDataInterface {
 
-    private var end: Long? = null
+    @Expose private var end: Long? = null
     var isActive: Boolean = false
-
+    var id: Long? = null
 
     init {
         if (start!=null) {

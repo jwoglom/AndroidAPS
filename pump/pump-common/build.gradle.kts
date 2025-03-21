@@ -17,8 +17,10 @@ dependencies {
     implementation(project(":core:utils"))
     implementation(project(":core:ui"))
     implementation(project(":implementation"))
-    //implementation(project(":core:objects"))
-    //implementation(project(":implementattion"))
+
+    testImplementation(project(":shared:tests"))
+    testImplementation(project(":shared:impl"))
+    testImplementation(project(":core:objects"))
 
     api(libs.com.thoughtworks.xstream)
     api(libs.com.google.code.gson)

@@ -51,42 +51,28 @@ object ProfileUtil {
     fun getBasalProfilesDisplayableAsStringOfArrayV2(profile: Profile, pumpType: PumpType): String {
         val stringBuilder = java.lang.StringBuilder()
 
-        // TODO getBasalProfilesDisplayableAsStringOfArrayV2
+        val basalsAsArray = getArrayOfHourlyBasals(profile)
 
-        val entriesCopy = profile.getBasalValues()
-
-        for (i in entriesCopy.indices) {
-            val current = entriesCopy[i]
-            val currentTime = current.timeAsSeconds / (60 * 60)
-            var lastHour: Int =
-                if (i + 1 == entriesCopy.size) {
-                    24
-                } else {
-                    val basalProfileEntry = entriesCopy[i + 1]
-                    basalProfileEntry.timeAsSeconds / (60 * 60)
-                }
-
-            // System.out.println("Current time: " + currentTime + " Next Time: " + lastHour);
-            (currentTime until lastHour).forEach { j ->
-                stringBuilder.append(String.format(Locale.ENGLISH, "%.3f", pumpType.determineCorrectBasalSize(current.value)))
-                stringBuilder.append(" ")
-            }
+        for (basal in basalsAsArray) {
+            stringBuilder.append(String.format(Locale.ENGLISH, "%.3f", pumpType.determineCorrectBasalSize(basal)))
+            stringBuilder.append(" ")
         }
 
         return stringBuilder.toString().trim()
 
     }
 
-    private fun getArrayOfHourlyBasals(profile: Profile) : DoubleArray {
+    fun getArrayOfHourlyBasals(profile: Profile) : DoubleArray {
         var resultArray: DoubleArray = doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
-            // TODO getArrayOfHourlyBasals
-        resultArray[0] = 0.1
-
+        for (index in 0..23) {
+            resultArray[index] = findCorrectValueInProfile((index * 60* 60).toInt(), profile.getBasalValues())
+        }
 
         return resultArray
     }
+
 
     private fun findCorrectValueInProfile(targetTimeAsSeconds: Int, profileValueList : Array<ProfileValue>) : Double {
         var targetValue = 0.0
@@ -98,6 +84,8 @@ object ProfileUtil {
 
         return targetValue
     }
+
+
 
 
 

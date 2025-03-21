@@ -379,10 +379,11 @@ class TandemCommunicationManager @Inject constructor(
                     this.apiVersionResponseReceived = true
                     aapsLogger.error(LTag.PUMPCOMM, "Received ApiVersionResponse - problem with communication.")
                 } else if (message is TimeSinceResetResponse) {
-                    this.apiVersionResponseReceived = false
-                    pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_problem_with_request)
-                    rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
-                    // TODO fix
+                    if (this.apiVersionResponseReceived) {
+                        this.apiVersionResponseReceived = false
+                        pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_problem_with_request)
+                        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+                    }
                 } else {
                     aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: discarding Message [code=${message.opCode()}")
                 }

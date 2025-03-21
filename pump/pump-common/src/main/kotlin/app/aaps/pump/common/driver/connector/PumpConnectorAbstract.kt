@@ -61,8 +61,11 @@ abstract class PumpConnectorAbstract(/*protected var injector: HasAndroidInjecto
             PumpCommandType.GetTemporaryBasal, false, "Command not implemented.", null)
     }
 
-    override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
-        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTemporaryBasal)
+    override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<TempBasalPair?> {
+        return DataCommandResponse(
+            PumpCommandType.SetTemporaryBasal, false, "Dummy TBR",
+            TempBasalPair(value.toDouble(), true, duration, System.currentTimeMillis())
+        )
     }
 
     override fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?> {

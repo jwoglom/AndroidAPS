@@ -162,16 +162,10 @@ class TandemDataConverter @Inject constructor(
 
         val tempBasal = TempBasalPair( insulinRate = message.percentage.toDouble(),
                                        isPercent = true,
-                                       durationMinutes = message.duration.toInt(),
+                                       durationMinutes = (message.duration/60.0).toInt(),
                                        start = message.startTimeInstant.toEpochMilli())
 
-        //message.
-
-        //tempBasal.insulinRate = message.percentage.toDouble()
         tempBasal.isActive = message.active
-        //tempBasal.durationMinutes = message.duration.toInt()
-        // TODO problem with 1.4.4
-        //tempBasal.setStartTime(pumpUtil.getTimeFromPumpAsEpochMillis(message.startTime))
 
         aapsLogger.info(TAG, "TBR: getTempBasalRate [${tempBasal}]")
 
@@ -187,7 +181,7 @@ class TandemDataConverter @Inject constructor(
                                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
         for(time in 0..23) {
-            basalArray[time] = findCorrectValueInSegments((time * 100), mapSegments.values)
+            basalArray[time] = findCorrectValueInSegments((time * 60), mapSegments.values)
         }
 
         val basalProfile = BasalProfileDto(basalArray, settings.name)
@@ -199,10 +193,10 @@ class TandemDataConverter @Inject constructor(
         )
     }
 
-    private fun findCorrectValueInSegments(targetTimeAsSeconds: Int, profileValueList : MutableCollection<IDPSegmentResponse>) : Double {
+    private fun findCorrectValueInSegments(targetTimeAsMinutes: Int, profileValueList : MutableCollection<IDPSegmentResponse>) : Double {
         var targetValue = 0.0
         for (profileValue in profileValueList) {
-            if (profileValue.profileStartTime <= targetTimeAsSeconds) {
+            if (profileValue.profileStartTime <= targetTimeAsMinutes) {
                 targetValue = profileValue.profileBasalRate/1000.0;
             }
         }
@@ -227,13 +221,8 @@ class TandemDataConverter @Inject constructor(
             idp.profileBasalRate = (basVal.value * 1000).toInt()
 
             idp.profileTargetBG = findCorrectValueInProfile(basVal.timeAsSeconds, profile.getSingleTargetsMgdl()).toInt()
-
-            // TODO carbratio  & isf (insulin sentivity factor = mgdl) at the moment ignored (not needed for AAPS)
-            //idp.profileCarbRatio = findCorrectValueInProfile(basVal.timeAsSeconds, profile.getIcsValues()).toLong()
-            //idp.profileISF = findCorrectValueInProfile(basVal.timeAsSeconds, profile.getIsfsMgdlValues()).toInt()
-
-            idp.profileCarbRatio = 0
-            idp.profileISF = 0
+            idp.profileCarbRatio = (findCorrectValueInProfile(basVal.timeAsSeconds, profile.getIcsValues()) * 1000L).toLong()
+            idp.profileISF = findCorrectValueInProfile(basVal.timeAsSeconds, profile.getIsfsMgdlValues()).toInt()
 
             segmentList.add(idp)
 

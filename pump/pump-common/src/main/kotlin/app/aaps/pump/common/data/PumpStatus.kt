@@ -48,7 +48,11 @@ abstract class PumpStatus(var pumpType: PumpType) {
         get() = field
         set(value) {
             if (value!=null) {
-                this.currentTempBasalEstimatedEnd = System.currentTimeMillis() + (value.durationMinutes * 60 * 1000)
+                if (value.start==null) {
+                    this.currentTempBasalEstimatedEnd = System.currentTimeMillis() + (value.durationMinutes * 60 * 1000)
+                } else {
+                    this.currentTempBasalEstimatedEnd = value.start!! + (value.durationMinutes * 60 * 1000)
+                }
             } else {
                 this.currentTempBasalEstimatedEnd = null
             }
@@ -87,6 +91,7 @@ abstract class PumpStatus(var pumpType: PumpType) {
     fun setLastCommunicationToNow() {
         lastDataTime = System.currentTimeMillis()
         lastConnection = System.currentTimeMillis()
+        updateLastConnectionInFragment()
     }
 
     fun clearTbr() {
@@ -95,5 +100,12 @@ abstract class PumpStatus(var pumpType: PumpType) {
     }
 
     abstract val errorInfo: String?
+
+    /**
+     * This needs to be overriden by any pump status implementation
+     */
+    open fun updateLastConnectionInFragment() {
+
+    }
 
 }

@@ -139,16 +139,10 @@ class TandemPumpConnectionManager @Inject constructor(
 
         aapsLogger.debug(TAG, "TANDEMDBG: getConnector for ${commandType}")
 
-        // TODO remove
-        if (tandemPumpStatus.pumpDriverMode == PumpDriverMode.Demo) {
-            aapsLogger.debug(TAG, "TANDEMDBG: In Demo mode returning Dummy Connector for ${commandType}")
-            return dummyConnector
-        }
-
         // TODO extend this when new commands are enabled
         when(commandType) {
-            // PumpCommandType.GetTemporaryBasal,
-            // PumpCommandType.SetTemporaryBasal,
+            PumpCommandType.GetTemporaryBasal,
+            PumpCommandType.SetTemporaryBasal,
             PumpCommandType.CustomCommand,
             PumpCommandType.GetBasalProfile,
             PumpCommandType.SetBasalProfile,
@@ -170,6 +164,10 @@ class TandemPumpConnectionManager @Inject constructor(
                 tandemPumpStatus.clearTbr()
             }
             PumpCommandType.SetTemporaryBasal -> {
+                val tbr = responseData.value as TempBasalPair  // TODO fix
+                tandemPumpStatus.currentTempBasal = tbr
+            }
+            PumpCommandType.GetTemporaryBasal -> {
                 val tbr = responseData.value as TempBasalPair
                 tandemPumpStatus.currentTempBasal = tbr
             }

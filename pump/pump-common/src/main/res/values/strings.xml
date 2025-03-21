@@ -55,6 +55,7 @@
     <string name="time_last_4_days">Last 4 days</string>
     <string name="time_last_week">Last week</string>
     <string name="time_last_month">Last month</string>
+    <string name="time_now">Now</string>
 
     <!-- BLE Config -->
     <string name="ble_config_button_scan_start">Scan</string>
@@ -111,6 +112,20 @@
     <string name="pump_cmd_desc_get_history">Get History</string>
     <string name="pump_cmd_desc_get_history_params">Get History %s</string>
     <string name="pump_cmd_desc_custom">Custom command</string>
+
+    <!-- Commands Errors -->
+    <string name="pump_cmd_err_bolus_could_not_be_delivered_no_insulin">Bolus could not be delivered, because available insulin amount (%1$.2f) is less than bolus required (%2$.2f).</string>
+    <string name="pump_cmd_err_bolus_could_not_be_delivered">Bolus could not be delivered.</string>
+    <string name="pump_cmd_err_tbr_could_not_be_delivered">TBR could not be set.</string>
+    <string name="pump_cmd_err_basal_profile_could_not_be_set">Basal profile could not be set.</string>
+    <string name="pump_cmd_err_cant_read_tbr">Could not read current TBR.</string>
+    <string name="pump_cmd_err_cant_cancel_tbr_stop_op">Could not cancel current TBR. Stopping operation.</string>
+    <string name="pump_cmd_err_cant_cancel_tbr">Could not cancel current TBR.</string>
+
+    <!-- Pump Time -->
+    <string name="pump_time_difference_too_big">Time difference between pump and phone is over %1$d s (%2$d)</string>
+    <string name="pump_time_updated">Pump time updated</string>
+
 
     <!-- Pump History -->
     <string name="pump_history_type">Type:</string>

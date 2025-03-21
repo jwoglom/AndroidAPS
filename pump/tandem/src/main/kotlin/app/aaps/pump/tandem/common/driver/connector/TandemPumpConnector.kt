@@ -3,10 +3,12 @@ package app.aaps.pump.tandem.common.driver.connector
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventNewNotification
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
@@ -20,6 +22,7 @@ import app.aaps.pump.common.driver.connector.commands.data.FirmwareVersionInterf
 import app.aaps.pump.common.driver.connector.commands.parameters.PumpHistoryFilterInterface
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
+import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.data.PumpProfileDto
@@ -84,6 +87,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GlobalMaxBolusSet
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse.IDPSegmentStatus
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ProfileStatusResponse
@@ -367,7 +371,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     // Mobi Only
-    override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
+    override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<TempBasalPair?> {
 
         if (!TandemPumpApiVersion.isMobi(this.tandemPumpStatus.tandemPumpFirmware)) {
             aapsLogger.warn(LTag.PUMPCOMM, "Running on TandemApiVersion that doesn't support TBR, running open loop.")
@@ -379,12 +383,19 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         if (responseMessage!=null) {
 
-            aapsLogger.info(TAG, "TBR: setTempBasalRate [duration=${duration},amount=${value},id=${responseMessage.id}]: isSuccess=${responseMessage.isStatusOK}")
+            aapsLogger.info(TAG, "TBR: setTempBasalRate [duration=${duration},amount=${value},id=${responseMessage.tempRateId}]: isSuccess=${responseMessage.isStatusOK}")
+
+            val tbr = TempBasalPair(insulinRate = value.toDouble(),
+                                    isPercent = true,
+                                    durationMinutes = duration,
+                                    start = System.currentTimeMillis())
+
+            tbr.id = responseMessage.tempRateId.toLong()
 
             return DataCommandResponse(
                 PumpCommandType.SetTemporaryBasal, responseMessage.isStatusOK,
                 if (responseMessage.isStatusOK) null else "Error sending TBR: status=${responseMessage.status}",
-                ControlCommandResponse(responseMessage.id, responseMessage.status)
+                tbr
             )
         } else {
             return DataCommandResponse(
@@ -410,7 +421,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             return DataCommandResponse(
                 PumpCommandType.CancelTemporaryBasal, responseMessage.isStatusOK,
                 if (responseMessage.isStatusOK) null else "Error sending cancelTBR: status=${responseMessage.status}",
-                ControlCommandResponse(responseMessage.id, responseMessage.status)
+                ControlCommandResponse(responseMessage.tempRateId, responseMessage.status)
             )
         } else {
             return DataCommandResponse(
@@ -445,50 +456,104 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-
     override fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?> {
 
-        val pumpProfileDto = getInitialBasalProfileConfiguration()
+        // val pumpProfileDto = getInitialBasalProfileConfiguration()
+        //
+        // if (!pumpProfileDto.success) {
+        //     return DataCommandResponse(PumpCommandType.GetBasalProfile, false, pumpProfileDto.errorDescription, null)
+        // }
+        //
+        // // var responseMessage: Message? = getCommunicationManager().sendCommand(ProfileStatusRequest())
+        // //
+        // // var responseText = checkResponse(responseMessage, "ProfileStatusRequest")
+        // //
+        // // if (responseText!=null) {
+        // //     return DataCommandResponse<BasalProfileDto?>(PumpCommandType.GetBasalProfile, false, responseText, null)
+        // // }
+        // //
+        // // var pumpProfileDto = PumpProfileDto()
+        // //
+        // // pumpProfileDto.profileStatusResponse = responseMessage as ProfileStatusResponse
+        // //
+        // // //var gsonText = pumpUtil.gson.toJson(profileStatusResponse);
+        // // //aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile status response: $gsonText")
+        // //
+        // // val idpId = pumpProfileDto.profileStatusResponse!!.idpSlot0Id
+        // //
+        // // pumpProfileDto.activeIdpId = idpId
+        // //
+        // // aapsLogger.debug(LTag.PUMPCOMM, "IdpId of idpSlot0Id: $idpId")
+        // //
+        // // responseMessage = getCommunicationManager().sendCommand(IDPSettingsRequest(idpId))
+        // //
+        // // responseText = checkResponse(responseMessage, "IDPSettingsRequest (idpId=${idpId}")
+        // //
+        // // if (responseText!=null) {
+        // //     return DataCommandResponse<BasalProfileDto?>(PumpCommandType.GetBasalProfile, false, responseText, null)
+        // // }
+        // //
+        // // //val mapSegments = mutableMapOf<Int, IDPSegmentResponse>()
+        // //
+        // // pumpProfileDto.idpSettingsResponse = responseMessage as IDPSettingsResponse
+        //
+        // //gsonText = pumpUtil.gson.toJson(settings);
+        // //aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile IDPSettingsResponse response: $gsonText")
+        //
+        // val numberOfSegments = pumpProfileDto.idpSettingsResponse!!.numberOfProfileSegments
+        //
+        // aapsLogger.debug(LTag.PUMPCOMM, "IDPSettings has $numberOfSegments segments.")
+        //
+        // var responseMessage : Message?
+        // var responseText : String?
+        // val idpId = pumpProfileDto.activeIdpId!!
+        //
+        // for (i in 0..numberOfSegments-1) {
+        //
+        //     aapsLogger.debug(LTag.PUMPCOMM, "IDPSegmentRequest [idpId=$idpId, segmentIndex=$i]")
+        //
+        //     responseMessage = getCommunicationManager().sendCommand(IDPSegmentRequest(idpId, i))
+        //
+        //     responseText = checkResponse(responseMessage, "IDPSegmentRequest (idpId=${idpId}, segmentNumber=${i})")
+        //
+        //     val rspMsg = responseMessage as IDPSegmentResponse
+        //
+        //     //gsonText = pumpUtil.gson.toJson(rspMsg);
+        //
+        //     //aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile IDPSegmentResponse response: $gsonText")
+        //
+        //     if (responseText!=null) {
+        //         return DataCommandResponse(PumpCommandType.GetBasalProfile, false, responseText, null)
+        //     } else {
+        //         pumpProfileDto.mapSegments.put(i, rspMsg)
+        //     }
+        // }
 
-        if (!pumpProfileDto.success) {
+        val pumpProfileDto = getBasalProfileInternal()
+
+        //val gsonText = pumpUtil.gson.toJson(pumpProfileDto);
+
+        ///aapsLogger.error(LTag.PUMPCOMM, "PumpProfileDto: $gsonText")
+
+        if (pumpProfileDto.success) {
+            val basalProfileResponse = tandemDataConverter.getBasalProfileResponse(pumpProfileDto.idpSettingsResponse!!, pumpProfileDto.mapSegments)
+            return basalProfileResponse
+        } else {
             return DataCommandResponse(PumpCommandType.GetBasalProfile, false, pumpProfileDto.errorDescription, null)
         }
 
-        // var responseMessage: Message? = getCommunicationManager().sendCommand(ProfileStatusRequest())
-        //
-        // var responseText = checkResponse(responseMessage, "ProfileStatusRequest")
-        //
-        // if (responseText!=null) {
-        //     return DataCommandResponse<BasalProfileDto?>(PumpCommandType.GetBasalProfile, false, responseText, null)
-        // }
-        //
-        // var pumpProfileDto = PumpProfileDto()
-        //
-        // pumpProfileDto.profileStatusResponse = responseMessage as ProfileStatusResponse
-        //
-        // //var gsonText = pumpUtil.gson.toJson(profileStatusResponse);
-        // //aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile status response: $gsonText")
-        //
-        // val idpId = pumpProfileDto.profileStatusResponse!!.idpSlot0Id
-        //
-        // pumpProfileDto.activeIdpId = idpId
-        //
-        // aapsLogger.debug(LTag.PUMPCOMM, "IdpId of idpSlot0Id: $idpId")
-        //
-        // responseMessage = getCommunicationManager().sendCommand(IDPSettingsRequest(idpId))
-        //
-        // responseText = checkResponse(responseMessage, "IDPSettingsRequest (idpId=${idpId}")
-        //
-        // if (responseText!=null) {
-        //     return DataCommandResponse<BasalProfileDto?>(PumpCommandType.GetBasalProfile, false, responseText, null)
-        // }
-        //
-        // //val mapSegments = mutableMapOf<Int, IDPSegmentResponse>()
-        //
-        // pumpProfileDto.idpSettingsResponse = responseMessage as IDPSettingsResponse
+    }
 
-        //gsonText = pumpUtil.gson.toJson(settings);
-        //aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile IDPSettingsResponse response: $gsonText")
+
+    fun getBasalProfileInternal(): PumpProfileDto {
+
+        aapsLogger.info(LTag.PUMPCOMM, "getBasalProfileInternal - getBasal Profile from Pump")
+
+        val pumpProfileDto: PumpProfileDto = getInitialBasalProfileConfiguration()
+
+        if (!pumpProfileDto.success) {
+            return pumpProfileDto
+        }
 
         val numberOfSegments = pumpProfileDto.idpSettingsResponse!!.numberOfProfileSegments
 
@@ -504,16 +569,14 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
             responseMessage = getCommunicationManager().sendCommand(IDPSegmentRequest(idpId, i))
 
-            responseText = checkResponse(responseMessage, "IDPSegmentRequest (idpId=${idpId}, segmentNumber=${i})")
+            responseText = checkResponse(responseMessage, "IDPSegmentRequest [idpId=${idpId}, segmentNumber=${i}]")
 
             val rspMsg = responseMessage as IDPSegmentResponse
 
-            //gsonText = pumpUtil.gson.toJson(rspMsg);
-
-            //aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile IDPSegmentResponse response: $gsonText")
-
             if (responseText!=null) {
-                return DataCommandResponse(PumpCommandType.GetBasalProfile, false, responseText, null)
+                pumpProfileDto.success = false
+                pumpProfileDto.errorDescription = responseText
+                return pumpProfileDto
             } else {
                 pumpProfileDto.mapSegments.put(i, rspMsg)
             }
@@ -521,12 +584,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         val gsonText = pumpUtil.gson.toJson(pumpProfileDto);
 
-        aapsLogger.error(LTag.PUMPCOMM, "PumpProfileDto: $gsonText")
+        aapsLogger.debug(LTag.PUMPCOMM, "PumpProfileDto: $gsonText")
 
-        val basalProfileResponse = tandemDataConverter.getBasalProfileResponse(pumpProfileDto.idpSettingsResponse!!, pumpProfileDto.mapSegments)
-
-        return basalProfileResponse
+        return pumpProfileDto
     }
+
 
 
     private fun checkResponse(responseMessage: Message?, description: String): String? {
@@ -546,8 +608,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         }
     }
 
+    var zeroByte : Byte = 0
 
+    // TODO remove SDP tags as soon as this is fully tested and implemented
     fun getInitialBasalProfileConfiguration(): PumpProfileDto {
+
+        aapsLogger.debug(TAG, "SDP Get ProfileStatusRequest.")
 
         var responseMessage: Message? = getCommunicationManager().sendCommand(ProfileStatusRequest())
 
@@ -561,7 +627,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             return pumpProfileDto
         }
 
-
         pumpProfileDto.profileStatusResponse = responseMessage as ProfileStatusResponse
 
         //var gsonText = pumpUtil.gson.toJson(profileStatusResponse);
@@ -571,7 +636,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         pumpProfileDto.activeIdpId = idpId
 
-        aapsLogger.debug(LTag.PUMPCOMM, "IdpId of idpSlot0Id: $idpId")
+        aapsLogger.debug(TAG, "SDP: IdpId of idpSlot0Id: $idpId")
 
         responseMessage = getCommunicationManager().sendCommand(IDPSettingsRequest(idpId))
 
@@ -581,10 +646,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             pumpProfileDto.success = false
             pumpProfileDto.errorDescription = responseText
             return pumpProfileDto
-            //return DataCommandResponse<BasalProfileDto?>(PumpCommandType.GetBasalProfile, false, responseText, null)
         }
-
-        //val mapSegments = mutableMapOf<Int, IDPSegmentResponse>()
 
         pumpProfileDto.idpSettingsResponse = responseMessage as IDPSettingsResponse
 
@@ -592,175 +654,117 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     }
 
-    // TODO at the moment we are storing only basal and target BG
-    val idpStatusId = IDPSegmentResponse.IDPSegmentStatus.BASAL_RATE.id +
-                            IDPSegmentResponse.IDPSegmentStatus.TARGET_BG.id
+
+    val idpStatusId = IDPSegmentStatus.toBitmask(IDPSegmentStatus.BASAL_RATE,
+                                                 IDPSegmentStatus.START_TIME,
+                                                 IDPSegmentStatus.CARB_RATIO,
+                                                 IDPSegmentStatus.TARGET_BG,
+                                                 IDPSegmentStatus.CORRECTION_FACTOR);
 
     override fun sendBasalProfile(profile: Profile): DataCommandResponse<Boolean?> {
-        // TODO sendBasalProfile - not tested (not available in protocol)
 
-        // if (!TandemPumpApiVersion.isMobi(this.tandemPumpStatus.tandemPumpFirmware)) {
-        //     aapsLogger.warn(LTag.PUMPCOMM, "Running on TandemApiVersion that doesn't support sendBasalProfile, running open loop.")
-        //     return super.sendBasalProfile(profile)
-        // }
+        if (!TandemPumpApiVersion.isMobi(this.tandemPumpStatus.tandemPumpFirmware)) {
+            aapsLogger.warn(LTag.PUMPCOMM, "Running on TandemApiVersion that doesn't support sendBasalProfile, running open loop.")
+            return super.sendBasalProfile(profile)
+        }
 
-        aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile")
+        aapsLogger.info(LTag.PUMPCOMM, "sendBasalProfile - getBasal Profile from Pump")
 
-        val pumpProfileDto = getInitialBasalProfileConfiguration()
+        val pumpProfileDto = getBasalProfileInternal()
 
         if (!pumpProfileDto.success) {
+            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile: ERROR:  NOT SUCCESS - ${pumpProfileDto.errorDescription}")
+
             return DataCommandResponse(PumpCommandType.SetBasalProfile, false, pumpProfileDto.errorDescription, null)
         }
 
-
-        // var responseMessage: Message? = getCommunicationManager().sendCommand(ProfileStatusRequest())
-        //
-        // var responseText = checkResponse(responseMessage, "ProfileStatusRequest")
-        //
-        // if (responseText!=null) {
-        //     return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
-        // }
-        //
-        // val profileStatusResponse = responseMessage as ProfileStatusResponse
-        //
-        // var gsonText = pumpUtil.gson.toJson(profileStatusResponse);
-        //
-        // aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile status response: $gsonText")
-        //
-        // val idpId = profileStatusResponse.idpSlot0Id
-        //
-        // aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile idpId response: $idpId")
-        //
-        // responseMessage = getCommunicationManager().sendCommand(IDPSettingsRequest(idpId))
-        //
-        // responseText = checkResponse(responseMessage, "IDPSettingsRequest (idpId=${idpId}")
-        //
-        // if (responseText!=null) {
-        //     return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
-        // }
-
         val idpSegments = tandemDataConverter.getIDPSegmentsFromProfile(profile)
 
-        var gsonText = pumpUtil.gson.toJson(idpSegments)
+        if (idpSegments.size>16) {
+            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile - You have more than 16 basal segments. Profile must be adjusted to have only 16 segments. Last valid segment (16) will be extended over remaining time.")
 
-        aapsLogger.error(LTag.PUMPCOMM, "Converted segments $gsonText")
+            val notification = Notification(Notification.TANDEM_BASAL_PROFILE_ERROR, resourceHelper.gs(R.string.tandem_error_profile_only_16_segments), Notification.URGENT, 24*60)
+            rxBus.send(EventNewNotification(notification))
+        }
 
-        //val mapSegments = mutableMapOf<Int,IDPSegmentResponse>()
+        val gsonText = pumpUtil.gson.toJson(idpSegments)
+        aapsLogger.debug(LTag.PUMPCOMM, "sendBasalProfile - Converted segments: $gsonText")
 
-        // val settings = responseMessage as IDPSettingsResponse
-        //
-        // gsonText = pumpUtil.gson.toJson(settings);
-        //
-        // aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile IDPSettingsResponse response: $gsonText")
-
-        //var responseMessage : Message?
         var responseText : String?
         val idpId = pumpProfileDto.activeIdpId!!
-        var success : Boolean = false
+        var success = false
 
-        var zeroByte : Byte = 0
-
-        // TODO fix how things are done
-        //   - set first segment
-        //   - if multiple segments delete them all (except first)
-        //   - add new segments
-        //   - add error handling if more then 16 segments
-
-        if (pumpProfileDto.idpSettingsResponse!!.numberOfProfileSegments==1) {
-
-            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile: count=1, SetIDPSegmentRequest")
-
-            val request = SetIDPSegmentRequest(idpId, 0, 0, SetIDPSegmentRequest.IDPSegmentOperation.MODIFY_SEGMENT_ID,
-                                               0, idpSegments[0].profileBasalRate,
-                                               idpSegments[0].profileCarbRatio, idpSegments[0].profileTargetBG, idpSegments[0].profileISF,
-                                               idpStatusId)
-
-            val responseMessage = getCommunicationManager().sendCommand(request) as SetIDPSegmentResponse
-
-            responseText = checkResponse(responseMessage, "SetIDPSegmentRequest (idpId=${idpId},segmentIndex=${0})")
-
-            if (responseText!=null) {
-                return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
-            }
-
-            success = (responseMessage.cargo[0]==zeroByte) as Boolean
-
-            aapsLogger.error(LTag.PUMPCOMM, "SetIDPSegment Status: success=$success")
-
-        } else {
-
-            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile: number=more, DeleteIDPRequest")
-
-
-            val requestDelete = DeleteIDPRequest(idpId)
-
-            var deleteIDPResponseMessage = getCommunicationManager().sendCommand(requestDelete) as DeleteIDPResponse
-
-            responseText = checkResponse(deleteIDPResponseMessage, "DeleteIDPRequest (idpId=${idpId})")
-
-            if (responseText!=null) {
-                return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
-            }
-
-            success = (deleteIDPResponseMessage.status==0) as Boolean
-
-            aapsLogger.error(LTag.PUMPCOMM, "DeleteIDP Status: success=${success}")
-
-            //if (deleteIDPResponseMessage.sta==0)
-
-            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile: number=more, CreateIDPRequest")
-
-            val createRequest = CreateIDPRequest("AAPS Profile",
-                             idpSegments[0].profileCarbRatio.toInt(), idpSegments[0].profileBasalRate,
-                             idpSegments[0].profileTargetBG, idpSegments[0].profileISF,
-                                                 profile.dia.toInt(), 0)
-
-            val createResponseMessage = getCommunicationManager().sendCommand(createRequest) as CreateIDPResponse
-
-            responseText = checkResponse(createResponseMessage, "CreateIDPRequest (idpId=${idpId},segmentIndex=0)")
-
-            if (responseText!=null) {
-                return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
-            }
-
-            success = createResponseMessage.status==0
-
-            aapsLogger.error(LTag.PUMPCOMM, "CreateIDPRequest Status: success=$success")
-
-        }
-
-        if (idpSegments.size>1) {
-
-            // TODO
-
-            for(index in 1..idpSegments.size-1) {
-
-                aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile: number=more, SetIDPSegmentRequest $index")
-
-                val setSegment = SetIDPSegmentRequest(idpId, 0, index, SetIDPSegmentRequest.IDPSegmentOperation.CREATE_SEGMENT,
-                                     idpSegments[index].profileStartTime, idpSegments[index].profileBasalRate,
-                                     idpSegments[index].profileCarbRatio, idpSegments[index].profileTargetBG, idpSegments[index].profileISF,
-                                                      idpStatusId)
-
-                var responseMessage = getCommunicationManager().sendCommand(setSegment) as SetIDPSegmentResponse
-
-                responseText = checkResponse(responseMessage, "SetIDPSegmentRequest (idpId=${idpId},segmentIndex=$index)")
-
-                if (responseText!=null) {
-                    return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
-                }
-
-
-
-                success = (responseMessage.cargo[0]==zeroByte) as Boolean
-
-                aapsLogger.error(LTag.PUMPCOMM, "SetIDPSegmentRequest Status: success=$success")
-
+        // delete all segments excepts first one
+        if (pumpProfileDto.mapSegments.size>1) {
+            for (index in (pumpProfileDto.mapSegments.size-1) downTo 1) {
+                deleteIDPSegment(pumpProfileDto.mapSegments[index]!!, index);
             }
         }
 
-        return DataCommandResponse(PumpCommandType.SetBasalProfile, true, null, true)
+        var segmentCount = idpSegments.size-1
 
+        if (segmentCount>15) {
+            segmentCount = 15
+        }
+
+
+        for(index in 0..segmentCount) {
+
+            val operation = if (index ==0 )
+                SetIDPSegmentRequest.IDPSegmentOperation.MODIFY_SEGMENT_ID else
+                SetIDPSegmentRequest.IDPSegmentOperation.CREATE_SEGMENT
+
+            aapsLogger.info(LTag.PUMPCOMM, "sendBasalProfile - SetIDPSegmentRequest [index=${index},operation=${operation}]")
+
+            val setSegment = SetIDPSegmentRequest(idpId, 0, 0, operation,
+                                                  idpSegments[index].profileStartTime,
+                                                  idpSegments[index].profileBasalRate,
+                                                  idpSegments[index].profileCarbRatio,
+                                                  idpSegments[index].profileTargetBG,
+                                                  idpSegments[index].profileISF,
+                                                  idpStatusId)
+
+            val responseMessage = getCommunicationManager().sendCommand(setSegment) as SetIDPSegmentResponse
+
+            responseText = checkResponse(responseMessage, "sendBasalProfile - SetIDPSegmentRequest (idpId=${idpId},segmentIndex=$index)")
+
+            if (responseText!=null) {
+                aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile: ERROR:  ${responseText}    SetIDPSegmentRequest [index=${index},operation=$operation]")
+
+                return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
+            }
+
+            success = responseMessage.isStatusOK
+
+            aapsLogger.info(LTag.PUMPCOMM, "sendBasalProfile - SetIDPSegmentRequest[index=${index},operation=$operation] Status: success=$success")
+
+        }
+
+        return DataCommandResponse(PumpCommandType.SetBasalProfile, success, if (success) null else "Problem setting basal profile.", success)
+    }
+
+
+    private fun deleteIDPSegment(idpSegment: IDPSegmentResponse, index: Int): Boolean {
+
+        val setSegment = SetIDPSegmentRequest(idpSegment.idpId, 0, index, SetIDPSegmentRequest.IDPSegmentOperation.DELETE_SEGMENT_ID,
+                                              idpSegment.profileStartTime, idpSegment.profileBasalRate,
+                                              idpSegment.profileCarbRatio, idpSegment.profileTargetBG, idpSegment.profileISF,
+                                              idpStatusId)
+
+        val responseMessage = getCommunicationManager().sendCommand(setSegment) as SetIDPSegmentResponse
+
+        val responseText = checkResponse(responseMessage, "SetIDPSegmentRequest [idpId=${idpSegment.idpId},segmentIndex=$index]")
+
+        if (responseText!=null) {
+            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile - SetIDPSegmentRequest: ERROR: ${responseText} - SetIDPSegmentRequest [index=${index},operation=DELETE_SEGMENT_ID]")
+            return false;
+        }
+
+        val success = responseMessage.isStatusOK
+
+        aapsLogger.info(LTag.PUMPCOMM, "sendBasalProfile - SetIDPSegmentRequest[segmentIndex=$index,op=DELETE_SEGMENT_ID] Status: success=$success")
+
+        return success
     }
 
 
@@ -880,7 +884,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         if (responseMessage!=null) {
 
-            var pumpInfo = PumpVersionDto()
+            val pumpInfo = PumpVersionDto()
             pumpInfo.parse(responseMessage.cargo)
 
             pumpUtil.sleep(15000)

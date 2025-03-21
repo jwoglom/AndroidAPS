@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Tandem - Base -->
+    <!-- Tandem - t:Mobi Base -->
     <string name="tandem_name_mobi" translatable="false">t:mobi</string>
     <string name="tandem_name_mobi_short" translatable="false">t:mobi</string>
     <string name="description_pump_tandem_mobi">Pump integration for Tandem t:mobi</string>
 
+    <!-- Tandem - t:slim Base -->
     <string name="tandem_name_slim" translatable="false">t:slim X2</string>
     <string name="tandem_name_slim_short" translatable="false">t:slim</string>
     <string name="description_pump_tandem_slim">Pump integration for Tandem t:slim with version 2.2 (and higher) you can use Closed Loop, all other modules are Open Loop only.</string>
@@ -29,6 +30,7 @@
     <string name="tandem_error_problem_with_request">Pump reset connection, wrong/invalid command was sent</string>
     <string name="tandem_error_pump_critical_error">Pump Critical Error: %s</string>
     <string name="tandem_error_no_shared_conn_data">Missing Shared Connection Data (connection sharing enabled)</string>
+    <string name="tandem_error_profile_only_16_segments">t:mobi supports only 16 basal segments, adjust your profile accordingly.</string>
 
     <!-- State Machines -->
     <string name="state_machine_common_cancel">Cancel</string>
@@ -73,19 +75,23 @@
 
 
     <string name="tandem_configuration">Tandem Configuration</string>
-    <string name="tandem_pump_max_bolus">Max Bolus on Pump (U)</string>
-    <string name="tandem_pump_max_basal">Max Basal on Pump (U/h)</string>
+    <string name="tandem_pump_max_bolus">Max Bolus on Pump (U) [Max 25]</string>
+    <string name="tandem_pump_max_basal">Max Basal on Pump (U/h) [Max 15]</string>
     <string name="tandem_cfg_display_driver_version">Display Driver Version</string>
     <string name="tandem_cfg_display_driver_version_summary">Shows driver version</string>
 
     <!-- Commands -->
     <string name="tandem_custom_command_disable_control_iq">Disable ControlIQ</string>
     <string name="tandem_custom_command_set_max_bolus">Set Max Bolus</string>
+    <string name="tandem_custom_command_set_max_basal">Set Max Basal</string>
     <string name="tandem_custom_command_get_pump_info">Get Pump Info</string>
 
 
-
-
+    <!-- Tandem specific constraints -->
+    <string name="tandem_constraint_basal_rate_max_250">Max allowed Basal Rate is 250%% which is %1$.2f, with Base Basal Rate of %2$.2f.</string>
+    <string name="tandem_constraint_basal_rate_on_pump">Max configured Basal Rate on pump is %.2f U/h.</string>
+    <string name="tandem_constraint_basal_rate_percent">Requested TBR was %d %%, which is more than pump allows (250%%), so limiting to 250%%.</string>
+    <string name="tandem_constraint_basal_rate_percent_max_pump">Requested TBR %% was bigger than max configured basal on pump %d.</string>
 
     <!-- Tandem BLE Config -->
     <string name="tandem_ble_config_scan_title">Tandem Scan</string>
@@ -94,16 +100,8 @@
     <string name="tandem_ble_config_remove_pump_title">Remove Tandem pump</string>
     <string name="tandem_ble_config_no_pump_selected">No Tandem pump selected</string>
 
-    <string name="tandem_ble_config_pairing_title">Tandem Pairing</string>
-    <string name="tandem_ble_config_pairing_message">Enter the pairing code (case-sensitive) from\nBluetooth Settings > Pair Device to connect to:\n\n%s (%s)</string>
 
-    <!-- Notifications -->
-    <string name="tandem_notification_wrong_pairing_code">Your Pairing Code is no longer valid. Please reconfigure your Tandem Pump.</string>
 
-    <!-- Tandem History -->
-    <string name="tandem_history_date">%02d.%02d.%d %02d:%02d:%02d</string>
-    <string name="tandem_history_date_changed">Date Changed: %s</string>
-    <string name="tandem_history_time_changed">Time Changed: %s</string>
 
     <!-- Tandem Mobi Management  -->
     <string name="tandem_mobi_management">t:mobi Management</string>
@@ -131,6 +129,21 @@
     <!-- Tandem Pump History -->
     <string name="tandem_pump_history">Tandem Pump History</string>
     <string name="tandem_pump_history_type">Type:</string>
+
+    <!-- Tandem History -->
+    <string name="tandem_history_date">%02d.%02d.%d %02d:%02d:%02d</string>
+    <string name="tandem_history_date_changed">Date Changed: %s</string>
+    <string name="tandem_history_time_changed">Time Changed: %s</string>
+
+
+
+
+    <!-- Tandem UI ???? -->
+    <string name="tandem_ble_config_pairing_title">Tandem Pairing</string>
+    <string name="tandem_ble_config_pairing_message">Enter the pairing code (case-sensitive) from\nBluetooth Settings > Pair Device to connect to:\n\n%s (%s)</string>
+
+    <!-- Notifications -->
+    <string name="tandem_notification_wrong_pairing_code">Your Pairing Code is no longer valid. Please reconfigure your Tandem Pump.</string>
 
 
 
@@ -189,7 +202,6 @@
 
 
     <!-- Pump Common MOVE THERE -->
-    <string name="time_difference_too_big">Time difference between pump and phone is over %1$d s (%2$d)</string>
 
     <!-- Configuration -->
     <string name="eightdigitnumber" translatable="false">^\\d{8}</string>
@@ -210,21 +222,21 @@
     <!-- MDT Configuration -->
 
 
-    <string name="medtronic_serial_number">Pump Serial Number</string>
-    <string name="medtronic_pump_type">Pump Type</string>
-    <string name="medtronic_custom_action_clear_bolus_block">Clear Bolus Block</string>
+<!--    <string name="medtronic_serial_number">Pump Serial Number</string>-->
+<!--    <string name="medtronic_pump_type">Pump Type</string>-->
+<!--    <string name="medtronic_custom_action_clear_bolus_block">Clear Bolus Block</string>-->
 
 
     <!-- MDT Errors -->
-    <string name="medtronic_error_serial_not_set">Serial # not set.</string>
-    <string name="medtronic_error_serial_invalid">Serial # invalid.</string>
+<!--    <string name="medtronic_error_serial_not_set">Serial # not set.</string>-->
+<!--    <string name="medtronic_error_serial_invalid">Serial # invalid.</string>-->
 
-    <string name="medtronic_error_pump_basal_profiles_not_enabled">Basal profiles/patterns setting is not enabled on pump. Enable it on the pump.</string>
-    <string name="medtronic_error_pump_incorrect_basal_profile_selected">Basal profile set on pump is incorrect (must be STD).</string>
-    <string name="medtronic_error_pump_wrong_max_bolus_set">Wrong Max Bolus set on Pump (must be %1$.2f).</string>
-    <string name="medtronic_error_pump_wrong_max_basal_set">Wrong Max Basal set on Pump (must be %1$.2f).</string>
-    <string name="medtronic_error_operation_not_possible_no_configuration">Operation is not possible.\n\n You need to configure Medtronic Pump first, before you can use this operation.</string>
-    <string name="medtronic_error_pump_24h_time_change_requested">Over 24h Time change was requested.</string>
+<!--    <string name="medtronic_error_pump_basal_profiles_not_enabled">Basal profiles/patterns setting is not enabled on pump. Enable it on the pump.</string>-->
+<!--    <string name="medtronic_error_pump_incorrect_basal_profile_selected">Basal profile set on pump is incorrect (must be STD).</string>-->
+<!--    <string name="medtronic_error_pump_wrong_max_bolus_set">Wrong Max Bolus set on Pump (must be %1$.2f).</string>-->
+<!--    <string name="medtronic_error_pump_wrong_max_basal_set">Wrong Max Basal set on Pump (must be %1$.2f).</string>-->
+<!--    <string name="medtronic_error_operation_not_possible_no_configuration">Operation is not possible.\n\n You need to configure Medtronic Pump first, before you can use this operation.</string>-->
+<!--    <string name="medtronic_error_pump_24h_time_change_requested">Over 24h Time change was requested.</string>-->
 
 
     <!--    <string name="medtronic_history_group_basal">Basals</string>-->
@@ -236,31 +248,31 @@
 
 
     <!-- <string name="medtronic_cmd_profile_not_set">Remote Basal profile setting is not supported. Please modify Basal profile on your pump manually.</string> -->
-    <string name="medtronic_cmd_cancel_bolus_not_supported">You cancelled Bolus, after it was already set on Pump. Since Medtronic Pump doesn\'t support cancel, you will need to manually cancel it. Put the Pump into Suspend mode and then do Resume (if you still want to cancel). Application will pick up changes, on next update (in less than 5 minutes).</string>
-    <string name="medtronic_cmd_set_profile_pattern_overflow">Profile set failed, because following patterns, have too big basal rate: %1$s</string>
-    <string name="medtronic_cmd_basal_profile_not_set_is_same">Basal profile is the same, so it will not be set again.</string>
+<!--    <string name="medtronic_cmd_cancel_bolus_not_supported">You cancelled Bolus, after it was already set on Pump. Since Medtronic Pump doesn\'t support cancel, you will need to manually cancel it. Put the Pump into Suspend mode and then do Resume (if you still want to cancel). Application will pick up changes, on next update (in less than 5 minutes).</string>-->
+<!--    <string name="medtronic_cmd_set_profile_pattern_overflow">Profile set failed, because following patterns, have too big basal rate: %1$s</string>-->
+<!--    <string name="medtronic_cmd_basal_profile_not_set_is_same">Basal profile is the same, so it will not be set again.</string>-->
 
-    <string name="medtronic_cmd_desc_get_history">Get History - Page %1$d (%2$d/16)</string>
-    <string name="medtronic_cmd_desc_get_history_request">Get History - Page %1$d</string>
-    <string name="medtronic_cmd_desc_get_time">Get Pump Time</string>
-    <string name="medtronic_cmd_desc_get_settings">Get Settings</string>
-    <string name="medtronic_cmd_desc_get_model">Get Pump Model</string>
-    <string name="medtronic_cmd_desc_get_basal_profile">Get Basal Profile</string>
-    <string name="medtronic_cmd_desc_set_basal_profile">Set Basal Profile</string>
-    <string name="medtronic_cmd_desc_get_tbr">Get Temporary Basal</string>
-    <string name="medtronic_cmd_desc_set_tbr">Set Temporary Basal</string>
-    <string name="medtronic_cmd_desc_set_bolus">Set Bolus</string>
+<!--    <string name="medtronic_cmd_desc_get_history">Get History - Page %1$d (%2$d/16)</string>-->
+<!--    <string name="medtronic_cmd_desc_get_history_request">Get History - Page %1$d</string>-->
+<!--    <string name="medtronic_cmd_desc_get_time">Get Pump Time</string>-->
+<!--    <string name="medtronic_cmd_desc_get_settings">Get Settings</string>-->
+<!--    <string name="medtronic_cmd_desc_get_model">Get Pump Model</string>-->
+<!--    <string name="medtronic_cmd_desc_get_basal_profile">Get Basal Profile</string>-->
+<!--    <string name="medtronic_cmd_desc_set_basal_profile">Set Basal Profile</string>-->
+<!--    <string name="medtronic_cmd_desc_get_tbr">Get Temporary Basal</string>-->
+<!--    <string name="medtronic_cmd_desc_set_tbr">Set Temporary Basal</string>-->
+<!--    <string name="medtronic_cmd_desc_set_bolus">Set Bolus</string>-->
 
-    <string name="medtronic_pump_status_pump_unreachable">Pump unreachable</string>
-    <string name="medtronic_warning">Warning</string>  <!-- medtronic_warning -->
-    <string name="medtronic_pump_connected_now">Now</string> <!-- combo_pump_connected_now -->
-    <string name="medtronic_notification_check_time_date">Pump clock update needed</string> <!-- combo_notification_check_time_date -->
+<!--    <string name="medtronic_pump_status_pump_unreachable">Pump unreachable</string>-->
+<!--    <string name="medtronic_warning">Warning</string>  &lt;!&ndash; medtronic_warning &ndash;&gt;-->
+<!--    <string name="medtronic_pump_connected_now">Now</string> &lt;!&ndash; combo_pump_connected_now &ndash;&gt;-->
+<!--    <string name="medtronic_notification_check_time_date">Pump clock update needed</string> &lt;!&ndash; combo_notification_check_time_date &ndash;&gt;-->
     <string name="common_on">On</string>
     <string name="common_off">Off</string>
-    <string name="pump_time_updated">Pump time updated</string>
-    <string name="key_set_neutral_temps" translatable="false">set_neutral_temps</string>
-    <string name="set_neutral_temps_title">Set neutral temp basals</string>
-    <string name="set_neutral_temps_summary">If enabled, it will cancel a temporary basal before the end of each hour. This method can help stop some pumps beeping/vibrating on the hour.</string>
+
+<!--    <string name="key_set_neutral_temps" translatable="false">set_neutral_temps</string>-->
+<!--    <string name="set_neutral_temps_title">Set neutral temp basals</string>-->
+<!--    <string name="set_neutral_temps_summary">If enabled, it will cancel a temporary basal before the end of each hour. This method can help stop some pumps beeping/vibrating on the hour.</string>-->
 
 
 </resources>

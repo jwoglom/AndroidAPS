@@ -39,6 +39,9 @@ enum class TandemPumpApiVersion(val description: String,
             (requestedVersion.children!=null && requestedVersion.children.contains(this)))
     }
 
+    fun isMobi(): Boolean {
+        return (this == VERSION_3_5_MOBI || this == VERSION_3_6_MOBI)
+    }
 
 
 
@@ -46,8 +49,7 @@ enum class TandemPumpApiVersion(val description: String,
 
         @JvmStatic
         fun isMobi(requestedVersion: TandemPumpApiVersion) : Boolean {
-            return (requestedVersion == VERSION_3_5_MOBI ||
-                requestedVersion == VERSION_3_6_MOBI)
+            return requestedVersion.isMobi()
         }
 
         @JvmStatic

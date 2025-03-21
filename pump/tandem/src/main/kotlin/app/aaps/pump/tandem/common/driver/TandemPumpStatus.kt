@@ -13,6 +13,8 @@ import app.aaps.pump.common.defs.BasalProfileStatus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import app.aaps.pump.common.defs.PumpDriverMode
+import app.aaps.pump.common.defs.PumpUpdateFragmentType
+import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
@@ -109,9 +111,9 @@ class TandemPumpStatus @Inject constructor(val resourceHelper: ResourceHelper,
         get() = if (errorDescription == null) "-" else errorDescription!!
 
 
-
-
-
+    override fun updateLastConnectionInFragment() {
+        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+    }
 
 
     init {

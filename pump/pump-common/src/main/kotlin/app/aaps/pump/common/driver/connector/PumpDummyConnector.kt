@@ -85,18 +85,18 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
     }
 
 
-    override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
+    override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<TempBasalPair?> {
         pumpUtil.sleepSeconds(10)
 
-        // val tempBasalPair = TempBasalPair()
-        // tempBasalPair.isPercent = true
-        // tempBasalPair.insulinRate = value.toDouble()
-        // tempBasalPair.durationMinutes = duration
-        //
-        // this.pumpStatus.currentTempBasal = tempBasalPair
-        // this.pumpStatus.currentTempBasalEstimatedEnd = System.currentTimeMillis() + (duration * 60 * 1000)
+        val tempBasalPair = TempBasalPair(insulinRate = value.toDouble(),
+                                          isPercent = true,
+                                          start = System.currentTimeMillis(),
+                                          durationMinutes = duration)
 
-        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTemporaryBasal)
+        return DataCommandResponse(commandType = PumpCommandType.SetTemporaryBasal,
+                                   success = true,
+                                   errorDescription = null,
+                                   value = tempBasalPair)
     }
 
     override fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?> {

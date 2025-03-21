@@ -54,9 +54,22 @@
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:title="@string/tandem_pump_max_bolus"
-            validate:maxNumber="30"
+            validate:maxNumber="25"
             validate:minNumber="1"
             validate:testType="numericRange" />
+
+        <app.aaps.core.validators.ValidatingEditTextPreference
+            android:defaultValue="25"
+            android:digits="0123456789"
+            android:inputType="number"
+            android:key="@string/key_tandem_max_basal"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/tandem_pump_max_basal"
+            validate:maxNumber="15"
+            validate:minNumber="1"
+            validate:testType="numericRange" />
+
 
         <SwitchPreference
             android:defaultValue="true"
