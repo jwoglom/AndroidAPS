@@ -143,6 +143,7 @@ class TandemPumpConnectionManager @Inject constructor(
         when(commandType) {
             PumpCommandType.GetTemporaryBasal,
             PumpCommandType.SetTemporaryBasal,
+            PumpCommandType.CancelTemporaryBasal,
             PumpCommandType.CustomCommand,
             PumpCommandType.GetBasalProfile,
             PumpCommandType.SetBasalProfile,
@@ -168,8 +169,10 @@ class TandemPumpConnectionManager @Inject constructor(
                 tandemPumpStatus.currentTempBasal = tbr
             }
             PumpCommandType.GetTemporaryBasal -> {
-                val tbr = responseData.value as TempBasalPair
-                tandemPumpStatus.currentTempBasal = tbr
+                if (responseData.value!=null) {
+                    val tbr = responseData.value as TempBasalPair
+                    tandemPumpStatus.currentTempBasal = tbr
+                }
             }
             else -> {}
         }

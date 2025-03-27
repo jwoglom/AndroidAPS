@@ -384,7 +384,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Cartridge/Canula Setup"
+                                "Cartridge/Cannula Setup"
                             )},
                             supportingContent = {
                             },

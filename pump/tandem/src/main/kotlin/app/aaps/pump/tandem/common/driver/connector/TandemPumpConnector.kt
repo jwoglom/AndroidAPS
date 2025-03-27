@@ -50,6 +50,8 @@ import com.jwoglom.pumpx2.pump.messages.request.control.ChangeTimeDateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.CreateIDPRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.DeleteIDPRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetIDPSegmentRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBasalLimitRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBolusLimitRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
@@ -75,6 +77,8 @@ import com.jwoglom.pumpx2.pump.messages.response.control.ChangeControlIQSettings
 import com.jwoglom.pumpx2.pump.messages.response.control.CreateIDPResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.DeleteIDPResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetIDPSegmentResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBasalLimitResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBolusLimitResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.StopTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SuspendPumpingResponse
@@ -359,12 +363,14 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             TempRateRequest())
         {  rawContent -> tandemDataConverter.getTempBasalRate(rawContent as TempRateResponse) }
 
-        if (responseData.isSuccess) {
-            val tbr = responseData.value!!
-            if (tbr.isActive) {
-                pumpStatus.currentTempBasal = tbr
-            }
-        }
+        // if (responseData.isSuccess) {
+        //     if (responseData.value!=null) {
+        //         val tbr = responseData.value!!
+        //         if (tbr.isActive) {
+        //             pumpStatus.currentTempBasal = tbr
+        //         }
+        //     }
+        // }
 
         return responseData
     }
@@ -844,7 +850,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         val commandTypeInternal = commandType as TandemCustomCommand
 
         when(commandTypeInternal) {
-            //SET_MAX_BOLUS  -> setMaxBolus(data as Int)
+            SET_MAX_BOLUS      -> return setMaxBolus(data as Int)
+            SET_MAX_BASAL      -> return setMaxBasal(data as Int)
             SET_CONTROL_IQ     -> return setControlIQDisabled()
             GET_PUMP_INFO      -> return getPumpInfo()
             else                              -> {
@@ -907,30 +914,47 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     }
 
-    // 1-25
-    fun setMaxBolus(bolusAmount: Int): DataCommandResponse<AdditionalResponseDataInterface?>? {
 
+    fun setMaxBolus(bolusAmount: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
 
-        // val responseMessage: StopTempRateResponse? = getCommunicationManager()
-        //     .sendCommand(StopTempRateRequest()) as StopTempRateResponse?
-        //
-        // if (responseMessage!=null) {
-        //     return DataCommandResponse(
-        //         PumpCommandType.SetTemporaryBasal, responseMessage.status == 1,
-        //         if (responseMessage.status==0) null else "Error sending cancelTBR: status=${responseMessage.status}",
-        //         ControlCommandResponse(responseMessage.id, responseMessage.status)
-        //     )
-        // } else {
-        //     return DataCommandResponse(
-        //         PumpCommandType.SetTemporaryBasal, false,
-        //         "Error getting response from sending cancelTBR: null",
-        //         null
-        //     )
-        // }
+        val responseMessage: SetMaxBolusLimitResponse? = getCommunicationManager()
+            .sendCommand(SetMaxBolusLimitRequest(bolusAmount*1000)) as SetMaxBolusLimitResponse?
 
-        return null
+        if (responseMessage!=null) {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, responseMessage.isStatusOK,
+                if (responseMessage.isStatusOK) null else "Error sending SetMaxBolusLimit(maxBolus=${bolusAmount}): status=${responseMessage.status}",
+                null
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending SetMaxBolusLimit: null",
+                null
+            )
+        }
     }
 
+
+    fun setMaxBasal(basalAmount: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
+
+        val responseMessage: SetMaxBasalLimitResponse? = getCommunicationManager()
+            .sendCommand(SetMaxBasalLimitRequest(basalAmount*1000)) as SetMaxBasalLimitResponse?
+
+        if (responseMessage!=null) {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, responseMessage.status==0,
+                if (responseMessage.status==0) null else "Error sending SetMaxBasalLimit(maxBasal=${basalAmount}): status=${responseMessage.status}",
+                null
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending SetMaxBasalLimit: null",
+                null
+            )
+        }
+    }
 
 
     fun setControlIQDisabled(): DataCommandResponse<AdditionalResponseDataInterface?> {

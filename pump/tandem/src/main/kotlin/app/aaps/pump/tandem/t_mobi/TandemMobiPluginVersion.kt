@@ -5,6 +5,6 @@ import com.jwoglom.pumpx2.BuildConfig
 class TandemMobiPluginVersion {
 
     val pumpX2Version = BuildConfig.PUMPX2_VERSION
-    val tandemModuleVersion = "v0.4.21.4"
+    val tandemModuleVersion = "v0.4.23.0"
 
 }

@@ -36,7 +36,7 @@ open class TempBasalPair constructor(
     }
 
     override fun toString(): String {
-        return ("TempBasalPair [" + "Rate=" + insulinRate + ", DurationMinutes=" + durationMinutes + ", IsPercent="
-            + isPercent + "]")
+        val unit = if (isPercent) " %" else " U"
+        return ("TempBasalPair [rate=${insulinRate}${unit},duration=" + durationMinutes + ",id=$id]")
     }
 }

@@ -1,3 +1,31 @@
+# Tandem
+At the moment it seems that t:slim X2 won't have capabilities to support closed loop, so that part
+of the project is put on hold now. I refactored code, so that Mobi code Slim code are separate where
+needed and common where it isn't. Project is now targeting t:mobi device and if at some point
+Slim will support all required remote commands, that part of project can be resurected and made
+work with current code.
+
+# Tandem Mobi
+
+Work on Mobi is in progress. Planned are 5 phases of development:
+
+Phase 1: Base framework, configuration commands, set/get profile and set/get TBR (oref0), will need controlX2
+         for management actions, QualifyingEvents (just display keywords)
+Phase 2: Bolus, adding all needed UI elements (needs to be done in Compose) and functionality for
+         management (all actions done by controlX2: start/stop pump, change reservoir, fill cannula),
+         start work on History -Reading, maybe also storing into Db, look into Notification, QE to add into Db,
+         pump reconect whem disconnected (31.6.)
+Phase 3: History UI, readHistory after commands (and sync with real Ids), PumpInfo UI, QuickBolus settings
+         After this phase is done, open to other users to start testing
+         (31.8)
+Phase 4: More on history and Bugfixing, adding security fixes (31.9)
+
+Phase 5: Prepare to add to /dev, clean code, final documentation
+
+
+
+
+
 # Tandem Slim X2
 
 At the time of creation of project there were only versions of pump available that don't support

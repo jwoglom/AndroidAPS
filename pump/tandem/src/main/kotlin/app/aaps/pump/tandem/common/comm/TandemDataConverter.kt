@@ -160,6 +160,10 @@ class TandemDataConverter @Inject constructor(
 
     fun getTempBasalRate(message: TempRateResponse): DataCommandResponse<TempBasalPair?> {
 
+        var jsonVal = pumpUtil.gson.toJson(message)
+
+        aapsLogger.info(TAG, "TBR: TempRateResponse [${jsonVal}]")
+
         val tempBasal = TempBasalPair( insulinRate = message.percentage.toDouble(),
                                        isPercent = true,
                                        durationMinutes = (message.duration/60.0).toInt(),
@@ -170,7 +174,7 @@ class TandemDataConverter @Inject constructor(
         aapsLogger.info(TAG, "TBR: getTempBasalRate [${tempBasal}]")
 
         return DataCommandResponse(
-            PumpCommandType.GetTemporaryBasal, true, null, tempBasal)
+            PumpCommandType.GetTemporaryBasal, true, null, if (message.active) tempBasal else null)
     }
 
 

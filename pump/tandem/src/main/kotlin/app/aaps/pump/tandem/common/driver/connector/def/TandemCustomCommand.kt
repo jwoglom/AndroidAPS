@@ -8,6 +8,7 @@ import app.aaps.pump.tandem.R
 enum class TandemCustomCommand(@StringRes var resourceId: Int) : CustomCommandTypeInterface {
 
     SET_MAX_BOLUS(R.string.tandem_custom_command_set_max_bolus),
+    SET_MAX_BASAL(R.string.tandem_custom_command_set_max_basal),
     SET_CONTROL_IQ(R.string.tandem_custom_command_disable_control_iq),
     GET_PUMP_INFO(R.string.tandem_custom_command_get_pump_info),
     ;

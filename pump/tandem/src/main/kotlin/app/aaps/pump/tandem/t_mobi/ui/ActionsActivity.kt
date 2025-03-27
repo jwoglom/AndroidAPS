@@ -53,6 +53,20 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Composable
 fun GreetingPreview() {
     TMobiScreensTheme {
-        Greeting("Android")
+        TMobiScreensTheme {
+            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Actions(
+                    innerPadding = PaddingValues(0.dp),
+                    navigateToPumpInfo = {
+
+                    },
+                    navigateToCartridgeActions = {
+
+                    },
+                    sendMessage = {_, _ -> },
+                    sendPumpCommands = {_, _ -> },
+                )
+            }
+        }
     }
 }

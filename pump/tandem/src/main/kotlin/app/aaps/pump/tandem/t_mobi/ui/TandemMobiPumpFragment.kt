@@ -49,6 +49,7 @@ import app.aaps.pump.common.ui.PumpHistoryActivity
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
+import app.aaps.pump.tandem.t_mobi.ui.actions.other.CustomAlertDialog
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
@@ -111,7 +112,9 @@ class TandemMobiPumpFragment : DaggerFragment() {
         }
 
         binding.pumpHistory.setOnClickListener {
-            startActivity(Intent(context, PumpHistoryActivity::class.java))
+
+
+            //startActivity(Intent(context, PumpHistoryActivity::class.java))
         }
 
         binding.pumpConfig.setOnClickListener {
@@ -251,7 +254,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
             } else {
                 val msDiff = pumpStatus.currentTempBasalEstimatedEnd!! - System.currentTimeMillis()
                 val min = msDiff / (60.0 * 1000.0)
-                aapsLogger.info(TAG, "TBR Diff: estimatedEnd=${pumpStatus.currentTempBasalEstimatedEnd},msDiff=$msDiff,min=${min}")
+                //aapsLogger.info(TAG, "TBR Diff: estimatedEnd=${pumpStatus.currentTempBasalEstimatedEnd},msDiff=$msDiff,min=${min}")
 
                 binding.pumpTempBasal.text = resourceHelper.gs(Rc.string.pump_tbr_remaining_percent,
                                                               pumpStatus.currentTempBasal!!.insulinRate.toInt(), min.toInt())
@@ -329,7 +332,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
     private fun updateCurrentActivity(pumpDriverState: PumpDriverState?) {
         val resActivity = Rc.string.pump_current_activity
 
-        aapsLogger.info(LTag.PUMP, "DUB Update Current activity: ${pumpDriverState!!.name}")
+        //aapsLogger.info(LTag.PUMP, "DUB Update Current activity: ${pumpDriverState!!.name}")
 
         when (pumpDriverState) {
             //null,
@@ -368,7 +371,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
             }
 
             else                                       -> {
-                binding.currentActivity.text = " " + resourceHelper.gs(pumpDriverState.resourceId)
+                binding.currentActivity.text = " " + resourceHelper.gs(pumpDriverState!!.resourceId)
             }
         }
 

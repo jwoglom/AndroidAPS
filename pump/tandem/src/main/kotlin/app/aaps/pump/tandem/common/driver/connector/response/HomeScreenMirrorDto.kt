@@ -9,4 +9,10 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorR
 @MessageProps(opCode = 57, size = 9, type = MessageType.RESPONSE, request = HomeScreenMirrorRequest::class)
 class HomeScreenMirrorDto : HomeScreenMirrorResponse(), AdditionalResponseDataInterface {
 
+    fun isTemporaryBasalRunning(): Boolean {
+        return this.basalStatusIcon == BasalStatusIcon.TEMP_RATE ||
+            this.basalStatusIcon == BasalStatusIcon.ZERO_TEMP_RATE
+    }
+
+
 }
