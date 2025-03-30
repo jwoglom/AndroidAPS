@@ -1,6 +1,5 @@
 package app.aaps.pump.tandem.di
 
-//import android.content.Context
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.pump.PumpSync
@@ -11,10 +10,7 @@ import app.aaps.pump.tandem.common.database.TandemHistoryRecordDao
 import app.aaps.pump.tandem.common.database.TandemPumpDatabase
 import app.aaps.pump.tandem.common.database.TandemPumpHistory
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.tandem.common.driver.config.TandemBLESelector
-import app.aaps.pump.tandem.common.driver.config.TandemHistoryDataProvider
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
 import dagger.Module
 import dagger.Provides
 import dagger.Reusable

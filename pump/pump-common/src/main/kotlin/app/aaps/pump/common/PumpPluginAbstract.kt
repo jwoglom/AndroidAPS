@@ -450,7 +450,7 @@ abstract class PumpPluginAbstract protected constructor(
         action: PumpDataRefreshAction,
         statusRefreshType: PumpDataRefreshType?,
         time: Long?
-    ): Map<PumpDataRefreshType?, Long?>? {
+    ): HashMap<PumpDataRefreshType?, Long?>? {
         return when (action) {
             PumpDataRefreshAction.Add     -> {
                 statusRefreshMap[statusRefreshType] = time
@@ -486,6 +486,15 @@ abstract class PumpPluginAbstract protected constructor(
             )
         }
     }
+
+    protected fun scheduleNextRefreshWithSpecifiedTime(refreshType: PumpDataRefreshType, whenToRefresh: Long) {
+        workWithStatusRefresh(
+            PumpDataRefreshAction.Add, refreshType,
+            whenToRefresh
+        )
+    }
+
+
 
     // this method needs to be overwriten in your driver and implement PumpDataRefreshCapable
     open fun getRefreshTime(pumpDataRefreshType: PumpDataRefreshType): Int {

@@ -262,22 +262,10 @@ class TandemCommunicationManager @Inject constructor(
 
             aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${message}")
 
-            //val dtPumpInstant = timeSince.currentTimeInstant
-
-            //val zonedDateTime: ZonedDateTime = dtPumpInstant.atZone(ZoneId.systemDefault())
-
-            ///aapsLogger.info(LTag.PUMPCOMM, "Pump Time: Zoned Time ${zonedDateTime}")
-
             val dtPump = DateTime(timeSince.currentTimeInstant.toEpochMilli())
 
             val pumpTimeDifference = PumpTimeDifferenceDto(DateTime.now(), dtPump)
             pumpStatus.pumpTime = pumpTimeDifference
-
-            //var timeDiffJson = pumpUtil.gson.toJson(pumpTimeDifference)
-
-            //aapsLogger.info(LTag.PUMPCOMM, "Pump Time: ${timeDiffJson}")
-
-            //pumpStatus.pumpTime!!.displayTime(gson = pumpUtil.gson, aapsLogger = aapsLogger)
 
             pumpUtil.driverStatus = PumpDriverState.Connected
 

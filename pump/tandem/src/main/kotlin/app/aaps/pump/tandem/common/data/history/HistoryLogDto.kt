@@ -5,7 +5,6 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.driver.history.PumpDataConverter
 import app.aaps.pump.common.driver.history.PumpHistoryEntry
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
-import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
 import app.aaps.pump.common.defs.PumpBolusType
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.tandem.R
@@ -16,14 +15,15 @@ sealed class HistoryLogObject {
     abstract fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String
 }
 
-data class HistoryLogDto(var id: Long?,
-                         var serial: Long,
-                         var historyTypeIndex: Int,
-                         var historyType: TandemPumpHistoryType,
-                         var sequenceNum: Long,
-                         var dateTimeMillis: Long,
-                         var payload: String,
-                         var subObject: HistoryLogObject? = null,
+data class HistoryLogDto(var sequenceId: Long,
+                         var pumpSerial: Int,
+                         var typeId: Int,
+                         //var historyType: TandemPumpHistoryType,
+                         //var sequenceNum: Long,
+                         var pumpTime: Long,
+                         var payload: ByteArray,
+                         var entitySubId: Long? = null,
+                         //var subObject: HistoryLogObject? = null,
                          //var subObject2: HistoryLogObject? = null, // this is used only for fake TBR that emulates Pump Start/Stop for now
                          var created: Long = System.currentTimeMillis(),
                          var updated: Long = System.currentTimeMillis()
@@ -37,18 +37,19 @@ data class HistoryLogDto(var id: Long?,
         get() = resolvedDate
 
     fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
-        if (subObject != null) {
-            return subObject!!.getDisplayableValue(resourceHelper, dataConverter)
-        } else {
-            return "???"
-        }
+        TODO()
+        // if (subObject != null) {
+        //     return subObject!!.getDisplayableValue(resourceHelper, dataConverter)
+        // } else {
+        //     return "???"
+        // }
     }
 
     override fun prepareEntryData(resourceHelper: ResourceHelper, pumpDataConverter: PumpDataConverter) {
         val tandemPumpDataConverter = pumpDataConverter as TandemDataConverter
 
         val dateTimeObject = GregorianCalendar()
-        dateTimeObject.timeInMillis = dateTimeMillis
+        dateTimeObject.timeInMillis = pumpTime
 
         resolvedDate = resourceHelper.gs(R.string.tandem_history_date,
                                          dateTimeObject.get(Calendar.DAY_OF_MONTH),
@@ -57,7 +58,7 @@ data class HistoryLogDto(var id: Long?,
                                          dateTimeObject.get(Calendar.HOUR_OF_DAY),
                                          dateTimeObject.get(Calendar.MINUTE),
                                          dateTimeObject.get(Calendar.SECOND))
-        resolvedType = resourceHelper.gs(historyType.getDescriptionResourceId())
+        resolvedType = "" + typeId   // TODO Db resolveType resourceHelper.gs(historyType.getDescriptionResourceId())
         resolvedValue = getDisplayableValue(resourceHelper, tandemPumpDataConverter)
     }
 
@@ -67,11 +68,11 @@ data class HistoryLogDto(var id: Long?,
 
     override fun getEntryValue(): String = resolvedValue
 
-    override fun getEntryTypeGroup(): PumpHistoryEntryGroup = historyType.group
+    override fun getEntryTypeGroup(): PumpHistoryEntryGroup = PumpHistoryEntryGroup.Unknown  // TODO resolve group
 
     override fun toString(): String {
 
-        var entryTypeFormated = historyType.name
+        var entryTypeFormated = "" + typeId  // TODO Db resolve entry type historyType.name
 
         if (entryTypeFormated.length > 24) {
             entryTypeFormated = entryTypeFormated.substring(0, 24)
@@ -79,20 +80,22 @@ data class HistoryLogDto(var id: Long?,
             entryTypeFormated = entryTypeFormated.padEnd(24, ' ')
         }
 
-        var sequenceString = "" + sequenceNum
+        var sequenceString = "" + sequenceId
         sequenceString = sequenceString.padStart(8, ' ')
 
         val dataLine = resolvedDate + "   " + entryTypeFormated + "  " + sequenceString
 
-        if (subObject == null) {
-            return dataLine + "      No Sub Object"
-        } else {
-            return dataLine + "      " + subObject.toString()
-        }
+        // if (subObject == null) {
+        //     return dataLine + "      No Sub Object"
+        // } else {
+        //     return dataLine + "      " + subObject.toString()
+        // }
+        return dataLine
     }
 
     override fun compareTo(other: HistoryLogDto): Int {
-        return (this.sequenceNum - other.sequenceNum).toInt()
+        // TODO use pumpSerial too
+        return (this.sequenceId - other.sequenceId).toInt()
     }
 
 }

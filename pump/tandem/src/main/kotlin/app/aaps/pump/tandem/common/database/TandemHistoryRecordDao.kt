@@ -12,13 +12,13 @@ abstract class TandemHistoryRecordDao {
     @Query("SELECT * from history_records")
     abstract fun all(): Single<List<TandemHistoryRecordEntity>>
 
-    @Query("SELECT * from history_records order by sequenceNum desc")
+    @Query("SELECT * from history_records order by sequenceId desc")
     abstract fun allBlocking(): List<TandemHistoryRecordEntity>
 
-    @Query("SELECT * from history_records WHERE dateTimeMillis >= :since")
+    @Query("SELECT * from history_records WHERE pumpTime >= :since")
     abstract fun allSince(since: Long): Single<List<TandemHistoryRecordEntity>>
 
-    @Query("SELECT * from history_records WHERE dateTimeMillis >= :since order by sequenceNum desc")
+    @Query("SELECT * from history_records WHERE pumpTime >= :since order by sequenceId desc")
     abstract fun allSinceBlocking(since: Long): List<TandemHistoryRecordEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

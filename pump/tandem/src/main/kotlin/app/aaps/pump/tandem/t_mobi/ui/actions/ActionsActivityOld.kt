@@ -97,8 +97,8 @@ import com.jwoglom.pumpx2.pump.messages.response.control.ExitFillTubingModeRespo
 import com.jwoglom.pumpx2.pump.messages.response.control.SetG6TransmitterIdResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetModesResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
-import com.jwoglom.pumpx2.pump.messages.response.control.StartG6SensorSessionResponse
-import com.jwoglom.pumpx2.pump.messages.response.control.StopG6SensorSessionResponse
+// import com.jwoglom.pumpx2.pump.messages.response.control.StartG6SensorSessionResponse
+// import com.jwoglom.pumpx2.pump.messages.response.control.StopG6SensorSessionResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.DetectingCartridgeStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartridgeModeStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingModeStateStreamResponse

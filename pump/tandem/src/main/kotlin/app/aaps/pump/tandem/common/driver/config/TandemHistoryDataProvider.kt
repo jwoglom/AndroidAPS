@@ -61,24 +61,26 @@ class TandemHistoryDataProvider @Inject constructor(
 
         val serial : Long = 48758748
 
-        outList.add(HistoryLogDto(47, serial, 1,
-                                  TandemPumpHistoryType.BOLUS_COMPLETED, 1,
-                                  System.currentTimeMillis() - 20000, "",
-                                  Bolus(immediateAmount = 2.0, bolusId = 1, isCancelled = false, isRunning = false)) as PumpHistoryEntry)
+        TODO()
 
-        outList.add(HistoryLogDto(47, serial, 1,
-                                  TandemPumpHistoryType.BOLUS_COMPLETED, 1,
-                                  System.currentTimeMillis() - 10000, "",
-                                  Bolus(immediateAmount = 3.0, bolusId = 1, isCancelled = false, isRunning = false)) as PumpHistoryEntry)
-
-        outList.add(HistoryLogDto(47, serial, 1,
-                                  TandemPumpHistoryType.BOLUS_COMPLETED, 1,
-                                  System.currentTimeMillis() - 5000, "",
-                                  Bolus(immediateAmount = 4.0, bolusId = 1, isCancelled = false, isRunning = false)) as PumpHistoryEntry)
-
-        for (pumpHistoryEntry in outList) {
-            pumpHistoryEntry.prepareEntryData(resourceHelper = resourceHelper, pumpDataConverter = tandemDataConverter)
-        }
+        // outList.add(HistoryLogDto(47, serial, 1,
+        //                           TandemPumpHistoryType.BOLUS_COMPLETED, 1,
+        //                           System.currentTimeMillis() - 20000, "",
+        //                           Bolus(immediateAmount = 2.0, bolusId = 1, isCancelled = false, isRunning = false)) as PumpHistoryEntry)
+        //
+        // outList.add(HistoryLogDto(47, serial, 1,
+        //                           TandemPumpHistoryType.BOLUS_COMPLETED, 1,
+        //                           System.currentTimeMillis() - 10000, "",
+        //                           Bolus(immediateAmount = 3.0, bolusId = 1, isCancelled = false, isRunning = false)) as PumpHistoryEntry)
+        //
+        // outList.add(HistoryLogDto(47, serial, 1,
+        //                           TandemPumpHistoryType.BOLUS_COMPLETED, 1,
+        //                           System.currentTimeMillis() - 5000, "",
+        //                           Bolus(immediateAmount = 4.0, bolusId = 1, isCancelled = false, isRunning = false)) as PumpHistoryEntry)
+        //
+        // for (pumpHistoryEntry in outList) {
+        //     pumpHistoryEntry.prepareEntryData(resourceHelper = resourceHelper, pumpDataConverter = tandemDataConverter)
+        // }
 
         return outList
 
@@ -132,6 +134,7 @@ class TandemHistoryDataProvider @Inject constructor(
     }
 
     override fun isItemInSelection(itemGroup: PumpHistoryEntryGroup, targetGroup: PumpHistoryEntryGroup): Boolean {
+        TODO()
         return if (targetGroup == PumpHistoryEntryGroup.EventsNoStat || targetGroup == PumpHistoryEntryGroup.EventsOnly) {
             if (targetGroup == PumpHistoryEntryGroup.EventsOnly) {
                 itemGroup != PumpHistoryEntryGroup.Alarm

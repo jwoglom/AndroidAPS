@@ -2,53 +2,47 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d1427c3a79e755dd679f9e53d26963c2",
+    "identityHash": "b0cb923799ac760bb15069ec84c47a9a",
     "entities": [
       {
         "tableName": "history_records",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `serial` INTEGER NOT NULL, `historyTypeIndex` INTEGER NOT NULL, `historyType` TEXT NOT NULL, `sequenceNum` INTEGER NOT NULL, `dateTimeMillis` INTEGER NOT NULL, `payload` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `datetime_year` INTEGER, `datetime_month` INTEGER, `datetime_day` INTEGER, `datetime_hour` INTEGER, `datetime_minute` INTEGER, `datetime_second` INTEGER, `datetime_timeChanged` INTEGER, PRIMARY KEY(`id`, `serial`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sequenceId` INTEGER NOT NULL, `pumpSerial` INTEGER NOT NULL, `typeId` INTEGER NOT NULL, `pumpTime` INTEGER NOT NULL, `payload` BLOB NOT NULL, `entitySubId` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`sequenceId`, `pumpSerial`))",
         "fields": [
           {
-            "fieldPath": "id",
-            "columnName": "id",
+            "fieldPath": "sequenceId",
+            "columnName": "sequenceId",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "serial",
-            "columnName": "serial",
+            "fieldPath": "pumpSerial",
+            "columnName": "pumpSerial",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "historyTypeIndex",
-            "columnName": "historyTypeIndex",
+            "fieldPath": "typeId",
+            "columnName": "typeId",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "historyType",
-            "columnName": "historyType",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "sequenceNum",
-            "columnName": "sequenceNum",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "dateTimeMillis",
-            "columnName": "dateTimeMillis",
+            "fieldPath": "pumpTime",
+            "columnName": "pumpTime",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
             "fieldPath": "payload",
             "columnName": "payload",
-            "affinity": "TEXT",
+            "affinity": "BLOB",
             "notNull": true
+          },
+          {
+            "fieldPath": "entitySubId",
+            "columnName": "entitySubId",
+            "affinity": "INTEGER",
+            "notNull": false
           },
           {
             "fieldPath": "createdAt",
@@ -61,55 +55,13 @@
             "columnName": "updatedAt",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "dateTimeRecord.year",
-            "columnName": "datetime_year",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "dateTimeRecord.month",
-            "columnName": "datetime_month",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "dateTimeRecord.day",
-            "columnName": "datetime_day",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "dateTimeRecord.hour",
-            "columnName": "datetime_hour",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "dateTimeRecord.minute",
-            "columnName": "datetime_minute",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "dateTimeRecord.second",
-            "columnName": "datetime_second",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "dateTimeRecord.timeChanged",
-            "columnName": "datetime_timeChanged",
-            "affinity": "INTEGER",
-            "notNull": false
           }
         ],
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "id",
-            "serial"
+            "sequenceId",
+            "pumpSerial"
           ]
         },
         "indices": [],
@@ -119,7 +71,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd1427c3a79e755dd679f9e53d26963c2')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b0cb923799ac760bb15069ec84c47a9a')"
     ]
   }
 }

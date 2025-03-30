@@ -26,7 +26,7 @@ class PumpTimeDifferenceDto(
 
     fun displayTime(gson: Gson, aapsLogger: AAPSLogger) {
 
-        var gsonTime = gson.toJson(this)
+        val gsonTime = gson.toJson(this)
 
         aapsLogger.info(LTag.PUMP, "PumpTimeDifference: ${gsonTime}")
 

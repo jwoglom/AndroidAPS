@@ -443,7 +443,7 @@ abstract class PumpConnectionManager constructor(
 
         val responseData: DataCommandResponse<Boolean?> = getConnectorData(PumpCommandType.SetTime)
         {
-            getConnector(PumpCommandType.SetTime).setTime() // TODO refactor this not to use AAPS object
+            getConnector(PumpCommandType.SetTime).setTime()
         }
 
         //checkAdditionalResponseData(PumpCommandType.SetTime, responseData)

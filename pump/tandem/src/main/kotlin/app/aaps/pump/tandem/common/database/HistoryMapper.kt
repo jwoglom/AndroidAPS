@@ -1,6 +1,5 @@
 package app.aaps.pump.tandem.common.database
 
-import app.aaps.pump.tandem.common.data.history.DateTimeChanged
 import app.aaps.pump.tandem.common.data.history.HistoryLogDto
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -13,37 +12,50 @@ class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var 
 
     fun domainToEntity(logDto: HistoryLogDto): TandemHistoryRecordEntity {
 
-        aapsLogger.debug(LTag.PUMP, "HistoryLogDto before entity: \n${tandemPumpUtil.gson.toJson(logDto)}")
+        // TODO DB implemenent
+        aapsLogger.error(LTag.PUMP, "N/A domainToEntity - HistoryLogDto: \n${tandemPumpUtil.gson.toJson(logDto)}")
 
         val tandemHistoryRecordEntity = TandemHistoryRecordEntity(
-            id = if (logDto.id == null) logDto.sequenceNum else logDto.id!!,
-            serial = logDto.serial,
-            historyTypeIndex = logDto.historyTypeIndex,
-            historyType = logDto.historyType,
-            sequenceNum = logDto.sequenceNum,
-            dateTimeMillis = logDto.dateTimeMillis,
-            payload = logDto.payload,
-
-            // temporaryBasalRecord = null,
-            // bolusRecord = null,
-            // tddRecord = null,
-            // basalProfileRecord = null,
-            // alarmRecord = null,
-            // configRecord = null,
-            // pumpStatusRecord = null,
-
-            dateTimeRecord = null,
-
-            createdAt = logDto.created,
-            updatedAt = logDto.updated
+            sequenceId = logDto.sequenceId,
+            pumpSerial = logDto.pumpSerial,
+            typeId = TODO(),
+            pumpTime = TODO(),
+            payload = TODO(),
+            entitySubId = TODO(),
+            createdAt = TODO(),
+            updatedAt = TODO()
         )
 
-        if (logDto.subObject!=null) {
-            when (logDto.subObject) {
-                is DateTimeChanged -> tandemHistoryRecordEntity.dateTimeRecord = logDto.subObject as DateTimeChanged
-                else               -> aapsLogger.warn(LTag.PUMP, "Unknown subObject: ${logDto.subObject!!.javaClass.name}")
-            }
-        }
+
+        // val tandemHistoryRecordEntity = TandemHistoryRecordEntity(
+        //     id = if (logDto.id == null) logDto.sequenceNum else logDto.id!!,
+        //     serial = logDto.serial,
+        //     historyTypeIndex = logDto.historyTypeIndex,
+        //     historyType = logDto.historyType,
+        //     sequenceNum = logDto.sequenceNum,
+        //     dateTimeMillis = logDto.dateTimeMillis,
+        //     payload = logDto.payload,
+        //
+        //     // temporaryBasalRecord = null,
+        //     // bolusRecord = null,
+        //     // tddRecord = null,
+        //     // basalProfileRecord = null,
+        //     // alarmRecord = null,
+        //     // configRecord = null,
+        //     // pumpStatusRecord = null,
+        //
+        //     dateTimeRecord = null,
+        //
+        //     createdAt = logDto.created,
+        //     updatedAt = logDto.updated
+        // )
+        //
+        // if (logDto.subObject!=null) {
+        //     when (logDto.subObject) {
+        //         is DateTimeChanged -> tandemHistoryRecordEntity.dateTimeRecord = logDto.subObject as DateTimeChanged
+        //         else               -> aapsLogger.warn(LTag.PUMP, "Unknown subObject: ${logDto.subObject!!.javaClass.name}")
+        //     }
+        // }
 
         // if (eventDto.subObject is Bolus) {
         //     historyRecordEntity.bolusRecord = eventDto.subObject as Bolus
@@ -77,15 +89,17 @@ class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var 
 
     fun entityToDomain(entity: TandemHistoryRecordEntity): HistoryLogDto {
 
+        aapsLogger.error(LTag.PUMP, "N/A entityToDomain - Entity: \n${tandemPumpUtil.gson.toJson(entity)}")
+
         val historyLogDto = HistoryLogDto(
-            id = entity.id,
-            serial = entity.serial,
-            historyTypeIndex = entity.historyTypeIndex,
-            historyType = entity.historyType,
-            sequenceNum = entity.sequenceNum,
-            dateTimeMillis = entity.dateTimeMillis,
+            sequenceId = entity.sequenceId,
+            pumpSerial = entity.pumpSerial,
+            typeId = entity.typeId,
+            //historyType = entity.historyType,
+            //sequenceNum = entity.sequenceNum,
+            pumpTime = entity.pumpTime,
             payload = entity.payload,
-            subObject = null,
+            //subObject = null,
             created = entity.createdAt,
             updated = entity.updatedAt
         )

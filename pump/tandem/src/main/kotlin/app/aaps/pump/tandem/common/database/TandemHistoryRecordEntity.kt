@@ -1,32 +1,16 @@
 package app.aaps.pump.tandem.common.database
 
-import androidx.room.Embedded
 import androidx.room.Entity
-import app.aaps.pump.tandem.common.data.history.DateTimeChanged
-import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
 
 
-// TODO TandemHistoryRecordEntity refactor this for Tandem N-5
-
-@Entity(tableName = "history_records", primaryKeys = ["id", "serial"])
+@Entity(tableName = "history_records", primaryKeys = ["sequenceId", "pumpSerial"])
 data class TandemHistoryRecordEntity(
-    var id: Long,
-    var serial: Long,
-    var historyTypeIndex: Int,
-    var historyType: TandemPumpHistoryType,
-    var sequenceNum: Long,
-    var dateTimeMillis: Long,
-    var payload: String,
-    @Embedded(prefix = "datetime_") var dateTimeRecord: DateTimeChanged?,
-
-    // TODO add more history types N-5
-    // @Embedded(prefix = "temporaryBasal_") var temporaryBasalRecord: TemporaryBasal?,
-    // @Embedded(prefix = "bolus_") var bolusRecord: Bolus?,
-    // @Embedded(prefix = "tdd_") var tddRecord: TotalDailyInsulin?,
-    // @Embedded(prefix = "basal_profile_") var basalProfileRecord: BasalProfile?,
-    // @Embedded(prefix = "alarm_") var alarmRecord: Alarm?,
-    // @Embedded(prefix = "config_") var configRecord: ConfigurationChanged?,
-    // @Embedded(prefix = "pumpstatus_") var pumpStatusRecord: PumpStatusChanged?,
+    var sequenceId: Long,
+    var pumpSerial: Int,
+    var typeId: Int,
+    var pumpTime: Long,   // EpochInMillis (pump stores time as EpochSeconds from Jan2008, we don't)
+    var payload: ByteArray,
+    var entitySubId: Long? = null, // some entities have special id (for example TBR has tempRateId)
 
     var createdAt: Long, // creation date of the record
     var updatedAt: Long  // update date of the record

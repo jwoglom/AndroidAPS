@@ -30,6 +30,7 @@ abstract class TandemPumpDatabase : RoomDatabase() {
                 .allowMainThreadQueries()
                 .fallbackToDestructiveMigration()
                 .build()
+
     }
 
 }

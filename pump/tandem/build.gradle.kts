@@ -97,7 +97,7 @@ dependencies {
     // implementation("com.atech-software.pumpX2:pumpx2-messages:v1.4.4.0")
     // implementation("com.atech-software.pumpX2:pumpx2-shared:v1.4.4.0")
 
-    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.6.2")
+    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.6.8")
 //    implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.5.10")
 //    implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.5.10")
 
@@ -106,7 +106,7 @@ dependencies {
     implementation("com.jakewharton.timber:timber:5.0.1")
     //implementation("org.apache.commons:commons-lang3:3.12.0")
 
-
+    // compose dependencies are just testing ones, final set will be determined in phase 2
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)

@@ -8,6 +8,7 @@ import androidx.preference.Preference
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.interfaces.constraints.Constraint
 import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -424,7 +425,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             }
         }
 
-        return percentRate;
+        return percentRate
     }
 
 
@@ -506,11 +507,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     // Pump Interface
     override fun isInitialized(): Boolean {
-        //return false
-        //aapsLogger.debug(LTag.PUMP, "isInitialized - driverInit=$driverInitialized, preventConnect=${tandemUtil.preventConnect}")
-        //return driverInitialized //&& !tandemUtil.preventConnect
-        //return pumpStatus.ypsopumpFirmware != null;
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "DUB isInitialized ${isDriverInitialized}")
+        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isInitialized ${isDriverInitialized}")
         return isDriverInitialized
     }
 
@@ -661,22 +658,39 @@ class TandemMobiPumpPlugin @Inject constructor(
     private fun refreshAnyStatusThatNeedsToBeRefreshed(): Boolean {
         val statusRefresh = workWithStatusRefresh(
             PumpDataRefreshAction.GetData, null,
-            null)
+            null)!!
+
         if (!doWeHaveAnyStatusNeededRefereshing(statusRefresh)) {
             return false
         }
+
+        val refreshTypesNeededToReschedule: MutableSet<PumpDataRefreshType> = HashSet()
+
         var resetTime = false
         var resetDisplay = false
-        if (hasTimeDateOrTimeZoneChanged) {
-            aapsLogger.info(LTag.PUMP, "Refresh_PumpTime: hasTimeDateOrTimeZoneChanged")
-            checkTimeAndOptionallySetTime()
 
-            // read time if changed, set new time
-            hasTimeDateOrTimeZoneChanged = false
+        if (hasTimeDateOrTimeZoneChanged) {
+            aapsLogger.info(TAG, "Refresh_PumpTime: hasTimeDateOrTimeZoneChanged")
+
+            if (!statusRefresh.contains(PumpDataRefreshType.PumpTime)) {
+                statusRefresh.put(PumpDataRefreshType.PumpTime, System.currentTimeMillis()-2000)
+                aapsLogger.info(TAG, "Refresh_PumpTime: added PumpTime to change list")
+            }
+            //
+            // checkTimeAndOptionallySetTime(readTime = true)
+            //
+            // // read time if changed, set new time
+            // hasTimeDateOrTimeZoneChanged = false
+            //
+            // if (statusRefresh!!.contains(PumpDataRefreshType.PumpTime)) {
+            //     statusRefresh.remove(PumpDataRefreshType.PumpTime)
+            //     refreshTypesNeededToReschedule.add(PumpDataRefreshType.PumpTime)
+            //     resetTime = true
+            // }
         }
 
         // execute
-        val refreshTypesNeededToReschedule: MutableSet<PumpDataRefreshType> = HashSet()
+
         for ((key, value) in statusRefresh!!) {
             if (value!! > 0 && System.currentTimeMillis() > value) {
                 when (key) {
@@ -687,7 +701,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     PumpDataRefreshType.PumpTime         -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_PumpTime")
-                        if (checkTimeAndOptionallySetTime()) {
+                        pumpConnectionManager.getTime()
+                        if (checkTimeAndOptionallySetTime(readTime = true)) {
                             resetDisplay = true
                         }
                         refreshTypesNeededToReschedule.add(key)
@@ -701,7 +716,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                             aapsLogger.info(LTag.PUMP, "Refresh_RemainingInsulin")
                             pumpConnectionManager.getRemainingInsulin()
                         } else if (key == PumpDataRefreshType.PumpStatus) {
-                            aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus");
+                            aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus")
                             pumpConnectionManager.getPumpStatus()   // TODO
                         } else {
                             aapsLogger.info(LTag.PUMP, "Refresh_BatteryStatus");
@@ -749,7 +764,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         // time (6h) - setting time command not available
         aapsLogger.info(LTag.PUMP, "Refresh_PumpTime: onInitializePump")
-        checkTimeAndOptionallySetTime()
+        checkTimeAndOptionallySetTime(!realInit)  // we read time only if its refresh and not first init
 
         // read status of pump from Db
         pumpConnectionManager.getPumpStatus()
@@ -973,8 +988,12 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
 
-    private fun checkTimeAndOptionallySetTime(): Boolean {
+    private fun checkTimeAndOptionallySetTime(readTime: Boolean): Boolean {
         aapsLogger.info(LTag.PUMP, logPrefix + "checkTimeAndOptionallySetTime - Start")
+
+        if (readTime) {
+            pumpConnectionManager.getTime()
+        }
 
         try {
 
@@ -1466,5 +1485,15 @@ class TandemMobiPumpPlugin @Inject constructor(
     override fun isInPreventConnectMode(): Boolean {
         return tandemUtil.preventConnect
     }
+
+
+    override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
+        aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed (type=$timeChangeType). ")
+        this.timeChangeType = timeChangeType
+        this.hasTimeDateOrTimeZoneChanged = true
+        val timeRefresh = System.currentTimeMillis() + (20*1000)  // 20s in future
+        scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.PumpTime, timeRefresh)
+    }
+
 
 }

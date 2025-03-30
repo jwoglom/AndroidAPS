@@ -35,12 +35,20 @@ class TandemPumpHistory @Inject constructor(
     //fun markFailure(id: String, date: Long): Completable = dao.markResolved(id, ResolvedResult.FAILURE, currentTimeMillis())
 
     fun createRecord(
-        serial: Long,
-        historyType: TandemPumpHistoryType,
-        historyTypeIndex: Int,
-        sequenceNum: Long,
-        dateTimeMillis: Long,
-        payload: String,
+        sequenceId: Long,
+        pumpSerial: Int,
+        typeId: Int,
+        pumpTime: Long,   // EpochInMillis (pump stores time as EpochSeconds from Jan2008, we don't)
+        payload: ByteArray,
+        entitySubId: Long? = null, // some entities have special id (for example TBR has tempRateId)
+
+
+        // serial: Long,
+        // historyType: TandemPumpHistoryType,
+        // historyTypeIndex: Int,
+        // sequenceNum: Long,
+        // dateTimeMillis: Long,
+        // payload: String,
         // tempBasalRecord: TemporaryBasal?,
         // bolusRecord: Bolus?,
         // tdiRecord: TotalDailyInsulin?,
@@ -51,39 +59,20 @@ class TandemPumpHistory @Inject constructor(
         dateTimeRecord: DateTimeChanged?
     ): Single<Long> {
 
-        var id = sequenceNum
-
-
-        // TODO TandemPumpHistory:Db  N-5
-        // when {
-        //     commandType == SET_BOLUS && bolusRecord == null               ->
-        //         Single.error(IllegalArgumentException("bolusRecord missing on SET_BOLUS"))
-        //     commandType == SET_TEMPORARY_BASAL && tempBasalRecord == null ->
-        //         Single.error<String>(IllegalArgumentException("tempBasalRecord missing on SET_TEMPORARY_BASAL"))
-        //     else                                                          -> null
-        // }?.let { return it }
+        // var id = sequenceId
 
         return pumpHistoryDatabase.historyRecordDao().save(
             TandemHistoryRecordEntity(
-                id = sequenceNum,
-                serial = serial,
-                historyType = historyType,
-                historyTypeIndex = historyTypeIndex,
-                sequenceNum = sequenceNum,
-                dateTimeMillis = dateTimeMillis,
+                sequenceId = sequenceId,
+                pumpSerial = pumpSerial,
+                typeId = typeId,
+                pumpTime = pumpTime,
                 payload = payload,
+                entitySubId = entitySubId,
                 createdAt = currentTimeMillis(),
-                updatedAt = currentTimeMillis(),
-                // temporaryBasalRecord = tempBasalRecord,
-                // bolusRecord = bolusRecord,
-                // tddRecord = tdiRecord,
-                // basalProfileRecord = basalProfileRecord,
-                // alarmRecord = alarmRecord,
-                // configRecord = configRecord,
-                // pumpStatusRecord = pumpStatusRecord,
-                dateTimeRecord = dateTimeRecord
+                updatedAt = currentTimeMillis()
             )
-        ).toSingle { id }
+        ).toSingle { sequenceId }
     }
 
     // fun addRecord(eventDto: EventDto) : Single<Long> {
@@ -208,8 +197,8 @@ class TandemPumpHistory @Inject constructor(
         // if (!Objects.equals(dbEntity.pumpStatusRecord, newEntity.pumpStatusRecord))
         //     dbEntity.pumpStatusRecord = newEntity.pumpStatusRecord
 
-        if (!Objects.equals(dbEntity.dateTimeRecord, newEntity.dateTimeRecord))
-            dbEntity.dateTimeRecord = newEntity.dateTimeRecord
+        // if (!Objects.equals(dbEntity.pumpTime, newEntity.pumpTime))
+        //     dbEntity.pumpTime = newEntity.pumpTime
 
         dbEntity.updatedAt = System.currentTimeMillis()
 
