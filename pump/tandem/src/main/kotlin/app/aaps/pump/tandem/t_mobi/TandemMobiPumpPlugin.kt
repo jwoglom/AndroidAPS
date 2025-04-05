@@ -691,7 +691,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         // execute
 
-        for ((key, value) in statusRefresh!!) {
+        for ((key, value) in statusRefresh) {
             if (value!! > 0 && System.currentTimeMillis() > value) {
                 when (key) {
                     PumpDataRefreshType.PumpHistory      -> {
@@ -716,8 +716,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                             aapsLogger.info(LTag.PUMP, "Refresh_RemainingInsulin")
                             pumpConnectionManager.getRemainingInsulin()
                         } else if (key == PumpDataRefreshType.PumpStatus) {
-                            aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus")
-                            pumpConnectionManager.getPumpStatus()   // TODO
+                            getFullPumpStatus()
                         } else {
                             aapsLogger.info(LTag.PUMP, "Refresh_BatteryStatus");
                             pumpConnectionManager.getBatteryLevel()
@@ -746,9 +745,12 @@ class TandemMobiPumpPlugin @Inject constructor(
         return resetDisplay
     }
 
-
-
-
+    private fun getFullPumpStatus() {
+        aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus")
+        pumpConnectionManager.getPumpStatus()
+        pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_ALARMS)
+        pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_ALERTS)
+    }
 
     private fun setRefreshButtonEnabled(enabled: Boolean) {
         rxBus.send(EventRefreshButtonState(enabled))
@@ -767,7 +769,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         checkTimeAndOptionallySetTime(!realInit)  // we read time only if its refresh and not first init
 
         // read status of pump from Db
-        pumpConnectionManager.getPumpStatus()
+        getFullPumpStatus()
         scheduleNextRefresh(PumpDataRefreshType.PumpStatus, 0)
 
         // TODO readPumpHistory

@@ -301,7 +301,46 @@ class TandemMobiPumpFragment : DaggerFragment() {
 
         if (updateType == PumpUpdateFragmentType.Custom_1 || updateType == PumpUpdateFragmentType.Full) {
             // qualifying events
-            binding.pumpQeInfo.text = if (pumpStatus.lastQualifyingEventsInfo==null) "" else pumpStatus.lastQualifyingEventsInfo
+            var sb = StringBuilder()
+
+            aapsLogger.info(TAG, "XA: QE: ${pumpStatus.lastQualifyingEventsInfo}")
+
+            if (pumpStatus.lastQualifyingEventsInfo!=null) {
+                sb.append("QE: ")
+                sb.append(pumpStatus.lastQualifyingEventsInfo)
+            }
+
+            aapsLogger.info(TAG, "XA: Alarms: ${pumpStatus.tandemAlarms}")
+
+            if (pumpStatus.tandemAlarms!=null && !pumpStatus.tandemAlarms!!.isEmpty()) {
+                if (!sb.isEmpty()){
+                    sb.append(", ")
+                }
+                sb.append("Alarms: ")
+                for (alarm in pumpStatus.tandemAlarms!!) {
+                    sb.append(alarm.name + ", ")
+                }
+            }
+
+            aapsLogger.info(TAG, "XA: Alerts: ${pumpStatus.tandemAlerts}")
+
+            if (pumpStatus.tandemAlerts!=null && !pumpStatus.tandemAlerts!!.isEmpty()) {
+                if (!sb.isEmpty()){
+                    sb.append(", ")
+                }
+                sb.append("Alerts: ")
+                for (alarm in pumpStatus.tandemAlerts!!) {
+                    sb.append(alarm.name + ", ")
+                }
+            }
+
+            var endText = sb.toString()
+
+            if (endText.endsWith(", ")) {
+                endText = endText.substring(0, endText.length-2)
+            }
+
+            binding.pumpQeInfo.text = endText
         }
 
         binding.pumpErrors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""

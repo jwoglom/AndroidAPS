@@ -17,6 +17,8 @@ import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
 import java.util.*
@@ -60,6 +62,8 @@ class TandemPumpStatus @Inject constructor(val resourceHelper: ResourceHelper,
     var featuresV1: PumpFeaturesV1Response? = null
     var lastQualifyingEventsInfo: String? = null
     var tandemPumpVersion : PumpVersionDto? = null
+    var tandemAlerts : Set<AlertStatusResponse.AlertResponseType>? = null
+    var tandemAlarms : Set<AlarmStatusResponse.AlarmResponseType>? = null
 
     //var forceRefreshBasalProfile: Boolean = true
     //var basalProfilePump: BasalProfileDto? = null

@@ -36,6 +36,8 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand.*
 import app.aaps.pump.tandem.common.driver.connector.def.ControlCommandResponse
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
+import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
+import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import app.aaps.pump.tandem.common.util.PumpX2L
@@ -55,6 +57,8 @@ import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBolusLimitRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BasalLimitSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV1Request
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV2Request
@@ -81,6 +85,8 @@ import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBolusLimitRespons
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.StopTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SuspendPumpingResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalIQStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalLimitSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
@@ -799,6 +805,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             SET_MAX_BASAL      -> return setMaxBasal(data as Int)
             SET_CONTROL_IQ     -> return setControlIQDisabled()
             GET_PUMP_INFO      -> return getPumpInfo()
+            GET_ALERTS         -> return getAlerts()
+            GET_ALARMS         -> return getAlarms()
             else                              -> {
                 aapsLogger.error(TAG, "Unhandled Custom Command: ${commandType.name}")
             }
@@ -807,6 +815,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         return DataCommandResponse(
             PumpCommandType.CustomCommand, false, "Command ${commandType.getKey()} not available.", null)
     }
+
 
     private fun getPumpInfo(): DataCommandResponse<AdditionalResponseDataInterface?> {
 
@@ -852,6 +861,59 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             return DataCommandResponse(
                 PumpCommandType.CustomCommand, false,
                 "Error getting response from sending SetMaxBolusLimit: null",
+                null
+            )
+        }
+    }
+
+    private fun getAlerts(): DataCommandResponse<AdditionalResponseDataInterface?> {
+
+        aapsLogger.info(LTag.PUMPCOMM, "getAlerts")
+
+        val responseMessage: AlertStatusResponse? = getCommunicationManager()
+            .sendCommand(AlertStatusRequest()) as AlertStatusResponse?
+
+        if (responseMessage!=null) {
+
+            val alertStatusDto = AlertStatusDto()
+            alertStatusDto.parse(responseMessage.cargo)
+
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, true,
+                null,
+                alertStatusDto
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending AlertStatusRequest: null",
+                null
+            )
+        }
+    }
+
+
+    private fun getAlarms(): DataCommandResponse<AdditionalResponseDataInterface?> {
+
+        aapsLogger.info(LTag.PUMPCOMM, "getAlerts")
+
+        val responseMessage: AlarmStatusResponse? = getCommunicationManager()
+            .sendCommand(AlarmStatusRequest()) as AlarmStatusResponse?
+
+        if (responseMessage!=null) {
+
+            val alarmStatusDto = AlarmStatusDto()
+            alarmStatusDto.parse(responseMessage.cargo)
+
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, true,
+                null,
+                alarmStatusDto
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending AlarmStatusRequest: null",
                 null
             )
         }

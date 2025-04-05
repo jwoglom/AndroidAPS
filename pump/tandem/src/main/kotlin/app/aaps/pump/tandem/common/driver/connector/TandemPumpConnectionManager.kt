@@ -23,6 +23,8 @@ import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInte
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand.*
+import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
+import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -190,6 +192,14 @@ class TandemPumpConnectionManager @Inject constructor(
                     tandemPumpStatus.serialNumber = tandemPumpStatus.tandemPumpVersion!!.serialNum
                     sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + tandemPumpStatus.serialNumber)
                 }
+            }
+            GET_ALARMS -> {
+                val alarms = responseData.value as AlarmStatusDto
+                tandemPumpStatus.tandemAlarms = alarms.alarms
+            }
+            GET_ALERTS -> {
+                val alarms = responseData.value as AlertStatusDto
+                tandemPumpStatus.tandemAlerts = alarms.alerts
             }
             else -> { }
         }
