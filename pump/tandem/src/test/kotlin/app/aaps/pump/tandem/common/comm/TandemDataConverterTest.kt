@@ -118,8 +118,14 @@ class TandemDataConverterTest : TestBase() {
         segments.put(4, IDPSegmentResponse(1, 4, 18*60, 2200, 0, 0, 0, 0));
         segments.put(5, IDPSegmentResponse(1, 5, 20*60, 3000, 0, 0, 0, 0));
 
+        val profile = PumpProfileDto()
+
+        profile.idpSettingsResponse = settings
+        profile.mapSegments = segments
+
+
         val idpSegmentsFromProfile: DataCommandResponse<BasalProfileDto?> =
-            this.unitToTest!!.getBasalProfileResponse(settings, segments, PumpProfileDto())
+            this.unitToTest!!.getBasalProfileResponse(profile)
 
         val basalPatterns = idpSegmentsFromProfile.value!!.basalPatterns!!
 

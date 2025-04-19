@@ -481,7 +481,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         val pumpProfileDto = getBasalProfileInternal()
 
         if (pumpProfileDto.success) {
-            val basalProfileResponse = tandemDataConverter.getBasalProfileResponse(pumpProfileDto.idpSettingsResponse!!, pumpProfileDto.mapSegments, pumpProfileDto)
+            val basalProfileResponse = tandemDataConverter.getBasalProfileResponse(pumpProfileDto)
             return basalProfileResponse
         } else {
             return DataCommandResponse(PumpCommandType.GetBasalProfile, false, pumpProfileDto.errorDescription, null)

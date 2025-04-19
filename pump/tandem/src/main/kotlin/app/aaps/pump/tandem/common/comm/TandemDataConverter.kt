@@ -179,7 +179,7 @@ class TandemDataConverter @Inject constructor(
     }
 
 
-    fun getBasalProfileResponse(settings: IDPSettingsResponse, mapSegments: MutableMap<Int, IDPSegmentResponse>, profileDto: PumpProfileDto): DataCommandResponse<BasalProfileDto?> {
+    fun getBasalProfileResponse(pumpProfileDto: PumpProfileDto): DataCommandResponse<BasalProfileDto?> {
 
         val basalArray: DoubleArray = doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -187,9 +187,11 @@ class TandemDataConverter @Inject constructor(
 
         val basalProfile: BasalProfileDto
 
-        if (profileDto.isNewScenario) {
+        if (pumpProfileDto.isNewScenario) {
             basalProfile = BasalProfileDto(basalArray, "No Profile")
         } else {
+            val settings: IDPSettingsResponse = pumpProfileDto.idpSettingsResponse!!
+            val mapSegments: MutableMap<Int, IDPSegmentResponse> = pumpProfileDto.mapSegments
             for(time in 0..23) {
                 basalArray[time] = findCorrectValueInSegments((time * 60), mapSegments.values)
             }
