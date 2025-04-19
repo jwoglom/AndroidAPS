@@ -84,7 +84,7 @@ class TandemService : DaggerService() {
         if (useSharedConnection) {
             aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection Use")
 
-            val sharedConnectionString = sp.getString(TandemPumpConst.Prefs.SharedConnectionData, "")
+            val sharedConnectionString = sp.getStringOrNull(TandemPumpConst.Prefs.SharedConnectionData, null)
             var notFound = false
 
             aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection: ${sharedConnectionString}")
@@ -134,7 +134,7 @@ class TandemService : DaggerService() {
 
         aapsLogger.debug(LTag.PUMP, "PumpConfig: Pump Mobi [address=$pumpAddress,bondStatus=$pumpBondStatus]")
 
-        pumpConfigured = (!pumpAddress!!.isEmpty() &&
+        pumpConfigured = (pumpAddress!!.isNotEmpty() &&
             pumpBondStatus == 100 &&
             !tandemUtil.preventConnect)
 
@@ -149,7 +149,6 @@ class TandemService : DaggerService() {
                 rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
             }
         }
-
 
         this.configurationValid = pumpConfigured
 
