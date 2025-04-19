@@ -13,6 +13,7 @@ import app.aaps.pump.common.R
 enum class PumpHistoryEntryGroup(val resourceId: Int, val pumpTypeGroupConfig: PumpTypeGroupConfig = PumpTypeGroupConfig.All) {
 
     All(R.string.history_group_all),
+    AllNoUnknowns(R.string.history_group_all_no_unknowns),
     Base(R.string.history_group_base),
     Bolus(R.string.history_group_bolus),
     Basal(R.string.history_group_basal),

@@ -5,6 +5,7 @@ import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 /**
  * Created by andy on 04.07.2022.
  */
+@Deprecated("Predecesor of refresh")
 enum class TandemStatusRefreshType(//    public PumpCommandType getCommandType(YpsoPumpFirmware medtronicDeviceType) {
     val refreshTime: Int, private val commandType: PumpCommandType
 ) {

@@ -9,7 +9,9 @@ class PumpProfileDto {
     var profileStatusResponse : ProfileStatusResponse? = null
     var activeIdpId: Int? = null
     var idpSettingsResponse : IDPSettingsResponse? = null
-    val mapSegments = mutableMapOf<Int, IDPSegmentResponse>()
+    var mapSegments = mutableMapOf<Int, IDPSegmentResponse>()
+
+    var isNewScenario: Boolean = false
 
     var success: Boolean = true
     var errorDescription: String? = null
