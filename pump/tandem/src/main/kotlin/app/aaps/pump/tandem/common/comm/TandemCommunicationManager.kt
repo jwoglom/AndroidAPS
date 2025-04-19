@@ -23,6 +23,7 @@ import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.bluetooth.TandemConfig
@@ -313,16 +314,23 @@ class TandemCommunicationManager @Inject constructor(
 
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: AbstractCentralChallengeResponse?) {
         aapsLogger.info(TAG, "TandemCommMgr: onWaitingForPairingCode ")
-        val pairingCode = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
-        //aapsLogger.info(TAG, "TandemCommMgr: onWaitingForPairingCode. Pairing Code: ${pairingCode} ")
 
-        if (pairingCode.isNullOrBlank()) {
-            aapsLogger.error(LTag.PUMPCOMM, "TandemCommMgr: onWaitingForPairingCode. It seems you Pairing code was not saved.")
-            sendInvalidPairingCodeError()
-            return
+        val pairingCodePS = PumpState.getPairingCode(context)
+
+        if (pairingCodePS==null) {
+            val pairingCode = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
+            //aapsLogger.info(TAG, "TandemCommMgr: onWaitingForPairingCode. Pairing Code: ${pairingCode} ")
+
+            if (pairingCode.isNullOrBlank()) {
+                aapsLogger.error(LTag.PUMPCOMM, "TandemCommMgr: onWaitingForPairingCode. It seems you Pairing code was not saved.")
+                sendInvalidPairingCodeError()
+                return
+            }
+
+            pair(peripheral, centralChallenge, pairingCode)
+        } else {
+            pair(peripheral, centralChallenge, pairingCodePS)
         }
-
-        pair(peripheral, centralChallenge, pairingCode)
     }
 
 
