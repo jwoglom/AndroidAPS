@@ -13,6 +13,7 @@ import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.tandem.common.data.IDPSegmentDto
+import app.aaps.pump.tandem.common.data.PumpProfileDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.shared.impl.sharedPreferences.SPImpl
@@ -118,7 +119,7 @@ class TandemDataConverterTest : TestBase() {
         segments.put(5, IDPSegmentResponse(1, 5, 20*60, 3000, 0, 0, 0, 0));
 
         val idpSegmentsFromProfile: DataCommandResponse<BasalProfileDto?> =
-            this.unitToTest!!.getBasalProfileResponse(settings, segments)
+            this.unitToTest!!.getBasalProfileResponse(settings, segments, PumpProfileDto())
 
         val basalPatterns = idpSegmentsFromProfile.value!!.basalPatterns!!
 

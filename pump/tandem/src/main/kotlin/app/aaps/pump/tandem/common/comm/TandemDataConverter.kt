@@ -12,6 +12,7 @@ import app.aaps.pump.common.driver.connector.commands.response.DataCommandRespon
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.driver.history.PumpDataConverter
 import app.aaps.pump.tandem.common.data.IDPSegmentDto
+import app.aaps.pump.tandem.common.data.PumpProfileDto
 import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
 import app.aaps.pump.tandem.common.data.history.Bolus
 import app.aaps.pump.tandem.common.data.history.DateTimeChanged
@@ -178,17 +179,23 @@ class TandemDataConverter @Inject constructor(
     }
 
 
-    fun getBasalProfileResponse(settings: IDPSettingsResponse, mapSegments: MutableMap<Int, IDPSegmentResponse>): DataCommandResponse<BasalProfileDto?> {
+    fun getBasalProfileResponse(settings: IDPSettingsResponse, mapSegments: MutableMap<Int, IDPSegmentResponse>, profileDto: PumpProfileDto): DataCommandResponse<BasalProfileDto?> {
 
         val basalArray: DoubleArray = doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
-        for(time in 0..23) {
-            basalArray[time] = findCorrectValueInSegments((time * 60), mapSegments.values)
-        }
+        val basalProfile: BasalProfileDto
 
-        val basalProfile = BasalProfileDto(basalArray, settings.name)
+        if (profileDto.isNewScenario) {
+            basalProfile = BasalProfileDto(basalArray, "No Profile")
+        } else {
+            for(time in 0..23) {
+                basalArray[time] = findCorrectValueInSegments((time * 60), mapSegments.values)
+            }
+
+            basalProfile = BasalProfileDto(basalArray, settings.name)
+        }
 
         aapsLogger.info(LTag.PUMPCOMM, "Received Basal Profile: $basalProfile")
 
