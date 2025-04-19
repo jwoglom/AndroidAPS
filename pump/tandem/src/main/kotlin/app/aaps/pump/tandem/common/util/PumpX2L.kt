@@ -16,13 +16,13 @@ class PumpX2L @Inject constructor(val aapsLogger: AAPSLogger) : Timber.DebugTree
 
         if (t==null) {
             when (priority) {
-                Log.INFO -> aapsLogger.info(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, "$message")
-                Log.WARN -> aapsLogger.warn(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, "[$tag] - $message")
-                Log.ERROR -> aapsLogger.error(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, "[$tag] - ${message}")
-                else -> aapsLogger.debug(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, "[$tag] - ${message}")
+                Log.INFO -> aapsLogger.info(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, message)
+                Log.WARN -> aapsLogger.warn(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, message)
+                Log.ERROR -> aapsLogger.error(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, message)
+                else -> aapsLogger.debug(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, message)
             }
         } else {
-            aapsLogger.error(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, "$tag - ${message}", t)
+            aapsLogger.error(tagDetails.className!!, tagDetails.methodName!!, tagDetails.lineNumber, LTag.PUMPBTCOMM, message, t)
         }
     }
 
