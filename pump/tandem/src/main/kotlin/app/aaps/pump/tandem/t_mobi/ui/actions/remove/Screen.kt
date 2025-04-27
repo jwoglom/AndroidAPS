@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.ui.actions.other
+package app.aaps.pump.tandem.t_mobi.ui.actions.remove
 
 sealed class Screen(
     val route: String

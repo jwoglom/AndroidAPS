@@ -1,6 +1,8 @@
 package app.aaps.di
 
 import app.aaps.MainApp
+import app.aaps.core.interfaces.ui.compose.ComposeUiFactory
+import app.aaps.core.interfaces.ui.compose.ComposeUi
 import app.aaps.core.objects.di.CoreModule
 import app.aaps.core.validators.di.ValidatorsModule
 import app.aaps.database.di.DatabaseModule
@@ -93,7 +95,9 @@ import app.aaps.pump.tandem.di.TandemModule
         TandemModule::class
     ]
 )
-interface AppComponent : AndroidInjector<MainApp> {
+interface AppComponent : AndroidInjector<MainApp>, ComposeUi {
+
+    fun composeUiFactories(): Map<String, @JvmSuppressWildcards ComposeUiFactory>
 
     @Component.Builder
     interface Builder {

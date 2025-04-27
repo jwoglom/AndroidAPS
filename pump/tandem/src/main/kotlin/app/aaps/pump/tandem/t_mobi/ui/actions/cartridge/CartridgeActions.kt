@@ -1,8 +1,6 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
-    ExperimentalMaterialApi::class
-)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
-package app.aaps.pump.tandem.t_mobi.ui.actions
+package app.aaps.pump.tandem.t_mobi.ui.actions.cartridge
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,16 +12,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
+
+// import androidx.compose.material3.pulltorefresh.PullRefreshIndicator
+// import androidx.compose.material3.pulltorefresh.pullRefresh
+// import androidx.compose.material3.pulltorefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -32,6 +29,10 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,27 +50,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
-import app.aaps.pump.tandem.t_mobi.ui.LocalDataStore
+import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
-import app.aaps.pump.tandem.t_mobi.ui.compose.DecimalOutlinedText
-import app.aaps.pump.tandem.t_mobi.ui.compose.HeaderLine
-import app.aaps.pump.tandem.t_mobi.ui.compose.LifecycleStateObserver
-import app.aaps.pump.tandem.t_mobi.ui.compose.Line
-import app.aaps.pump.tandem.t_mobi.ui.compose.intervalOf
-import app.aaps.pump.tandem.t_mobi.ui.dataStore
+import app.aaps.pump.tandem.t_mobi.ui.actions.setUpPreviewState
+import app.aaps.pump.tandem.t_mobi.ui.util.DecimalOutlinedText
+import app.aaps.pump.tandem.t_mobi.ui.util.LifecycleStateObserver
+import app.aaps.pump.tandem.t_mobi.ui.util.Line
+import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
-//import app.aaps.pump.tandem.t_mobi.ui.actions.other.theme.ControlX2Theme
-//import com.jwoglom.controlx2.shared.presentation.intervalOf
-// import com.jwoglom.controlx2.LocalDataStore
-// import com.jwoglom.controlx2.Prefs
-// import com.jwoglom.controlx2.dataStore
-//
-// import com.jwoglom.controlx2.presentation.screens.sections.components.DecimalOutlinedText
-// import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
-// import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
-// import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
-
+import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
 
 
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -79,7 +69,6 @@ import com.jwoglom.pumpx2.pump.messages.request.control.EnterFillTubingModeReque
 import com.jwoglom.pumpx2.pump.messages.request.control.ExitChangeCartridgeModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ExitFillTubingModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.FillCannulaRequest
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CGMStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.UnknownMobiOpcode20Request
@@ -96,9 +85,7 @@ import timber.log.Timber
 fun CartridgeActions(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
-    sendMessage: (String, ByteArray) -> Unit,
-    sendPumpCommands: (SendType, List<Message>) -> Unit,
-    //historyLogViewModel: HistoryLogViewModel? = null,
+    sendPumpCommands: (SendType, List<Message>) -> Boolean,
     _changeCartridgeMenuState: Boolean = false,
     _fillTubingMenuState: Boolean = false,
     _fillCannulaMenuState: Boolean = false,
@@ -110,9 +97,8 @@ fun CartridgeActions(
     var showFillTubingMenu by remember { mutableStateOf(_fillTubingMenuState) }
     var showFillCannulaMenu by remember { mutableStateOf(_fillCannulaMenuState) }
 
-    val context = LocalContext.current
-    val ds = LocalDataStore.current
-    val deviceName = ds.setupDeviceName.observeAsState()
+    //val context = LocalContext.current
+    val ds = LocalTandemDataStore.current
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -122,27 +108,26 @@ fun CartridgeActions(
     }
 
     fun waitForLoaded() = refreshScope.launch {
-        //if (!Prefs(context).serviceEnabled()) return@launch
         var sinceLastFetchTime = 0
         while (true) {
-            val nullFields = cartridgeActionsFields.filter { field -> field.value == null }.toSet()
-            if (nullFields.isEmpty()) {
-                break
-            }
-
-            Timber.i("CartridgeActions loading: remaining ${nullFields.size}: ${cartridgeActionsFields.map { it.value }}")
-            if (sinceLastFetchTime >= 2500) {
-                Timber.i("CartridgeActions loading re-fetching with cache")
-                fetchDataStoreFields(SendType.CACHED)
-                sinceLastFetchTime = 0
-            }
+            // TODO val nullFields = cartridgeActionsFields.filter { field -> field.value == null }.toSet()
+//            if (nullFields.isEmpty()) {
+//                break
+//            }
+//
+//            Timber.i("CartridgeActions loading: remaining ${nullFields.size}: ${cartridgeActionsFields.map { it.value }}")
+//            if (sinceLastFetchTime >= 2500) {
+//                Timber.i("CartridgeActions loading re-fetching with cache")
+//                fetchDataStoreFields(SendType.CACHED)
+//                sinceLastFetchTime = 0
+//            }
 
             withContext(Dispatchers.IO) {
                 Thread.sleep(250)
             }
             sinceLastFetchTime += 250
         }
-        Timber.i("CartridgeActions loading done: ${cartridgeActionsFields.map { it.value }}")
+        //Timber.i("CartridgeActions loading done: ${cartridgeActionsFields.map { it.value }}")
         refreshing = false
     }
 
@@ -151,11 +136,12 @@ fun CartridgeActions(
         Timber.i("reloading CartridgeActions with force")
         refreshing = true
 
-        cartridgeActionsFields.forEach { field -> field.value = null }
+        // TODO cartridgeActionsFields.forEach { field -> field.value = null }
         fetchDataStoreFields(SendType.BUST_CACHE)
     }
 
-    val state = rememberPullRefreshState(refreshing, ::refresh)
+    //val state = rememberPullRefreshState(refreshing, ::refresh)
+    val pullRefreshState = rememberPullToRefreshState()
 
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
         refreshScope.cancel()
@@ -176,14 +162,18 @@ fun CartridgeActions(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pullRefresh(state)
+            .pullToRefresh(isRefreshing = refreshing,
+                           state = pullRefreshState,
+                           onRefresh = { refresh() })
     ) {
-        PullRefreshIndicator(
-            refreshing, state,
-            Modifier
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = refreshing,
+            state = pullRefreshState,
+            modifier = Modifier
                 .align(Alignment.TopCenter)
                 .zIndex(10f)
         )
+
         LazyColumn(
             contentPadding = innerPadding,
             verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -192,14 +182,10 @@ fun CartridgeActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("Cartridge Actions")
+                    HeaderLineWithBackButton(text= "Cartridge Actions",
+                                             onBackClick=navigateBack,
+                                             backgroundColor = Color.LightGray)
                     HorizontalDivider()
-
-                    // val model = determinePumpModel(deviceName.value ?: "")
-                    // if (model == KnownDeviceModel.TSLIM_X2) {
-                    //     Line("Insulin control is not supported on this device model (${model}).")
-                    //     Line("")
-                    // }
                 }
 
                 item {
@@ -749,7 +735,7 @@ fun CartridgeActions(
                             supportingContent = {
                             },
                             leadingContent = {
-                                Icon(Icons.Filled.ArrowBack, contentDescription = null)
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                             },
                             modifier = Modifier.clickable {
                                 navigateBack()
@@ -768,10 +754,10 @@ val cartridgeActionsCommands = listOf(
     UnknownMobiOpcode20Request()
 )
 
-val cartridgeActionsFields = listOf(
-    //dataStore.cgmSessionState
-    dataStore.cartridgeRemainingUnits  // FIXME not sure if this is ok
-)
+//val cartridgeActionsFields = listOf(
+//    //dataStore.cgmSessionState
+//    //dataStore.cartridgeRemainingUnits  // FIXME not sure if this is ok
+//)
 
 @Preview(showBackground = true)
 @Composable
@@ -781,10 +767,10 @@ private fun DefaultPreview() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
-            setUpPreviewState(LocalDataStore.current)
+            setUpPreviewState(LocalTandemDataStore.current)
             CartridgeActions(
-                sendMessage = { _, _ -> },
-                sendPumpCommands = { _, _ -> },
+                //sendMessage = { _, _ -> },
+                sendPumpCommands = {_, _ -> true},
                 navigateBack = {},
             )
         }
@@ -799,11 +785,11 @@ private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
-            setUpPreviewState(LocalDataStore.current)
-            LocalDataStore.current.basalStatus.value = BasalStatus.ON
+            setUpPreviewState(LocalTandemDataStore.current)
+            LocalTandemDataStore.current.basalStatus.value = BasalStatus.ON
             CartridgeActions(
-                sendMessage = { _, _ -> },
-                sendPumpCommands = { _, _ -> },
+                //sendMessage = { _, _ -> },
+                sendPumpCommands = {_, _ -> true},
                 _changeCartridgeMenuState = true,
                 navigateBack = {},
             )
@@ -819,11 +805,11 @@ private fun DefaultPreviewChangeCartridge_InsulinStopped() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
-            setUpPreviewState(LocalDataStore.current)
-            LocalDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
+            setUpPreviewState(LocalTandemDataStore.current)
+            LocalTandemDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
             CartridgeActions(
-                sendMessage = { _, _ -> },
-                sendPumpCommands = { _, _ -> },
+                //sendMessage = { _, _ -> },
+                sendPumpCommands = {_, _ -> true},
                 _changeCartridgeMenuState = true,
                 navigateBack = {},
             )

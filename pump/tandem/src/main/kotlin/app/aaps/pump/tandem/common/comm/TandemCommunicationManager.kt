@@ -16,9 +16,11 @@ import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
+import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpConst
@@ -31,6 +33,7 @@ import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.authentication.AbstractCentralChallengeResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.welie.blessed.BluetoothPeripheral
@@ -41,7 +44,7 @@ import javax.inject.Inject
 /**
  * This is low-level driver that does all communication with pump, with exception of pairing.
  */
-class TandemCommunicationManager @Inject constructor(
+class TandemCommunicationManager(
     var context: Context,
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,
@@ -57,6 +60,8 @@ class TandemCommunicationManager @Inject constructor(
     var connected = false
     var errorConnecting = false
     var commandRequestModeRunning = false
+
+    var dataStore: TandemUIDataStore = tandemDataStore
 
     var commandRequest: Message? = null
     var commandResponse: Message? = null
@@ -99,6 +104,11 @@ class TandemCommunicationManager @Inject constructor(
             }
         }
 
+        // runOnUiThread  {
+        //     tandemDataStore.pumpConnected.value = true
+        // }
+
+
         return connected
     }
 
@@ -113,6 +123,11 @@ class TandemCommunicationManager @Inject constructor(
         }
         connected = false
         operationMode = OperationMode.None
+
+        // runOnUiThread {
+        //     tandemDataStore.pumpConnected.value = false
+        // }
+
         // inConnectMode = false
         return connected
     }
@@ -241,12 +256,14 @@ class TandemCommunicationManager @Inject constructor(
         }
     }
 
+    lateinit var apiVersionResponse: ApiVersionResponse
 
     fun receiveMessageInConnectMode(message: Message) {
 
         if (message is ApiVersionResponse) {
 
-            val apiVersionResponse = message
+            apiVersionResponse = message
+
             val apiVersion = TandemPumpApiVersion.getApiVersionFromResponse(apiVersionResponse)
 
             aapsLogger.info(LTag.PUMPCOMM, "Api Version: ${apiVersionResponse.majorVersion}.${apiVersionResponse.minorVersion} : ${apiVersion.name} ")
@@ -272,6 +289,17 @@ class TandemCommunicationManager @Inject constructor(
 
             this.connected = true
             this.operationMode = OperationMode.StandardOperation
+
+        } else if (message is PumpVersionResponse) {
+            // TODO TAF - this needs to be added and this request removed from InitPump
+            val apiVersion = TandemPumpApiVersion.getApiVersionFromResponse(apiVersionResponse)
+            //dataStore.setupDeviceName.value = (if (apiVersion.isMobi()) "T:mobi " else "T:slim X2 ") + message.serialNum
+
+            //dataStore.timeSinceResetResponse
+            //dataStore.pumpSetupStage.value = PumpSetupStage.PUMPX2_PUMP_INITIAL_DATA_RECEIVED
+
+            // TODO TAF
+            dataStore.pumpVersionResponse.value = message
 
         }
     }
@@ -360,6 +388,15 @@ class TandemCommunicationManager @Inject constructor(
         this.errorConnecting = true
     }
 
+
+    fun isPumpFullyConnected() : Boolean {
+        return operationMode==OperationMode.StandardOperation ||
+            operationMode==OperationMode.ExternalListenerOperation
+    }
+
+    fun isListenerEnabled(): Boolean {
+        return this.communicationListener!=null
+    }
 
     enum class OperationMode {
         None,

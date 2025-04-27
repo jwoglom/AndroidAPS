@@ -21,6 +21,7 @@ import dagger.android.HasAndroidInjector
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import javax.inject.Inject
 
+@Deprecated("Replaced with Compose API - Actions Activity")
 class TandemMobiSettingsActivity : TranslatedDaggerAppCompatActivity() {
 
     //@Inject lateinit var fabricPrivacy: FabricPrivacy

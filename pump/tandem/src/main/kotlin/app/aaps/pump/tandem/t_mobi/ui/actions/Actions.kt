@@ -1,6 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
-    ExperimentalMaterialApi::class
-)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package app.aaps.pump.tandem.t_mobi.ui.actions
 
@@ -13,16 +11,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.ExperimentalMaterialApi
+//import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
+// import androidx.compose.material.pullrefresh.PullRefreshIndicator
+// import androidx.compose.material.pullrefresh.pullRefresh
+// import androidx.compose.material.pullrefresh.rememberPullRefreshState
+//import androidx.compose.material.pullrefresh.PullRefreshIndicator
+//import androidx.compose.material.pullrefresh.pullRefresh
+//import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -34,6 +35,9 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,17 +55,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
-import app.aaps.pump.tandem.t_mobi.ui.LocalDataStore
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.pump.common.defs.PumpRunningState
+import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.DataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
 
-import app.aaps.pump.tandem.t_mobi.ui.compose.HeaderLine
-import app.aaps.pump.tandem.t_mobi.ui.compose.LifecycleStateObserver
-import app.aaps.pump.tandem.t_mobi.ui.compose.Line
-import app.aaps.pump.tandem.t_mobi.ui.compose.intervalOf
-import app.aaps.pump.tandem.t_mobi.ui.dataStore
+import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
+import app.aaps.pump.tandem.t_mobi.ui.util.LifecycleStateObserver
+import app.aaps.pump.tandem.t_mobi.ui.util.Line
+import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
+import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
+import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.t_mobi.ui.util.compactTBRDisplay
+import app.aaps.shared.tests.AAPSLoggerTest
+
 // import com.jwoglom.controlx2.LocalDataStore
 // import com.jwoglom.controlx2.Prefs
 // import com.jwoglom.controlx2.dataStore
@@ -79,24 +89,29 @@ import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 // import com.jwoglom.controlx2.util.determinePumpModel
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.ResumePumpingRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import timber.log.Timber
+import java.time.Instant
+
+// TODO: PullToRefresh functionality is not tested (rewrite from old one)
 
 @Composable
 fun Actions(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
-    sendMessage: (String, ByteArray) -> Unit,
-    sendPumpCommands: (SendType, List<Message>) -> Unit,
+    //sendMessage: (String, ByteArray) -> Unit,
+    sendPumpCommands: (SendType, List<Message>) -> Boolean,
     //historyLogViewModel: HistoryLogViewModel? = null,
     _resumeInsulinMenuState: Boolean = false,
     _suspendInsulinMenuState: Boolean = false,
-    //_stopTempRateMenuState: Boolean = false,
+    _stopTempRateMenuState: Boolean = false,
+    aapsLogger: AAPSLogger,
     //openTempRateWindow: () -> Unit,
     //navigateToCgmActions: () -> Unit,
     navigateToCartridgeActions: () -> Unit,
@@ -106,10 +121,15 @@ fun Actions(
 
     var showResumeInsulinMenu by remember { mutableStateOf(_resumeInsulinMenuState) }
     var showSuspendInsulinMenu by remember { mutableStateOf(_suspendInsulinMenuState) }
+    var showStopTempRateMenu by remember { mutableStateOf(_stopTempRateMenuState) }
 
     val context = LocalContext.current
-    val ds = LocalDataStore.current
+    val ds = LocalTandemDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
+    val TAG = LTag.PUMPCOMM
+
+    val tempRateActive = ds.tempRateActive.observeAsState()
+    val tempRateDetails = ds.tempRateDetails.observeAsState()
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -127,9 +147,9 @@ fun Actions(
                 break
             }
 
-            Timber.i("Actions loading: remaining ${nullFields.size}: ${actionsFields.map { it.value }}")
+            aapsLogger.info(TAG, "Actions loading: remaining ${nullFields.size}: ${actionsFields.map { it.value }}")
             if (sinceLastFetchTime >= 2500) {
-                Timber.i("Actions loading re-fetching with cache")
+                aapsLogger.info(TAG, "Actions loading re-fetching with cache")
                 fetchDataStoreFields(SendType.CACHED)
                 sinceLastFetchTime = 0
             }
@@ -139,30 +159,32 @@ fun Actions(
             }
             sinceLastFetchTime += 250
         }
-        Timber.i("Actions loading done: ${actionsFields.map { it.value }}")
+        aapsLogger.info(TAG, "Actions loading done: ${actionsFields.map { it.value }}")
         refreshing = false
     }
 
     fun refresh() = refreshScope.launch {
         //if (!Prefs(context).serviceEnabled()) return@launch
-        Timber.i("reloading Actions with force")
+        aapsLogger.info(TAG, "reloading Actions with force")
         refreshing = true
 
         actionsFields.forEach { field -> field.value = null }
         fetchDataStoreFields(SendType.BUST_CACHE)
     }
 
-    val state = rememberPullRefreshState(refreshing, ::refresh)
+    //val state = rememberPullRefreshState(refreshing, ::refresh)
+    val pullRefreshState = rememberPullToRefreshState()
+
 
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
         refreshScope.cancel()
     }) {
-        Timber.i("reloading Actions from onStart lifecyclestate")
+        aapsLogger.info(TAG, "reloading Actions from onStart lifecyclestate")
         fetchDataStoreFields(SendType.STANDARD)
     }
 
     LaunchedEffect(intervalOf(60)) {
-        Timber.i("reloading Actions from interval")
+        aapsLogger.info(TAG, "reloading Actions from interval")
         fetchDataStoreFields(SendType.STANDARD)
     }
 
@@ -173,11 +195,15 @@ fun Actions(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pullRefresh(state)
+            .pullToRefresh(isRefreshing = refreshing,
+                           state= pullRefreshState,
+                           onRefresh = { refresh() })
+            //.pullRefresh(state)
     ) {
-        PullRefreshIndicator(
-            refreshing, state,
-            Modifier
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = refreshing,
+            state = pullRefreshState,
+            modifier = Modifier
                 .align(Alignment.TopCenter)
                 .zIndex(10f)
         )
@@ -190,7 +216,7 @@ fun Actions(
             content = {
                 item {
                     HeaderLine("Actions")
-                    HorizontalDivider()
+                    //Divider()
 
                     // val model = determinePumpModel(deviceName.value ?: "")
                     // if (model == KnownDeviceModel.TSLIM_X2) {
@@ -199,7 +225,7 @@ fun Actions(
                     // }
                 }
                 item {
-                    val basalStatus = ds.basalStatus.observeAsState()
+                    val basalStatus = ds.pumpRunningState.observeAsState()
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -208,23 +234,23 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null  -> "Stop / Start Insulin"
-                                    BasalStatus.PUMP_SUSPENDED -> "Start Insulin"
+                                    PumpRunningState.Unknown, null  -> "Stop / Start Insulin"
+                                    PumpRunningState.Suspended -> "Start Insulin"
                                     else                       -> "Stop Insulin"
                                 }
                             )},
                             supportingContent = { Text(
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null  -> "Stop or resume insulin deliveries"
-                                    BasalStatus.PUMP_SUSPENDED -> "Resume insulin deliveries"
+                                    PumpRunningState.Unknown, null  -> "Stop or resume insulin deliveries"
+                                    PumpRunningState.Suspended -> "Resume insulin deliveries"
                                     else                       -> "Stop insulin deliveries"
                                 }
                             ) },
                             leadingContent = {
                                 Icon(
                                     when (basalStatus.value) {
-                                        BasalStatus.UNKNOWN, null  -> Icons.Filled.Close
-                                        BasalStatus.PUMP_SUSPENDED -> Icons.Filled.PlayArrow
+                                        PumpRunningState.Unknown, null  -> Icons.Filled.Close
+                                        PumpRunningState.Suspended -> Icons.Filled.PlayArrow
                                         else                       -> Icons.Filled.Close
                                     },
                                     contentDescription = null,
@@ -232,15 +258,15 @@ fun Actions(
                             },
                             colors = ListItemDefaults.colors(
                                 containerColor = when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null  -> ListItemDefaults.containerColor
-                                    BasalStatus.PUMP_SUSPENDED -> Color.Green.copy(alpha = 0.5F)
+                                    PumpRunningState.Unknown, null  -> ListItemDefaults.containerColor
+                                    PumpRunningState.Suspended -> Color.Green.copy(alpha = 0.5F)
                                     else                       -> Color.Red.copy(alpha = 0.5F)
                                 }
                             ),
                             modifier = Modifier.clickable {
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null  -> {}
-                                    BasalStatus.PUMP_SUSPENDED -> {showResumeInsulinMenu = true}
+                                    PumpRunningState.Unknown, null  -> {}
+                                    PumpRunningState.Suspended -> {showResumeInsulinMenu = true}
                                     else                       -> {showSuspendInsulinMenu = true}
                                 }
                             }
@@ -344,38 +370,147 @@ fun Actions(
                     }
                 }
 
-                item {
-                    Line("\n")
-                }
+//                item {
+//                    Line("\n")
+//                }
 
 
                 item {
                     HorizontalDivider()
                 }
 
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.TopStart)
-                    ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                "Refresh Pump Delivery State"
-                            )},
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.Refresh, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                navigateToCartridgeActions()
+//                item {
+//                    Box(
+//                        modifier = Modifier
+//                            .fillMaxSize()
+//                            .wrapContentSize(Alignment.TopStart)
+//                    ) {
+//                        ListItem(
+//                            headlineContent = {
+//                                Text("Refresh Pump Delivery State")
+//                            },
+//                            supportingContent = {
+//                            },
+//                            leadingContent = {
+//                                Icon(Icons.Filled.Refresh, contentDescription = null)
+//                            },
+//                            modifier = Modifier.clickable {
+//                                navigateToCartridgeActions()
+////                                CartridgeActions(
+////                                    innerPadding = innerPadding,
+////                                    navController = navController,
+////                                    sendMessage = sendMessage,
+////                                    sendPumpCommands = sendPumpCommands,
+////                                    //historyLogViewModel = historyLogViewModel,
+////                                    navigateBack = {
+////                                        //selectedItem = LandingSection.ACTIONS
+////                                    },
+////                                )
+//
+//
+//                            }
+//                        )
+//                    }
+//                }
+
+                if (tempRateActive.value==true) {
+
+                    item {
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .wrapContentSize(Alignment.TopStart)
+                        ) {
+                            fun prettyDuration(minutes: Long?): String {
+                                return "${minutes?.div(60)}h${minutes?.rem(60)}m"
                             }
-                        )
-                    }
+
+                            ListItem(
+                                headlineContent = { Text(
+                                    when (tempRateActive.value) {
+                                        true -> "Stop Temp Rate"
+                                        else -> "Start Temp Rate"
+                                    }
+                                )},
+                                supportingContent =  {
+                                    when (tempRateActive.value) {
+                                        true -> Text("Active: ${compactTBRDisplay(tempRateDetails.value)}")
+                                        else -> null
+                                    }
+                                },
+                                leadingContent = {
+                                    Icon(
+                                        when (tempRateActive.value) {
+                                            true -> Icons.Filled.Close
+                                            else -> Icons.Filled.Settings
+                                        },
+                                        contentDescription = null,
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    when (tempRateActive.value) {
+                                        true -> { showStopTempRateMenu = true }
+                                        //false -> { openTempRateWindow() }
+                                        else -> {}
+                                    }
+                                }
+                            )
+                            DropdownMenu(
+                                expanded = showStopTempRateMenu,
+                                onDismissRequest = { showStopTempRateMenu = false },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+
+                                AlertDialog(
+                                    onDismissRequest = { showStopTempRateMenu = false },
+                                    title = {
+                                        Text("Stop Temp Rate")
+                                    },
+                                    text = {
+                                        Text("Stop the active temp rate: ${tempRateDetails.value?.percentage}% for ${prettyDuration(tempRateDetails.value?.duration?.div(60))} beginning ${tempRateDetails.value?.startTimeInstant}")
+                                    },
+                                    dismissButton = {
+                                        TextButton(
+                                            onClick = {
+                                                showStopTempRateMenu = false
+                                            },
+                                            modifier = Modifier.padding(top = 16.dp)
+                                        ) {
+                                            Text("Cancel")
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(
+                                            onClick = {
+                                                refreshScope.launch {
+                                                    showStopTempRateMenu = false
+                                                    sendPumpCommands(SendType.BUST_CACHE, listOf(
+                                                        StopTempRateRequest()
+                                                    ))
+                                                    withContext(Dispatchers.IO) {
+                                                        Thread.sleep(250)
+                                                    }
+                                                    sendPumpCommands(
+                                                        SendType.BUST_CACHE,
+                                                        listOf(TempRateRequest())
+                                                    )
+                                                }
+                                            },
+                                            modifier = Modifier.padding(top = 16.dp)
+                                        ) {
+                                            Text("Stop temp rate")
+                                        }
+                                    }
+                                )
+
+                            }
+                        }
+                    }  // TBR
                 }
 
 
+
                 item {
                     Box(
                         modifier = Modifier
@@ -384,7 +519,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Cartridge/Cannula Setup"
+                                "Cartridge/Canula Setup"
                             )},
                             supportingContent = {
                             },
@@ -428,14 +563,14 @@ fun Actions(
 val actionsCommands = listOf(
     HomeScreenMirrorRequest(),
 //    ControlIQInfoRequestBuilder.create(apiVersion()),
-    //TempRateRequest()
+    TempRateRequest()
 )
 
 val actionsFields = listOf(
-    dataStore.basalStatus,
+    tandemDataStore.basalStatus,
 //    dataStore.controlIQMode,
-//    dataStore.tempRateActive,
-//    dataStore.tempRateDetails,
+    tandemDataStore.tempRateActive,
+    tandemDataStore.tempRateDetails,
 )
 
 @Preview(showBackground = true)
@@ -446,12 +581,12 @@ private fun DefaultPreviewInsulinActive() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
-            setUpPreviewState(LocalDataStore.current)
+            setUpPreviewState(LocalTandemDataStore.current)
             Actions(
-                sendMessage = { _, _ -> },
-                sendPumpCommands = { _, _ -> },
+                sendPumpCommands = {_, _ -> true},
                 //openTempRateWindow = {},
                 //navigateToCgmActions = {},
+                aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {}
             )
@@ -467,13 +602,14 @@ private fun DefaultPreviewInsulinActive_StopMenuOpen() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
-            setUpPreviewState(LocalDataStore.current)
+            setUpPreviewState(LocalTandemDataStore.current)
             Actions(
-                sendMessage = { _, _ -> },
-                sendPumpCommands = { _, _ -> },
+                //sendMessage = { _, _ -> },
+                sendPumpCommands = {_, _ -> true},
                 _suspendInsulinMenuState = true,
                 //openTempRateWindow = {},
                 //navigateToCgmActions = {},
+                aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {}
             )
@@ -489,13 +625,14 @@ private fun DefaultPreviewInsulinSuspended() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
-            setUpPreviewState(LocalDataStore.current)
-            LocalDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
+            setUpPreviewState(LocalTandemDataStore.current)
+            LocalTandemDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
             Actions(
-                sendMessage = { _, _ -> },
-                sendPumpCommands = { _, _ -> },
+                //sendMessage = { _, _ -> },
+                sendPumpCommands = {_, _ -> true},
                 //openTempRateWindow = {},
                 //navigateToCgmActions = {},
+                aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {}
             )
@@ -514,14 +651,16 @@ private fun DefaultPreviewInsulinSuspended_ResumeMenuOpen() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
-            setUpPreviewState(LocalDataStore.current)
-            LocalDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
+            setUpPreviewState(LocalTandemDataStore.current)
+            //LocalDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
+            LocalTandemDataStore.current.pumpRunningState.value = PumpRunningState.Suspended
             Actions(
-                sendMessage = { _, _ -> },
-                sendPumpCommands = { _, _ -> },
+                //sendMessage = { _, _ -> },
+                sendPumpCommands = {_, _ -> true},
                 _resumeInsulinMenuState = true,
                 //openTempRateWindow = {},
                 //navigateToCgmActions = {},
+                aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {}
             )
@@ -530,16 +669,16 @@ private fun DefaultPreviewInsulinSuspended_ResumeMenuOpen() {
 }
 
 
-fun setUpPreviewState(ds: DataStore) {
+fun setUpPreviewState(ds: TandemUIDataStore) {
     // ds.setupDeviceName.value = "tslim X2 ***789"
     // ds.setupDeviceModel.value = "X2"
-    // ds.pumpConnected.value = true
-    // ds.pumpLastConnectionTimestamp.value = Instant.now().minusSeconds(120)
+    ds.pumpConnected.value = true
+    ds.pumpLastConnectionTimestamp.value = Instant.now().minusSeconds(120)
     // ds.cgmReading.value = 123
     // ds.cgmDeltaArrow.value = "⬈"
-    // ds.batteryPercent.value = 50
+    ds.batteryPercent.value = 50
     // ds.iobUnits.value = 0.5
-    // ds.cartridgeRemainingUnits.value = 100
-    ds.basalStatus.value = BasalStatus.ON
+    ds.cartridgeRemainingUnits.value = 100
+    //ds.basalStatus.value = BasalStatus.ON
     //ds.controlIQMode.value = UserMode.EXERCISE
 }

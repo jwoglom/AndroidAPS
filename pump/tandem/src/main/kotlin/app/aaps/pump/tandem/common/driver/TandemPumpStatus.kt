@@ -1,5 +1,6 @@
 package app.aaps.pump.tandem.common.driver
 
+import androidx.compose.runtime.compositionLocalOf
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.interfaces.profile.Profile
@@ -15,6 +16,7 @@ import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
+import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
@@ -25,9 +27,9 @@ import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Created by andy on 13/07/2022
- */
+var tandemDataStore = TandemUIDataStore()
+var LocalTandemDataStore = compositionLocalOf { tandemDataStore }
+
 @Singleton
 class TandemPumpStatus @Inject constructor(val resourceHelper: ResourceHelper,
                                            val sp: SP,

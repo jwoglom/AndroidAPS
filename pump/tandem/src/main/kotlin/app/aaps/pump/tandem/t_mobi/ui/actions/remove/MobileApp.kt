@@ -1,26 +1,27 @@
-@file:OptIn(ExperimentalMaterialApi::class, ExperimentalMaterialApi::class)
-
-package app.aaps.pump.tandem.t_mobi.ui.actions.other
-
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material.ExperimentalMaterialApi
+// @file:OptIn(ExperimentalMaterialApi::class)
+//
+package app.aaps.pump.tandem.t_mobi.ui.actions.remove
+//
+// import androidx.compose.foundation.layout.PaddingValues
+// import androidx.compose.material.ExperimentalMaterialApi
+// import androidx.compose.runtime.Composable
+// import androidx.compose.runtime.LaunchedEffect
+// import androidx.compose.ui.tooling.preview.Preview
+// import androidx.compose.ui.unit.dp
+// import androidx.navigation.NavHostController
+// import androidx.navigation.compose.NavHost
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import app.aaps.pump.tandem.t_mobi.ui.actions.Actions
-//import app.aaps.pump.tandem.t_mobi.ui.actions.other.theme.ControlX2Theme
-//import com.jwoglom.controlx2.db.historylog.HistoryLogViewModel
-import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcUnits
-import com.jwoglom.pumpx2.pump.messages.calculator.BolusParameters
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BolusCalcDataSnapshotResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
-import kotlinx.coroutines.launch
+
+// import androidx.navigation.compose.rememberNavController
+// import app.aaps.pump.tandem.t_mobi.ui.actions.Actions
+// //import app.aaps.pump.tandem.t_mobi.ui.actions.other.theme.ControlX2Theme
+// //import com.jwoglom.controlx2.db.historylog.HistoryLogViewModel
+// import com.jwoglom.pumpx2.pump.messages.Message
+// import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcUnits
+// import com.jwoglom.pumpx2.pump.messages.calculator.BolusParameters
+// import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BolusCalcDataSnapshotResponse
+// import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
+// import kotlinx.coroutines.launch
 
 // import com.jwoglom.controlx2.presentation.navigation.Screen
 // import com.jwoglom.controlx2.presentation.screens.AppSetup
@@ -29,6 +30,12 @@ import kotlinx.coroutines.launch
 // import com.jwoglom.controlx2.presentation.screens.PumpSetup
 // import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 // import com.jwoglom.controlx2.shared.util.SendType
+
+@Deprecated("just sample code")
+@Composable
+fun MobileApp() {
+
+}
 
 // @Composable
 // fun MobileApp(

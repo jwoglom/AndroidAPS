@@ -1,6 +1,7 @@
-package app.aaps.pump.tandem.t_mobi.ui.actions.other
+package app.aaps.pump.tandem.t_mobi.ui.actions.remove
 
 import androidx.lifecycle.MutableLiveData
+import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcCondition
 import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcUnits
@@ -29,7 +30,6 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingMod
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.PumpingStateStreamResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import timber.log.Timber
 import java.time.Instant

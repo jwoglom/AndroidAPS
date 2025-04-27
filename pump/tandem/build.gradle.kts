@@ -49,6 +49,7 @@ dependencies {
     implementation(project(":implementation"))
 
     implementation(project(":pump:pump-common"))
+    implementation(project(":shared:tests"))
 
     testImplementation(project(":shared:tests"))
     testImplementation(project(":shared:impl"))
@@ -109,10 +110,29 @@ dependencies {
     // compose dependencies are just testing ones, final set will be determined in phase 2
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
+
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.compose.foundation)
+
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.compose.navigation)
+    implementation(libs.androidx.compose.runtime.livedata)
+    //implementation(libs.androidx.compose.material3.pullrefresh)
+
+
+        // implementation libs.androidx.compose.material.icons.extended
+        // implementation libs.androidx.compose.foundation
+        //
+        // implementation libs.androidx.lifecycle.runtime.compose
+        // implementation libs.androidx.compose.navigation
+        // implementation libs.androidx.compose.runtime.livedata
+
+
 
     //implementation("androidx.activity:activity-compose:1.10.1")
     //implementation("androidx.compose:compose-bom")
@@ -122,7 +142,7 @@ dependencies {
     //implementation("androidx.compose.ui:ui-tooling:1.3.1")
     //implementation("androidx.compose.ui:ui-tooling-preview:1.3.1")
     //implementation("androidx.compose.material3:material3:1.1.0-alpha03")
-    implementation("androidx.navigation:navigation-compose:2.5.3")
-    implementation("androidx.compose.material:material:1.3.1")
-    implementation("androidx.compose.runtime:runtime-livedata:1.3.1")
+    //implementation("androidx.navigation:navigation-compose:2.5.3")
+    //implementation("androidx.compose.material:material:1.3.1")
+    //implementation("androidx.compose.runtime:runtime-livedata:1.3.1")
 }

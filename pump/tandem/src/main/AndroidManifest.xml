@@ -17,9 +17,8 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="app.aaps.pump.tandem.t_mobi.ui.TandemMobiSettingsActivity" />
-
-        <activity android:name="app.aaps.pump.tandem.common.ui.DebugActionsActivity" />
+<!--        <activity android:name="app.aaps.pump.tandem.t_mobi.ui.TandemMobiSettingsActivity" />-->
+<!--        <activity android:name="app.aaps.pump.tandem.common.ui.DebugActionsActivity" />-->
 
         <activity android:name="app.aaps.pump.tandem.t_mobi.ui.ActionsActivity" />
 
@@ -28,10 +27,6 @@
             android:enabled="true"
             android:exported="false"/>
 
-
-
-
-        <!--        <uses-library android:name="org.apache.http.legacy" android:required="false"/>-->
     </application>
 
 </manifest>

@@ -25,6 +25,7 @@ enum class TandemPumpApiVersion(val description: String,
     VERSION_3_4("Version 3.4", 3, 4, isClosedLoopPossible = false, hasBolus = true),
     VERSION_3_5_MOBI("Version 3.5 Mobi", 3, 5, isClosedLoopPossible = true, hasBolus = true, hasFullControlSet = true),
     VERSION_3_6_MOBI("Version 3.6 Mobi", 3, 6, isClosedLoopPossible = true, hasBolus = true, hasFullControlSet = true),
+    VERSION_3_8_MOBI("Version 3.8 Mobi", 3, 8, isClosedLoopPossible = true, hasBolus = true, hasFullControlSet = true),
     //VERSION_2_5_OR_HIGHER("Version 2.5 or higher", 2, 5, isClosedLoopPossible = false, hasBolus = true),
     VERSION_4_x("Version 4.x", 4, 0, isClosedLoopPossible = true, hasBolus = true, hasFullControlSet = true),
 
@@ -74,8 +75,10 @@ enum class TandemPumpApiVersion(val description: String,
                             VERSION_3_4
                         } else if (response.minorVersion==5) {
                             VERSION_3_5_MOBI
-                        } else {
+                        } else if (response.minorVersion==6) {
                             VERSION_3_6_MOBI
+                        } else {
+                            VERSION_3_8_MOBI
                         }
 
                     }
