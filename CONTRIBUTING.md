@@ -87,9 +87,13 @@ Next change that is required is entry in your Dagger Module file:
     @ComposeUiModule("tandem")
     abstract fun bindTandemComposeUiFactory(factory: TandemComposeUiComponent.FactoryCompose): ComposeUiFactory
 
-
 ComposeUiModule name needs to be unique across whole app, so using driver name (in case of pump driver) is a
 good solution.
+
+Also on main Module file you need to specify subComponent you created
+
+@Module(subcomponents = [TandemComposeUiComponent::class])
+
 
 
 Now in every ComposeActivity, you need to do following:
@@ -161,7 +165,7 @@ Preview: (last 2 needed for preview, first two might be needed always)
 Others:
 
     implementation(libs.androidx.compose.material3)   // Material 3 interface
-    implementation(libs.androidx.compose.material)   // Material interface (both interfaces shouldn't be mixed, at least not in same screen)
+    implementation(libs.androidx.compose.material)    // Material interface (both interfaces shouldn't be mixed, at least not in same screen)
     implementation(libs.androidx.compose.foundation)  // base classes
 
     implementation(libs.androidx.lifecycle.runtime.compose) // if you will use livedata and lifecyles

@@ -26,7 +26,6 @@ import app.aaps.core.interfaces.rx.events.EventTempBasalChange
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
-import app.aaps.core.ui.dialogs.OKDialog
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.R as Rc
 import app.aaps.pump.tandem.R
@@ -45,11 +44,9 @@ import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.databinding.TandemMobiFragmentBinding
 
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
-import app.aaps.pump.common.ui.PumpHistoryActivity
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.CustomAlertDialog
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
