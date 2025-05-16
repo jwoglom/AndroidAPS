@@ -50,6 +50,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
@@ -86,16 +88,18 @@ fun CartridgeActions(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
     sendPumpCommands: (SendType, List<Message>) -> Boolean,
+    resourceHelper: ResourceHelper,
     _changeCartridgeMenuState: Boolean = false,
     _fillTubingMenuState: Boolean = false,
     _fillCannulaMenuState: Boolean = false,
+    navigateToSiteReminder: () -> Unit,
     navigateBack: () -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
+    //val coroutineScope = rememberCoroutineScope()
 
-    var showChangeCartridgeMenu by remember { mutableStateOf(_changeCartridgeMenuState) }
-    var showFillTubingMenu by remember { mutableStateOf(_fillTubingMenuState) }
-    var showFillCannulaMenu by remember { mutableStateOf(_fillCannulaMenuState) }
+    //var showChangeCartridgeMenu by remember { mutableStateOf(_changeCartridgeMenuState) }
+    //var showFillTubingMenu by remember { mutableStateOf(_fillTubingMenuState) }
+    //var showFillCannulaMenu by remember { mutableStateOf(_fillCannulaMenuState) }
 
     //val context = LocalContext.current
     val ds = LocalTandemDataStore.current
@@ -132,32 +136,37 @@ fun CartridgeActions(
     }
 
     fun refresh() = refreshScope.launch {
-        //if (!Prefs(context).serviceEnabled()) return@launch
         Timber.i("reloading CartridgeActions with force")
         refreshing = true
 
-        // TODO cartridgeActionsFields.forEach { field -> field.value = null }
-        fetchDataStoreFields(SendType.BUST_CACHE)
+        sendPumpCommands(SendType.BUST_CACHE, cartridgeActionsCommands)
+
+        withContext(Dispatchers.IO) {
+            Thread.sleep(250)
+        }
+
+        refreshing = false
     }
 
     //val state = rememberPullRefreshState(refreshing, ::refresh)
     val pullRefreshState = rememberPullToRefreshState()
 
-    LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
-        refreshScope.cancel()
-    }) {
-        Timber.i("reloading CartridgeActions from onStart lifecyclestate")
-        fetchDataStoreFields(SendType.STANDARD)
-    }
+    // LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
+    //     refreshScope.cancel()
+    // }) {
+    //     Timber.i("reloading CartridgeActions from onStart lifecyclestate")
+    //     fetchDataStoreFields(SendType.STANDARD)
+    // }
 
     LaunchedEffect(intervalOf(60)) {
         Timber.i("reloading CartridgeActions from interval")
-        fetchDataStoreFields(SendType.STANDARD)
+        //fetchDataStoreFields(SendType.STANDARD)
+        refresh()
     }
 
-    LaunchedEffect(refreshing) {
-        waitForLoaded()
-    }
+    // LaunchedEffect(refreshing) {
+    //     waitForLoaded()
+    // }
 
     Box(
         modifier = Modifier
@@ -189,508 +198,524 @@ fun CartridgeActions(
                 }
 
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.TopStart)
-                    ) {
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    "Change Cartridge"
-                                )
-                            },
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.Settings, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                refreshScope.launch {
-                                    ds.enterChangeCartridgeState.value = null
-                                    ds.detectingCartridgeState.value = null
-                                    sendPumpCommands(
-                                        SendType.BUST_CACHE, listOf(
-                                            TimeSinceResetRequest()
-                                        )
-                                    )
-                                    showChangeCartridgeMenu = true
-                                }
-                            }
-                        )
+                    ChangeCartridge(innerPadding = innerPadding,
+                               sendPumpCommands = sendPumpCommands,
+                               resourceHelper = resourceHelper,
+                               refreshScope = refreshScope)
 
-                        DropdownMenu(
-                            expanded = showChangeCartridgeMenu,
-                            onDismissRequest = {  },
-                            modifier = Modifier.fillMaxWidth().fillMaxHeight(),
-                        ) {
-                            val basalStatus = ds.basalStatus.observeAsState()
-                            val inChangeCartridgeMode = ds.inChangeCartridgeMode.observeAsState()
-                            val enterChangeCartridgeState = ds.enterChangeCartridgeState.observeAsState()
-                            val detectingCartridgeState = ds.detectingCartridgeState.observeAsState()
 
-                            AlertDialog(
-                                onDismissRequest = {
-                                    if (inChangeCartridgeMode.value == false) {
-                                        showChangeCartridgeMenu = false
-                                    }
-                                },
-                                title = {
-                                    Text("Change Cartridge")
-                                },
-                                text = {
-                                    LazyColumn(
-                                        contentPadding = innerPadding,
-                                        verticalArrangement = Arrangement.spacedBy(0.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .fillMaxHeight()
-                                            .padding(horizontal = 0.dp),
-                                        content = {
-                                            if (detectingCartridgeState.value != null) {
-                                                if (detectingCartridgeState.value?.isComplete == true) {
-                                                    item {
-                                                        Text("Cartridge change complete.")
-                                                        Text("\n")
-                                                        Text("${detectingCartridgeState.value?.percentComplete}% complete")
-                                                    }
-                                                } else {
-                                                    item {
-                                                        Text("Detecting insulin in the cartridge...")
-                                                        Text("\n")
-                                                        Text("${detectingCartridgeState.value?.percentComplete}% complete")
-                                                    }
-                                                }
-                                            } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                                                item {
-                                                    Text("You can now remove the cartridge from the pump.")
-                                                    Text("\n")
-                                                    Text("When you've inserted a new cartridge, press Cartridge Inserted below.")
-                                                }
-                                            } else if (inChangeCartridgeMode.value == true) {
-                                                item {
-                                                    Text("Preparing to change cartridge...")
-                                                    Text("\n")
-                                                }
-                                            } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
-                                                item {
-                                                    Text("Disconnect your pump from your body/site and press Change Cartridge below.")
-                                                    Text("\n")
-                                                }
-                                            } else {
-                                                item {
-                                                    Text("Before changing your cartridge, stop delivery of insulin.")
-                                                    Text("\n")
-                                                }
-                                            }
-                                        }
-                                    )
-                                },
-                                dismissButton = {
-                                    if (inChangeCartridgeMode.value == true) {
-                                        /* */
-                                    } else if (detectingCartridgeState.value?.isComplete == true) {
-                                        /* */
-                                    } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                                        /* */
-                                    } else {
-                                        TextButton(
-                                            onClick = {
-                                                showChangeCartridgeMenu = false
-                                            },
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            Text("Cancel")
-                                        }
-                                    }
-                                },
-                                confirmButton = {
-                                    if (detectingCartridgeState.value?.isComplete == true) {
-                                        TextButton(
-                                            onClick = {
-                                                showChangeCartridgeMenu = false
-                                            },
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            Text("Done")
-                                        }
-                                    } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                                        TextButton(
-                                            onClick = {
-                                                refreshScope.launch {
-                                                    sendPumpCommands(
-                                                        SendType.BUST_CACHE, listOf(
-                                                            ExitChangeCartridgeModeRequest()
-                                                        )
-                                                    )
-
-                                                }
-                                            },
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            Text("Cartridge Inserted")
-                                        }
-                                    } else {
-                                        TextButton(
-                                            onClick = {
-                                                refreshScope.launch {
-                                                    sendPumpCommands(
-                                                        SendType.BUST_CACHE, listOf(
-                                                            EnterChangeCartridgeModeRequest()
-                                                        )
-                                                    )
-
-                                                }
-                                            },
-                                            enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            Text("Change Cartridge")
-                                        }
-                                    }
-                                }
-                            )
-
-                        }
-
-                    }
+                    // Box(
+                    //     modifier = Modifier
+                    //         .fillMaxSize()
+                    //         .wrapContentSize(Alignment.TopStart)
+                    // ) {
+                    //     ListItem(
+                    //         headlineContent = {
+                    //             Text(
+                    //                 "Change Cartridge"
+                    //             )
+                    //         },
+                    //         supportingContent = {
+                    //         },
+                    //         leadingContent = {
+                    //             Icon(Icons.Filled.Settings, contentDescription = null)
+                    //         },
+                    //         modifier = Modifier.clickable {
+                    //             refreshScope.launch {
+                    //                 ds.enterChangeCartridgeState.value = null
+                    //                 ds.detectingCartridgeState.value = null
+                    //                 sendPumpCommands(
+                    //                     SendType.BUST_CACHE, listOf(
+                    //                         TimeSinceResetRequest()
+                    //                     )
+                    //                 )
+                    //                 showChangeCartridgeMenu = true
+                    //             }
+                    //         }
+                    //     )
+                    //
+                    //     DropdownMenu(
+                    //         expanded = showChangeCartridgeMenu,
+                    //         onDismissRequest = {  },
+                    //         modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                    //     ) {
+                    //         val basalStatus = ds.basalStatus.observeAsState()
+                    //         val inChangeCartridgeMode = ds.inChangeCartridgeMode.observeAsState()
+                    //         val enterChangeCartridgeState = ds.enterChangeCartridgeState.observeAsState()
+                    //         val detectingCartridgeState = ds.detectingCartridgeState.observeAsState()
+                    //
+                    //         AlertDialog(
+                    //             onDismissRequest = {
+                    //                 if (inChangeCartridgeMode.value == false) {
+                    //                     showChangeCartridgeMenu = false
+                    //                 }
+                    //             },
+                    //             title = {
+                    //                 Text("Change Cartridge")
+                    //             },
+                    //             text = {
+                    //                 LazyColumn(
+                    //                     contentPadding = innerPadding,
+                    //                     verticalArrangement = Arrangement.spacedBy(0.dp),
+                    //                     modifier = Modifier
+                    //                         .fillMaxWidth()
+                    //                         .fillMaxHeight()
+                    //                         .padding(horizontal = 0.dp),
+                    //                     content = {
+                    //                         if (detectingCartridgeState.value != null) {
+                    //                             if (detectingCartridgeState.value?.isComplete == true) {
+                    //                                 item {
+                    //                                     Text("Cartridge change complete.")
+                    //                                     Text("\n")
+                    //                                     Text("${detectingCartridgeState.value?.percentComplete}% complete")
+                    //                                 }
+                    //                             } else {
+                    //                                 item {
+                    //                                     Text("Detecting insulin in the cartridge...")
+                    //                                     Text("\n")
+                    //                                     Text("${detectingCartridgeState.value?.percentComplete}% complete")
+                    //                                 }
+                    //                             }
+                    //                         } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
+                    //                             item {
+                    //                                 Text("You can now remove the cartridge from the pump.")
+                    //                                 Text("\n")
+                    //                                 Text("When you've inserted a new cartridge, press Cartridge Inserted below.")
+                    //                             }
+                    //                         } else if (inChangeCartridgeMode.value == true) {
+                    //                             item {
+                    //                                 Text("Preparing to change cartridge...")
+                    //                                 Text("\n")
+                    //                             }
+                    //                         } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
+                    //                             item {
+                    //                                 Text("Disconnect your pump from your body/site and press Change Cartridge below.")
+                    //                                 Text("\n")
+                    //                             }
+                    //                         } else {
+                    //                             item {
+                    //                                 Text("Before changing your cartridge, stop delivery of insulin.")
+                    //                                 Text("\n")
+                    //                             }
+                    //                         }
+                    //                     }
+                    //                 )
+                    //             },
+                    //             dismissButton = {
+                    //                 if (inChangeCartridgeMode.value == true) {
+                    //                     /* */
+                    //                 } else if (detectingCartridgeState.value?.isComplete == true) {
+                    //                     /* */
+                    //                 } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
+                    //                     /* */
+                    //                 } else {
+                    //                     TextButton(
+                    //                         onClick = {
+                    //                             showChangeCartridgeMenu = false
+                    //                         },
+                    //                         modifier = Modifier.padding(top = 16.dp)
+                    //                     ) {
+                    //                         Text("Cancel")
+                    //                     }
+                    //                 }
+                    //             },
+                    //             confirmButton = {
+                    //                 if (detectingCartridgeState.value?.isComplete == true) {
+                    //                     TextButton(
+                    //                         onClick = {
+                    //                             showChangeCartridgeMenu = false
+                    //                         },
+                    //                         modifier = Modifier.padding(top = 16.dp)
+                    //                     ) {
+                    //                         Text("Done")
+                    //                     }
+                    //                 } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
+                    //                     TextButton(
+                    //                         onClick = {
+                    //                             refreshScope.launch {
+                    //                                 sendPumpCommands(
+                    //                                     SendType.BUST_CACHE, listOf(
+                    //                                         ExitChangeCartridgeModeRequest()
+                    //                                     )
+                    //                                 )
+                    //
+                    //                             }
+                    //                         },
+                    //                         modifier = Modifier.padding(top = 16.dp)
+                    //                     ) {
+                    //                         Text("Cartridge Inserted")
+                    //                     }
+                    //                 } else {
+                    //                     TextButton(
+                    //                         onClick = {
+                    //                             refreshScope.launch {
+                    //                                 sendPumpCommands(
+                    //                                     SendType.BUST_CACHE, listOf(
+                    //                                         EnterChangeCartridgeModeRequest()
+                    //                                     )
+                    //                                 )
+                    //
+                    //                             }
+                    //                         },
+                    //                         enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
+                    //                         modifier = Modifier.padding(top = 16.dp)
+                    //                     ) {
+                    //                         Text("Change Cartridge")
+                    //                     }
+                    //                 }
+                    //             }
+                    //         )
+                    //
+                    //     }
+                    //
+                    // }
                 }
 
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.TopStart)
-                    ) {
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    "Fill Tubing"
-                                )
-                            },
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.Settings, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                refreshScope.launch {
-                                    ds.fillTubingState.value = null
-                                    ds.exitFillTubingState.value = null
-                                    ds.inFillTubingMode.value = false
-                                    sendPumpCommands(
-                                        SendType.BUST_CACHE, listOf(
-                                            TimeSinceResetRequest()
-                                        )
-                                    )
-                                    showFillTubingMenu = true
-                                }
-                            }
-                        )
+                    FillTubing(innerPadding = innerPadding,
+                                sendPumpCommands = sendPumpCommands,
+                                resourceHelper = resourceHelper,
+                                refreshScope = refreshScope)
 
-                        DropdownMenu(
-                            expanded = showFillTubingMenu,
-                            onDismissRequest = {  },
-                            modifier = Modifier.fillMaxWidth().fillMaxHeight(),
-                        ) {
-                            val basalStatus = ds.basalStatus.observeAsState()
-                            val inFillTubingMode = ds.inFillTubingMode.observeAsState()
-                            val fillTubingState = ds.fillTubingState.observeAsState()
-                            val exitFillTubingState = ds.exitFillTubingState.observeAsState()
-
-                            AlertDialog(
-                                onDismissRequest = {
-                                    if (inFillTubingMode.value == false) {
-                                        showFillTubingMenu = false
-                                    }
-                                },
-                                title = {
-                                    Text("Fill Tubing")
-                                },
-                                text = {
-                                    LazyColumn(
-                                        contentPadding = innerPadding,
-                                        verticalArrangement = Arrangement.spacedBy(0.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .fillMaxHeight()
-                                            .padding(horizontal = 0.dp),
-                                        content = {
-                                            if (exitFillTubingState.value != null) {
-                                                if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
-                                                    item {
-                                                        Text("Successfully filled tubing. Press Done to exit.")
-                                                    }
-                                                } else {
-                                                    item {
-                                                        Text("Please wait, finalizing tubing fill...\n\n${exitFillTubingState.value?.state} (${exitFillTubingState.value?.stateId})")
-                                                    }
-                                                }
-                                            } else if (inFillTubingMode.value == true) {
-                                                if (fillTubingState.value == null) {
-                                                    item {
-                                                        Text("Hold down the pump button to fill insulin through the tubing.\n\n")
-                                                        Text("You haven't filled any insulin through the tubing yet.")
-                                                    }
-                                                } else if (fillTubingState.value?.buttonDown == true) {
-                                                    item {
-                                                        Text("FILLING... continue to hold down button until you see insulin drops at the cannula.")
-                                                    }
-                                                } else if (fillTubingState.value?.buttonDown == false) {
-                                                    item {
-                                                        Text("STOPPED FILLING... do you see insulin drops at the cannula?\n\n")
-                                                        Text("If you're done filling, press Complete Fill below. Otherwise, hold down the pump button again.")
-                                                    }
-                                                }
-                                            } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
-                                                item {
-                                                    Text("Disconnect your pump from your body/site and press Begin Tubing Fill below.")
-                                                    Text("\n")
-                                                }
-                                            } else {
-                                                item {
-                                                    Text("Before filling your tubing, stop delivery of insulin.")
-                                                    Text("\n")
-                                                }
-                                            }
-                                        }
-                                    )
-                                },
-                                dismissButton = {
-                                    if (inFillTubingMode.value == true) {
-                                    } else {
-                                        TextButton(
-                                            onClick = {
-                                                showFillTubingMenu = false
-                                            },
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            Text("Cancel")
-                                        }
-                                    }
-                                },
-                                confirmButton = {
-                                    if (exitFillTubingState.value != null) {
-                                        if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
-                                            TextButton(
-                                                onClick = {
-                                                    showFillTubingMenu = false
-                                                },
-                                                enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
-                                                modifier = Modifier.padding(top = 16.dp)
-                                            ) {
-                                                Text("Done")
-                                            }
-                                        }
-                                    } else if (inFillTubingMode.value == true) {
-                                        if (fillTubingState.value?.buttonDown == false) {
-                                            TextButton(
-                                                onClick = {
-                                                    refreshScope.launch {
-                                                        sendPumpCommands(
-                                                            SendType.BUST_CACHE, listOf(
-                                                                ExitFillTubingModeRequest()
-                                                            )
-                                                        )
-
-                                                    }
-                                                },
-                                                enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
-                                                modifier = Modifier.padding(top = 16.dp)
-                                            ) {
-                                                Text("Complete Fill")
-                                            }
-                                        }
-                                    } else {
-                                        TextButton(
-                                            onClick = {
-                                                refreshScope.launch {
-                                                    sendPumpCommands(
-                                                        SendType.BUST_CACHE, listOf(
-                                                            EnterFillTubingModeRequest()
-                                                        )
-                                                    )
-
-                                                }
-                                            },
-                                            enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            Text("Begin Tubing Fill")
-                                        }
-                                    }
-                                }
-                            )
-
-                        }
-
-                    }
+                    // Box(
+                    //     modifier = Modifier
+                    //         .fillMaxSize()
+                    //         .wrapContentSize(Alignment.TopStart)
+                    // ) {
+                    //     ListItem(
+                    //         headlineContent = {
+                    //             Text(
+                    //                 "Fill Tubing"
+                    //             )
+                    //         },
+                    //         supportingContent = {
+                    //         },
+                    //         leadingContent = {
+                    //             Icon(Icons.Filled.Settings, contentDescription = null)
+                    //         },
+                    //         modifier = Modifier.clickable {
+                    //             refreshScope.launch {
+                    //                 ds.fillTubingState.value = null
+                    //                 ds.exitFillTubingState.value = null
+                    //                 ds.inFillTubingMode.value = false
+                    //                 sendPumpCommands(
+                    //                     SendType.BUST_CACHE, listOf(
+                    //                         TimeSinceResetRequest()
+                    //                     )
+                    //                 )
+                    //                 showFillTubingMenu = true
+                    //             }
+                    //         }
+                    //     )
+                    //
+                    //     DropdownMenu(
+                    //         expanded = showFillTubingMenu,
+                    //         onDismissRequest = {  },
+                    //         modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                    //     ) {
+                    //         val basalStatus = ds.basalStatus.observeAsState()
+                    //         val inFillTubingMode = ds.inFillTubingMode.observeAsState()
+                    //         val fillTubingState = ds.fillTubingState.observeAsState()
+                    //         val exitFillTubingState = ds.exitFillTubingState.observeAsState()
+                    //
+                    //         AlertDialog(
+                    //             onDismissRequest = {
+                    //                 if (inFillTubingMode.value == false) {
+                    //                     showFillTubingMenu = false
+                    //                 }
+                    //             },
+                    //             title = {
+                    //                 Text("Fill Tubing")
+                    //             },
+                    //             text = {
+                    //                 LazyColumn(
+                    //                     contentPadding = innerPadding,
+                    //                     verticalArrangement = Arrangement.spacedBy(0.dp),
+                    //                     modifier = Modifier
+                    //                         .fillMaxWidth()
+                    //                         .fillMaxHeight()
+                    //                         .padding(horizontal = 0.dp),
+                    //                     content = {
+                    //                         if (exitFillTubingState.value != null) {
+                    //                             if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
+                    //                                 item {
+                    //                                     Text("Successfully filled tubing. Press Done to exit.")
+                    //                                 }
+                    //                             } else {
+                    //                                 item {
+                    //                                     Text("Please wait, finalizing tubing fill...\n\n${exitFillTubingState.value?.state} (${exitFillTubingState.value?.stateId})")
+                    //                                 }
+                    //                             }
+                    //                         } else if (inFillTubingMode.value == true) {
+                    //                             if (fillTubingState.value == null) {
+                    //                                 item {
+                    //                                     Text("Hold down the pump button to fill insulin through the tubing.\n\n")
+                    //                                     Text("You haven't filled any insulin through the tubing yet.")
+                    //                                 }
+                    //                             } else if (fillTubingState.value?.buttonDown == true) {
+                    //                                 item {
+                    //                                     Text("FILLING... continue to hold down button until you see insulin drops at the cannula.")
+                    //                                 }
+                    //                             } else if (fillTubingState.value?.buttonDown == false) {
+                    //                                 item {
+                    //                                     Text("STOPPED FILLING... do you see insulin drops at the cannula?\n\n")
+                    //                                     Text("If you're done filling, press Complete Fill below. Otherwise, hold down the pump button again.")
+                    //                                 }
+                    //                             }
+                    //                         } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
+                    //                             item {
+                    //                                 Text("Disconnect your pump from your body/site and press Begin Tubing Fill below.")
+                    //                                 Text("\n")
+                    //                             }
+                    //                         } else {
+                    //                             item {
+                    //                                 Text("Before filling your tubing, stop delivery of insulin.")
+                    //                                 Text("\n")
+                    //                             }
+                    //                         }
+                    //                     }
+                    //                 )
+                    //             },
+                    //             dismissButton = {
+                    //                 if (inFillTubingMode.value == true) {
+                    //                 } else {
+                    //                     TextButton(
+                    //                         onClick = {
+                    //                             showFillTubingMenu = false
+                    //                         },
+                    //                         modifier = Modifier.padding(top = 16.dp)
+                    //                     ) {
+                    //                         Text("Cancel")
+                    //                     }
+                    //                 }
+                    //             },
+                    //             confirmButton = {
+                    //                 if (exitFillTubingState.value != null) {
+                    //                     if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
+                    //                         TextButton(
+                    //                             onClick = {
+                    //                                 showFillTubingMenu = false
+                    //                             },
+                    //                             enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
+                    //                             modifier = Modifier.padding(top = 16.dp)
+                    //                         ) {
+                    //                             Text("Done")
+                    //                         }
+                    //                     }
+                    //                 } else if (inFillTubingMode.value == true) {
+                    //                     if (fillTubingState.value?.buttonDown == false) {
+                    //                         TextButton(
+                    //                             onClick = {
+                    //                                 refreshScope.launch {
+                    //                                     sendPumpCommands(
+                    //                                         SendType.BUST_CACHE, listOf(
+                    //                                             ExitFillTubingModeRequest()
+                    //                                         )
+                    //                                     )
+                    //
+                    //                                 }
+                    //                             },
+                    //                             enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
+                    //                             modifier = Modifier.padding(top = 16.dp)
+                    //                         ) {
+                    //                             Text("Complete Fill")
+                    //                         }
+                    //                     }
+                    //                 } else {
+                    //                     TextButton(
+                    //                         onClick = {
+                    //                             refreshScope.launch {
+                    //                                 sendPumpCommands(
+                    //                                     SendType.BUST_CACHE, listOf(
+                    //                                         EnterFillTubingModeRequest()
+                    //                                     )
+                    //                                 )
+                    //
+                    //                             }
+                    //                         },
+                    //                         enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
+                    //                         modifier = Modifier.padding(top = 16.dp)
+                    //                     ) {
+                    //                         Text("Begin Tubing Fill")
+                    //                     }
+                    //                 }
+                    //             }
+                    //         )
+                    //
+                    //     }
+                    //
+                    // }
                 }
 
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.TopStart)
-                    ) {
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    "Fill Cannula"
-                                )
-                            },
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.Settings, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                refreshScope.launch {
-                                    ds.fillCannulaState.value = null
-                                    sendPumpCommands(
-                                        SendType.BUST_CACHE, listOf(
-                                            TimeSinceResetRequest()
-                                        )
-                                    )
-                                    showFillCannulaMenu = true
-                                }
-                            }
-                        )
+                    FillCannula(innerPadding = innerPadding,
+                                sendPumpCommands = sendPumpCommands,
+                                resourceHelper = resourceHelper,
+                                refreshScope = refreshScope)
 
-                        DropdownMenu(
-                            expanded = showFillCannulaMenu,
-                            onDismissRequest = {  },
-                            modifier = Modifier.fillMaxWidth().fillMaxHeight(),
-                        ) {
-                            val basalStatus = ds.basalStatus.observeAsState()
-                            val fillCannulaState = ds.fillCannulaState.observeAsState()
-                            var cannulaFillAmountStr by remember { mutableStateOf<String?>(null) }
-                            var cannulaFillAmount by remember { mutableStateOf<Double?>(null) }
-
-                            fun allowedCannulaFillAmount(units: Double?): Boolean {
-                                return units != null && units > 0 && units <= 3.0
-                            }
-
-                            AlertDialog(
-                                onDismissRequest = {
-                                },
-                                title = {
-                                    Text("Fill Cannula")
-                                },
-                                text = {
-                                    LazyColumn(
-                                        contentPadding = innerPadding,
-                                        verticalArrangement = Arrangement.spacedBy(0.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .fillMaxHeight()
-                                            .padding(horizontal = 0.dp),
-                                        content = {
-                                            if (fillCannulaState.value != null) {
-                                                if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
-                                                    item {
-                                                        Text("Cannula filled.")
-                                                    }
-                                                } else {
-                                                    item {
-                                                        Text("Filling cannula with ${cannulaFillAmount} units...\n\n")
-                                                        Text("State: ${fillCannulaState.value?.stateId}")
-                                                    }
-                                                }
-
-                                            } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
-                                                item {
-                                                    Text("Enter the cannula fill size:")
-                                                    Text("\n\n")
-                                                    DecimalOutlinedText(
-                                                        title = "Fill size",
-                                                        value = cannulaFillAmountStr,
-                                                        onValueChange = {
-                                                            cannulaFillAmountStr = it
-                                                            cannulaFillAmount = when {
-                                                                it == "" -> null
-                                                                else -> {
-                                                                    val d = it.toDoubleOrNull()
-                                                                    if (!allowedCannulaFillAmount(d)) {
-                                                                        null
-                                                                    } else {
-                                                                        d
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    )
-                                                    Text("\n")
-
-                                                }
-                                            } else {
-                                                item {
-                                                    Text("Before filling your cannula, stop delivery of insulin.")
-                                                    Text("\n")
-                                                }
-                                            }
-                                        }
-                                    )
-                                },
-                                dismissButton = {
-                                    if (fillCannulaState.value != null) {
-                                        /* */
-                                    } else {
-                                        TextButton(
-                                            onClick = {
-                                                showFillCannulaMenu = false
-                                            },
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            Text("Cancel")
-                                        }
-                                    }
-                                },
-                                confirmButton = {
-                                    if (fillCannulaState.value != null) {
-                                        if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
-                                            TextButton(
-                                                onClick = {
-                                                    showFillCannulaMenu = false
-                                                },
-                                                modifier = Modifier.padding(top = 16.dp)
-                                            ) {
-                                                Text("Done")
-                                            }
-                                        }
-                                    } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
-                                        TextButton(
-                                            onClick = {
-                                                refreshScope.launch {
-                                                    cannulaFillAmount.let {
-                                                        if (allowedCannulaFillAmount(it)) {
-                                                            sendPumpCommands(
-                                                                SendType.BUST_CACHE, listOf(
-                                                                    FillCannulaRequest(
-                                                                        InsulinUnit.from1To1000(it).toInt()
-                                                                    )
-                                                                )
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED && cannulaFillAmount != null && allowedCannulaFillAmount(cannulaFillAmount),
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            if (allowedCannulaFillAmount(cannulaFillAmount)) {
-                                                Text("Fill ${cannulaFillAmount}u Cannula")
-                                            } else {
-                                                Text("Fill Cannula")
-                                            }
-                                        }
-                                    }
-                                }
-                            )
-
-                        }
-
-                    }
+                    // Box(
+                    //     modifier = Modifier
+                    //         .fillMaxSize()
+                    //         .wrapContentSize(Alignment.TopStart)
+                    // ) {
+                    //     ListItem(
+                    //         headlineContent = {
+                    //             Text(
+                    //                 "Fill Cannula"
+                    //             )
+                    //         },
+                    //         supportingContent = {
+                    //         },
+                    //         leadingContent = {
+                    //             Icon(Icons.Filled.Settings, contentDescription = null)
+                    //         },
+                    //         modifier = Modifier.clickable {
+                    //             refreshScope.launch {
+                    //                 ds.fillCannulaState.value = null
+                    //                 sendPumpCommands(
+                    //                     SendType.BUST_CACHE, listOf(
+                    //                         TimeSinceResetRequest()
+                    //                     )
+                    //                 )
+                    //                 showFillCannulaMenu = true
+                    //             }
+                    //         }
+                    //     )
+                    //
+                    //     DropdownMenu(
+                    //         expanded = showFillCannulaMenu,
+                    //         onDismissRequest = {  },
+                    //         modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                    //     ) {
+                    //         val basalStatus = ds.basalStatus.observeAsState()
+                    //         val fillCannulaState = ds.fillCannulaState.observeAsState()
+                    //         var cannulaFillAmountStr by remember { mutableStateOf<String?>(null) }
+                    //         var cannulaFillAmount by remember { mutableStateOf<Double?>(null) }
+                    //
+                    //         fun allowedCannulaFillAmount(units: Double?): Boolean {
+                    //             return units != null && units > 0 && units <= 3.0
+                    //         }
+                    //
+                    //         AlertDialog(
+                    //             onDismissRequest = {
+                    //             },
+                    //             title = {
+                    //                 Text("Fill Cannula")
+                    //             },
+                    //             text = {
+                    //                 LazyColumn(
+                    //                     contentPadding = innerPadding,
+                    //                     verticalArrangement = Arrangement.spacedBy(0.dp),
+                    //                     modifier = Modifier
+                    //                         .fillMaxWidth()
+                    //                         .fillMaxHeight()
+                    //                         .padding(horizontal = 0.dp),
+                    //                     content = {
+                    //                         if (fillCannulaState.value != null) {
+                    //                             if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
+                    //                                 item {
+                    //                                     Text("Cannula filled.")
+                    //                                 }
+                    //                             } else {
+                    //                                 item {
+                    //                                     Text("Filling cannula with ${cannulaFillAmount} units...\n\n")
+                    //                                     Text("State: ${fillCannulaState.value?.stateId}")
+                    //                                 }
+                    //                             }
+                    //
+                    //                         } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
+                    //                             item {
+                    //                                 Text("Enter the cannula fill size:")
+                    //                                 Text("\n\n")
+                    //                                 DecimalOutlinedText(
+                    //                                     title = "Fill size",
+                    //                                     value = cannulaFillAmountStr,
+                    //                                     onValueChange = {
+                    //                                         cannulaFillAmountStr = it
+                    //                                         cannulaFillAmount = when {
+                    //                                             it == "" -> null
+                    //                                             else -> {
+                    //                                                 val d = it.toDoubleOrNull()
+                    //                                                 if (!allowedCannulaFillAmount(d)) {
+                    //                                                     null
+                    //                                                 } else {
+                    //                                                     d
+                    //                                                 }
+                    //                                             }
+                    //                                         }
+                    //                                     }
+                    //                                 )
+                    //                                 Text("\n")
+                    //
+                    //                             }
+                    //                         } else {
+                    //                             item {
+                    //                                 Text("Before filling your cannula, stop delivery of insulin.")
+                    //                                 Text("\n")
+                    //                             }
+                    //                         }
+                    //                     }
+                    //                 )
+                    //             },
+                    //             dismissButton = {
+                    //                 if (fillCannulaState.value != null) {
+                    //                     /* */
+                    //                 } else {
+                    //                     TextButton(
+                    //                         onClick = {
+                    //                             showFillCannulaMenu = false
+                    //                         },
+                    //                         modifier = Modifier.padding(top = 16.dp)
+                    //                     ) {
+                    //                         Text("Cancel")
+                    //                     }
+                    //                 }
+                    //             },
+                    //             confirmButton = {
+                    //                 if (fillCannulaState.value != null) {
+                    //                     if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
+                    //                         TextButton(
+                    //                             onClick = {
+                    //                                 showFillCannulaMenu = false
+                    //                             },
+                    //                             modifier = Modifier.padding(top = 16.dp)
+                    //                         ) {
+                    //                             Text("Done")
+                    //                         }
+                    //                     }
+                    //                 } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
+                    //                     TextButton(
+                    //                         onClick = {
+                    //                             refreshScope.launch {
+                    //                                 cannulaFillAmount.let {
+                    //                                     if (allowedCannulaFillAmount(it)) {
+                    //                                         sendPumpCommands(
+                    //                                             SendType.BUST_CACHE, listOf(
+                    //                                                 FillCannulaRequest(
+                    //                                                     InsulinUnit.from1To1000(it).toInt()
+                    //                                                 )
+                    //                                             )
+                    //                                         )
+                    //                                     }
+                    //                                 }
+                    //                             }
+                    //                         },
+                    //                         enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED && cannulaFillAmount != null && allowedCannulaFillAmount(cannulaFillAmount),
+                    //                         modifier = Modifier.padding(top = 16.dp)
+                    //                     ) {
+                    //                         if (allowedCannulaFillAmount(cannulaFillAmount)) {
+                    //                             Text("Fill ${cannulaFillAmount}u Cannula")
+                    //                         } else {
+                    //                             Text("Fill Cannula")
+                    //                         }
+                    //                     }
+                    //                 }
+                    //             }
+                    //         )
+                    //
+                    //     }
+                    //
+                    // }
                 }
 
                 item {
@@ -709,7 +734,7 @@ fun CartridgeActions(
                                 Icon(Icons.Filled.Info, contentDescription = null)
                             },
                             modifier = Modifier.clickable {
-                                //navigateToPumpInfo()
+                                navigateToSiteReminder()
                             }
                         )
                     }
@@ -720,36 +745,35 @@ fun CartridgeActions(
                     Line("\n")
                 }
 
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.BottomStart)
-                    ) {
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    "Back"
-                                )
-                            },
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                navigateBack()
-                            }
-                        )
-                    }
-                }
+                // item {
+                //     Box(
+                //         modifier = Modifier
+                //             .fillMaxSize()
+                //             .wrapContentSize(Alignment.BottomStart)
+                //     ) {
+                //         ListItem(
+                //             headlineContent = {
+                //                 Text(
+                //                     "Back"
+                //                 )
+                //             },
+                //             supportingContent = {
+                //             },
+                //             leadingContent = {
+                //                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                //             },
+                //             modifier = Modifier.clickable {
+                //                 navigateBack()
+                //             }
+                //         )
+                //     }
+                // }
             }
         )
     }
 }
 val cartridgeActionsCommands = listOf(
     HomeScreenMirrorRequest(),
-    //CGMStatusRequest(),
     TimeSinceResetRequest(),
     UnknownMobiOpcode20Request()
 )
@@ -772,6 +796,8 @@ private fun DefaultPreview() {
                 //sendMessage = { _, _ -> },
                 sendPumpCommands = {_, _ -> true},
                 navigateBack = {},
+                navigateToSiteReminder = {},
+                resourceHelper = ResourceHelperTest()
             )
         }
     }
@@ -792,6 +818,8 @@ private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
                 sendPumpCommands = {_, _ -> true},
                 _changeCartridgeMenuState = true,
                 navigateBack = {},
+                navigateToSiteReminder = {},
+                resourceHelper = ResourceHelperTest()
             )
         }
     }
@@ -812,6 +840,8 @@ private fun DefaultPreviewChangeCartridge_InsulinStopped() {
                 sendPumpCommands = {_, _ -> true},
                 _changeCartridgeMenuState = true,
                 navigateBack = {},
+                navigateToSiteReminder = {},
+                resourceHelper = ResourceHelperTest()
             )
         }
     }

@@ -5,7 +5,6 @@ import app.aaps.pump.common.driver.history.PumpHistoryEntry
 import app.aaps.pump.common.driver.history.PumpHistoryPeriod
 import app.aaps.pump.common.driver.history.PumpHistoryText
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.common.database.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.database.TandemPumpHistory
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -17,6 +16,7 @@ import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.data.history.Bolus
 import app.aaps.pump.tandem.common.data.history.HistoryLogDto
 import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
+import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 
 import javax.inject.Inject
 
@@ -25,8 +25,8 @@ class TandemHistoryDataProvider @Inject constructor(
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,
     var tandemPumpUtil: TandemPumpUtil,
-    private val tandemDataConverter: TandemDataConverter,
-    private var tandemPumpHistory: TandemPumpHistory
+    //private val tandemDataConverter: TandemDataConverter,
+    //private var tandemPumpHistory: TandemPumpHistory
 ) : PumpHistoryDataProviderAbstract() {
 
     //@Inject lateinit var tandemPumpHistory: TandemPumpHistory;
@@ -42,17 +42,19 @@ class TandemHistoryDataProvider @Inject constructor(
         }
 
         if (period == PumpHistoryPeriod.ALL) {
-            dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allBlocking()
+            //dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allBlocking()
         } else {
             val startingTimeForData = getStartingTimeForData(period)
-            dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allSinceBlocking(DateTimeUtil.toATechDate(startingTimeForData))
+            //dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allSinceBlocking(DateTimeUtil.toATechDate(startingTimeForData))
         }
 
-        for (historyRecordEntity in dbHistoryList) {
-            val domainObject = tandemPumpHistory.historyMapper.entityToDomain(historyRecordEntity)
-            domainObject.prepareEntryData(resourceHelper = resourceHelper, pumpDataConverter = tandemDataConverter)
-            outList.add(domainObject)
-        }
+        // TODO TandemHistoryDataProvider fix
+
+        // for (historyRecordEntity in dbHistoryList) {
+        //     val domainObject = tandemPumpHistory.historyMapper.entityToDomain(historyRecordEntity)
+        //     domainObject.prepareEntryData(resourceHelper = resourceHelper, pumpDataConverter = tandemDataConverter)
+        //     outList.add(domainObject)
+        // }
 
         return outList
     }

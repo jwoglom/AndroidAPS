@@ -696,7 +696,7 @@
                     android:drawableTop="@drawable/ic_pump_history"
                     android:paddingLeft="0dp"
                     android:paddingRight="0dp"
-                    android:text="@string/pump_history" />
+                    android:text="@string/pump_data" />
 
                 <Button
                     android:id="@+id/pump_config"

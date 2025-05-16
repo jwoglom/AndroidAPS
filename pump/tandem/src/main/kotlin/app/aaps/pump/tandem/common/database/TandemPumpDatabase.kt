@@ -5,17 +5,22 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-
+import app.aaps.pump.tandem.common.database.dao.TandemHistoryRecordDao
+import app.aaps.pump.tandem.common.database.dao.TandemQualifyingEventsDao
+import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
+import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
 
 @Database(
-    entities = [TandemHistoryRecordEntity::class],
+    entities = [TandemHistoryRecordEntity::class, TandemQualifyingEventEntity::class],
     exportSchema = true,
     version = TandemPumpDatabase.VERSION
 )
-@TypeConverters(DatabaseConverters::class)
+//@TypeConverters(DatabaseConverters::class)
 abstract class TandemPumpDatabase : RoomDatabase() {
 
     abstract fun historyRecordDao(): TandemHistoryRecordDao
+
+    abstract fun qualifyingEventsDao(): TandemQualifyingEventsDao
 
     companion object {
 

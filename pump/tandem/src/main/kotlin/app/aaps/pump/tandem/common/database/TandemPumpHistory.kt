@@ -1,27 +1,30 @@
 package app.aaps.pump.tandem.common.database
 
 import com.google.gson.Gson
-import app.aaps.pump.tandem.common.data.history.DateTimeChanged
-import app.aaps.pump.tandem.common.data.history.HistoryLogDto
 
-import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
 
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.pump.PumpSync
+
+import app.aaps.pump.tandem.common.database.dao.TandemHistoryRecordDao
+import app.aaps.pump.tandem.common.database.data.DbDataConverter
+import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
+import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
 import java.util.*
-import javax.inject.Inject
+//import javax.inject.Inject
 
 // TODO TandemPumpHistory refactor this for Tandem N-3
-class TandemPumpHistory @Inject constructor(
+class TandemPumpHistory /*@Inject*/ constructor(
     val pumpHistoryDao: TandemHistoryRecordDao,
     val pumpHistoryDatabase: TandemPumpDatabase,
-    val historyMapper: HistoryMapper,
-    val pumpSync: PumpSync,
+    //val historyMapper: HistoryMapper,
+    val dbDataConverter: DbDataConverter,
+    //val pumpSync: PumpSync,
     val pumpUtil: TandemPumpUtil,
     val pumpStatus: TandemPumpStatus,
     val aapsLogger: AAPSLogger
@@ -40,7 +43,7 @@ class TandemPumpHistory @Inject constructor(
         typeId: Int,
         pumpTime: Long,   // EpochInMillis (pump stores time as EpochSeconds from Jan2008, we don't)
         payload: ByteArray,
-        entitySubId: Long? = null, // some entities have special id (for example TBR has tempRateId)
+        entitySubId: Int? = null, // some entities have special id (for example TBR has tempRateId)
 
 
         // serial: Long,
@@ -56,7 +59,7 @@ class TandemPumpHistory @Inject constructor(
         // alarmRecord: Alarm?,
         // configRecord: ConfigurationChanged?,
         // pumpStatusRecord: PumpStatusChanged?,
-        dateTimeRecord: DateTimeChanged?
+        //dateTimeRecord: DateTimeChanged?
     ): Single<Long> {
 
         // var id = sequenceId
@@ -86,12 +89,13 @@ class TandemPumpHistory @Inject constructor(
     //     return pumpHistoryDao.save(entity).toSingle { entity.id }
     // }
 
-    fun getRecords(): Single<List<HistoryLogDto>> =
-        pumpHistoryDao.all().map { list -> listOf<HistoryLogDto>()
-                list.map(historyMapper::entityToDomain)
-             }
+    fun getRecords(): Single<List<TandemHistoryRecordDto>> =
+        pumpHistoryDao.all().map { list -> listOf<TandemHistoryRecordDto>()
+            list.map(dbDataConverter::getHistoryRecordDto)
+        }
 
-    fun getRecordsAfter(time: Long): Single<List<TandemHistoryRecordEntity>> = pumpHistoryDatabase.historyRecordDao().allSince(time)
+    fun getRecordsAfter(time: Long): Single<List<TandemHistoryRecordEntity>> =
+        pumpHistoryDatabase.historyRecordDao().allSince(time)
 
     // fun processList(entityList: List<HistoryRecordEntity>) {
     //     var first = true
@@ -110,7 +114,7 @@ class TandemPumpHistory @Inject constructor(
         return pumpHistoryDatabase.historyRecordDao().allSince(atdTime).blockingGet()
     }
 
-    fun insertOrUpdate(event: HistoryLogDto): TandemHistoryRecordEntity? {
+    fun insertOrUpdate(event: HistoryLog): TandemHistoryRecordEntity? {
         // aapsLogger.debug(LTag.PUMP, prefix + "EventDto to convert = ${gson.toJson(event)}")
         // val entity = historyMapper.domainToEntity(event)
         // var returnEntity: HistoryRecordEntity? = null
@@ -145,11 +149,15 @@ class TandemPumpHistory @Inject constructor(
         // // if (returnEntity != null) {
         // //     //sendDataToPumpSync(returnEntity!!)
         // // }
-    return null
+
+        TODO()
+        return null
+
     }
 
     private fun prepareData(dbEntity: TandemHistoryRecordEntity, newEntity: TandemHistoryRecordEntity): TandemHistoryRecordEntity {
         // TODO prepareData  N-3
+        TODO()
 
         // if (dbEntity.entryType != newEntity.entryType)
         //     dbEntity.entryType = newEntity.entryType

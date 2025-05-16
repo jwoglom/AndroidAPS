@@ -45,7 +45,8 @@ interface PumpHistoryDataProvider {
 
 enum class PumpHistoryPeriod(
     @StringRes var stringId: Int,
-    var isHours: Boolean = false
+    var isHours: Boolean = false,
+    var translated: String? = null
 ) {
 
     TODAY(R.string.time_today),
@@ -53,11 +54,16 @@ enum class PumpHistoryPeriod(
     LAST_3_HOURS(R.string.time_last_3_hours, true),
     LAST_6_HOURS(R.string.time_last_6_hours, true),
     LAST_12_HOURS(R.string.time_last_12_hours, true),
+    LAST_24_HOURS(R.string.time_last_24_hours, true),
     LAST_2_DAYS(R.string.time_last_2_days),
     LAST_4_DAYS(R.string.time_last_4_days),
     LAST_WEEK(R.string.time_last_week),
     LAST_MONTH(R.string.time_last_month),
-    ALL(R.string.history_group_all)
+    ALL(R.string.history_group_all);
+
+    fun getDisplayValue(): String {
+        return name
+    }
 
 }
 

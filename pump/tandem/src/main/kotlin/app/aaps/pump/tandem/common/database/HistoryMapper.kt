@@ -4,10 +4,13 @@ import app.aaps.pump.tandem.common.data.history.HistoryLogDto
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import javax.inject.Inject
 
-// TODO HistoryMapper refactor this for Tandem  N-3
+// TODO HistoryMapper refactor this for Tandem  N-3 - this class might be throws away, since we already have DbConverter class
+//    that does the same
 
+@Deprecated("Use DbDataConverter instead")
 class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var aapsLogger: AAPSLogger) {
 
     fun domainToEntity(logDto: HistoryLogDto): TandemHistoryRecordEntity {

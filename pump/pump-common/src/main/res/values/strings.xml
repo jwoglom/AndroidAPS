@@ -45,6 +45,7 @@
     <string name="history_group_other">Other</string>
     <string name="history_group_events">All Events</string>
     <string name="history_group_events_no_stat">Events (no Stat)</string>
+    <string name="history_group_integrated_loop">Integrated Loop</string>
 
     <!-- Time -->
     <string name="time_today">Today</string>
@@ -52,6 +53,7 @@
     <string name="time_last_3_hours">Last 3 hours</string>
     <string name="time_last_6_hours">Last 6 hours</string>
     <string name="time_last_12_hours">Last 12 hours</string>
+    <string name="time_last_24_hours">Last 24 hours</string>
     <string name="time_last_2_days">Last 2 days</string>
     <string name="time_last_4_days">Last 4 days</string>
     <string name="time_last_week">Last week</string>

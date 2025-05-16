@@ -6,9 +6,9 @@ import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.database.HistoryMapper
-import app.aaps.pump.tandem.common.database.TandemHistoryRecordDao
 import app.aaps.pump.tandem.common.database.TandemPumpDatabase
 import app.aaps.pump.tandem.common.database.TandemPumpHistory
+import app.aaps.pump.tandem.common.database.dao.TandemHistoryRecordDao
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import dagger.Module
@@ -50,17 +50,17 @@ class TandemDatabaseModule {
     ) = HistoryMapper(tandemPumpUtil, aapsLogger)
 
 
-    @Provides
-    @Singleton
-    internal fun provideTandemPumpHistory(
-        dao: TandemHistoryRecordDao,
-        pumpHistoryDatabase: TandemPumpDatabase,
-        historyMapper: HistoryMapper,
-        pumpSync: PumpSync,
-        tandemPumpUtil: TandemPumpUtil,
-        pumpStatus: TandemPumpStatus,
-        aapsLogger: AAPSLogger
-    ) = TandemPumpHistory(dao, pumpHistoryDatabase, historyMapper, pumpSync, tandemPumpUtil, pumpStatus, aapsLogger)
+    // @Provides
+    // @Singleton
+    // internal fun provideTandemPumpHistory(
+    //     dao: TandemHistoryRecordDao,
+    //     pumpHistoryDatabase: TandemPumpDatabase,
+    //     historyMapper: HistoryMapper,
+    //     pumpSync: PumpSync,
+    //     tandemPumpUtil: TandemPumpUtil,
+    //     pumpStatus: TandemPumpStatus,
+    //     aapsLogger: AAPSLogger
+    // ) = TandemPumpHistory(dao, pumpHistoryDatabase, historyMapper, pumpSync, tandemPumpUtil, pumpStatus, aapsLogger)
 
     // @Provides
     // @Singleton

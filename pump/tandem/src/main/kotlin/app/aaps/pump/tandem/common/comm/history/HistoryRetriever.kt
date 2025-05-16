@@ -3,7 +3,6 @@ package app.aaps.pump.tandem.common.comm.history
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
-import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse

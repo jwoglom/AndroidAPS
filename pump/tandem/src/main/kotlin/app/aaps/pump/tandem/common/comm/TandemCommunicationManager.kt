@@ -104,9 +104,9 @@ class TandemCommunicationManager(
             }
         }
 
-        // runOnUiThread  {
-        //     tandemDataStore.pumpConnected.value = true
-        // }
+        runOnUiThread  {
+            tandemDataStore.pumpConnected.value = true
+        }
 
 
         return connected
@@ -124,9 +124,9 @@ class TandemCommunicationManager(
         connected = false
         operationMode = OperationMode.None
 
-        // runOnUiThread {
-        //     tandemDataStore.pumpConnected.value = false
-        // }
+        runOnUiThread {
+            tandemDataStore.pumpConnected.value = false
+        }
 
         // inConnectMode = false
         return connected
@@ -272,6 +272,10 @@ class TandemCommunicationManager(
 
             sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
 
+            runOnUiThread  {
+                dataStore.apiVersionResponse.value = message
+            }
+
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
 
         } else if (message is TimeSinceResetResponse) {
@@ -292,14 +296,10 @@ class TandemCommunicationManager(
 
         } else if (message is PumpVersionResponse) {
             // TODO TAF - this needs to be added and this request removed from InitPump
-            val apiVersion = TandemPumpApiVersion.getApiVersionFromResponse(apiVersionResponse)
-            //dataStore.setupDeviceName.value = (if (apiVersion.isMobi()) "T:mobi " else "T:slim X2 ") + message.serialNum
 
-            //dataStore.timeSinceResetResponse
-            //dataStore.pumpSetupStage.value = PumpSetupStage.PUMPX2_PUMP_INITIAL_DATA_RECEIVED
-
-            // TODO TAF
-            dataStore.pumpVersionResponse.value = message
+            runOnUiThread  {
+                dataStore.pumpVersionResponse.value = message
+            }
 
         }
     }
@@ -335,7 +335,7 @@ class TandemCommunicationManager(
 
     override fun onReceiveQualifyingEvent(peripheral: BluetoothPeripheral, events: Set<QualifyingEvent>) {
         aapsLogger.info(TAG, "QE: onReceiveQualifyingEvent: %s (creating AAPS event)", events)
-        rxBus.send(EventHandleQualifyingEvent(events))
+        rxBus.send(EventHandleQualifyingEvent(events = events, dateTime = System.currentTimeMillis()))
     }
 
 

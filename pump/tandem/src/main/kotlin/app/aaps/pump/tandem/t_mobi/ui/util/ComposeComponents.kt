@@ -336,7 +336,6 @@ fun DecimalOutlinedText(
 }
 
 
-// FIXME added here was in util
 fun twoDecimalPlaces(decimal: Double): String {
     return String.format("%.2f", decimal)
 }

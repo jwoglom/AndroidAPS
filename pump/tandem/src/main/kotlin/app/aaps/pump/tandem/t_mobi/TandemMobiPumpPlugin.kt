@@ -63,6 +63,7 @@ import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
+import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.service.TandemService
@@ -100,6 +101,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     pumpSyncStorage: PumpSyncStorage,
     tandemPumpDriverConfiguration: TandemMobiPumpDriverConfiguration,
     decimalFormatter: DecimalFormatter,
+    val dbDataHandler: DbDataHandler,
     //val pumpX2L: PumpX2L,
     instantiator: Instantiator
 ) : PumpPluginAbstract(
@@ -132,7 +134,8 @@ class TandemMobiPumpPlugin @Inject constructor(
     //private var isServiceSet = false
 
     override fun onStart() {
-        aapsLogger.debug(LTag.PUMP, model().model + " started (t:mobi) DUB - $version")
+        aapsLogger.debug(LTag.PUMP, model().model + " started (t:mobi) - $version")
+        dbDataHandler.databaseStatistics() // TODO remove in future
         super.onStart()
     }
 
@@ -142,20 +145,20 @@ class TandemMobiPumpPlugin @Inject constructor(
         if (pref.key == rh.gs(R.string.key_tandem_address)) {
             val value: String? = sp.getStringOrNull(R.string.key_tandem_address, null)
             pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
-            aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump number serial changed (this means bonding/unbonding is happening)")
+            aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump address changed (this means bonding/unbonding is happening)")
         } else if (pref.key == rh.gs(R.string.key_tandem_serial)) {
             val value: String? = sp.getStringOrNull(R.string.key_tandem_serial, null)
             pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
+            aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump serial changed (this means bonding/unbonding is happening)")
         } else if (pref.key == rh.gs(R.string.key_tandem_shared_connection_data)) {
             val value: String? = sp.getStringOrNull(R.string.key_tandem_shared_connection_data, null)
+            aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that connection data changed. Reconnecting to pump")
             if (value!=null && value.isNotEmpty()) {
                 if (tandemService!!.validateParameters() && !tandemService!!.isConnected()) {
                     tandemService!!.connectToPump()
                 }
             }
         }
-
-        aapsLogger.info(LTag.PUMP, "Preference: $pref")
     }
 
     // PumpAbstract implementations

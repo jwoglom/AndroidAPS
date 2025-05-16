@@ -61,7 +61,7 @@ abstract class TandemModule {
 
 
     // Compose UI Activities
-    @ContributesAndroidInjector abstract fun contributesActionsActivity(): ActionsActivity
+    //@ContributesAndroidInjector abstract fun contributesActionsActivity(): ActionsActivity
 
 
 

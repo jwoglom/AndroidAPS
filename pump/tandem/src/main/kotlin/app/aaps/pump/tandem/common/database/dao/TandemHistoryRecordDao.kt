@@ -1,6 +1,11 @@
-package app.aaps.pump.tandem.common.database
+package app.aaps.pump.tandem.common.database.dao
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 
@@ -21,6 +26,9 @@ abstract class TandemHistoryRecordDao {
     @Query("SELECT * from history_records WHERE pumpTime >= :since order by sequenceId desc")
     abstract fun allSinceBlocking(since: Long): List<TandemHistoryRecordEntity>
 
+    @Query("SELECT COUNT(*) FROM history_records")
+    abstract fun getHistoryCount(): Single<Long>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun saveBlocking(tandemHistoryRecordEntity: TandemHistoryRecordEntity)
 
@@ -30,11 +38,11 @@ abstract class TandemHistoryRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun save(tandemHistoryRecordEntity: TandemHistoryRecordEntity): Completable
 
-    @Update(onConflict = OnConflictStrategy.REPLACE)
-    abstract fun update(tandemHistoryRecordEntity: TandemHistoryRecordEntity): Completable
-
-    @Update(onConflict = OnConflictStrategy.REPLACE)
-    abstract fun updateBlocking(tandemHistoryRecordEntity: TandemHistoryRecordEntity)
+    // @Update(onConflict = OnConflictStrategy.REPLACE)
+    // abstract fun update(tandemHistoryRecordEntity: TandemHistoryRecordEntity): Completable
+    //
+    // @Update(onConflict = OnConflictStrategy.REPLACE)
+    // abstract fun updateBlocking(tandemHistoryRecordEntity: TandemHistoryRecordEntity)
 
     @Delete
     abstract fun delete(tandemHistoryRecordEntity: TandemHistoryRecordEntity): Completable
@@ -60,5 +68,9 @@ abstract class TandemHistoryRecordDao {
 
     // @Query("UPDATE historyrecords SET resolvedResult = :resolvedResult, resolvedAt = :resolvedAt WHERE id = :id ")
     // abstract fun markResolved(id: String, resolvedResult: ResolvedResult, resolvedAt: Long): Completable
+
+
+
+
 
 }

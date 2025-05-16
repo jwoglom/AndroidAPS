@@ -57,7 +57,9 @@ import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
+import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
@@ -68,6 +70,7 @@ import app.aaps.pump.tandem.t_mobi.ui.util.Line
 import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
+import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.util.compactTBRDisplay
 import app.aaps.shared.tests.AAPSLoggerTest
@@ -105,15 +108,12 @@ import java.time.Instant
 fun Actions(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
-    //sendMessage: (String, ByteArray) -> Unit,
     sendPumpCommands: (SendType, List<Message>) -> Boolean,
-    //historyLogViewModel: HistoryLogViewModel? = null,
     _resumeInsulinMenuState: Boolean = false,
     _suspendInsulinMenuState: Boolean = false,
     _stopTempRateMenuState: Boolean = false,
     aapsLogger: AAPSLogger,
-    //openTempRateWindow: () -> Unit,
-    //navigateToCgmActions: () -> Unit,
+    resourceHelper: ResourceHelper,
     navigateToCartridgeActions: () -> Unit,
     navigateToPumpInfo: () -> Unit
 ) {
@@ -216,13 +216,6 @@ fun Actions(
             content = {
                 item {
                     HeaderLine("Actions")
-                    //Divider()
-
-                    // val model = determinePumpModel(deviceName.value ?: "")
-                    // if (model == KnownDeviceModel.TSLIM_X2) {
-                    //     Line("Actions are not supported on this device model (${model}). Only remote bolus is supported.")
-                    //     Line("")
-                    // }
                 }
                 item {
                     val basalStatus = ds.pumpRunningState.observeAsState()
@@ -370,48 +363,11 @@ fun Actions(
                     }
                 }
 
-//                item {
-//                    Line("\n")
-//                }
-
 
                 item {
                     HorizontalDivider()
                 }
 
-//                item {
-//                    Box(
-//                        modifier = Modifier
-//                            .fillMaxSize()
-//                            .wrapContentSize(Alignment.TopStart)
-//                    ) {
-//                        ListItem(
-//                            headlineContent = {
-//                                Text("Refresh Pump Delivery State")
-//                            },
-//                            supportingContent = {
-//                            },
-//                            leadingContent = {
-//                                Icon(Icons.Filled.Refresh, contentDescription = null)
-//                            },
-//                            modifier = Modifier.clickable {
-//                                navigateToCartridgeActions()
-////                                CartridgeActions(
-////                                    innerPadding = innerPadding,
-////                                    navController = navController,
-////                                    sendMessage = sendMessage,
-////                                    sendPumpCommands = sendPumpCommands,
-////                                    //historyLogViewModel = historyLogViewModel,
-////                                    navigateBack = {
-////                                        //selectedItem = LandingSection.ACTIONS
-////                                    },
-////                                )
-//
-//
-//                            }
-//                        )
-//                    }
-//                }
 
                 if (tempRateActive.value==true) {
 
@@ -519,7 +475,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Cartridge/Canula Setup"
+                                "Cartridge/Cannula Setup"
                             )},
                             supportingContent = {
                             },
@@ -588,6 +544,7 @@ private fun DefaultPreviewInsulinActive() {
                 //navigateToCgmActions = {},
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
+                resourceHelper = ResourceHelperTest(),
                 navigateToPumpInfo = {}
             )
         }
@@ -611,7 +568,8 @@ private fun DefaultPreviewInsulinActive_StopMenuOpen() {
                 //navigateToCgmActions = {},
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
-                navigateToPumpInfo = {}
+                navigateToPumpInfo = {},
+                resourceHelper = ResourceHelperTest()
             )
         }
     }
@@ -628,20 +586,16 @@ private fun DefaultPreviewInsulinSuspended() {
             setUpPreviewState(LocalTandemDataStore.current)
             LocalTandemDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
             Actions(
-                //sendMessage = { _, _ -> },
                 sendPumpCommands = {_, _ -> true},
-                //openTempRateWindow = {},
-                //navigateToCgmActions = {},
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
-                navigateToPumpInfo = {}
+                navigateToPumpInfo = {},
+                resourceHelper = ResourceHelperTest()
             )
         }
     }
 }
 
-// var dataStore = DataStore()
-// val LocalDataStore = compositionLocalOf { dataStore }
 
 @Preview(showBackground = true)
 @Composable
@@ -662,7 +616,8 @@ private fun DefaultPreviewInsulinSuspended_ResumeMenuOpen() {
                 //navigateToCgmActions = {},
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
-                navigateToPumpInfo = {}
+                navigateToPumpInfo = {},
+                resourceHelper = ResourceHelperTest()
             )
         }
     }

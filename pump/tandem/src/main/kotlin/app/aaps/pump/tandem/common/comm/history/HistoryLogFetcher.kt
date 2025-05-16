@@ -26,6 +26,7 @@ val triggerRangeMutex = Mutex()
 val statusResponseLock = Mutex()
 val streamResponseLock = Mutex()
 
+@Deprecated("Just sample code from controlX, HistoryRetriever will be used here")
 class HistoryLogFetcher(val context: Context, val pump: TandemPump, val peripheral: BluetoothPeripheral, val pumpSid: Int) {
     private var recentSeqIds = LruCache<Long, Long>(256)
     private var latestSeqId: Long = 0

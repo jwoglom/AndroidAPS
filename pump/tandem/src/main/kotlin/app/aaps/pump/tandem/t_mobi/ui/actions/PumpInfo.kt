@@ -27,37 +27,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.pump.common.test.ResourceHelperTest
+import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
+import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.t_mobi.ui.util.DottedDivider
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
+import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 
+// TODO PumpInfo  (90% implemented)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
-             navigateBack: () -> Unit
+             navigateBack: () -> Unit,
+             tandemPumpStatus: TandemPumpStatus? = null,
+             resourceHelper: ResourceHelper
              ) {
 
     val pumpInfo = LocalTandemDataStore.current.pumpVersionResponse.value!!
+    val apiVersion = LocalTandemDataStore.current.apiVersionResponse.value!!
+    val isMobi = if (tandemPumpStatus==null) true else tandemPumpStatus.tandemPumpFirmware.isMobi()
 
-    @Composable
-    fun pumpInfoRow(label: String, value: String) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp)
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = label, fontSize = 18.sp)
-            Text(text = value, fontSize = 18.sp)
-        }
-        DottedDivider(    dotRadius = 1.dp,
-        spaceBetween = 6.dp,)
-    }
+
 
     LazyColumn(
         contentPadding = innerPadding,
@@ -67,69 +61,64 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("Pump Info")
+                HeaderLineWithBackButton(text= resourceHelper.gs(R.string.pi_title), onBackClick=navigateBack, backgroundColor = Color.LightGray)
                 HorizontalDivider()
             }
 
             item {
-                pumpInfoRow("Serial Number", "${pumpInfo.serialNum}")
+                PumpInfoRow(label= resourceHelper.gs(R.string.pump_serial_number), "${pumpInfo.serialNum}")
             }
 
             item {
-                pumpInfoRow("Pump Software", pumpInfo.pumpRev)
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_sw), value="${apiVersion.majorVersion}.${apiVersion.minorVersion}"    /*pumpInfo.pumpRev*/)
             }
 
             item {
-                pumpInfoRow("ARM S/W Version", "${pumpInfo.armSwVer}")
+                PumpInfoRow(label="ARM S/W " + resourceHelper.gs(R.string.pi_version), value="${pumpInfo.armSwVer}")
             }
 
             item {
-                pumpInfoRow("S/W Part Number", "${pumpInfo.partNum}")
+                PumpInfoRow(label=resourceHelper.gs(R.string.pi_sw_part_num), value="${pumpInfo.partNum}")
             }
 
             item {
-                pumpInfoRow("ConfigA Bits", "0x%08X".format(pumpInfo.configABits))
+                PumpInfoRow("ConfigA Bits", value="0x%08X".format(pumpInfo.configABits))
             }
 
             item {
-                pumpInfoRow("ConfigB Bits", "0x%08X".format(pumpInfo.configBBits))
+                PumpInfoRow("ConfigB Bits", value="0x%08X".format(pumpInfo.configBBits))
             }
 
             item {
-                pumpInfoRow("Pump Model", "${pumpInfo.modelNum}")
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_model), value=if (isMobi) "t:Mobi (${pumpInfo.modelNum})" else "t:Slim X2 (${pumpInfo.modelNum})")
             }
 
             item {
-                pumpInfoRow("PCBA serial", "${pumpInfo.pcbaSN}")
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pcba_serial), value="${pumpInfo.pcbaSN}")
             }
 
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .wrapContentSize(Alignment.BottomStart)
-                ) {
-                    ListItem(
-                        headlineContent = {
-                            Text(
-                                "Back"
-                            )
-                        },
-                        supportingContent = {
-                        },
-                        leadingContent = {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                        },
-                        modifier = Modifier.clickable {
-                            navigateBack()
-                        }
-                    )
-                }
-            }
 
         }
 
     )
+}
+
+
+@Composable
+fun PumpInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, fontSize = 18.sp)
+        Text(text = value, fontSize = 18.sp)
+    }
+    DottedDivider(    dotRadius = 1.dp,
+                      spaceBetween = 6.dp,)
 }
 
 
@@ -189,21 +178,10 @@ private fun DefaultPreview_PumpInfo() {
             PumpInfo(
                 innerPadding = PaddingValues(),
                 //navController = null,
-                navigateBack = { }
+                navigateBack = { },
+                tandemPumpStatus = null,
+                resourceHelper = ResourceHelperTest()
             )
         }
     }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun MyComposablePreview() {
-    MyComposable()
-}
-
-
-@Composable
-fun MyComposable() {
-    Text("Hello Preview")
 }

@@ -21,6 +21,8 @@
 <!--        <activity android:name="app.aaps.pump.tandem.common.ui.DebugActionsActivity" />-->
 
         <activity android:name="app.aaps.pump.tandem.t_mobi.ui.ActionsActivity" />
+        <activity android:name="app.aaps.pump.tandem.t_mobi.ui.DataActivity" />
+
 
         <service
             android:name=".common.service.TandemService"

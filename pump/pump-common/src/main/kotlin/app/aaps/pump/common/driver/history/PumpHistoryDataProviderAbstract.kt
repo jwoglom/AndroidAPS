@@ -35,6 +35,7 @@ abstract class PumpHistoryDataProviderAbstract : PumpHistoryDataProvider {
             PumpHistoryPeriod.LAST_3_HOURS  -> gregorianCalendar.add(Calendar.HOUR_OF_DAY, -3)
             PumpHistoryPeriod.LAST_6_HOURS  -> gregorianCalendar.add(Calendar.HOUR_OF_DAY, -6)
             PumpHistoryPeriod.LAST_12_HOURS -> gregorianCalendar.add(Calendar.HOUR_OF_DAY, -12)
+            PumpHistoryPeriod.LAST_24_HOURS -> gregorianCalendar.add(Calendar.HOUR_OF_DAY, -24)
         }
 
         return gregorianCalendar.timeInMillis

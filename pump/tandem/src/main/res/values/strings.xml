@@ -20,6 +20,7 @@
     <string name="pump_firmware_open_loop_only">%s (Open-Loop only)</string>
     <string name="pump_firmware_demo">Ignored. Demo mode</string>
     <string name="pump_settings">Settings</string>
+    <string name="pump_data">Data</string>
     <string name="driver_version">Driver Version</string>
     <string name="pump_serial_number">Serial Number</string>
     <string name="pump_bt_state_label">BT State</string>
@@ -32,12 +33,90 @@
     <string name="tandem_error_no_shared_conn_data">Missing Shared Connection Data (connection sharing enabled)</string>
     <string name="tandem_error_profile_only_16_segments">t:mobi supports only 16 basal segments, adjust your profile accordingly.</string>
 
-    <!-- State Machines -->
-    <string name="state_machine_common_cancel">Cancel</string>
-    <string name="state_machine_common_continue">Continue</string>
-    <string name="state_machine_common_no">No</string>
-    <string name="state_machine_common_yes">Yes</string>
-<!--    <string name="tandem_state_machine_error_pump_critical_error">Pump Critical Error: %s</string>-->
+
+    <!-- UI Common -->
+    <string name="common_percent_complete">%1$s %% complete</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_done">Done</string>
+
+    <!-- UI Data -->
+
+    <string name="data_data">Data</string>
+    <string name="data_notifications">Notifications</string>
+    <string name="data_notifications_desc">Notifications sent by Pump</string>
+    <string name="data_events">Events</string>
+    <string name="data_events_desc">Qualifying Events sent from Pump (stored in database)</string>
+    <string name="data_pump_history">Pump History</string>
+    <string name="data_pump_history_desc">Pump History stored in database</string>
+
+    <!-- UI Configuration -->
+    <string name="ui_cfg_configuration">Configuration</string>
+
+    <!-- UI Configuration::PumpInfo -->
+    <string name="pi_title">Pump Info</string>
+    <string name="pi_version">Version</string>
+    <string name="pi_sw_part_num">S/W Part Number</string>
+    <string name="pi_pcba_serial">PCBA serial</string>
+    <string name="pi_pump_model">Pump Model</string>
+    <string name="pi_pump_sw">Pump Software</string>
+
+    <!-- UI Configuration::Actions -->
+
+
+    <!-- UI Actions::Cartridge Actions -->
+    <string name="ca_disconnect_pump_from_site">Disconnect your pump from your body/site and press \'%1$s\' button below.</string>
+    <string name="ca_before_stop_delivery">Before %1$s, stop delivery of insulin.</string>
+
+
+
+    <!-- UI Cartridge Actions:Change Cartridge -->
+    <string name="cc_title">Change Cartridge</string>
+    <string name="cc_complete">Cartridge change complete.</string>
+    <string name="cc_detect_insulin_cart">Detecting insulin in the cartridge...</string>
+    <string name="cc_can_remove_cart">You can now remove the cartridge from the pump.</string>
+    <string name="cc_when_inserted_press">When you\'ve inserted a new cartridge, press \'Cartridge Inserted\' button below.</string>
+    <string name="cc_preparing_cc">Preparing to change cartridge...</string>
+    <string name="cc_btn_cart_inserted">Cartridge Inserted</string>
+    <string name="cc_action">changing your cartridge</string>
+    <string name="cc_btn_begin">Begin Change Cartridge</string>
+
+    <!-- UI Cartridge Actions:Fill Tubing -->
+    <string name="ft_title">Fill Tubing</string>
+    <string name="ft_complete">Successfully filled tubing. Press button \'Done\' to exit.</string>
+    <string name="ft_hold_pump_button">Hold down the pump button to fill insulin through the tubing.</string>
+    <string name="ft_no_filled_insulin">You haven\'t filled any insulin through the tubing yet.</string>
+    <string name="ft_filling">FILLING... continue to hold down button until you see insulin drops at the cannula.</string>
+    <string name="ft_stopped_fill_1">STOPPED FILLING... do you see insulin drops at the cannula?</string>
+    <string name="ft_stopped_fill_2">"If not press pump button to continue filling, else if you are done, press \'Complete Fill\' button below."</string>
+    <string name="ft_btn_begin">Begin Fill Tubing</string>
+    <string name="ft_action">filling your tubing</string>
+    <string name="ft_btn_complete">Complete Fill</string>
+    <string name="ft_finalizing_wait">Please wait, finalizing tubing fill...</string>
+    <string name="ft_finalizing_status_NOT_COMPLETE">NOT COMPLETE</string>
+
+    <!-- UI Cartridge Actions:Fill Cannula -->
+    <string name="fc_title">Fill Cannula</string>
+    <string name="fc_complete">Cannula filled.</string>
+    <string name="fc_action">filling your cannula</string>
+    <string name="fc_filling_with">"Filling cannula with %1$d units...</string>
+    <string name="fc_filling_state">State: %1$d</string>
+    <string name="fc_cannula_fill_amount">Enter the cannula fill amount (U):</string>
+    <string name="fc_fill_amount">Fill amount</string>
+    <string name="fc_btn_fill_cannula_u">Fill %1$dU Cannula</string>
+
+
+
+
+
+
+    <!-- UI Cartridge Actions:ChangeCartridge -->
+
+    <!-- UI Cartridge Actions:Site Reminder -->
+    <string name="sr_title">Site Reminder</string>
+    <string name="sr_coming_soon">Coming soon</string>
+
+
+
 
 
     <!-- Command Errors -->
@@ -105,7 +184,7 @@
 
 
 
-    <!-- Tandem Mobi Management  -->
+    <!-- Tandem Mobi Management  DEP -->
     <string name="tandem_mobi_management">t:mobi Management</string>
     <string name="tandem_sett_delivery_limits">Delivery Limits</string>
     <string name="tandem_sett_load_cartridge">Load Cartridge</string>
@@ -137,6 +216,13 @@
     <string name="tandem_history_date_changed">Date Changed: %s</string>
     <string name="tandem_history_time_changed">Time Changed: %s</string>
 
+
+    <!-- State Machines - Deprecated-->
+    <string name="state_machine_common_cancel">Cancel</string>
+    <string name="state_machine_common_continue">Continue</string>
+    <string name="state_machine_common_no">No</string>
+    <string name="state_machine_common_yes">Yes</string>
+    <!--    <string name="tandem_state_machine_error_pump_critical_error">Pump Critical Error: %s</string>-->
 
 
 

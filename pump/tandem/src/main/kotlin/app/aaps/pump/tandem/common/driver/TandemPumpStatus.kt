@@ -31,8 +31,7 @@ var tandemDataStore = TandemUIDataStore()
 var LocalTandemDataStore = compositionLocalOf { tandemDataStore }
 
 @Singleton
-class TandemPumpStatus @Inject constructor(val resourceHelper: ResourceHelper,
-                                           val sp: SP,
+class TandemPumpStatus @Inject constructor(val sp: SP,
                                            val rxBus: RxBus
 ) : PumpStatus(PumpType.TANDEM_T_MOBI_BT) {
 

@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.common.database
+package app.aaps.pump.tandem.common.database.data.entity
 
 import androidx.room.Entity
 
@@ -10,7 +10,7 @@ data class TandemHistoryRecordEntity(
     var typeId: Int,
     var pumpTime: Long,   // EpochInMillis (pump stores time as EpochSeconds from Jan2008, we don't)
     var payload: ByteArray,
-    var entitySubId: Long? = null, // some entities have special id (for example TBR has tempRateId)
+    var entitySubId: Int? = null, // some entities have special id (for example TBR has tempRateId)
 
     var createdAt: Long, // creation date of the record
     var updatedAt: Long  // update date of the record
