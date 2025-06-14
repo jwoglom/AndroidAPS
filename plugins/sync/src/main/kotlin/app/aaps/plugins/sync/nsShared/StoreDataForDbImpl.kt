@@ -10,8 +10,8 @@ import app.aaps.core.data.model.EB
 import app.aaps.core.data.model.EPS
 import app.aaps.core.data.model.FD
 import app.aaps.core.data.model.GV
-import app.aaps.core.data.model.OE
 import app.aaps.core.data.model.PS
+import app.aaps.core.data.model.RM
 import app.aaps.core.data.model.TB
 import app.aaps.core.data.model.TE
 import app.aaps.core.data.model.TT
@@ -28,12 +28,9 @@ import app.aaps.core.interfaces.nsclient.StoreDataForDb
 import app.aaps.core.interfaces.pump.VirtualPump
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventNSClientNewLog
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.source.NSClientSource
-import app.aaps.core.interfaces.ui.UiInteraction
-import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
-import app.aaps.core.keys.Preferences
+import app.aaps.core.keys.interfaces.Preferences
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.kotlin.subscribeBy
@@ -48,14 +45,11 @@ class StoreDataForDbImpl @Inject constructor(
     private val aapsLogger: AAPSLogger,
     private val rxBus: RxBus,
     private val persistenceLayer: PersistenceLayer,
-    private val sp: SP,
     private val preferences: Preferences,
     private val uel: UserEntryLogger,
-    private val dateUtil: DateUtil,
     private val config: Config,
     private val nsClientSource: NSClientSource,
-    private val virtualPump: VirtualPump,
-    private val uiInteraction: UiInteraction
+    private val virtualPump: VirtualPump
 ) : StoreDataForDb {
 
     private val glucoseValues: MutableList<GV> = mutableListOf()
@@ -68,7 +62,7 @@ class StoreDataForDbImpl @Inject constructor(
     private val extendedBoluses: MutableList<EB> = mutableListOf()
     private val temporaryBasals: MutableList<TB> = mutableListOf()
     private val profileSwitches: MutableList<PS> = mutableListOf()
-    private val offlineEvents: MutableList<OE> = mutableListOf()
+    private val runningModes: MutableList<RM> = mutableListOf()
     private val foods: MutableList<FD> = mutableListOf()
 
     @VisibleForTesting val nsIdGlucoseValues: MutableList<GV> = mutableListOf()
@@ -81,7 +75,7 @@ class StoreDataForDbImpl @Inject constructor(
     @VisibleForTesting val nsIdExtendedBoluses: MutableList<EB> = mutableListOf()
     @VisibleForTesting val nsIdTemporaryBasals: MutableList<TB> = mutableListOf()
     @VisibleForTesting val nsIdProfileSwitches: MutableList<PS> = mutableListOf()
-    @VisibleForTesting val nsIdOfflineEvents: MutableList<OE> = mutableListOf()
+    @VisibleForTesting val nsIdRunningModes: MutableList<RM> = mutableListOf()
     @VisibleForTesting val nsIdDeviceStatuses: MutableList<DS> = mutableListOf()
     @VisibleForTesting val nsIdFoods: MutableList<FD> = mutableListOf()
 
@@ -96,7 +90,7 @@ class StoreDataForDbImpl @Inject constructor(
     private val durationUpdated = HashMap<String, Long>()
     private val ended = HashMap<String, Long>()
 
-    private val pause = 1000L // to slow down db operations
+    private val pause = 3000L // to slow down db operations
 
     fun <T> HashMap<T, Long>.inc(key: T) =
         synchronized(this) {
@@ -111,7 +105,6 @@ class StoreDataForDbImpl @Inject constructor(
                 persistenceLayer.insertCgmSourceData(Sources.NSClient, glucoseValues.toMutableList(), emptyList(), null)
                     .blockingGet()
                     .also { result ->
-                        glucoseValues.clear()
                         result.updated.forEach {
                             nsClientSource.detectSource(it)
                             updated.inc(GV::class.java.simpleName)
@@ -151,10 +144,10 @@ class StoreDataForDbImpl @Inject constructor(
         rxBus.send(EventNSClientNewLog("● DONE PROCESSING FOOD", ""))
     }
 
-    override fun storeTreatmentsToDb() {
+    override fun storeTreatmentsToDb(fullSync: Boolean) {
         synchronized(boluses) {
             if (boluses.isNotEmpty()) {
-                disposable += persistenceLayer.syncNsBolus(boluses.toMutableList())
+                disposable += persistenceLayer.syncNsBolus(boluses.toMutableList(), doLog = !fullSync)
                     .subscribeBy { result ->
                         repeat(result.inserted.size) { inserted.inc(BS::class.java.simpleName) }
                         repeat(result.invalidated.size) { invalidated.inc(BS::class.java.simpleName) }
@@ -170,7 +163,7 @@ class StoreDataForDbImpl @Inject constructor(
 
         synchronized(carbs) {
             if (carbs.isNotEmpty()) {
-                disposable += persistenceLayer.syncNsCarbs(carbs.toMutableList())
+                disposable += persistenceLayer.syncNsCarbs(carbs.toMutableList(), doLog = !fullSync)
                     .subscribeBy { result ->
                         repeat(result.inserted.size) { inserted.inc(CA::class.java.simpleName) }
                         repeat(result.invalidated.size) { invalidated.inc(CA::class.java.simpleName) }
@@ -186,7 +179,7 @@ class StoreDataForDbImpl @Inject constructor(
 
         synchronized(temporaryTargets) {
             if (temporaryTargets.isNotEmpty()) {
-                disposable += persistenceLayer.syncNsTemporaryTargets(temporaryTargets.toMutableList())
+                disposable += persistenceLayer.syncNsTemporaryTargets(temporaryTargets.toMutableList(), doLog = !fullSync)
                     .subscribeBy { result ->
                         repeat(result.inserted.size) { inserted.inc(TT::class.java.simpleName) }
                         repeat(result.invalidated.size) { invalidated.inc(TT::class.java.simpleName) }
@@ -203,7 +196,7 @@ class StoreDataForDbImpl @Inject constructor(
 
         synchronized(temporaryBasals) {
             if (temporaryBasals.isNotEmpty()) {
-                disposable += persistenceLayer.syncNsTemporaryBasals(temporaryBasals.toMutableList())
+                disposable += persistenceLayer.syncNsTemporaryBasals(temporaryBasals.toMutableList(), doLog = !fullSync)
                     .subscribeBy { result ->
                         repeat(result.inserted.size) { inserted.inc(TB::class.java.simpleName) }
                         repeat(result.invalidated.size) { invalidated.inc(TB::class.java.simpleName) }
@@ -220,7 +213,7 @@ class StoreDataForDbImpl @Inject constructor(
 
         synchronized(effectiveProfileSwitches) {
             if (effectiveProfileSwitches.isNotEmpty()) {
-                disposable += persistenceLayer.syncNsEffectiveProfileSwitches(effectiveProfileSwitches.toMutableList())
+                disposable += persistenceLayer.syncNsEffectiveProfileSwitches(effectiveProfileSwitches.toMutableList(), doLog = !fullSync)
                     .subscribeBy { result ->
                         repeat(result.inserted.size) { inserted.inc(EPS::class.java.simpleName) }
                         repeat(result.invalidated.size) { invalidated.inc(EPS::class.java.simpleName) }
@@ -235,7 +228,7 @@ class StoreDataForDbImpl @Inject constructor(
 
         synchronized(profileSwitches) {
             if (profileSwitches.isNotEmpty()) {
-                disposable += persistenceLayer.syncNsProfileSwitches(profileSwitches.toMutableList())
+                disposable += persistenceLayer.syncNsProfileSwitches(profileSwitches.toMutableList(), doLog = !fullSync)
                     .subscribeBy { result ->
                         repeat(result.inserted.size) { inserted.inc(PS::class.java.simpleName) }
                         repeat(result.invalidated.size) { invalidated.inc(PS::class.java.simpleName) }
@@ -265,7 +258,7 @@ class StoreDataForDbImpl @Inject constructor(
 
         synchronized(therapyEvents) {
             if (therapyEvents.isNotEmpty()) {
-                disposable += persistenceLayer.syncNsTherapyEvents(therapyEvents.toMutableList())
+                disposable += persistenceLayer.syncNsTherapyEvents(therapyEvents.toMutableList(), doLog = !fullSync)
                     .subscribeBy { result ->
                         repeat(result.inserted.size) { inserted.inc(TE::class.java.simpleName) }
                         repeat(result.invalidated.size) { invalidated.inc(TE::class.java.simpleName) }
@@ -279,18 +272,18 @@ class StoreDataForDbImpl @Inject constructor(
 
         SystemClock.sleep(pause)
 
-        synchronized(offlineEvents) {
-            if (offlineEvents.isNotEmpty()) {
-                disposable += persistenceLayer.syncNsOfflineEvents(offlineEvents.toMutableList())
+        synchronized(runningModes) {
+            if (runningModes.isNotEmpty()) {
+                disposable += persistenceLayer.syncNsRunningModes(runningModes.toMutableList(), doLog = !fullSync)
                     .subscribeBy { result ->
-                        repeat(result.inserted.size) { inserted.inc(OE::class.java.simpleName) }
-                        repeat(result.invalidated.size) { invalidated.inc(OE::class.java.simpleName) }
-                        repeat(result.ended.size) { ended.inc(OE::class.java.simpleName) }
-                        repeat(result.updatedNsId.size) { nsIdUpdated.inc(OE::class.java.simpleName) }
-                        repeat(result.updatedDuration.size) { durationUpdated.inc(OE::class.java.simpleName) }
-                        sendLog("OfflineEvent", OE::class.java.simpleName)
+                        repeat(result.inserted.size) { inserted.inc(RM::class.java.simpleName) }
+                        repeat(result.invalidated.size) { invalidated.inc(RM::class.java.simpleName) }
+                        repeat(result.ended.size) { ended.inc(RM::class.java.simpleName) }
+                        repeat(result.updatedNsId.size) { nsIdUpdated.inc(RM::class.java.simpleName) }
+                        repeat(result.updatedDuration.size) { durationUpdated.inc(RM::class.java.simpleName) }
+                        sendLog("RunningMode", RM::class.java.simpleName)
                     }
-                offlineEvents.clear()
+                runningModes.clear()
             }
         }
 
@@ -298,7 +291,7 @@ class StoreDataForDbImpl @Inject constructor(
 
         synchronized(extendedBoluses) {
             if (extendedBoluses.isNotEmpty()) {
-                disposable += persistenceLayer.syncNsExtendedBoluses(extendedBoluses.toMutableList())
+                disposable += persistenceLayer.syncNsExtendedBoluses(extendedBoluses.toMutableList(), doLog = !fullSync)
                     .subscribeBy { result ->
                         result.inserted.forEach {
                             if (it.isEmulatingTempBasal) virtualPump.fakeDataDetected = true
@@ -413,10 +406,10 @@ class StoreDataForDbImpl @Inject constructor(
                 repeat(result.updatedNsId.size) { nsIdUpdated.inc(DS::class.java.simpleName) }
             }
 
-        disposable += persistenceLayer.updateOfflineEventsNsIds(nsIdOfflineEvents)
+        disposable += persistenceLayer.updateRunningModesNsIds(nsIdRunningModes)
             .subscribeBy { result ->
-                nsIdOfflineEvents.clear()
-                repeat(result.updatedNsId.size) { nsIdUpdated.inc(OE::class.java.simpleName) }
+                nsIdRunningModes.clear()
+                repeat(result.updatedNsId.size) { nsIdUpdated.inc(RM::class.java.simpleName) }
             }
 
         sendLog("GlucoseValue", GV::class.java.simpleName)
@@ -428,7 +421,7 @@ class StoreDataForDbImpl @Inject constructor(
         sendLog("ProfileSwitch", PS::class.java.simpleName)
         sendLog("BolusCalculatorResult", BCR::class.java.simpleName)
         sendLog("TherapyEvent", TE::class.java.simpleName)
-        sendLog("OfflineEvent", OE::class.java.simpleName)
+        sendLog("RunningMode", RM::class.java.simpleName)
         sendLog("ExtendedBolus", EB::class.java.simpleName)
         sendLog("DeviceStatus", DS::class.java.simpleName)
         rxBus.send(EventNSClientNewLog("● DONE NSIDs", ""))
@@ -539,17 +532,17 @@ class StoreDataForDbImpl @Inject constructor(
                         sendLog("TherapyEvent", TE::class.java.simpleName)
                     }
                 }
-            if (preferences.get(BooleanKey.NsClientAcceptOfflineEvent) && config.isEngineeringMode() || config.AAPSCLIENT)
-                persistenceLayer.getOfflineEventByNSId(id)?.let { oe ->
-                    disposable += persistenceLayer.invalidateOfflineEvent(
-                        oe.id,
+            if (preferences.get(BooleanKey.NsClientAcceptRunningMode) && config.isEngineeringMode() || config.AAPSCLIENT)
+                persistenceLayer.getRunningModeByNSId(id)?.let { rm ->
+                    disposable += persistenceLayer.invalidateRunningMode(
+                        rm.id,
                         Action.TREATMENT_REMOVED,
                         Sources.NSClient,
                         null,
-                        listValues = listOf(ValueWithUnit.Timestamp(oe.timestamp))
+                        listValues = listOf(ValueWithUnit.Timestamp(rm.timestamp))
                     ).subscribeBy { result ->
-                        repeat(result.invalidated.size) { invalidated.inc(OE::class.java.simpleName) }
-                        sendLog("OfflineEvent", OE::class.java.simpleName)
+                        repeat(result.invalidated.size) { invalidated.inc(RM::class.java.simpleName) }
+                        sendLog("RunningMode", RM::class.java.simpleName)
                     }
                 }
             if (preferences.get(BooleanKey.NsClientAcceptTbrEb) || config.AAPSCLIENT)
@@ -578,7 +571,7 @@ class StoreDataForDbImpl @Inject constructor(
     override fun addToExtendedBoluses(payload: EB): Boolean = synchronized(extendedBoluses) { extendedBoluses.add(payload) }
     override fun addToTemporaryBasals(payload: TB): Boolean = synchronized(temporaryBasals) { temporaryBasals.add(payload) }
     override fun addToProfileSwitches(payload: PS): Boolean = synchronized(profileSwitches) { profileSwitches.add(payload) }
-    override fun addToOfflineEvents(payload: OE): Boolean = synchronized(offlineEvents) { offlineEvents.add(payload) }
+    override fun addToRunningModes(payload: RM): Boolean = synchronized(runningModes) { runningModes.add(payload) }
     override fun addToFoods(payload: MutableList<FD>): Boolean = synchronized(foods) { foods.addAll(payload) }
     override fun addToNsIdGlucoseValues(payload: GV): Boolean = synchronized(nsIdGlucoseValues) { nsIdGlucoseValues.add(payload) }
     override fun addToNsIdBoluses(payload: BS): Boolean = synchronized(nsIdBoluses) { nsIdBoluses.add(payload) }
@@ -590,7 +583,7 @@ class StoreDataForDbImpl @Inject constructor(
     override fun addToNsIdExtendedBoluses(payload: EB): Boolean = synchronized(nsIdExtendedBoluses) { nsIdExtendedBoluses.add(payload) }
     override fun addToNsIdTemporaryBasals(payload: TB): Boolean = synchronized(nsIdTemporaryBasals) { nsIdTemporaryBasals.add(payload) }
     override fun addToNsIdProfileSwitches(payload: PS): Boolean = synchronized(nsIdProfileSwitches) { nsIdProfileSwitches.add(payload) }
-    override fun addToNsIdOfflineEvents(payload: OE): Boolean = synchronized(nsIdOfflineEvents) { nsIdOfflineEvents.add(payload) }
+    override fun addToNsIdRunningModes(payload: RM): Boolean = synchronized(nsIdRunningModes) { nsIdRunningModes.add(payload) }
     override fun addToNsIdDeviceStatuses(payload: DS): Boolean = synchronized(nsIdDeviceStatuses) { nsIdDeviceStatuses.add(payload) }
     override fun addToNsIdFoods(payload: FD): Boolean = synchronized(nsIdFoods) { nsIdFoods.add(payload) }
     override fun addToDeleteTreatment(payload: String): Boolean = synchronized(deleteTreatment) { deleteTreatment.add(payload) }

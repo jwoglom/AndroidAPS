@@ -3,15 +3,12 @@ package app.aaps.plugins.configuration.setupwizard
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
-import app.aaps.core.data.configuration.Constants
+import androidx.core.net.toUri
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.interfaces.androidPermissions.AndroidPermission
-import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
-import app.aaps.core.interfaces.configuration.ConfigBuilder
 import app.aaps.core.interfaces.constraints.Objectives
 import app.aaps.core.interfaces.maintenance.ImportExportPrefs
 import app.aaps.core.interfaces.plugin.ActivePlugin
@@ -28,14 +25,14 @@ import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.rx.events.EventSWRLStatus
 import app.aaps.core.interfaces.rx.events.EventSWSyncStatus
 import app.aaps.core.interfaces.rx.events.EventSWUpdate
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.HardLimits
+import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
-import app.aaps.core.keys.Preferences
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.UnitDoubleKey
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.crypto.CryptoUtil
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.utils.isRunningTest
@@ -64,13 +61,10 @@ class SWDefinition @Inject constructor(
     private val rxBus: RxBus,
     private val context: Context,
     private val rh: ResourceHelper,
-    private val sp: SP,
     private val preferences: Preferences,
     private val profileFunction: ProfileFunction,
     private val activePlugin: ActivePlugin,
     private val commandQueue: CommandQueue,
-    private val configBuilder: ConfigBuilder,
-    private val loop: Loop,
     private val importExportPrefs: ImportExportPrefs,
     private val androidPermission: AndroidPermission,
     private val cryptoUtil: CryptoUtil,
@@ -88,7 +82,7 @@ class SWDefinition @Inject constructor(
             when {
                 config.APS -> swDefinitionFull()
                 config.PUMPCONTROL -> swDefinitionPumpControl()
-                config.AAPSCLIENT  -> swDefinitionNSClient()
+                config.AAPSCLIENT -> swDefinitionNSClient()
             }
         }
         return screens
@@ -111,13 +105,13 @@ class SWDefinition @Inject constructor(
             .add(
                 SWButton(injector)
                     .text(R.string.end_user_license_agreement_i_understand)
-                    .visibility { !sp.getBoolean(R.string.key_i_understand, false) }
+                    .visibility { !preferences.get(BooleanNonKey.SetupWizardIUnderstand) }
                     .action {
-                        sp.putBoolean(R.string.key_i_understand, true)
+                        preferences.put(BooleanNonKey.SetupWizardIUnderstand, true)
                         rxBus.send(EventSWUpdate(false))
                     })
-            .visibility { !sp.getBoolean(R.string.key_i_understand, false) }
-            .validator { sp.getBoolean(R.string.key_i_understand, false) }
+            .visibility { !preferences.get(BooleanNonKey.SetupWizardIUnderstand) }
+            .validator { preferences.get(BooleanNonKey.SetupWizardIUnderstand) }
 
     private val screenUnits
         get() = SWScreen(injector, R.string.units)
@@ -125,7 +119,7 @@ class SWDefinition @Inject constructor(
             .add(
                 SWRadioButton(injector)
                     .option(uiInteraction.unitsEntries, uiInteraction.unitsValues)
-                    .preference(StringKey.GeneralUnits.key).label(R.string.units)
+                    .preference(StringKey.GeneralUnits).label(R.string.units)
                     .comment(R.string.setupwizard_units_prompt)
             )
             .validator { preferences.getIfExists(StringKey.GeneralUnits) != null }
@@ -134,7 +128,7 @@ class SWDefinition @Inject constructor(
         get() = SWScreen(injector, R.string.display_settings)
             .skippable(false)
             .add(
-                SWEditNumberWithUnits(injector, UnitDoubleKey.OverviewLowMark.defaultValue * Constants.MGDL_TO_MMOLL, 3.0, 8.0)
+                SWEditNumberWithUnits(injector)
                     .preference(UnitDoubleKey.OverviewLowMark)
                     .updateDelay(5)
                     .label(R.string.low_mark)
@@ -142,7 +136,7 @@ class SWDefinition @Inject constructor(
             )
             .add(SWBreak(injector))
             .add(
-                SWEditNumberWithUnits(injector, UnitDoubleKey.OverviewHighMark.defaultValue * Constants.MGDL_TO_MMOLL, 5.0, 20.0)
+                SWEditNumberWithUnits(injector)
                     .preference(UnitDoubleKey.OverviewHighMark)
                     .updateDelay(5)
                     .label(R.string.high_mark)
@@ -156,7 +150,7 @@ class SWDefinition @Inject constructor(
             .add(SWButton(injector)
                      .text(R.string.askforpermission)
                      .visibility { !Settings.canDrawOverlays(activity) }
-                     .action { activity.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + activity.packageName))) })
+                     .action { activity.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, ("package:" + activity.packageName).toUri())) })
             .add(SWBreak(injector))
             .add(SWInfoText(injector).label(rh.gs(R.string.need_whitelisting, rh.gs(config.appName))))
             .add(SWButton(injector)
@@ -249,20 +243,20 @@ class SWDefinition @Inject constructor(
             .add(
                 SWRadioButton(injector)
                     .option(hardLimits.ageEntries(), hardLimits.ageEntryValues())
-                    .preference(StringKey.SafetyAge.key)
+                    .preference(StringKey.SafetyAge)
                     .label(app.aaps.core.ui.R.string.patient_type)
                     .comment(app.aaps.core.ui.R.string.patient_age_summary)
             )
             .add(SWBreak(injector))
             .add(
-                SWEditNumber(injector, 3.0, 0.1, 25.0)
+                SWEditNumber(injector)
                     .preference(DoubleKey.SafetyMaxBolus)
                     .updateDelay(5)
                     .label(app.aaps.core.ui.R.string.max_bolus_title)
                     .comment(R.string.common_values)
             )
             .add(
-                SWEditIntNumber(injector, 48, 1, 100)
+                SWEditIntNumber(injector)
                     .preference(IntKey.SafetyMaxCarbs)
                     .updateDelay(5)
                     .label(app.aaps.core.ui.R.string.max_carbs_title)
@@ -365,32 +359,6 @@ class SWDefinition @Inject constructor(
             .add(SWHtmlLink(injector).label("https://wiki.aaps.app"))
             .add(SWBreak(injector))
 
-    private val screenApsMode
-        get() = SWScreen(injector, R.string.apsmode_title)
-            .skippable(false)
-            .add(
-                SWRadioButton(injector)
-                    .option(loop.entries(), loop.entryValues())
-                    .preference(StringKey.LoopApsMode.key).label(R.string.apsmode_title)
-                    .comment(R.string.setupwizard_preferred_aps_mode)
-            )
-            .validator { preferences.getIfExists(StringKey.LoopApsMode) != null }
-
-    private val screenLoop
-        get() = SWScreen(injector, R.string.configbuilder_loop)
-            .skippable(false)
-            .add(SWInfoText(injector).label(R.string.setupwizard_loop_description))
-            .add(SWBreak(injector))
-            .add(SWButton(injector)
-                     .text(app.aaps.core.ui.R.string.enableloop)
-                     .action {
-                         configBuilder.performPluginSwitch(loop as PluginBase, true, PluginType.LOOP)
-                         rxBus.send(EventSWUpdate(true))
-                     }
-                     .visibility { !loop.isEnabled() })
-            .validator { loop.isEnabled() }
-            .visibility { !loop.isEnabled() && config.APS }
-
     private val screenSensitivity
         get() = SWScreen(injector, R.string.configbuilder_sensitivity)
             .skippable(false)
@@ -436,8 +404,6 @@ class SWDefinition @Inject constructor(
             .add(screenProfileSwitch)
             .add(screenPump)
             .add(screenAps)
-            .add(screenApsMode)
-            .add(screenLoop)
             .add(screenSensitivity)
             .add(getScreenObjectives)
 

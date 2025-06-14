@@ -8,6 +8,7 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
 import app.aaps.core.data.model.GlucoseUnit
+import app.aaps.core.data.model.RM
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.time.T
@@ -20,6 +21,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginBase
+import app.aaps.core.interfaces.plugin.PluginBaseWithPreferences
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -31,8 +33,8 @@ import app.aaps.core.interfaces.rx.events.EventNetworkChange
 import app.aaps.core.interfaces.rx.events.EventPreferenceChange
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
-import app.aaps.core.keys.Preferences
 import app.aaps.core.keys.StringKey
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.validators.preferences.AdaptiveListPreference
 import app.aaps.plugins.automation.actions.Action
 import app.aaps.plugins.automation.actions.ActionAlarm
@@ -95,22 +97,22 @@ import javax.inject.Singleton
 @Singleton
 class AutomationPlugin @Inject constructor(
     private val injector: HasAndroidInjector,
+    aapsLogger: AAPSLogger,
     rh: ResourceHelper,
+    preferences: Preferences,
     private val context: Context,
-    private val preferences: Preferences,
     private val fabricPrivacy: FabricPrivacy,
     private val loop: Loop,
     private val rxBus: RxBus,
     private val constraintChecker: ConstraintsChecker,
-    aapsLogger: AAPSLogger,
     private val aapsSchedulers: AapsSchedulers,
     private val config: Config,
     private val locationServiceHelper: LocationServiceHelper,
     private val dateUtil: DateUtil,
     private val activePlugin: ActivePlugin,
     private val timerUtil: TimerUtil
-) : PluginBase(
-    PluginDescription()
+) : PluginBaseWithPreferences(
+    pluginDescription = PluginDescription()
         .mainType(PluginType.GENERAL)
         .fragmentClass(AutomationFragment::class.qualifiedName)
         .pluginIcon(app.aaps.core.objects.R.drawable.ic_automation)
@@ -120,12 +122,11 @@ class AutomationPlugin @Inject constructor(
         .neverVisible(!config.APS)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
         .description(R.string.automation_description),
-    aapsLogger, rh
+    ownPreferences = listOf(AutomationStringKey::class.java),
+    aapsLogger, rh, preferences
 ), Automation {
 
     private var disposable: CompositeDisposable = CompositeDisposable()
-
-    private val keyAutomationEvents = "AUTOMATION_EVENTS"
 
     private val automationEvents = ArrayList<AutomationEventObject>()
     var executionLog: MutableList<String> = ArrayList()
@@ -141,9 +142,6 @@ class AutomationPlugin @Inject constructor(
     }
 
     init {
-        // Make plugin preferences available to AAPS
-        preferences.registerPreferences(AutomationStringKey::class.java)
-
         refreshLoop = Runnable {
             processActions()
             handler?.postDelayed(refreshLoop, T.secs(150).msecs())
@@ -243,21 +241,15 @@ class AutomationPlugin @Inject constructor(
     internal fun processActions() {
         if (!config.appInitialized) return
         var commonEventsEnabled = true
-        if (loop.isSuspended || !(loop as PluginBase).isEnabled()) {
-            aapsLogger.debug(LTag.AUTOMATION, "Loop deactivated")
-            executionLog.add(rh.gs(app.aaps.core.ui.R.string.loopisdisabled))
+        if (loop.runningMode.isSuspended() || !loop.runningMode.isLoopRunning()) {
+            aapsLogger.debug(LTag.AUTOMATION, "Loop suspended")
+            executionLog.add(rh.gs(app.aaps.core.ui.R.string.loopsuspended))
             rxBus.send(EventAutomationUpdateGui())
             commonEventsEnabled = false
         }
-        if (loop.isDisconnected || !(loop as PluginBase).isEnabled()) {
+        if (loop.runningMode == RM.Mode.DISCONNECTED_PUMP || !(loop as PluginBase).isEnabled()) {
             aapsLogger.debug(LTag.AUTOMATION, "Loop disconnected")
             executionLog.add(rh.gs(app.aaps.core.ui.R.string.disconnected))
-            rxBus.send(EventAutomationUpdateGui())
-            commonEventsEnabled = false
-        }
-        if (activePlugin.activePump.isSuspended()) {
-            aapsLogger.debug(LTag.AUTOMATION, "Pump suspended")
-            executionLog.add(rh.gs(app.aaps.core.ui.R.string.waitingforpump))
             rxBus.send(EventAutomationUpdateGui())
             commonEventsEnabled = false
         }

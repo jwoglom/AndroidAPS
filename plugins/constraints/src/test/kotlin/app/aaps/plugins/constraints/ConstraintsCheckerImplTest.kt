@@ -1,8 +1,9 @@
 package app.aaps.plugins.constraints
 
-import app.aaps.core.data.aps.ApsMode
+import app.aaps.core.data.model.RM
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.PumpDescription
+import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
 import app.aaps.core.interfaces.constraints.Constraint
 import app.aaps.core.interfaces.constraints.Objectives
@@ -67,6 +68,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     @Mock lateinit var tddCalculator: TddCalculator
     @Mock lateinit var determineBasalSMB: DetermineBasalSMB
     @Mock lateinit var determineBasalAMA: DetermineBasalAMA
+    @Mock lateinit var loop: Loop
 
     private lateinit var danaPump: DanaPump
     private lateinit var insightDbHelper: InsightDbHelper
@@ -82,7 +84,6 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     init {
         addInjector {
             if (it is Objective) {
-                it.sp = sp
                 it.preferences = preferences
                 it.dateUtil = dateUtil
             }
@@ -92,7 +93,6 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     @BeforeEach
     fun prepare() {
         `when`(rh.gs(R.string.closed_loop_disabled_on_dev_branch)).thenReturn("Running dev version. Closed loop is disabled.")
-        `when`(rh.gs(R.string.closedmodedisabledinpreferences)).thenReturn("Closed loop mode disabled in preferences")
         `when`(rh.gs(app.aaps.core.ui.R.string.no_valid_basal_rate)).thenReturn("No valid basal rate read from pump")
         `when`(rh.gs(app.aaps.plugins.aps.R.string.autosens_disabled_in_preferences)).thenReturn("Autosens disabled in preferences")
         `when`(rh.gs(app.aaps.plugins.aps.R.string.smb_disabled_in_preferences)).thenReturn("SMB disabled in preferences")
@@ -118,10 +118,10 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         `when`(rh.gs(R.string.objectivenotstarted)).thenReturn("Objective %1\$d not started")
 
         // RS constructor
-        `when`(preferences.get(DanaStringKey.DanaRsName)).thenReturn("")
-        `when`(preferences.get(DanaStringKey.DanaMacAddress)).thenReturn("")
+        `when`(preferences.get(DanaStringKey.RsName)).thenReturn("")
+        `when`(preferences.get(DanaStringKey.MacAddress)).thenReturn("")
         // R
-        `when`(preferences.get(DanaStringKey.DanaRName)).thenReturn("")
+        `when`(preferences.get(DanaStringKey.RName)).thenReturn("")
 
         //SafetyPlugin
         constraintChecker = ConstraintsCheckerImpl(activePlugin, aapsLogger)
@@ -130,20 +130,21 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
 
         insightDbHelper = InsightDbHelper(insightDatabaseDao)
         danaPump = DanaPump(aapsLogger, preferences, dateUtil, instantiator, decimalFormatter)
-        objectivesPlugin = ObjectivesPlugin(injector, aapsLogger, rh, sp)
+        objectivesPlugin = ObjectivesPlugin(injector, aapsLogger, rh, preferences)
+        objectivesPlugin.onStart()
         danaRPlugin = DanaRPlugin(
-            aapsLogger, aapsSchedulers, rxBus, context, rh, constraintChecker, activePlugin, commandQueue, danaPump, dateUtil, fabricPrivacy, pumpSync,
-            preferences, uiInteraction, danaHistoryDatabase, decimalFormatter, instantiator
+            aapsLogger, rh, preferences, commandQueue, aapsSchedulers, rxBus, context, constraintChecker, activePlugin, danaPump, dateUtil, fabricPrivacy, pumpSync,
+            uiInteraction, danaHistoryDatabase, decimalFormatter, instantiator
         )
         danaRSPlugin =
             DanaRSPlugin(
-                aapsLogger, aapsSchedulers, rxBus, context, rh, constraintChecker, profileFunction,
-                commandQueue, danaPump, pumpSync, preferences, detailedBolusInfoStorage, temporaryBasalStorage,
+                aapsLogger, rh, preferences, commandQueue, aapsSchedulers, rxBus, context, constraintChecker, profileFunction,
+                danaPump, pumpSync, detailedBolusInfoStorage, temporaryBasalStorage,
                 fabricPrivacy, dateUtil, uiInteraction, danaHistoryDatabase, decimalFormatter, instantiator
             )
         insightPlugin = InsightPlugin(
-            aapsLogger, rxBus, rh, sp, commandQueue, profileFunction,
-            context, config, dateUtil, insightDbHelper, pumpSync, insightDatabase, instantiator
+            aapsLogger, rh, preferences, commandQueue, rxBus, profileFunction,
+            context, dateUtil, insightDbHelper, pumpSync, insightDatabase, instantiator
         )
         openAPSSMBPlugin =
             OpenAPSSMBPlugin(
@@ -185,16 +186,12 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     // 2x Safety & Objectives
     @Test
     fun isClosedLoopAllowedTest() {
-        `when`(preferences.get(StringKey.LoopApsMode)).thenReturn(ApsMode.CLOSED.name)
-        objectivesPlugin.objectives[Objectives.MAXIOB_ZERO_CL_OBJECTIVE].startedOn = 0
+        `when`(config.isEngineeringModeOrRelease()).thenReturn(true)
+        `when`(loop.runningMode).thenReturn(RM.Mode.CLOSED_LOOP)
+        objectivesPlugin.objectives[Objectives.CLOSED_LOOP_OBJECTIVE].startedOn = 0
         var c: Constraint<Boolean> = constraintChecker.isClosedLoopAllowed()
         aapsLogger.debug("Reason list: " + c.reasonList.toString())
-//        assertThat(c.reasonList[0].toString()).contains("Closed loop is disabled") // Safety & Objectives
-        assertThat(c.value()).isFalse()
-        `when`(preferences.get(StringKey.LoopApsMode)).thenReturn(ApsMode.OPEN.name)
-        c = constraintChecker.isClosedLoopAllowed()
-        assertThat(c.reasonList[0]).contains("Closed loop mode disabled in preferences") // Safety & Objectives
-//        assertThat(c.reasonList).hasThat(3) // 2x Safety & Objectives
+        assertThat(c.reasonList[0].toString()).contains("Objectives: Objective 7 not started") // Safety & Objectives
         assertThat(c.value()).isFalse()
     }
 
@@ -234,7 +231,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         openAPSSMBPlugin.setPluginEnabled(PluginType.APS, true)
         objectivesPlugin.objectives[Objectives.SMB_OBJECTIVE].startedOn = 0
         `when`(preferences.get(BooleanKey.ApsUseSmb)).thenReturn(false)
-        `when`(preferences.get(StringKey.LoopApsMode)).thenReturn(ApsMode.OPEN.name)
+        `when`(loop.runningMode).thenReturn(RM.Mode.OPEN_LOOP)
 //        `when`(constraintChecker.isClosedLoopAllowed()).thenReturn(ConstraintObject(true))
         val c = constraintChecker.isSMBModeEnabled()
         assertThat(c.reasonList).hasSize(3) // 2x Safety & Objectives
@@ -341,7 +338,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     @Test
     fun iobAMAShouldBeLimited() {
         // No limit by default
-        `when`(preferences.get(StringKey.LoopApsMode)).thenReturn(ApsMode.CLOSED.name)
+        `when`(loop.runningMode).thenReturn(RM.Mode.CLOSED_LOOP)
         `when`(preferences.get(DoubleKey.ApsAmaMaxIob)).thenReturn(1.5)
         `when`(preferences.get(StringKey.SafetyAge)).thenReturn("teenage")
         openAPSAMAPlugin.setPluginEnabled(PluginType.APS, true)
@@ -357,7 +354,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     @Test
     fun iobSMBShouldBeLimited() {
         // No limit by default
-        `when`(preferences.get(StringKey.LoopApsMode)).thenReturn(ApsMode.CLOSED.name)
+        `when`(loop.runningMode).thenReturn(RM.Mode.CLOSED_LOOP)
         `when`(preferences.get(DoubleKey.ApsSmbMaxIob)).thenReturn(3.0)
         `when`(preferences.get(StringKey.SafetyAge)).thenReturn("teenage")
         openAPSSMBPlugin.setPluginEnabled(PluginType.APS, true)

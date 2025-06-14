@@ -10,6 +10,7 @@ import app.aaps.database.AppDatabase
 import app.aaps.database.entities.TABLE_APS_RESULTS
 import app.aaps.database.entities.TABLE_HEART_RATE
 import app.aaps.database.entities.TABLE_PREFERENCE_CHANGES
+import app.aaps.database.entities.TABLE_RUNNING_MODE
 import app.aaps.database.entities.TABLE_STEPS_COUNT
 import app.aaps.database.entities.TABLE_USER_ENTRY
 import dagger.Module
@@ -36,8 +37,7 @@ open class DatabaseModule {
                     createCustomIndexes(db)
                 }
             })
-            .fallbackToDestructiveMigration()
-            .fallbackToDestructiveMigrationOnDowngrade()
+            .fallbackToDestructiveMigration(false)
             .build()
 
     @Qualifier
@@ -48,7 +48,7 @@ open class DatabaseModule {
         database.execSQL("CREATE INDEX IF NOT EXISTS `index_extendedBoluses_end` ON `extendedBoluses` (`timestamp` + `duration`)")
         database.execSQL("CREATE INDEX IF NOT EXISTS `index_temporaryTargets_end` ON `temporaryTargets` (`timestamp` + `duration`)")
         database.execSQL("CREATE INDEX IF NOT EXISTS `index_carbs_end` ON `carbs` (`timestamp` + `duration`)")
-        database.execSQL("CREATE INDEX IF NOT EXISTS `index_offlineEvents_end` ON `offlineEvents` (`timestamp` + `duration`)")
+        database.execSQL("CREATE INDEX IF NOT EXISTS `index_runningModes_end` ON `runningModes` (`timestamp` + `duration`)")
     }
 
     private fun dropCustomIndexes(database: SupportSQLiteDatabase) {
@@ -56,10 +56,10 @@ open class DatabaseModule {
         database.execSQL("DROP INDEX IF EXISTS `index_extendedBoluses_end`")
         database.execSQL("DROP INDEX IF EXISTS `index_temporaryTargets_end`")
         database.execSQL("DROP INDEX IF EXISTS `index_carbs_end`")
-        database.execSQL("DROP INDEX IF EXISTS `index_offlineEvents_end`")
+        database.execSQL("DROP INDEX IF EXISTS `index_runningModes_end`")
     }
 
-    private val migration20to21 = object : Migration(20, 21) {
+    internal val migration20to21 = object : Migration(20, 21) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("DROP TABLE IF EXISTS offlineEvents")
             database.execSQL("CREATE TABLE IF NOT EXISTS `offlineEvents` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `version` INTEGER NOT NULL, `dateCreated` INTEGER NOT NULL, `isValid` INTEGER NOT NULL, `referenceId` INTEGER, `timestamp` INTEGER NOT NULL, `utcOffset` INTEGER NOT NULL, `reason` TEXT NOT NULL, `duration` INTEGER NOT NULL, `nightscoutSystemId` TEXT, `nightscoutId` TEXT, `pumpType` TEXT, `pumpSerial` TEXT, `temporaryId` INTEGER, `pumpId` INTEGER, `startId` INTEGER, `endId` INTEGER, FOREIGN KEY(`referenceId`) REFERENCES `offlineEvents`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )")
@@ -73,7 +73,7 @@ open class DatabaseModule {
         }
     }
 
-    private val migration21to22 = object : Migration(21, 22) {
+    internal val migration21to22 = object : Migration(21, 22) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("ALTER TABLE `carbs` ADD COLUMN `notes` TEXT")
             database.execSQL("ALTER TABLE `boluses` ADD COLUMN `notes` TEXT")
@@ -82,7 +82,7 @@ open class DatabaseModule {
         }
     }
 
-    private val migration22to23 = object : Migration(22, 23) {
+    internal val migration22to23 = object : Migration(22, 23) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("ALTER TABLE `deviceStatus` ADD COLUMN `isCharging` INTEGER")
             // Custom indexes must be dropped on migration to pass room schema checking after upgrade
@@ -90,7 +90,7 @@ open class DatabaseModule {
         }
     }
 
-    private val migration23to24 = object : Migration(23, 24) {
+    internal val migration23to24 = object : Migration(23, 24) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL(
                 """CREATE TABLE IF NOT EXISTS `$TABLE_HEART_RATE` (
@@ -118,7 +118,7 @@ open class DatabaseModule {
             dropCustomIndexes(database)
         }
     }
-    private val migration24to25 = object : Migration(24, 25) {
+    internal val migration24to25 = object : Migration(24, 25) {
         override fun migrate(database: SupportSQLiteDatabase) {
             // Creation of table TABLE_STEPS_COUNT
             database.execSQL(
@@ -133,7 +133,7 @@ open class DatabaseModule {
         }
     }
 
-    private val migration25to26 = object : Migration(25, 26) {
+    internal val migration25to26 = object : Migration(25, 26) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("DROP TABLE IF EXISTS $TABLE_APS_RESULTS")
             database.execSQL("CREATE TABLE IF NOT EXISTS `${TABLE_APS_RESULTS}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `version` INTEGER NOT NULL, `dateCreated` INTEGER NOT NULL, `isValid` INTEGER NOT NULL, `referenceId` INTEGER, `timestamp` INTEGER NOT NULL, `utcOffset` INTEGER NOT NULL, `algorithm` TEXT NOT NULL, `glucoseStatusJson` TEXT NOT NULL, `currentTempJson` TEXT NOT NULL, `iobDataJson` TEXT NOT NULL, `profileJson` TEXT NOT NULL, `autosensDataJson` TEXT, `mealDataJson` TEXT NOT NULL, `resultJson` TEXT NOT NULL, `nightscoutSystemId` TEXT, `nightscoutId` TEXT, `pumpType` TEXT, `pumpSerial` TEXT, `temporaryId` INTEGER, `pumpId` INTEGER, `startId` INTEGER, `endId` INTEGER, FOREIGN KEY(`referenceId`) REFERENCES `apsResults`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )")
@@ -146,7 +146,7 @@ open class DatabaseModule {
         }
     }
 
-    private val migration26to27 = object : Migration(26, 27) {
+    internal val migration26to27 = object : Migration(26, 27) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("DROP TABLE IF EXISTS $TABLE_APS_RESULTS")
             database.execSQL("CREATE TABLE IF NOT EXISTS `${TABLE_APS_RESULTS}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `version` INTEGER NOT NULL, `dateCreated` INTEGER NOT NULL, `isValid` INTEGER NOT NULL, `referenceId` INTEGER, `timestamp` INTEGER NOT NULL, `utcOffset` INTEGER NOT NULL, `algorithm` TEXT NOT NULL, `glucoseStatusJson` TEXT, `currentTempJson` TEXT, `iobDataJson` TEXT, `profileJson` TEXT, `autosensDataJson` TEXT, `mealDataJson` TEXT, `resultJson` TEXT NOT NULL, `nightscoutSystemId` TEXT, `nightscoutId` TEXT, `pumpType` TEXT, `pumpSerial` TEXT, `temporaryId` INTEGER, `pumpId` INTEGER, `startId` INTEGER, `endId` INTEGER, FOREIGN KEY(`referenceId`) REFERENCES `apsResults`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )")
@@ -157,7 +157,7 @@ open class DatabaseModule {
         }
     }
 
-    private val migration27to28 = object : Migration(27, 28) {
+    internal val migration27to28 = object : Migration(27, 28) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("DELETE FROM $TABLE_APS_RESULTS")
             // Custom indexes must be dropped on migration to pass room schema checking after upgrade
@@ -165,7 +165,7 @@ open class DatabaseModule {
         }
     }
 
-    private val migration28to29 = object : Migration(28, 29) {
+    internal val migration28to29 = object : Migration(28, 29) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("DROP TABLE IF EXISTS $TABLE_PREFERENCE_CHANGES")
             database.execSQL("CREATE TABLE IF NOT EXISTS `$TABLE_PREFERENCE_CHANGES` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `utcOffset` INTEGER NOT NULL, `key` TEXT NOT NULL, `value` TEXT NOT NULL)")
@@ -178,7 +178,21 @@ open class DatabaseModule {
         }
     }
 
+    internal val migration29to30 = object : Migration(29, 30) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("DROP TABLE IF EXISTS `offlineEvents`")
+
+            database.execSQL("CREATE TABLE IF NOT EXISTS `$TABLE_RUNNING_MODE` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `version` INTEGER NOT NULL, `dateCreated` INTEGER NOT NULL, `isValid` INTEGER NOT NULL, `referenceId` INTEGER, `timestamp` INTEGER NOT NULL, `utcOffset` INTEGER NOT NULL, `mode` TEXT NOT NULL, `duration` INTEGER NOT NULL, `autoForced` INTEGER NOT NULL, `reasons` TEXT, `nightscoutSystemId` TEXT, `nightscoutId` TEXT, `pumpType` TEXT, `pumpSerial` TEXT, `temporaryId` INTEGER, `pumpId` INTEGER, `startId` INTEGER, `endId` INTEGER, FOREIGN KEY(`referenceId`) REFERENCES `runningModes`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )")
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_runningModes_id` ON `$TABLE_RUNNING_MODE` (`id`)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_runningModes_nightscoutId` ON `$TABLE_RUNNING_MODE` (`nightscoutId`)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_runningModes_referenceId` ON `$TABLE_RUNNING_MODE` (`referenceId`)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_runningModes_timestamp` ON `$TABLE_RUNNING_MODE` (`timestamp`)")
+            // Custom indexes must be dropped on migration to pass room schema checking after upgrade
+            dropCustomIndexes(database)
+        }
+    }
+
     /** List of all migrations for easy reply in tests. */
     @VisibleForTesting
-    internal val migrations = arrayOf(migration20to21, migration21to22, migration22to23, migration23to24, migration24to25, migration25to26, migration26to27, migration27to28, migration28to29)
+    internal val migrations = arrayOf(migration20to21, migration21to22, migration22to23, migration23to24, migration24to25, migration25to26, migration26to27, migration27to28, migration28to29, migration29to30)
 }

@@ -23,8 +23,8 @@ import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.utils.Round
-import app.aaps.core.keys.Preferences
 import app.aaps.core.keys.UnitDoubleKey
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.toast.ToastUtils
 import com.jjoe64.graphview.GraphView
 import com.jjoe64.graphview.series.DataPoint
@@ -105,6 +105,10 @@ import kotlin.math.max
 
     fun addTargetLine() {
         addSeries(overviewData.temporaryTargetSeries as LineGraphSeries<DataPoint>)
+    }
+
+    fun addRunningModes() {
+        addSeries(overviewData.runningModesSeries as PointsWithLabelGraphSeries<DataPoint>)
     }
 
     fun addTreatments(context: Context?) {
