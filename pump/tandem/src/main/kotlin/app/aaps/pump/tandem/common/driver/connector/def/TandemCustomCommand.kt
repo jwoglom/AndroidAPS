@@ -12,7 +12,8 @@ enum class TandemCustomCommand(@StringRes var resourceId: Int) : CustomCommandTy
     SET_CONTROL_IQ(R.string.tandem_custom_command_disable_control_iq),
     GET_PUMP_INFO(R.string.tandem_custom_command_get_pump_info),
     GET_ALERTS(R.string.tandem_custom_command_get_alerts),
-    GET_ALARMS(R.string.tandem_custom_command_get_alarms)
+    GET_ALARMS(R.string.tandem_custom_command_get_alarms),
+    DISMISS_ALERT(R.string.tandem_custom_command_dismiss_alert)
     ;
 
     var descriptionInternal : String? = null

@@ -12,6 +12,8 @@ import app.aaps.core.interfaces.rx.events.EventNewNotification
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
+import app.aaps.pump.common.defs.BolusData
+import app.aaps.pump.common.defs.BolusType
 import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
@@ -49,10 +51,13 @@ import com.jwoglom.pumpx2.pump.bluetooth.TandemConfig
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.PairingCodeType
 import com.jwoglom.pumpx2.pump.messages.models.StatusMessage
+import com.jwoglom.pumpx2.pump.messages.request.control.BolusPermissionRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.CancelBolusRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ChangeControlIQSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ChangeTimeDateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.CreateIDPRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.InitiateBolusRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetIDPSegmentRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBasalLimitRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBolusLimitRequest
@@ -66,12 +71,14 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV1Req
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV2Request
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV1Request
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV2Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.GlobalMaxBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.IDPSegmentRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.IDPSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LastBolusStatusV2Request
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ProfileStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpFeaturesV1Request
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpFeaturesV2Request
@@ -79,9 +86,12 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpVersionRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.ChangeControlIQSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.CreateIDPResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.DismissNotificationResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.InitiateBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetIDPSegmentResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBasalLimitResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBolusLimitResponse
@@ -95,6 +105,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalLimitSetting
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GlobalMaxBolusSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
@@ -102,16 +113,19 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse.IDPSegmentStatus
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ProfileStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog
 import org.joda.time.DateTime
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.log
 
 /**
  * TODO
@@ -358,17 +372,139 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?> {
+    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<BolusData?> {
+
+        // 1. send BolusPermissionRequest(), get BolusPermissionResponse() which contains a bolusId
+        // 2. send InitiateBolusRequest() with:
+        //
+        // @param totalVolume      the amount of insulin to be delivered, in milliunits. Use {@link com.jwoglom.pumpx2.pump.messages.models.InsulinUnit#from1To1000}.
+        // * @param bolusID          the bolus ID returned from {@link com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse}
+        // * @param bolusTypeBitmask the bitmask of bolus type. Use {@link com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog.BolusType#toBitmask(BolusDeliveryHistoryLog.BolusType...)}
+        // * @param foodVolume       the amount of insulin attributed within metadata from food (carbs; optional)
+        // * @param correctionVolume the amount of insulin attributed within metadata from a correction (optional)
+        // * @param bolusCarbs       the number of carbs attributed within metadata (optional)
+        // * @param bolusBG          the current BG attributed within metadata, if overridden from the current CGM reading (optional)
+        // * @param bolusIOB         the current IOB attributed within metadata (optional)
+        //
+        //
+        // 3. get InitiateBolusResponse() which is a StatusMessage that if successful, means the bolus is starting to be delivered
+        // 4. periodically send CurrentBolusStatusRequest() which returns CurrentBolusStatusResponse() and will contain a CurrentBolusStatus of REQUESTING for a bit until it then switches to DELIVERING
+        // 5. when bolus status switches to ALREADY_DELIVERED_OR_INVALID, then you can call LastBolusStatusV2Request() and should see the same bolus id referenced and the amount which was delivered. if anything else goes wrong (like an occlusion) you'll get a pump alarm
+
+        val permissionResponseMessage: BolusPermissionResponse? = getCommunicationManager().sendCommand(
+            BolusPermissionRequest()
+        ) as BolusPermissionResponse?
+
+        if (permissionResponseMessage==null) {
+            aapsLogger.error(TAG, "BolusPermissionResponse was not received." )
+
+            return DataCommandResponse(
+                PumpCommandType.SetBolus, false,
+                "Error getting response from sending BolusPermissionResponse: null",
+                null
+            )
+        }
+
+        val volume = (detailedBolusInfo.insulin * 100).toLong() // no decimals
+        val bolusCarbs = 0
+
+        var bolusRequest = InitiateBolusRequest(volume, permissionResponseMessage.bolusId,
+                                                BolusDeliveryHistoryLog.BolusType.FOOD1.mask(),
+                                                0, 0,
+                                                bolusCarbs, 0, 0)
+
+        // InitiateBolusRequest(long totalVolume, int bolusID, int bolusTypeBitmask, long foodVolume,
+        //     long correctionVolume, int bolusCarbs, int bolusBG, long bolusIOB)
+
+        val bolusRequestResponse: InitiateBolusResponse? = getCommunicationManager().sendCommand(
+            bolusRequest
+        ) as InitiateBolusResponse?
+
+        if (bolusRequestResponse==null) {
+            aapsLogger.error(TAG, "InitiateBolusResponse was not received." )
+
+            return DataCommandResponse(
+                PumpCommandType.SetBolus, false,
+                "Error getting response from sending InitiateBolusResponse: null",
+                null
+            )
+        }
+
+        var finished = false
+        var bolusStatusResponse: CurrentBolusStatusResponse? = null
+
+        while (!finished) {
+
+            Thread.sleep(1000)
+
+            bolusStatusResponse = getCommunicationManager()
+                .sendCommand(CurrentBolusStatusRequest()) as CurrentBolusStatusResponse?
+
+            if (bolusStatusResponse==null) {
+                aapsLogger.warn(TAG, "No response for CurrentBolusStatusResponse")
+            } else {
+                if (bolusStatusResponse.status== CurrentBolusStatusResponse.CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID) {
+                    aapsLogger.debug(TAG, "Bolus delivered: " + getJsonStringFromObject(bolusStatusResponse))
+                    finished = true
+                } else {
+                    aapsLogger.debug(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
+                }
+            }
+
+        }
+
+        return tandemDataConverter.getBolus(bolusStatusResponse)
+
+        //return bolusData
+
         // TODO V1 Connector: sendBolus
-        return super.sendBolus(detailedBolusInfo)
+        //return super.sendBolus(detailedBolusInfo)
+    }
+
+    fun getJsonStringFromObject(obj: Any) : String {
+        return pumpUtil.gson.toJson(obj)
     }
 
 
-    override fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?> {
+    override fun cancelBolus(bolusData: BolusData?): DataCommandResponse<AdditionalResponseDataInterface?> {
         // TODO V1 Connector: cancelBolus N-7
-        var responseMessage: Message? = getCommunicationManager().sendCommand(CancelBolusRequest()) as CancelBolusResponse
+        ///var responseMessage: Message? = getCommunicationManager().sendCommand(CancelBolusRequest()) as CancelBolusResponse
 
-        return super.cancelBolus()
+        // TODO refactor
+
+
+        aapsLogger.info(LTag.PUMPCOMM, "getBolus")
+
+        val responseData: DataCommandResponse<BolusData?> = sendAndReceivePumpData(
+            PumpCommandType.GetBolus,
+            CurrentBolusStatusRequest())
+        {  rawContent -> tandemDataConverter.getBolus(rawContent as CurrentBolusStatusResponse) }
+
+        aapsLogger.info(TAG, "getBolus result: ${responseData.value}")
+
+        //return responseData
+
+
+
+        return super.cancelBolus(bolusData)
+    }
+
+
+
+
+    override fun getBolus(): DataCommandResponse<BolusData?> {
+
+        aapsLogger.info(LTag.PUMPCOMM, "getBolus")
+
+        val responseData: DataCommandResponse<BolusData?> = sendAndReceivePumpData(
+            PumpCommandType.GetBolus,
+            LastBolusStatusV2Request())
+        {  rawContent -> tandemDataConverter.getBolus(rawContent as LastBolusStatusV2Response) }
+
+        aapsLogger.info(TAG, "getBolus result: ${responseData.value}")
+
+        return responseData
+
     }
 
 
@@ -516,13 +652,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
             responseText = checkResponse(responseMessage, "IDPSegmentRequest [idpId=${idpId}, segmentNumber=${i}]")
 
-            val rspMsg = responseMessage as IDPSegmentResponse
-
             if (responseText!=null) {
                 pumpProfileDto.success = false
                 pumpProfileDto.errorDescription = responseText
                 return pumpProfileDto
             } else {
+                val rspMsg = responseMessage as IDPSegmentResponse
                 pumpProfileDto.mapSegments.put(i, rspMsg)
             }
         }
@@ -936,6 +1071,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             GET_PUMP_INFO      -> return getPumpInfo()
             GET_ALERTS         -> return getAlerts()
             GET_ALARMS         -> return getAlarms()
+            DISMISS_ALERT      -> return dismissNotificationAlert(data as Long)
             else                              -> {
                 aapsLogger.error(TAG, "Unhandled Custom Command: ${commandType.name}")
             }
@@ -943,6 +1079,42 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         return DataCommandResponse(
             PumpCommandType.CustomCommand, false, "Command ${commandType.getKey()} not available.", null)
+    }
+
+
+    private fun dismissNotificationAlert(value: Long): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return dismissNotification(DismissNotificationRequest.NotificationType.ALERT, value);
+    }
+
+
+    private fun dismissNotification(notificationType: DismissNotificationRequest.NotificationType, notificationId: Long ): DataCommandResponse<AdditionalResponseDataInterface?> {
+
+        val dismissNotificationRequest = DismissNotificationRequest(
+            notificationType,
+            notificationId
+        )
+
+        val details = "[type=${notificationType.name},id=$notificationId]"
+
+        aapsLogger.info(LTag.PUMPCOMM, "dismissNotification $details")
+
+        val responseMessage: DismissNotificationResponse? = getCommunicationManager()
+            .sendCommand(dismissNotificationRequest) as DismissNotificationResponse?
+
+        if (responseMessage!=null) {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, responseMessage.isStatusOK,
+                if (responseMessage.isStatusOK) null else "Error sending dismissNotification $details: status=${responseMessage.status}",
+                null
+            )
+        } else {
+            aapsLogger.error(TAG, "Error getting response from sending dismissNotification $details: null")
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending dismissNotification $details: null",
+                null
+            )
+        }
     }
 
 

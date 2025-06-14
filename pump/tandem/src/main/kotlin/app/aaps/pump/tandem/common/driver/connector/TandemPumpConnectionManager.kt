@@ -15,7 +15,6 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
-import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.TempBasalPair
@@ -27,6 +26,7 @@ import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import app.aaps.pump.tandem.common.util.TandemPumpConst
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -155,6 +155,9 @@ class TandemPumpConnectionManager @Inject constructor(
             PumpCommandType.GetRemainingInsulin,
             PumpCommandType.GetTime,
             PumpCommandType.SetTime,
+            PumpCommandType.GetBolus,
+            PumpCommandType.SetBolus,
+            PumpCommandType.CancelBolus,
             PumpCommandType.GetBatteryStatus        -> return tandemConnector
 
             else                    -> return dummyConnector
@@ -198,8 +201,18 @@ class TandemPumpConnectionManager @Inject constructor(
                 tandemPumpStatus.tandemAlarms = alarms.alarms
             }
             GET_ALERTS -> {
-                val alarms = responseData.value as AlertStatusDto
-                tandemPumpStatus.tandemAlerts = alarms.alerts
+                val alerts = responseData.value as AlertStatusDto
+                tandemPumpStatus.tandemAlerts = alerts.alerts
+
+                // TODO only start if configuration enabled...
+                if (alerts.alerts.contains(AlertStatusResponse.AlertResponseType.MIN_BASAL_ALERT2)) {
+                    executeCustomCommand(DISMISS_ALERT,
+                                         AlertStatusResponse.AlertResponseType.MIN_BASAL_ALERT2.bitmask().toLong())
+                }
+
+                // LOW_POWER_ALERT     LOW_POWER_ALERT2
+
+                // MIN_BASAL_ALERT2
             }
             else -> { }
         }

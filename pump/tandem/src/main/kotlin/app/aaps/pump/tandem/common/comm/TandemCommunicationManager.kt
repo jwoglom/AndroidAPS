@@ -200,6 +200,7 @@ class TandemCommunicationManager(
 
         sendCommand(peripheral, request)
 
+        // TODO add timeout
         while(commandRequestModeRunning) {
 
             if (commandResponse!=null) {

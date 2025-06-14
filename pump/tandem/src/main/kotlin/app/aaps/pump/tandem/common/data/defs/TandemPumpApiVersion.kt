@@ -41,7 +41,7 @@ enum class TandemPumpApiVersion(val description: String,
     }
 
     fun isMobi(): Boolean {
-        return (this == VERSION_3_5_MOBI || this == VERSION_3_6_MOBI)
+        return (this == VERSION_3_5_MOBI || this == VERSION_3_6_MOBI || this == VERSION_3_8_MOBI)
     }
 
 

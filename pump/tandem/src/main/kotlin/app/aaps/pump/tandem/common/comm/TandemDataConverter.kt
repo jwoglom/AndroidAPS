@@ -7,6 +7,9 @@ import app.aaps.core.interfaces.profile.Profile.ProfileValue
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.data.BasalProfileDto
+import app.aaps.pump.common.defs.BolusData
+import app.aaps.pump.common.defs.BolusStatus
+import app.aaps.pump.common.defs.BolusType
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
@@ -23,14 +26,17 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalLimitSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GlobalMaxBolusSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlarmActivatedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlertActivatedHistoryLog
@@ -154,14 +160,98 @@ class TandemDataConverter @Inject constructor(
 
     }
 
+
     fun getInsulinStatus(message: InsulinStatusResponse): DataCommandResponse<Double?> {
         return DataCommandResponse(
             PumpCommandType.GetRemainingInsulin, true, null, message.currentInsulinAmount.toDouble())
     }
 
-    fun getTempBasalRate(message: TempRateResponse): DataCommandResponse<TempBasalPair?> {
+
+    fun getBolus(message: LastBolusStatusV2Response): DataCommandResponse<BolusData?> {
 
         var jsonVal = pumpUtil.gson.toJson(message)
+        aapsLogger.info(TAG, "BOLUS: LastBolusStatusV2Response [${jsonVal}]")
+
+        val additionalData = mutableMapOf<String,Any?>()
+        additionalData["BolusSource"] = message.bolusSource
+        additionalData["BolusSourceId"] = message.bolusSourceId
+
+        val bolusStatus: BolusStatus = BolusStatus.DONE
+
+        val bolusTypes = message.bolusType
+
+        val bolusType: BolusType = if (bolusTypes.contains(element = BolusDeliveryHistoryLog.BolusType.EXTENDED)) {
+            BolusType.EXTENDED
+        } else {
+            BolusType.NORMAL
+        }
+
+        val bolusData = BolusData(
+            timestamp = message.timestampInstant.toEpochMilli(),
+            amountImmediate = message.requestedVolume * 0.01,
+            bolusType = bolusType,   // we can't determine if SMB at this point
+            bolusId = message.bolusId.toLong(),
+            bolusStatus = bolusStatus,
+            additionalData = additionalData
+        )
+
+        jsonVal = pumpUtil.gson.toJson(message)
+        aapsLogger.info(TAG, "BOLUS: BolusData [${jsonVal}]")
+
+        return DataCommandResponse(
+            PumpCommandType.GetBolus, true, null, bolusData)
+
+    }
+
+
+    fun getBolus(message: CurrentBolusStatusResponse?): DataCommandResponse<BolusData?> {
+
+        var jsonVal = pumpUtil.gson.toJson(message)
+        aapsLogger.info(TAG, "BOLUS: CurrentBolusStatusResponse [${jsonVal}]")
+
+        if (message==null) {
+            return DataCommandResponse(
+                PumpCommandType.GetBolus, false, "Bolus data response from pump could not be read.", null)
+        }
+
+        val additionalData = mutableMapOf<String,Any?>()
+        additionalData["BolusSource"] = message.bolusSource
+        additionalData["BolusSourceId"] = message.bolusSourceId
+
+        val bolusStatus: BolusStatus = when (message.status) {
+            CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> BolusStatus.DELIVERING
+            CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> BolusStatus.REQUESTED
+            else                                                     -> BolusStatus.DONE
+        }
+
+        val bolusTypes = message.bolusTypes
+
+        val bolusType: BolusType = if (bolusTypes.contains(element = BolusDeliveryHistoryLog.BolusType.EXTENDED)) {
+            BolusType.EXTENDED
+        } else {
+            BolusType.NORMAL
+        }
+
+        val bolusData = BolusData(
+            timestamp = message.timestampInstant.toEpochMilli(),
+            amountImmediate = message.requestedVolume * 0.01,
+            bolusType = bolusType,   // we can't determine if SMB at this point
+            bolusId = message.bolusId.toLong(),
+            bolusStatus = bolusStatus,
+            additionalData = additionalData
+        )
+
+        jsonVal = pumpUtil.gson.toJson(message)
+        aapsLogger.info(TAG, "BOLUS: BolusData [${jsonVal}]")
+
+        return DataCommandResponse(
+            PumpCommandType.GetBolus, true, null, bolusData)
+    }
+
+
+    fun getTempBasalRate(message: TempRateResponse): DataCommandResponse<TempBasalPair?> {
+
+        val jsonVal = pumpUtil.gson.toJson(message)
 
         aapsLogger.info(TAG, "TBR: TempRateResponse [${jsonVal}]")
 
@@ -206,6 +296,7 @@ class TandemDataConverter @Inject constructor(
         )
     }
 
+
     private fun findCorrectValueInSegments(targetTimeAsMinutes: Int, profileValueList : MutableCollection<IDPSegmentResponse>) : Double {
         var targetValue = 0.0
         for (profileValue in profileValueList) {
@@ -216,7 +307,6 @@ class TandemDataConverter @Inject constructor(
 
         return targetValue
     }
-
 
 
     fun getIDPSegmentsFromProfile(profile: Profile) : List<IDPSegmentDto> {
@@ -261,6 +351,7 @@ class TandemDataConverter @Inject constructor(
         return message.basalLimit
     }
 
+
     private fun getControlIQEnabled(message: Message): Boolean {
         if (message is ControlIQInfoV1Response)
             return message.closedLoopEnabled
@@ -269,6 +360,7 @@ class TandemDataConverter @Inject constructor(
 
         return false
     }
+
 
     fun getBatteryResponse(message: CurrentBatteryAbstractResponse): DataCommandResponse<Int?> {
         return DataCommandResponse(

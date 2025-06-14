@@ -11,6 +11,7 @@ import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDat
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
+import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.TempBasalPair
 
 interface PumpConnectorInterface {
@@ -20,8 +21,9 @@ interface PumpConnectorInterface {
 
     fun retrieveFirmwareVersion(): DataCommandResponse<FirmwareVersionInterface?>
 
-    fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?>  //  ResultCommandResponse
-    fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
+    fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<BolusData?>  //  ResultCommandResponse
+    fun cancelBolus(bolusData: BolusData?): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
+    fun getBolus(): DataCommandResponse<BolusData?>
 
     fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?>
     fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<TempBasalPair?>  //ResultCommandResponse

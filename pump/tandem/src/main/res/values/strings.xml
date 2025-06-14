@@ -166,6 +166,9 @@
     <string name="tandem_custom_command_get_pump_info">Get Pump Info</string>
     <string name="tandem_custom_command_get_alarms">Get Alarms</string>
     <string name="tandem_custom_command_get_alerts">Get Alerts</string>
+    <string name="tandem_custom_command_dismiss_alert">Dismiss Alert</string>
+
+
 
 
     <!-- Tandem specific constraints -->

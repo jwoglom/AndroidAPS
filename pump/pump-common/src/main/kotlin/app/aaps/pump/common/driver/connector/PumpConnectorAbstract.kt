@@ -13,6 +13,7 @@ import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDat
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.commands.response.ResultCommandResponse
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
+import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.TempBasalPair
 
 
@@ -48,11 +49,15 @@ abstract class PumpConnectorAbstract(/*protected var injector: HasAndroidInjecto
             false, "Command not implemented.", null)
     }
 
-    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?> {
-        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBolus)
+    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<BolusData?> {
+        //return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBolus)
+        return DataCommandResponse(
+            PumpCommandType.SetTemporaryBasal, false, "Dummy Bolus",
+            null
+        )
     }
 
-    override fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?> {
+    override fun cancelBolus(bolusData: BolusData?): DataCommandResponse<AdditionalResponseDataInterface?> {
         return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.CancelBolus)
     }
 

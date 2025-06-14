@@ -19,6 +19,7 @@ import app.aaps.pump.common.driver.connector.commands.response.DataCommandRespon
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
+import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.utils.PumpUtil
@@ -302,6 +303,31 @@ abstract class PumpConnectionManager constructor(
         }
 
         checkAdditionalResponseData(PumpCommandType.SetBolus, responseData)
+
+        return responseData
+    }
+
+
+    fun getBolus(): DataCommandResponse<BolusData?> {
+
+        val responseData: DataCommandResponse<BolusData?> = getConnectorData(PumpCommandType.GetBolus)
+        {
+            getConnector(PumpCommandType.GetBolus).getBolus()
+        }
+
+        checkAdditionalResponseData(PumpCommandType.GetBolus, responseData as DataCommandResponse<AdditionalResponseDataInterface?>)
+
+        return responseData
+    }
+
+    fun cancelBolus(bolusData: BolusData?): DataCommandResponse<AdditionalResponseDataInterface?> {
+
+        val responseData: DataCommandResponse<AdditionalResponseDataInterface?> = getConnectorData(PumpCommandType.CancelBolus)
+        {
+            getConnector(PumpCommandType.CancelBolus).cancelBolus(bolusData)
+        }
+
+        checkAdditionalResponseData(PumpCommandType.CancelBolus, responseData)
 
         return responseData
     }

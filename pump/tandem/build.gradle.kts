@@ -98,7 +98,7 @@ dependencies {
     // implementation("com.atech-software.pumpX2:pumpx2-messages:v1.4.4.0")
     // implementation("com.atech-software.pumpX2:pumpx2-shared:v1.4.4.0")
 
-    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.6.8")
+    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.6.9")
 //    implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.5.10")
 //    implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.5.10")
 

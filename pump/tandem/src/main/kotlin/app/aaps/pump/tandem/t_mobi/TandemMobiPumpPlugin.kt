@@ -284,6 +284,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     private fun refreshDataFull() {
+        aapsLogger.info(LTag.PUMP, logPrefix + "refreshDataFull")
         initializePump(false)
     }
 
@@ -780,11 +781,11 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         // remaining insulin (>50 = 4h; 50-20 = 1h; 15m) -
         pumpConnectionManager.getRemainingInsulin() // (command not available)
-        scheduleNextRefresh(PumpDataRefreshType.RemainingInsulin, 10)
+        scheduleNextRefresh(PumpDataRefreshType.RemainingInsulin, 1)
 
         // remaining power (1h) -
         pumpConnectionManager.getBatteryLevel()
-        scheduleNextRefresh(PumpDataRefreshType.BatteryStatus, 20)
+        scheduleNextRefresh(PumpDataRefreshType.BatteryStatus, 2)
 
         //testModeCode();
 
@@ -1106,9 +1107,44 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun stopBolusDelivering() {
-        bolusDeliveryType = BolusDeliveryType.CancelDelivery
-        // TODO if there is command
-        if (isLoggingEnabled) aapsLogger.warn(LTag.PUMP, "TandemPumpPlugin::deliverBolus - Stop Bolus Delivery.")
+        //bolusDeliveryType = BolusDeliveryType.CancelDelivery
+
+        if (bolusDeliveryType==BolusDeliveryType.Delivering ||
+            bolusDeliveryType==BolusDeliveryType.DeliveryPrepared) {
+
+            bolusDeliveryType = BolusDeliveryType.CancelDelivery // we don't want to come here twice
+
+            // FIXME cancel needs to be done n driver side
+
+            val bolusResponse = pumpConnectionManager.getBolus()
+
+            if (bolusResponse.isSuccess) {
+
+
+
+                val bolusData = bolusResponse.value
+
+                if (bolusData==null || bolusData.bolusStatus==BolusStatus.DONE) {
+                    aapsLogger.warn(TAG, "Bolus data is either null or BolusStatus is DONE. Bolus is no longer running, so cancel is not possible.")
+                    bolusDeliveryType = BolusDeliveryType.Idle
+                } else {
+                    aapsLogger.info(TAG, "Cancelling Bolus: ")
+                    val cancelBolusResponse = pumpConnectionManager.cancelBolus(bolusData)
+
+                    if (cancelBolusResponse.isSuccess) {
+                        bolusDeliveryType = BolusDeliveryType.Idle
+                    } else {
+                        aapsLogger.warn(TAG, "Bolus couldn't be cancelled")
+                    }
+                }
+            } else {
+                aapsLogger.warn(TAG, "Bolus response was not received, cancelBolus will be skipped.")
+            }
+
+        } else {
+            aapsLogger.warn(TAG, "Bolus delivery Type is $bolusDeliveryType, cancelBolus will be skipped.")
+        }
+
     }
 
     private val isLoggingEnabled: Boolean

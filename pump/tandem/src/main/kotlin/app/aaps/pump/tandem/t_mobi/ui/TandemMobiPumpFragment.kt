@@ -97,13 +97,13 @@ class TandemMobiPumpFragment : DaggerFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.pumpRefresh.setOnClickListener {
-            binding.pumpRefresh.isEnabled = false
+        binding.pumpRefreshMobi.setOnClickListener {
+            binding.pumpRefreshMobi.isEnabled = false
             tandemPumpPlugin.resetStatusState()
             commandQueue.readStatus("Clicked refresh", object : Callback() {
                 override fun run() {
-                    activity?.runOnUiThread { binding.pumpRefresh.isEnabled = true }
-                    rxBus.send(EventPumpDataRefresh())
+                    activity?.runOnUiThread { binding.pumpRefreshMobi.isEnabled = true }
+                    //rxBus.send(EventPumpDataRefresh())
                 }
             })
         }
@@ -128,7 +128,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
         disposable += rxBus
             .toObservable(EventRefreshButtonState::class.java)
             .observeOn(aapsSchedulers.main)
-            .subscribe({ binding.pumpRefresh.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
+            .subscribe({ binding.pumpRefreshMobi.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventPumpDriverStateChanged::class.java)
             .observeOn(aapsSchedulers.main)
@@ -174,13 +174,15 @@ class TandemMobiPumpFragment : DaggerFragment() {
 
         //val pumpState = pumpSync.expectedPumpState()
 
+        val currentTextColor = binding.pumpBaseBasalRate.currentTextColor // we need color from item, in case we are not running in dark mode
+
         // last connection
         if (pumpStatus.lastConnection != 0L) {
             val minAgo = dateUtil.minAgo(resourceHelper, pumpStatus.lastConnection)
             val min = (System.currentTimeMillis() - pumpStatus.lastConnection) / 1000 / 60
             if (pumpStatus.lastConnection + 60 * 1000 > System.currentTimeMillis()) {
                 binding.pumpLastConnection.setText(app.aaps.core.interfaces.R.string.now)
-                binding.pumpLastConnection.setTextColor(Color.WHITE)
+                binding.pumpLastConnection.setTextColor(currentTextColor)
             } else if (pumpStatus.lastConnection + 30 * 60 * 1000 < System.currentTimeMillis()) {
 
                 if (min < 60) {
@@ -197,7 +199,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 binding.pumpLastConnection.setTextColor(Color.RED)
             } else {
                 binding.pumpLastConnection.text = minAgo
-                binding.pumpLastConnection.setTextColor(Color.WHITE)
+                binding.pumpLastConnection.setTextColor(currentTextColor)
             }
         }
 
@@ -240,7 +242,8 @@ class TandemMobiPumpFragment : DaggerFragment() {
 
             // base basal rate
             binding.pumpBaseBasalRate.text = resourceHelper.gs(Rc.string.pump_base_basal_rate_with_profile,
-                                                               pumpStatus.activeProfileName, tandemPumpPlugin.baseBasalRate)
+                                                               pumpStatus.activeProfileName,
+                                                               tandemPumpPlugin.baseBasalRate)
 
             // tbr (always saved on pumpStatus)
             if (pumpStatus.currentTempBasal==null || System.currentTimeMillis() > pumpStatus.currentTempBasalEstimatedEnd!!) {

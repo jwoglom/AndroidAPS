@@ -14,6 +14,7 @@ import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDat
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
+import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.utils.PumpUtil
 import org.joda.time.DateTime
@@ -62,9 +63,23 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
     //         PumpCommandType.GetFirmwareVersion, true, null, TandemPumpApiVersion.VERSION_2_1)
     // }
 
-    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?> {
+    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<BolusData?> {
         pumpUtil.sleepSeconds(10)
-        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBolus)
+        //return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBolus)
+
+        return DataCommandResponse(
+            PumpCommandType.SetBolus, true, null, BolusData(amountImmediate = 1.0,
+                                                            timestamp = System.currentTimeMillis())
+        )
+    }
+
+    override fun getBolus(): DataCommandResponse<BolusData?> {
+        pumpUtil.sleepSeconds(10)
+
+        return DataCommandResponse(
+            PumpCommandType.GetBolus, true, null, BolusData(amountImmediate = 1.0,
+                                                            timestamp = System.currentTimeMillis())
+        )
     }
 
     override fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?> {
@@ -143,7 +158,7 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
             PumpCommandType.GetHistory, true, null, listOf())
     }
 
-    override fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?> {
+    override fun cancelBolus(bolusData: BolusData?): DataCommandResponse<AdditionalResponseDataInterface?> {
         return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.CancelBolus)
     }
 
