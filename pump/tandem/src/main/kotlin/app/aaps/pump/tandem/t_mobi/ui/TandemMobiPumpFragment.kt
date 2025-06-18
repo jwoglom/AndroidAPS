@@ -45,6 +45,8 @@ import app.aaps.pump.tandem.databinding.TandemMobiFragmentBinding
 
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
+import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
 
@@ -280,8 +282,8 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 }
             }
 
-            binding.pumpSerialNo.text = sp.getString(TandemPumpConst.Prefs.PumpSerial, "-")
-            binding.pumpAddress.text = sp.getString(TandemPumpConst.Prefs.PumpAddress, "-")
+            binding.pumpSerialNo.text = pumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpSerial, "-")
+            binding.pumpAddress.text = pumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpAddress, "-")
 
         }
 
@@ -346,7 +348,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
     }
 
     private fun setVisibilityOfDriverVersion() {
-        val displayDriverVersion = sp.getBoolean(TandemPumpConst.Prefs.DisplayDriverVersion, true)
+        val displayDriverVersion = pumpUtil.getBooleanPreferenceOrDefault(TandemBooleanPreferenceKey.DisplayDriverVersion, true)
         binding.showDriverLayout.visibility = if (displayDriverVersion) View.VISIBLE else View.GONE
     }
 

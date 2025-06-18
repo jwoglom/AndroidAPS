@@ -6,14 +6,11 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.ParcelUuid
-import androidx.annotation.StringRes
 import com.jwoglom.pumpx2.pump.messages.bluetooth.ServiceUUID
 
 
 import app.aaps.pump.common.driver.ble.PumpBLESelectorAbstract
-import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.common.comm.maint.TandemPairingManager
 import app.aaps.pump.common.driver.ble.PumpBLESelector
@@ -24,10 +21,12 @@ import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.events.EventPumpForceDisconnect
 import app.aaps.pump.common.ui.PumpBLEConfigActivity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
 
 import javax.inject.Inject
@@ -37,15 +36,20 @@ import javax.inject.Inject
 class TandemBLESelector @Inject constructor(
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
-    sp: SP,
+    //sp: SP,
     rxBus: RxBus,
     context: Context,
     var tandemPumpUtil: TandemPumpUtil,
     var pumpSync: PumpSync,
     var pumpStatus: TandemPumpStatus,
     var aapsSchedulers: AapsSchedulers,
+    preferences: Preferences,
     var pumpX2L: PumpX2L
-) : PumpBLESelectorAbstract(resourceHelper, aapsLogger, sp, rxBus, context), PumpBLESelector {
+) : PumpBLESelectorAbstract(resourceHelper = resourceHelper,
+                            aapsLogger = aapsLogger,
+                            preferences = preferences,
+                            rxBus = rxBus,
+                            context = context), PumpBLESelector {
 
     var startingAddress: String? = null
     var tandemPairingManager: TandemPairingManager? = null
@@ -91,7 +95,8 @@ class TandemBLESelector @Inject constructor(
     }
 
     override fun cleanupAfterDeviceRemoved() {
-        sp.remove(TandemPumpConst.Prefs.PumpAddress)
+        //sp.remove(TandemPumpConst.Prefs.PumpAddress)
+        preferences.remove(TandemStringPreferenceKey.PumpAddress)
         cleanSP()
         rxBus.send(EventPumpForceDisconnect())
     }
@@ -115,8 +120,8 @@ class TandemBLESelector @Inject constructor(
                 tandemPairingManager = TandemPairingManager(
                     context = context,
                     aapsLogger = aapsLogger,
-                    sp = sp,
-                    pumpUtil = tandemPumpUtil,
+                    //sp = sp,
+                    tandemPumpUtil = tandemPumpUtil,
                     btAddress = bleAddress,
                     rxBus = rxBus,
                     resourceHelper = resourceHelper,
@@ -124,7 +129,8 @@ class TandemBLESelector @Inject constructor(
                     pumpSync = pumpSync,
                     activity = activity,
                     aapsSchedulers = aapsSchedulers,
-                    pumpX2L = pumpX2L
+                    pumpX2L = pumpX2L,
+                    preferences = preferences
                 )
                 tandemPairingManager!!.startPairing()
             } catch(ex: Exception) {
@@ -139,34 +145,36 @@ class TandemBLESelector @Inject constructor(
     }
 
     private fun cleanSP() {
-        sp.remove(TandemPumpConst.Prefs.PumpPairStatus)
-        sp.remove(TandemPumpConst.Prefs.PumpPairCode)
-        sp.remove(TandemPumpConst.Prefs.PumpName)
-        sp.remove(TandemPumpConst.Prefs.PumpSerial)
-        sp.remove(TandemPumpConst.Prefs.PumpVersionResponse)
+        preferences.remove(TandemIntPreferenceKey.PumpPairStatus)
+        preferences.remove(TandemStringPreferenceKey.PumpPairCode)
+        preferences.remove(TandemStringPreferenceKey.PumpName)
+        preferences.remove(TandemStringPreferenceKey.PumpSerial)
+        preferences.remove(TandemStringPreferenceKey.PumpVersionResponse)
         pumpStatus.resetPumpSettings()
     }
 
-    private fun setSystemParameterForBT(@StringRes parameter: Int, newValue: String): Boolean {
-        if (sp.contains(parameter)) {
-            val current = sp.getStringOrNull(parameter, null)
-            if (current == null) {
-                sp.putString(parameter, newValue)
-            } else if (current != newValue) {
-                sp.putString(parameter, newValue)
-                return true
-            }
-        } else {
-            sp.putString(parameter, newValue)
-        }
-        return false
-    }
+    // private fun setSystemParameterForBT(@StringRes parameter: Int, newValue: String): Boolean {
+    //     if (sp.contains(parameter)) {
+    //         val current = sp.getStringOrNull(parameter, null)
+    //         if (current == null) {
+    //             sp.putString(parameter, newValue)
+    //         } else if (current != newValue) {
+    //             sp.putString(parameter, newValue)
+    //             return true
+    //         }
+    //     } else {
+    //         sp.putString(parameter, newValue)
+    //     }
+    //     return false
+    // }
 
     override fun getUnknownPumpName(): String = "Tandem (?)"
 
-    override fun currentlySelectedPumpAddress(): String = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
+    override fun currentlySelectedPumpAddress(): String = tandemPumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpAddress, "")
+        //sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
 
-    override fun currentlySelectedPumpName(): String = sp.getString(TandemPumpConst.Prefs.PumpName, getUnknownPumpName())
+    override fun currentlySelectedPumpName(): String = tandemPumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpName, getUnknownPumpName())
+        //sp.getString(TandemPumpConst.Prefs.PumpName, getUnknownPumpName())
 
     override fun getText(key: PumpBLESelectorText): String {
         var stringId: Int = R.string.tandem_ble_config_scan_title

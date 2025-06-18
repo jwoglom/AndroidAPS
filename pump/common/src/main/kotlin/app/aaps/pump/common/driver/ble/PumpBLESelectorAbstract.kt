@@ -10,12 +10,13 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.R
 
 abstract class PumpBLESelectorAbstract(
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,
-    var sp: SP,
+    var preferences: Preferences,
     var rxBus: RxBus,
     var context: Context
 ) : PumpBLESelector {

@@ -5,6 +5,11 @@ needed and common where it isn't. Project is now targeting t:mobi device and if 
 Slim will support all required remote commands, that part of project can be resurected and made
 work with current code.
 
+Dev version:  3.3.3.0-dev-a
+Dev Date:     14. Jun 2025
+
+
+
 # Tandem Mobi
 
 Work on Mobi is in progress. Planned are 5 phases of development:

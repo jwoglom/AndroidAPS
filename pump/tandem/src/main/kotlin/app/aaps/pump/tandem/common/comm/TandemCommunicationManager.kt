@@ -8,6 +8,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.PumpDriverState
@@ -22,6 +23,8 @@ import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
+import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -45,11 +48,12 @@ import javax.inject.Inject
  * This is low-level driver that does all communication with pump, with exception of pairing.
  */
 class TandemCommunicationManager(
-    var context: Context,
+    context: Context,
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,
     var rxBus: RxBus,
-    var sp: SP,
+    //var sp: SP,
+    var preferences: Preferences,
     var pumpUtil: TandemPumpUtil,
     var pumpStatus: TandemPumpStatus,
     var pumpConfig: TandemConfig,
@@ -271,7 +275,8 @@ class TandemCommunicationManager(
 
             pumpStatus.tandemPumpFirmware = apiVersion
 
-            sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
+            //sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
+            preferences.put(TandemStringPreferenceKey.PumpApiVersion, apiVersion.name)
 
             runOnUiThread  {
                 dataStore.apiVersionResponse.value = message
@@ -348,7 +353,8 @@ class TandemCommunicationManager(
 
         if (pairingCodePS==null) {
             aapsLogger.info(TAG, "TandemCommMgr: PumpState doesn't have PairCode, reading from local configuration.")
-            val pairingCode = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
+            val pairingCode = pumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpPairCode, null)
+            //sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
             //aapsLogger.info(TAG, "TandemCommMgr: onWaitingForPairingCode. Pairing Code: ${pairingCode} ")
 
             if (pairingCode.isNullOrBlank()) {
@@ -381,7 +387,7 @@ class TandemCommunicationManager(
 
 
     fun sendInvalidPairingCodeError() {
-        sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, -2)
+        preferences.put(TandemIntPreferenceKey.PumpPairStatus, -2)
         pumpUtil.errorType = PumpErrorType.PumpPairInvalidPairCode
 
         pumpUtil.sendNotification(TandemNotificationType.InvalidPairingCodeReconfigure)

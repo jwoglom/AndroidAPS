@@ -3,6 +3,7 @@ package app.aaps.pump.common.di
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import dagger.Module
 import dagger.Provides
 import app.aaps.pump.common.sync.PumpSyncStorage
@@ -16,10 +17,12 @@ class PumpCommonModuleImpl {
     @Singleton
     fun providesPumpSyncStorage(
         pumpSync: PumpSync,
-        sp: SP,
+        preferences: Preferences,
         aapsLogger: AAPSLogger
     ): PumpSyncStorage {
-        return PumpSyncStorage(pumpSync, sp, aapsLogger)
+        return PumpSyncStorage(pumpSync = pumpSync,
+                               preferences = preferences,
+                               aapsLogger = aapsLogger)
     }
 
 }

@@ -10,6 +10,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventNewNotification
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.BolusData
@@ -43,6 +44,7 @@ import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -143,6 +145,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                               var tandemPumpUtil: TandemPumpUtil,
                                               var rxBus: RxBus,
                                               var resourceHelper: ResourceHelper,
+                                              var preferences: Preferences,
                                               var sp: SP,
                                               aapsLogger: AAPSLogger,
                                               val pumpX2L: PumpX2L,
@@ -162,7 +165,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     override fun connectToPump(): Boolean {
-        var newBtAddress = sp.getStringOrNull(TandemPumpConst.Prefs.PumpAddress, null)
+        var newBtAddress = tandemPumpUtil
+            .getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpAddress, null)
+        //sp.getStringOrNull(TandemPumpConst.Prefs.PumpAddress, null)
 
         aapsLogger.info(TAG, "connectToPump with $newBtAddress")
 
@@ -188,11 +193,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             this.tandemCommunicationManager = TandemCommunicationManager(
                 context = context,
                 aapsLogger = aapsLogger,
-                sp = sp,
+                //sp = sp,
                 pumpUtil = tandemPumpUtil,
                 pumpStatus = tandemPumpStatus,
                 pumpConfig = cfg,
                 rxBus = rxBus,
+                preferences = preferences,
                 resourceHelper = resourceHelper,
                 timberTree = pumpX2L
             )
@@ -213,9 +219,10 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     override fun retrieveFirmwareVersion(): DataCommandResponse<FirmwareVersionInterface?> {
-        val version = sp.getStringOrNull(TandemPumpConst.Prefs.PumpApiVersion, null)
+        val version = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpApiVersion, null)
+        //sp.getStringOrNull(TandemPumpConst.Prefs.PumpApiVersion, null)
 
-        TODO()
+        //TODO()
 
         aapsLogger.info(TAG, "TANDEMDBG: retrieveFirmwareVersion ${version}")
 
@@ -1072,9 +1079,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             GET_ALERTS         -> return getAlerts()
             GET_ALARMS         -> return getAlarms()
             DISMISS_ALERT      -> return dismissNotificationAlert(data as Long)
-            else                              -> {
-                aapsLogger.error(TAG, "Unhandled Custom Command: ${commandType.name}")
-            }
+            // else                              -> {
+            //     aapsLogger.error(TAG, "Unhandled Custom Command: ${commandType.name}")
+            // }
         }
 
         return DataCommandResponse(

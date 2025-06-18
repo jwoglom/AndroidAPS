@@ -295,14 +295,14 @@ abstract class PumpConnectionManager constructor(
 
 
 
-    fun deliverBolus(detailedBolusInfo: DetailedBolusInfo?): DataCommandResponse<AdditionalResponseDataInterface?> {
+    fun deliverBolus(detailedBolusInfo: DetailedBolusInfo?): DataCommandResponse<BolusData?> {
 
-        val responseData: DataCommandResponse<AdditionalResponseDataInterface?> = getConnectorData(PumpCommandType.SetBolus)
+        val responseData: DataCommandResponse<BolusData?> = getConnectorData(PumpCommandType.SetBolus)
         {
             getConnector(PumpCommandType.SetBolus).sendBolus(detailedBolusInfo!!)
         }
 
-        checkAdditionalResponseData(PumpCommandType.SetBolus, responseData)
+        checkAdditionalResponseData(PumpCommandType.SetBolus, responseData as DataCommandResponse<AdditionalResponseDataInterface?>)
 
         return responseData
     }

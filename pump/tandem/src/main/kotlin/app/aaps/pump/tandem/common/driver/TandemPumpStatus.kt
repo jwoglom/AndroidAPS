@@ -69,7 +69,7 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     //var forceRefreshBasalProfile: Boolean = true
     //var basalProfilePump: BasalProfileDto? = null
 
-    override fun initSettings() {
+    fun initSettings() {
         activeProfileName = "A"
         reservoirRemainingUnits = 75.0
         reservoirFullUnits = 200

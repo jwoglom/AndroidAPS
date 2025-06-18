@@ -15,6 +15,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.TempBasalPair
@@ -25,6 +26,7 @@ import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand.*
 import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -41,6 +43,7 @@ class TandemPumpConnectionManager @Inject constructor(
     rxBus: RxBus,
     context: Context,
     val tandemDataConverter: TandemDataConverter,
+    var preferences: Preferences,
     val tandemConnector: TandemPumpConnector
 ): PumpConnectionManager(tandemPumpStatus, tandemPumpUtil, sp, aapsLogger, rxBus, context) {
 
@@ -193,7 +196,7 @@ class TandemPumpConnectionManager @Inject constructor(
                 tandemPumpStatus.tandemPumpVersion = responseData.value as PumpVersionDto
                 if (tandemPumpStatus.serialNumber==0L) {
                     tandemPumpStatus.serialNumber = tandemPumpStatus.tandemPumpVersion!!.serialNum
-                    sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + tandemPumpStatus.serialNumber)
+                    preferences.put(TandemStringPreferenceKey.PumpSerial, "" + tandemPumpStatus.serialNumber)
                 }
             }
             GET_ALARMS -> {

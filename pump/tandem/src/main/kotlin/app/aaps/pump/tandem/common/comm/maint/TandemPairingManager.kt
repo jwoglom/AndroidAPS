@@ -13,7 +13,7 @@ import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.dialogs.AlertDialogHelper
 import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.pump.tandem.R
@@ -38,6 +38,8 @@ import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.common.ui.PumpBLEConfigActivity
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.config.TandemPumpConfig
+import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
 
 import app.aaps.pump.tandem.common.util.TandemPumpConst
@@ -59,13 +61,14 @@ import java.util.*
 //     1 - Eneter pin number
 //     2 - Show status of bonding (in case of error show error)
 class TandemPairingManager constructor(
-    var context: Context,
+    context: Context,
     var aapsLogger: AAPSLogger,
-    var sp: SP,
-    var pumpUtil: TandemPumpUtil,
+    var preferences: Preferences,
+    var tandemPumpUtil: TandemPumpUtil,
     var btAddress: String,
     var resourceHelper: ResourceHelper,
     var rxBus: RxBus,
+    //var sp: SP,
     var pumpStatus: TandemPumpStatus,
     var pumpSync: PumpSync,
     var activity: PumpBLEConfigActivity,
@@ -135,9 +138,14 @@ class TandemPairingManager constructor(
         if (message is ApiVersionResponse) {
             aapsLogger.info(TAG, "TANDEM-PAIR-DBG: got ApiVersionResponse")
 
-            sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 80)
-            sp.putString(TandemPumpConst.Prefs.PumpAddress, peripheral.address)
-            sp.putString(TandemPumpConst.Prefs.PumpName, peripheral.name)
+            //sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 80)
+            preferences.put(TandemIntPreferenceKey.PumpPairStatus, 80)
+
+            //sp.putString(TandemPumpConst.Prefs.PumpAddress, peripheral.address)
+            preferences.put(TandemStringPreferenceKey.PumpAddress, peripheral.address)
+
+            //sp.putString(TandemPumpConst.Prefs.PumpName, peripheral.name)
+            preferences.put(TandemStringPreferenceKey.PumpName, peripheral.name)
 
             val apiVersionResponse = message
             val apiVersion = TandemPumpApiVersion.getApiVersionFromResponse(apiVersionResponse)
@@ -146,26 +154,29 @@ class TandemPairingManager constructor(
 
             pumpStatus.tandemPumpFirmware = apiVersion
 
-            sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
+            //sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
+            preferences.put(TandemStringPreferenceKey.PumpApiVersion, apiVersion.name)
 
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
 
         } else if (message is TimeSinceResetResponse) {
             aapsLogger.info(TAG, "TANDEM-PAIR-DBG: got TimeSinceResetResponse")
 
-            sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 90)
+            preferences.put(TandemIntPreferenceKey.PumpPairStatus, 90)
             val timeSinceResponse = message
             aapsLogger.info(TAG, "TimeSinceResetResponse: ${timeSinceResponse}")
         } else if (message is PumpVersionResponse) {
             aapsLogger.info(TAG, "TANDEM-PAIR-DBG: got PumpVersionResponse")
 
-            sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 100)
+            preferences.put(TandemIntPreferenceKey.PumpPairStatus, 100)
             val pumpVersionResponse = message
 
             aapsLogger.info(TAG, "PumpVersionResponse: ${pumpVersionResponse}")
 
-            sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + pumpVersionResponse.serialNum)
-            sp.putString(TandemPumpConst.Prefs.PumpVersionResponse, pumpUtil.gson.toJson(message))
+            //sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + pumpVersionResponse.serialNum)
+            preferences.put(TandemStringPreferenceKey.PumpSerial, "" + pumpVersionResponse.serialNum)
+            //sp.putString(TandemPumpConst.Prefs.PumpVersionResponse, pumpUtil.gson.toJson(message))
+            preferences.put(TandemStringPreferenceKey.PumpVersionResponse, tandemPumpUtil.gson.toJson(message))
 
             pumpStatus.serialNumber = pumpVersionResponse.serialNum
 
@@ -192,8 +203,9 @@ class TandemPairingManager constructor(
 
         aapsLogger.info(TAG, "TANDEM-PAIR-DBG: onWaitingForPairingCode:")
 
-        sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 40)
-        sp.putString(TandemPumpConst.Prefs.PumpPairCode, TandemPumpConfig.pumpPin)  // TODO this will need to be read from dialog when we have it
+        preferences.put(TandemStringPreferenceKey.PumpPairCode, TandemPumpConfig.pumpPin)
+        //sp.putString(TandemPumpConst.Prefs.PumpPairCode, TandemPumpConfig.pumpPin)
+        // TODO this will need to be read from dialog when we have it
 
         // TODO pairingCode needs to be read from user interface
         pair(peripheral, centralChallenge, TandemPumpConfig.pumpPin)
@@ -263,8 +275,10 @@ class TandemPairingManager constructor(
             val pairingCode = input.text.toString()
             //Timber.i("pairing code inputted: %s", pairingCode)
             //triggerImmediatePair(peripheral, pairingCode, challenge)
-            sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
-            sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
+            //sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
+            preferences.put(TandemIntPreferenceKey.PumpPairStatus, 50)
+            //sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
+            preferences.put(TandemStringPreferenceKey.PumpPairCode, pairingCode)
 
             aapsLogger.info(LTag.PUMPCOMM, "PairingCode Accepted: ${pairingCode}")
 
@@ -298,8 +312,10 @@ class TandemPairingManager constructor(
                     dialog.dismiss()
                     SystemClock.sleep(100)
                     val pairingCode = input.text.toString()
-                    sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
-                    sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
+                    //sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
+                    preferences.put(TandemIntPreferenceKey.PumpPairStatus, 50)
+                    //sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
+                    preferences.put(TandemStringPreferenceKey.PumpPairCode, pairingCode)
 
                     aapsLogger.info(LTag.PUMPCOMM, "PairingCode Accepted: ${pairingCode}")
 
@@ -337,7 +353,8 @@ class TandemPairingManager constructor(
     override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
         aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onPumpConnected")
 
-        sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 70)
+        //sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 70)
+        preferences.put(TandemIntPreferenceKey.PumpPairStatus, 70)
 
         sendCommand(peripheral, ApiVersionRequest())
         sendCommand(peripheral, TimeSinceResetRequest())
@@ -361,15 +378,28 @@ class TandemPairingManager constructor(
 
         stringBuilder.append("PAIRING STATUS\n")
         stringBuilder.append("-------------------\n")
-        stringBuilder.append("Pump Pair Status: ${sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, -100)} \n")
-        stringBuilder.append("PumpPairCode: ${sp.getString(TandemPumpConst.Prefs.PumpPairCode, "-")}\n")
-        stringBuilder.append("PumpAddress: ${sp.getString(TandemPumpConst.Prefs.PumpAddress, "-")}\n")
-        stringBuilder.append("PumpName: ${sp.getString(TandemPumpConst.Prefs.PumpName, "-")}\n")
-        stringBuilder.append("PumpSerial: ${sp.getString(TandemPumpConst.Prefs.PumpSerial, "-")}\n")
-        stringBuilder.append("Pump Version Response: ${sp.getString(TandemPumpConst.Prefs.PumpVersionResponse, "-")} \n")
+
+        stringBuilder.append("Pump Pair Status: ${tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, null)}\n")
+        stringBuilder.append("PumpPairCode: ${getStringPreference(TandemStringPreferenceKey.PumpPairCode, null)}\n")
+        stringBuilder.append("PumpAddress: ${getStringPreference(TandemStringPreferenceKey.PumpAddress, "-")}\n")
+        stringBuilder.append("PumpName: ${getStringPreference(TandemStringPreferenceKey.PumpName, "-")}\n")
+        stringBuilder.append("PumpSerial: ${getStringPreference(TandemStringPreferenceKey.PumpSerial, "-")}\n")
+        stringBuilder.append("Pump Version Response: ${tandemPumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpVersionResponse, "-")}\n")
+
+        // stringBuilder.append("Pump Pair Status: ${sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, -100)} \n")
+        // stringBuilder.append("PumpPairCode: ${sp.getString(TandemPumpConst.Prefs.PumpPairCode, "-")}\n")
+        // stringBuilder.append("PumpAddress: ${sp.getString(TandemPumpConst.Prefs.PumpAddress, "-")}\n")
+        // stringBuilder.append("PumpName: ${sp.getString(TandemPumpConst.Prefs.PumpName, "-")}\n")
+        // stringBuilder.append("PumpSerial: ${sp.getString(TandemPumpConst.Prefs.PumpSerial, "-")}\n")
+        // stringBuilder.append("Pump Version Response: ${sp.getString(TandemPumpConst.Prefs.PumpVersionResponse, "-")} \n")
 
         aapsLogger.info(LTag.PUMPCOMM, "TANDEM-PAIR-DBG: onPairingStatus: \n ${stringBuilder.toString()}") // TODO remove this TandemPairingManager N-5
 
+    }
+
+    fun getStringPreference(key: TandemStringPreferenceKey, defaultValue: String?): String {
+        return tandemPumpUtil
+            .getStringPreferenceOrDefault(key, defaultValue)
     }
 
 

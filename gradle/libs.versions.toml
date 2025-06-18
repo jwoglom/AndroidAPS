@@ -16,6 +16,13 @@ work = "2.10.1"
 datastorePreferences = "1.1.7"
 annotation = "1.9.1"
 
+# Compose
+activityCompose = "1.10.1"
+composeBom = "2025.04.01"
+navigationCompose = "2.8.9"
+lifecycleRuntimeKtx = "2.8.7"
+materialPullRefresh = "1.2.0"
+
 [plugins]
 android-library = { id = "com.android.library" }
 klint = { id = "org.jlleitschuh.gradle.ktlint", version = "12.3.0" }
@@ -23,7 +30,7 @@ moduleDependencyGraph = { id = "com.savvasdalkitsis.module-dependency-graph", ve
 ksp = { id = "com.google.devtools.ksp", version = "2.1.21-2.0.1" }
 android-test = { id = "com.android.test", version.ref = "gradlePlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 [libraries]
 com-android-tools-build = { group = "com.android.tools.build", name = "gradle", version.ref = "gradlePlugin" }

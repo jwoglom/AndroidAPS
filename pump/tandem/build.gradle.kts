@@ -48,7 +48,7 @@ dependencies {
     implementation(project(":core:keys"))
     implementation(project(":implementation"))
 
-    implementation(project(":pump:pump-common"))
+    implementation(project(":pump:common"))
     implementation(project(":shared:tests"))
 
     testImplementation(project(":shared:tests"))

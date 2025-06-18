@@ -130,22 +130,22 @@
 
 
     <!-- Tandem Config -->
-    <string name="key_tandem_address" translatable="false">pref_tandem_address</string>
-    <string name="key_tandem_serial" translatable="false">pref_tandem_serial</string>
-    <string name="key_tandem_name" translatable="false">pref_tandem_name</string>
-    <string name="key_tandem_pair_status" translatable="false">pref_tandem_pair_status</string>
-    <string name="key_tandem_pair_code" translatable="false">pref_tandem_pair_code</string>
-    <string name="key_tandem_api_version" translatable="false">pref_tandem_api_version</string>
-    <string name="key_tandem_pump_version" translatable="false">pref_tandem_pump_version</string>
+<!--    <string name="key_tandem_address" translatable="false">pref_tandem_address</string>-->
+<!--    <string name="key_tandem_serial" translatable="false">pref_tandem_serial</string>-->
+<!--    <string name="key_tandem_name" translatable="false">pref_tandem_name</string>-->
+<!--    <string name="key_tandem_pair_status" translatable="false">pref_tandem_pair_status</string>-->
+<!--    <string name="key_tandem_pair_code" translatable="false">pref_tandem_pair_code</string>-->
+<!--    <string name="key_tandem_api_version" translatable="false">pref_tandem_api_version</string>-->
+<!--    <string name="key_tandem_pump_version" translatable="false">pref_tandem_pump_version</string>-->
     <string name="key_tandem_error" translatable="false">pref_tandem_error</string>
-    <string name="key_tandem_max_basal" translatable="false">pref_tandem_max_basal</string>
-    <string name="key_tandem_max_bolus" translatable="false">pref_tandem_max_bolus</string>
-    <string name="key_tandem_display_driver_version" translatable="false">pref_tandem_display_driver_version</string>
-<!--    <string name="key_tandem_version_response" translatable="false">pref_tandem_version_response</string>-->
+<!--    <string name="key_tandem_max_basal" translatable="false">pref_tandem_max_basal</string>-->
+<!--    <string name="key_tandem_max_bolus" translatable="false">pref_tandem_max_bolus</string>-->
+<!--    <string name="key_tandem_display_driver_version" translatable="false">pref_tandem_display_driver_version</string>-->
+<!-- X   <string name="key_tandem_version_response" translatable="false">pref_tandem_version_response</string>-->
 
     <!-- Temporary Config - START -->
-    <string name="key_tandem_use_shared_connection" translatable="false">pref_tandem_use_shared_connection</string>
-    <string name="key_tandem_shared_connection_data" translatable="false">pref_tandem_shared_connection_data</string>
+<!--    <string name="key_tandem_use_shared_connection" translatable="false">pref_tandem_use_shared_connection</string>-->
+<!--    <string name="key_tandem_shared_connection_data" translatable="false">pref_tandem_shared_connection_data</string>-->
     <string name="tandem_cfg_use_shared_connection">Use Shared Connection</string>
     <string name="tandem_cfg_use_shared_connection_summary">Use Shared Connection with ControlX2</string>
     <string name="tandem_cfg_shared_connection_data">Shared Connection Data</string>
@@ -154,6 +154,7 @@
 
 
     <string name="tandem_configuration">Tandem Configuration</string>
+    <string name="tandem_pump_configuration">Tandem Pump Selector</string>
     <string name="tandem_pump_max_bolus">Max Bolus on Pump (U) [Max 25]</string>
     <string name="tandem_pump_max_basal">Max Basal on Pump (U/h) [Max 15]</string>
     <string name="tandem_cfg_display_driver_version">Display Driver Version</string>

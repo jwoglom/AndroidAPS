@@ -25,7 +25,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class MedtronicPumpStatus @Inject constructor(
-    preferences: Preferences,
+    private val preferences: Preferences,
     private val rxBus: RxBus,
     private val rileyLinkUtil: RileyLinkUtil
 ) : PumpStatus(PumpType.MEDTRONIC_522_722) {
@@ -52,7 +52,7 @@ class MedtronicPumpStatus @Inject constructor(
     var basalProfileStatus = BasalProfileStatus.NotInitialized
     var batteryType = BatteryType.None
 
-    override fun initSettings() {
+    fun initSettings() {
         activeProfileName = "STD"
         reservoirRemainingUnits = 75.0
         batteryRemaining = 75
@@ -61,7 +61,8 @@ class MedtronicPumpStatus @Inject constructor(
         lastConnection = preferences.get(MedtronicLongNonKey.LastGoodPumpCommunicationTime)
 // lastConnection = sp.getLong(MedtronicConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         lastDataTime = lastConnection
-        val serial = sp.getStringOrNull(MedtronicConst.Prefs.PumpSerial, null)
+
+        val serial = preferences.getIfExists(MedtronicStringPreferenceKey.Serial)
         if (serial != null) {
             serialNumber = serial
         }
@@ -106,19 +107,18 @@ class MedtronicPumpStatus @Inject constructor(
         }
 
     // Battery type
-    private var batteryTypeByDescMap: MutableMap<String, BatteryType?> = HashMap()
+    //private var batteryTypeByDescMap: MutableMap<String, BatteryType?> = HashMap()
 
-    fun getBatteryTypeByDescription(batteryTypeStr: String?): BatteryType {
-        if (batteryTypeByDescMap.isEmpty()) {
-            for (value in BatteryType.entries) {
-                batteryTypeByDescMap[rh.gs(value.description)] = value
-            }
-        }
-        return batteryTypeByDescMap[batteryTypeStr] ?: BatteryType.None
-    }
+    // fun getBatteryTypeByDescription(batteryTypeStr: String?): BatteryType {
+    //     if (batteryTypeByDescMap.isEmpty()) {
+    //         for (value in BatteryType.entries) {
+    //             batteryTypeByDescMap[rh.gs(value.description)] = value
+    //         }
+    //     }
+    //     return batteryTypeByDescMap[batteryTypeStr] ?: BatteryType.None
+    // }
 
-    override val errorInfo: String
-        get() = if (errorDescription == null) "-" else errorDescription!!
+    override val errorInfo: String get() = errorDescription ?: "-"
 
     val tbrRemainingTime: Int?
         get() {

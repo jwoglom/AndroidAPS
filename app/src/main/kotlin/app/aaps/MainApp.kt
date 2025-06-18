@@ -14,12 +14,14 @@ import app.aaps.core.data.model.TE
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.alerts.LocalAlertUtils
+import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.configuration.ConfigBuilder
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.PluginBase
+import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.ui.compose.ComposeUiProvider
@@ -90,6 +92,9 @@ class MainApp : DaggerApplication(), ComposeUiProvider {
     @Inject lateinit var localAlertUtils: LocalAlertUtils
     @Inject lateinit var rh: Provider<ResourceHelper>
     lateinit var appComponent: AppComponent
+    @Inject lateinit var loop: Loop
+    @Inject lateinit var profileFunction: ProfileFunction
+
 
     private var handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
     private lateinit var refreshWidget: Runnable
