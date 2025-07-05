@@ -90,7 +90,7 @@ class TandemService : DaggerService() {
         if (useSharedConnection) {
             aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection Use")
 
-            val sharedConnectionString = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpSerial, null)
+            val sharedConnectionString = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.SharedConnectionData, null)
                 //sp.getStringOrNull(TandemPumpConst.Prefs.SharedConnectionData, null)
             var notFound = false
 
@@ -100,6 +100,8 @@ class TandemService : DaggerService() {
                 notFound = true
                 aapsLogger.error(LTag.PUMP, "PumpConfig: Shared Connection Use: Data empty")
             } else {
+
+                //aapsLogger.debug("Shared Connection String")
 
                 val sharedConnectionData : PumpStateX2 = tandemPumpUtil.gson.fromJson(sharedConnectionString, PumpStateX2::class.java)
 

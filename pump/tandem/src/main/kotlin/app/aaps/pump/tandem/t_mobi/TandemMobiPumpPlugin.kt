@@ -216,7 +216,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             preferences.put(TandemLongNonKey.FirstPumpUse, System.currentTimeMillis())
 
         if (preferences.getIfExists(TandemStringPreferenceKey.PumpSerial) != null)
-            pumpStatus.serialNumber = preferences.get(TandemStringPreferenceKey.PumpSerial) as Long
+            pumpStatus.serialNumber = preferences.get(TandemStringPreferenceKey.PumpSerial).toLong()
 
         pumpStatus.pumpType = PumpType.TANDEM_T_MOBI_BT
         pumpStatus.pumpDriverMode = this.wantedDriverMode
