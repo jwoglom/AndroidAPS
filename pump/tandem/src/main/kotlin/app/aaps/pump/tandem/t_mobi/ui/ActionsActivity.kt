@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +40,7 @@ import app.aaps.core.interfaces.ui.compose.ComposeUiProvider
 import app.aaps.core.interfaces.ui.compose.DaggerComponentActivity
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
@@ -90,6 +92,14 @@ class ActionsActivity : DaggerComponentActivity() {
 
             var selectedItem by remember { mutableStateOf(sectionState) }
             val scaffoldState = rememberBottomSheetScaffoldState()
+
+            DisposableEffect(Unit) {
+                onDispose {
+                    aapsLogger.info(LTag.PUMP, "Data Activity was closed. Sending event to refresh.")
+                    // we might be able to specify more exactly what here happens but for now this is ok, see DataActivity and method refreshMainAppData
+                    tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS, RefreshData.PUMP_INSULIN_LEVEL))
+                }
+            }
 
             TMobiScreensTheme {
                 Scaffold(
@@ -160,8 +170,6 @@ class ActionsActivity : DaggerComponentActivity() {
                                             },
                                         )
                                     }
-
-
                                 } // when
                             } // box
                         } //
@@ -185,8 +193,6 @@ class ActionsActivity : DaggerComponentActivity() {
         this.tandemUICommunication.tandemCommunicationManager = null
         this.tandemPumpUtil.preventConnect = false
     }
-
-    // TODO when actions exit reevaluate: insulin level, pump state
 
 
     private fun sendPumpCommands(type: SendType, msgs: List<Message>): Boolean {

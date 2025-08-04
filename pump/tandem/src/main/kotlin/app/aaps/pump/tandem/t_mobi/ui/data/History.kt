@@ -49,9 +49,9 @@ import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.common.driver.history.PumpHistoryPeriod
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.DatabaseTarget
-import app.aaps.pump.tandem.common.database.data.TimeRange
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
@@ -71,6 +71,7 @@ fun History(
     innerPadding: PaddingValues = PaddingValues(),
     aapsLogger: AAPSLogger,
     refreshDatabase: (DatabaseTarget, DatabaseQueryParameters) -> Unit,
+    refreshMainAppData: (RefreshData) -> Unit,
     navigateBack: () -> Unit,
     resourceHelper: ResourceHelper
 ) {
@@ -178,6 +179,7 @@ fun History(
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "LaunchedEffect (Unit) Reloading History")
         //waitForLoaded()
+        refreshMainAppData(RefreshData.SEMAPHORE_HISTORY)
         doDatabaseRefresh()
         //refreshingEnabled = true
     }
@@ -436,7 +438,8 @@ private fun DefaultPreview_History() {
                 navigateBack = { },
                 aapsLogger = AAPSLoggerTest(),
                 refreshDatabase = { _,_ ->},
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = ResourceHelperTest(),
+                refreshMainAppData = {}
             )
         }
     }

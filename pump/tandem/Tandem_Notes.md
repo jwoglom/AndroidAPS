@@ -9,6 +9,16 @@ Dev version:  3.3.3.0-dev-a
 Dev Date:     14. Jun 2025
 
 
+Issues with merging of this dev:
+- new settings config:
+     - doesn't work with UI BLE selector (enabled is also missing)
+     - string preference would need enabled flag
+- migration of settings is failing, objectives and nightscout information got lost, as well as
+   some other configurations: selected driver, selected BG source (defaults to BYODA)
+
+
+
+
 
 # Tandem Mobi
 

@@ -547,6 +547,7 @@
 
 
                 <LinearLayout
+                    android:id="@+id/pump_errors_view"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
@@ -582,6 +583,7 @@
                 </LinearLayout>
 
                 <View
+                    android:id="@+id/pump_errors_delimiter"
                     android:layout_width="fill_parent"
                     android:layout_height="2dip"
                     android:layout_marginBottom="5dp"
@@ -633,6 +635,80 @@
                     android:layout_marginRight="20dp"
                     android:layout_marginTop="5dp"
                     android:background="@color/list_delimiter" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1.2"
+                        android:gravity="center"
+                        android:padding="6dp"
+                        android:text="@string/pump_data_status"
+                        android:textSize="14sp" />
+
+<!--                    <TextView-->
+<!--                        android:layout_width="5dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="0"-->
+<!--                        android:gravity="center_horizontal"-->
+<!--                        android:paddingEnd="2dp"-->
+<!--                        android:paddingStart="2dp"-->
+<!--                        android:text=":"-->
+<!--                        android:textSize="14sp" />-->
+
+<!--                    <LinearLayout-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:orientation="horizontal"-->
+<!--                        android:layout_height="wrap_content">-->
+
+                        <TextView
+                            android:id="@+id/pump_data_status_notification"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:padding="6dp"
+                            android:text="@string/pump_data_status_notification"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/pump_data_status_events"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:padding="6dp"
+                            android:text="@string/pump_data_status_events"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/pump_data_status_history"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:padding="6dp"
+                            android:paddingEnd="8dp"
+                            android:text="@string/pump_data_status_history"
+                            android:textSize="14sp" />
+
+<!--                    </LinearLayout>-->
+
+                </LinearLayout>
+
+                <View
+                    android:layout_width="fill_parent"
+                    android:layout_height="2dip"
+                    android:layout_marginBottom="5dp"
+                    android:layout_marginLeft="20dp"
+                    android:layout_marginRight="20dp"
+                    android:layout_marginTop="5dp"
+                    android:background="@color/list_delimiter" />
+
 
 
                 <TextView

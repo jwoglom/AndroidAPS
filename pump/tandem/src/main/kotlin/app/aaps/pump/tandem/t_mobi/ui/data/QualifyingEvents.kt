@@ -47,6 +47,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
@@ -70,6 +71,7 @@ fun QualifyingEvents(
     innerPadding: PaddingValues = PaddingValues(),
     aapsLogger: AAPSLogger,
     refreshDatabase: (DatabaseTarget, DatabaseQueryParameters) -> Unit,
+    refreshMainAppData: (RefreshData) -> Unit,
     navigateBack: () -> Unit,
     resourceHelper: ResourceHelper
 ) {
@@ -100,6 +102,7 @@ fun QualifyingEvents(
 
     LaunchedEffect(intervalOf(60)) {
         aapsLogger.debug(TAG, "Reloading Qualifying events from interval")
+        refreshMainAppData(RefreshData.SEMAPHORE_EVENTS)
         refresh()
     }
 
@@ -221,7 +224,8 @@ private fun DefaultPreview_QualifyingEvents() {
                 navigateBack = { },
                 aapsLogger = AAPSLoggerTest(),
                 refreshDatabase = { _,_ ->},
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = ResourceHelperTest(),
+                refreshMainAppData = {}
             )
         }
     }

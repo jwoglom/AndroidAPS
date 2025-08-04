@@ -4,11 +4,18 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
+import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
 import app.aaps.pump.tandem.common.database.TandemPumpDatabase
 import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
+import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
+import java.util.GregorianCalendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,9 +25,14 @@ class DbDataHandler @Inject constructor(
     var tandemPumpDatabase: TandemPumpDatabase,
     val rxBus: RxBus,
     val aapsLogger: AAPSLogger,
-    val aapsSchedulers: AapsSchedulers
+    val pumpStatus: TandemPumpStatus,
+    val aapsSchedulers: AapsSchedulers,
+    val preferences: Preferences,
+    val qualifyingEventHandler: QualifyingEventHandler
 
 ) {
+
+    val TAG = LTag.PUMPCOMM
 
     fun createHistoryRecord(
         sequenceId: Long,
@@ -69,6 +81,15 @@ class DbDataHandler @Inject constructor(
     }
 
 
+    fun addHistoryRecords(listOfHistoryEntries: List<TandemHistoryRecordEntity>) {
+        tandemPumpDatabase.historyRecordDao().saveAll(listOfHistoryEntries)
+    }
+
+    fun addHistoryLogs(listOfHistoryEntries: List<HistoryLog>) {
+        //tandemPumpDatabase.historyRecordDao().saveAll(listOfHistoryEntries)
+    }
+
+
     fun addQualifyingEventRecords(
         listOfEvents: List<TandemQualifyingEventEntity>
     ) {
@@ -77,11 +98,40 @@ class DbDataHandler @Inject constructor(
             .subscribeOn(aapsSchedulers.io)
             .observeOn(aapsSchedulers.main)
             .subscribe(
-                { aapsLogger.error(LTag.PUMPCOMM, "Inserted QualifyingEvents: ${listOfEvents.size} ") },
-                { error -> aapsLogger.error(LTag.PUMPCOMM, "Failed to insert QualifyingEvents: ${error.message}", error) }
+                { aapsLogger.error(TAG, "Inserted QualifyingEvents: ${listOfEvents.size} ") },
+                { error -> aapsLogger.error(TAG, "Failed to insert QualifyingEvents: ${error.message}", error) }
             )
 
     }
+
+    fun getCurrentQEItemsBlocking(): List<TandemQualifyingEventEntity> {
+
+        val qeRange = QualifyingEventsRange.valueOf(preferences.get(TandemStringPreferenceKey.QualifyingEventsRangePref))
+
+        aapsLogger.info(TAG, "Get Current QualifyingEvents Items with range: ${qeRange.name}")
+
+        var itemLimit = 0
+
+        var qeItems = if (qeRange==QualifyingEventsRange.LAST_15_ITEMS) {
+            itemLimit = 15
+            tandemPumpDatabase.qualifyingEventsDao().getLast30ItemsWithSerialBlocking(pumpStatus.serialNumber.toInt())
+        } else {
+            val gcNow = GregorianCalendar()
+            when (qeRange) {
+                QualifyingEventsRange.LAST_3_HOURS  -> gcNow.add(GregorianCalendar.HOUR_OF_DAY, -3)
+                QualifyingEventsRange.LAST_6_HOURS  -> gcNow.add(GregorianCalendar.HOUR_OF_DAY, -6)
+                QualifyingEventsRange.LAST_12_HOURS -> gcNow.add(GregorianCalendar.HOUR_OF_DAY, -12)
+                QualifyingEventsRange.LAST_24_HOURS -> gcNow.add(GregorianCalendar.HOUR_OF_DAY, -24)
+                QualifyingEventsRange.LAST_15_ITEMS -> { }
+            }
+            tandemPumpDatabase.qualifyingEventsDao().allSinceWithSerialBlocking(pumpStatus.serialNumber.toInt(), gcNow.timeInMillis)
+        }
+
+        qeItems = qualifyingEventHandler.filterQualifyingEventsAndLimit(qeItems, itemLimit)
+
+        return qeItems
+    }
+
 
 
     fun databaseStatistics() {

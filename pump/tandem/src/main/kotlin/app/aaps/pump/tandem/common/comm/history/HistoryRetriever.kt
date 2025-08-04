@@ -2,7 +2,13 @@ package app.aaps.pump.tandem.common.comm.history
 
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
+import app.aaps.pump.tandem.common.data.history.HistoryRange
+import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
+import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.keys.TandemStringNonPreferenceKey
+import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
@@ -10,10 +16,40 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusR
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
 
+
+/*
+    How this works:
+    FIRST READ
+    - on first read we get min, max (HistoryLogStatusRequest) and create HistorySummary and save it
+    - we start retreiving data: we will retrieve 5 x 200 = 1000 records per reading
+                                            (reading will be done together with status every 5 minutes)
+    - once reading is done we create HistoryRange and add it to missed range
+
+    MAIN RULE
+    - when we get data that surpasses 44 days we modify missedRanges and modifiedStartRecord
+
+    SUBSEQUENT READS
+    - read min, max (HistoryLogStatusRequest) and check if new records there
+    - NO: read missedRanges and read next 1000 items
+    - YES: read new data, and remaining range is used to read old data, if there is more than
+            1000 new records add new missedRange or modify the current one
+
+    - missedRanges need to be updated regularly...
+
+
+
+
+ */
+
+
+
 // TODO not AAPS Ready
 class HistoryRetriever constructor(
     val communication: TandemUICommunication,
-    val aapsLogger: AAPSLogger
+    val pumpStatus: TandemPumpStatus,
+    val aapsLogger: AAPSLogger,
+    val pumpUtil: TandemPumpUtil,
+    val preferences: Preferences
 
     ) {
 
@@ -23,9 +59,13 @@ class HistoryRetriever constructor(
     var firstDbRecord: Integer? = null
 
     val RECORDS_RETRIEVAL_AMOUNT = 1000
+    val CHUNK_SIZE = 200
 
-    var lastPumpRecord: Long? = null
-    var firstPumpRecord: Long? = null
+
+
+
+    //var lastPumpRecord: Long? = null
+    //var firstPumpRecord: Long? = null
 
     val TAG = LTag.PUMPCOMM
 
@@ -35,16 +75,146 @@ class HistoryRetriever constructor(
 
     //var status =
 
+    var isFirstReading = false
+    var historySummaryDto : HistorySummaryDto? = null
+
     fun startDataRetrieval()  {
-        readStatusFromDatabase()
+        val summaryData = preferences.get(TandemStringNonPreferenceKey.HistorySummaryData)
+        if (summaryData.isBlank()) {
+            isFirstReading = true
+        } else {
+            historySummaryDto = pumpUtil.gsonRegular.fromJson(summaryData, HistorySummaryDto::class.java)
+        }
+
         communication.sendCommand(HistoryLogStatusRequest())
     }
 
-    private fun readStatusFromDatabase() {
-        // TODO HST read last record
 
-        // HistoryLogRequest
+
+
+    // fun startDataRetrieval()  {
+    //     readStatusFromDatabase()
+    //     communication.sendCommand(HistoryLogStatusRequest())
+    // }
+
+    // private fun readStatusFromDatabase() {
+    //     // TODO HST read last record
+    //
+    //     // HistoryLogRequest
+    // }
+
+
+    fun receivedStatus(message: HistoryLogStatusResponse) {
+        // this.lastPumpRecord = message.lastSequenceNum
+        // this.firstPumpRecord = message.firstSequenceNum
+
+        aapsLogger.error(TAG, "HST: Got LogStatusResponse: ${message}")
+
+        val listOfChunks: MutableList<HistoryRequestInfo> = mutableListOf()
+
+        if (historySummaryDto==null) {
+
+            aapsLogger.error(TAG, "HST: First read")
+
+            var remainingRange = HistoryRange(message.firstSequenceNum, message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT)
+
+            historySummaryDto = HistorySummaryDto(serialNumber = pumpStatus.serialNumber.toInt(),
+                                                      startRecord = message.firstSequenceNum,
+                                                      lastRecord = message.lastSequenceNum,
+                                                      modifiedStartRecord = message.firstSequenceNum,
+                                                      missedRanges = arrayListOf(remainingRange)
+                                                      )
+
+            // get last 1000 records
+            listOfChunks.addAll(prepareChunks(message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT,
+                                              message.lastSequenceNum))
+
+            // - on first read we get min, max (HistoryLogStatusRequest) and create HistorySummary and save it
+            // - we start retreiving data: we will retrieve 5 x 200 = 1000 records per reading
+            //     (reading will be done together with status every 5 minutes)
+            // - once reading is done we create HistoryRange and add it to missed range
+
+            // this.currentRequest = HistoryRequestInfo(startSequence = message.lastSequenceNum-200,
+            //                                          endSequence = message.lastSequenceNum,
+            //                                          numberOfLogs = 200)
+
+        } else {
+
+            aapsLogger.error(TAG, "HST: Non-First read")
+
+            val diff = message.lastSequenceNum - historySummaryDto!!.lastRecord
+
+            if (diff==0L) {
+                // no new records
+                listOfChunks.addAll(getNextChunks(1000))
+            } else if (diff<1000) {
+                // less than 1000 new records
+                listOfChunks.addAll(prepareChunks(historySummaryDto!!.lastRecord+1,
+                                                  message.lastSequenceNum))
+                // take something from missedRanges and update missed Ranger
+                listOfChunks.addAll(getNextChunks(diff))
+            } else {
+
+                listOfChunks.addAll(prepareChunks(message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT,
+                                                  message.lastSequenceNum))
+
+                val remainingRange = HistoryRange(historySummaryDto!!.lastRecord+1,
+                                                  message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT-1)
+
+                // set remaining into missedRanges
+                historySummaryDto!!.missedRanges.add(remainingRange)
+            }
+
+
+            historySummaryDto!!.activeProcessing.addAll(listOfChunks)
+            historySummaryDto!!.lastRecord = message.lastSequenceNum
+            saveSummary()
+
+            // SUBSEQUENT READS
+            //     - read min, max (HistoryLogStatusRequest) and check if new records there
+            // - NO: read missedRanges and read next 1000 items
+            // - YES: read new data, and remaining range is used to read old data, if there is more than
+            // 1000 new records add new missedRange or modify the current one
+
+        }
+
+        if (listOfRequests.size==0) {
+
+        } else {
+            aapsLogger.info(TAG, "Start first retrieval (listOfRequests=${listOfRequests.size})")
+            // start reading
+            executeNextLogGet(listOfRequests)
+        }
+
     }
+
+    private fun getNextChunks(howManyEntriesDoWeNeed: Long): Collection<HistoryRequestInfo> {
+        TODO("Not yet implemented")
+
+        if (historySummaryDto!!.missedRanges.size==0) {
+            return listOf()
+        }
+
+
+    }
+
+    fun getNewestChunk() {
+
+    }
+
+
+
+
+    fun prepareChunks(startRange: Long, endRange: Long): List<HistoryRequestInfo> {
+        TODO("Not implemented prepareChucks...")
+        return listOf()
+    }
+
+    fun saveSummary() {
+        // TODO("save summary information")
+        aapsLogger.error(TAG, "HST: Save Summary NOT IMPLEMENTED.")
+    }
+
 
 
     var currentRequest: HistoryRequestInfo?  = null
@@ -53,35 +223,35 @@ class HistoryRetriever constructor(
     var listOfMissingItemsInChunk = ArrayDeque<HistoryRequestInfo>()
 
 
-    fun receivedStatus(message: HistoryLogStatusResponse) {
-        this.lastPumpRecord = message.lastSequenceNum
-        this.firstPumpRecord = message.firstSequenceNum
-
-        aapsLogger.error(TAG, "Got LogStatusResponse: ${message}")
-
-        aapsLogger.error(TAG, "Start Data Retriaval: N/A")
-
-        // determine if empty, then get
-        // TODO comprae to history,
-        //    if first reading get FRE
-        //    not: get All Chunks from last retreival to now
-
-        this.currentRequest = HistoryRequestInfo(startSequence = message.lastSequenceNum-200,
-                                                 endSequence = message.lastSequenceNum,
-                                                 numberOfLogs = 200)
-
-
-        //this.communication.sendCommand(HistoryLogRequest(message.lastSequenceNum-200, 200))
-
-        // TODO prepare all requests
-        listOfRequests.add(currentRequest!!)
-
-
-
-
-        executeNextLogGet(listOfRequests)
-
-    }
+    // fun receivedStatusSS(message: HistoryLogStatusResponse) {
+    //     this.lastPumpRecord = message.lastSequenceNum
+    //     this.firstPumpRecord = message.firstSequenceNum
+    //
+    //     aapsLogger.error(TAG, "Got LogStatusResponse: ${message}")
+    //
+    //     aapsLogger.error(TAG, "Start Data Retriaval: N/A")
+    //
+    //     // determine if empty, then get
+    //     //  comprae to history,
+    //     //    if first reading get FRE
+    //     //    not: get All Chunks from last retreival to now
+    //
+    //     this.currentRequest = HistoryRequestInfo(startSequence = message.lastSequenceNum-200,
+    //                                              endSequence = message.lastSequenceNum,
+    //                                              numberOfLogs = 200)
+    //
+    //
+    //     //this.communication.sendCommand(HistoryLogRequest(message.lastSequenceNum-200, 200))
+    //
+    //     //
+    //     listOfRequests.add(currentRequest!!)
+    //
+    //
+    //
+    //
+    //     executeNextLogGet(listOfRequests)
+    //
+    // }
 
 //    fun prepareLogGet(queue: ArrayDeque<HistoryRequestInfo>) {
 //
@@ -100,10 +270,11 @@ class HistoryRetriever constructor(
 
         this.currentRequest!!.historyLogMap.putAll(message.historyLogs.associateBy { it.sequenceNum })
 
-        aapsLogger.error(TAG, "Number of Logs: ${currentRequest!!.historyLogMap.size}")
+        aapsLogger.error(TAG, "HST: Number of Logs: ${currentRequest!!.historyLogMap.size}")
 
         if (this.currentRequest!!.chunkComplete()) {
             processChunkComplete()
+            return
         }
 
         enableLastMessageWatchdog()
@@ -113,20 +284,15 @@ class HistoryRetriever constructor(
 
     private fun processChunkComplete() {
 
-        aapsLogger.error(TAG, "Chunk Complete: ${currentRequest!!.historyLogMap.size}")
-
-        // TODO add to db
+        aapsLogger.error(TAG, "HST: Chunk Complete: ${currentRequest!!.historyLogMap.size}")
 
         if (this.currentRequest!!.chunkHasAllItems()) {
-            aapsLogger.error(TAG, "Chunk Has All Items: ${currentRequest!!.historyLogMap.size}")
+            aapsLogger.error(TAG, "HST: Chunk Has All Items: ${currentRequest!!.historyLogMap.size}")
+
+            // TODO add to database
         } else {
-            aapsLogger.error(TAG, "Chunk Has MISSING Items: ${currentRequest!!.historyLogMap.size}")
+            aapsLogger.error(TAG, "HST: Chunk Has MISSING Items: ${currentRequest!!.historyLogMap.size}")
             // TODO add missing items
-
-
-
-
-
         }
 
 
@@ -137,10 +303,11 @@ class HistoryRetriever constructor(
             // TODO start new retrieval
 
         } else {
-
-
             if (listOfRequests.size!=0) {
-                // TODO dp new retreival
+                aapsLogger.info(TAG, "HST: Next chunk retrieval (listOfRequests=${listOfRequests.size})")
+                executeNextLogGet(listOfRequests)
+            } else {
+                aapsLogger.info(TAG, "HST: No more chunks to get... Exiting")
             }
         }
 

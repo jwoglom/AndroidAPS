@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
+import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 
@@ -31,6 +32,9 @@ abstract class TandemHistoryRecordDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun saveBlocking(tandemHistoryRecordEntity: TandemHistoryRecordEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract fun saveAll(list: List<TandemHistoryRecordEntity>): Completable
 
     // @Query("SELECT * from history_records where id = :id and serial= :serialNumber and entryType= :entryType")
     // abstract fun getById(id: Int, serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity?

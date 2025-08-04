@@ -195,13 +195,13 @@ class MainApp : DaggerApplication(), ComposeUiProvider {
 
     private fun doMigrations() {
         // set values for different builds
-        // 3.1.0
-        if (preferences.getIfExists(StringKey.MaintenanceEmail) == "logs@androidaps.org")
-            preferences.put(StringKey.MaintenanceEmail, "logs@aaps.app")
-        // fix values for theme switching
-        sp.putString(app.aaps.plugins.main.R.string.value_dark_theme, "dark")
-        sp.putString(app.aaps.plugins.main.R.string.value_light_theme, "light")
-        sp.putString(app.aaps.plugins.main.R.string.value_system_theme, "system")
+        // // 3.1.0
+        // if (preferences.getIfExists(StringKey.MaintenanceEmail) == "logs@androidaps.org")
+        //     preferences.put(StringKey.MaintenanceEmail, "logs@aaps.app")
+        // // fix values for theme switching
+        // sp.putString(app.aaps.plugins.main.R.string.value_dark_theme, "dark")
+        // sp.putString(app.aaps.plugins.main.R.string.value_light_theme, "light")
+        // sp.putString(app.aaps.plugins.main.R.string.value_system_theme, "system")
         // 3.3
         if (preferences.get(IntKey.OverviewEatingSoonDuration) == 0) preferences.remove(IntKey.OverviewEatingSoonDuration)
         if (preferences.get(UnitDoubleKey.OverviewEatingSoonTarget) == 0.0) preferences.remove(UnitDoubleKey.OverviewEatingSoonTarget)

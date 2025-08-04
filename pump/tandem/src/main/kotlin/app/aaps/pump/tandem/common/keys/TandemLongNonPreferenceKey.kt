@@ -1,9 +1,8 @@
 package app.aaps.pump.tandem.common.keys
 
 import app.aaps.core.keys.interfaces.LongNonPreferenceKey
-import app.aaps.pump.tandem.common.util.TandemPumpConst.Prefix
 
-enum class TandemLongNonKey(
+enum class TandemLongNonPreferenceKey(
     override val key: String,
     override val defaultValue: Long,
     override val exportable: Boolean = true

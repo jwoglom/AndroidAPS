@@ -47,6 +47,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
@@ -80,6 +81,7 @@ fun Notifications(
     //sendMessage: (String, ByteArray) -> Unit,
     aapsLogger: AAPSLogger,
     sendPumpCommands: (SendType, List<Message>) -> Boolean,
+    refreshMainAppData: (RefreshData) -> Unit,
     navigateBack: () -> Unit,
     resourceHelper: ResourceHelper
 ) {
@@ -146,6 +148,7 @@ fun Notifications(
 
     LaunchedEffect(intervalOf(60)) {
         aapsLogger.info(TAG, "Reloading Notifications from interval")
+        refreshMainAppData(RefreshData.SEMAPHORE_NOTIFICATIONS)
         refresh()
     }
 
@@ -336,7 +339,8 @@ private fun DefaultPreview_Notifications() {
                 sendPumpCommands = { _, _ -> true},
                 aapsLogger = AAPSLoggerTest(),
                 navigateBack = {},
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = ResourceHelperTest(),
+                refreshMainAppData = {}
             )
         }
     }

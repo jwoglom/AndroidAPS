@@ -188,7 +188,7 @@ class TandemDataConverter @Inject constructor(
 
         val bolusData = BolusData(
             timestamp = message.timestampInstant.toEpochMilli(),
-            amountImmediate = message.requestedVolume * 0.01,
+            amountImmediate = message.requestedVolume * 0.001,
             bolusType = bolusType,   // we can't determine if SMB at this point
             bolusId = message.bolusId.toLong(),
             bolusStatus = bolusStatus,
@@ -234,7 +234,7 @@ class TandemDataConverter @Inject constructor(
 
         val bolusData = BolusData(
             timestamp = message.timestampInstant.toEpochMilli(),
-            amountImmediate = message.requestedVolume * 0.01,
+            amountImmediate = message.requestedVolume * 0.001,
             bolusType = bolusType,   // we can't determine if SMB at this point
             bolusId = message.bolusId.toLong(),
             bolusStatus = bolusStatus,

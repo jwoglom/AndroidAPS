@@ -13,7 +13,9 @@ import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.defs.PumpDriverState
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import app.aaps.pump.common.utils.PumpUtil
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.events.EventRefreshPumpData
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -212,6 +214,10 @@ class TandemPumpUtil @Inject constructor(
     fun getBytesFromIntArray2(value: Int): ByteArray {
         val array = ByteBuffer.allocate(4).putInt(value).array()
         return byteArrayOf(array[3], array[2])
+    }
+
+    fun refreshPumpStatus(data: List<RefreshData>) {
+        rxBus.send(EventRefreshPumpData(data))
     }
 
     init {

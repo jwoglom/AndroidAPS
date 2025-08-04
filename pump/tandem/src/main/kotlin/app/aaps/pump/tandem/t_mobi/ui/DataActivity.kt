@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +40,7 @@ import app.aaps.core.interfaces.ui.compose.DaggerComponentActivity
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
@@ -61,6 +63,7 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import java.time.LocalDateTime
+import java.time.ZoneId
 import javax.inject.Inject
 
 
@@ -100,6 +103,13 @@ class DataActivity : DaggerComponentActivity() {
             var selectedItem by remember { mutableStateOf(sectionState) }
             val scaffoldState = rememberBottomSheetScaffoldState()
 
+            DisposableEffect(Unit) {
+                onDispose {
+                    aapsLogger.info(LTag.PUMP, "Data Activity was closed. Sending event to refresh.")
+                    tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.SEMAPHORE_EVENTS))
+                }
+            }
+
             TMobiScreensTheme {
                 Scaffold(
                     content = { innerPadding ->
@@ -119,6 +129,7 @@ class DataActivity : DaggerComponentActivity() {
                                             innerPadding = innerPadding,
                                             navController = navController,
                                             sendPumpCommands = { type, messages -> sendPumpCommands(type, messages) },
+                                            refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
                                             aapsLogger = aapsLogger,
                                             resourceHelper = resourceHelper,
                                             navigateToPumpHistory = {
@@ -137,6 +148,7 @@ class DataActivity : DaggerComponentActivity() {
                                         History(
                                             innerPadding = innerPadding,
                                             refreshDatabase = { target, queryParameters -> refreshDatabase(target, queryParameters) },
+                                            refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
                                             aapsLogger = aapsLogger,
                                             resourceHelper = resourceHelper,
                                             navigateBack = {
@@ -151,6 +163,7 @@ class DataActivity : DaggerComponentActivity() {
                                             aapsLogger = aapsLogger,
                                             resourceHelper = resourceHelper,
                                             refreshDatabase = { target, queryParameters -> refreshDatabase(target, queryParameters) },
+                                            refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
                                             navigateBack = {
                                                 selectedItem = DataLandingSection.DATA
                                             },
@@ -164,6 +177,7 @@ class DataActivity : DaggerComponentActivity() {
                                             resourceHelper = resourceHelper,
                                             aapsLogger = aapsLogger,
                                             sendPumpCommands = { type, messages -> sendPumpCommands(type, messages) },
+                                            refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
                                             navigateBack = {
                                                 selectedItem = DataLandingSection.DATA
                                             }
@@ -220,7 +234,27 @@ class DataActivity : DaggerComponentActivity() {
     }
 
     val ds = tandemDataStore
-    var count = 1;
+    var count = 1
+
+
+    private fun refreshMainAppData(refreshData: RefreshData) {
+        when(refreshData) {
+            RefreshData.SEMAPHORE_HISTORY       -> {
+                tandemPumpStatus.semaphoreHistory = false
+                tandemPumpStatus.semaphoreNeedsRefresh = true
+            }
+            RefreshData.SEMAPHORE_EVENTS        -> {
+                tandemPumpStatus.semaphoreEvents = false
+                tandemPumpStatus.semaphoreNeedsRefresh = true
+            }
+            RefreshData.SEMAPHORE_NOTIFICATIONS -> {
+                tandemPumpStatus.semaphoreNotifications = false
+                tandemPumpStatus.semaphoreNeedsRefresh = true
+            }
+            else -> {}
+        }
+    }
+
 
     private fun refreshDatabase(databaseTarget: DatabaseTarget, queryParameters: DatabaseQueryParameters) {
         val jsonParamVal = tandemPumpUtil.gson.toJson(queryParameters)
@@ -235,20 +269,37 @@ class DataActivity : DaggerComponentActivity() {
         when(databaseTarget) {
             DatabaseTarget.QUALIFYING_EVENTS -> {
 
+                val currentQEItemsBlocking = dbDataHandler.getCurrentQEItemsBlocking();
+
                 val list: MutableList<TandemQualifyingEventDto> = mutableListOf()
 
-                list.add(
-                    TandemQualifyingEventDto(dateTime = LocalDateTime.now()
-                                             , name = QualifyingEvent.BASAL_CHANGE, description = "" )
-                )
-                list.add(
-                    TandemQualifyingEventDto(dateTime = LocalDateTime.now()
-                                             , name = QualifyingEvent.HOME_SCREEN_CHANGE, description = "" )
-                )
-                list.add(
-                    TandemQualifyingEventDto(dateTime = LocalDateTime.now()
-                                             , name = QualifyingEvent.BATTERY, description = "Level: 20%" )
-                )
+                for (entity in currentQEItemsBlocking) {
+                    val instantTime = java.time.Instant.ofEpochMilli(entity.dateTime)
+
+                    aapsLogger.error("QE: " + instantTime)
+
+                    val eventDto = TandemQualifyingEventDto(
+                        dateTime = LocalDateTime.ofInstant(instantTime, ZoneId.systemDefault()),
+                        name = QualifyingEvent.valueOf(entity.name),
+                        description = if (entity.description==null) "" else  entity.description!!
+                    )
+
+                    list.add(eventDto)
+                }
+
+
+                // list.add(
+                //     TandemQualifyingEventDto(dateTime = LocalDateTime.now()
+                //                              , name = QualifyingEvent.BASAL_CHANGE, description = "" )
+                // )
+                // list.add(
+                //     TandemQualifyingEventDto(dateTime = LocalDateTime.now()
+                //                              , name = QualifyingEvent.HOME_SCREEN_CHANGE, description = "" )
+                // )
+                // list.add(
+                //     TandemQualifyingEventDto(dateTime = LocalDateTime.now()
+                //                              , name = QualifyingEvent.BATTERY, description = "Level: 20%" )
+                // )
 
                 val list2 = ds.dataQE.value!!
 

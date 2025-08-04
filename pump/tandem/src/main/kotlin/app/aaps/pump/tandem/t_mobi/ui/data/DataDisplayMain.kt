@@ -36,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -48,22 +47,17 @@ import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
-import app.aaps.pump.tandem.common.database.data.DatabaseQueryParameters
-import app.aaps.pump.tandem.common.database.data.DatabaseTarget
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
-import app.aaps.pump.tandem.t_mobi.ui.util.LifecycleStateObserver
 import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -73,6 +67,7 @@ fun DataDisplayMain(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
     sendPumpCommands: (SendType, List<Message>) -> Boolean,
+    refreshMainAppData: (RefreshData) -> Unit,
     //refreshDatabase: (DatabaseTarget, DatabaseQueryParameters) -> Unit,
     aapsLogger: AAPSLogger,
     navigateToPumpHistory: () -> Unit,
@@ -286,13 +281,14 @@ private fun DataDisplayPreview_NoNotification() {
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
             DataDisplayMain(
-                sendPumpCommands = {_, _ -> true},
+                sendPumpCommands = { _, _ -> true},
                 //refreshDatabase = { _,_ -> },
                 aapsLogger = AAPSLoggerTest(),
                 navigateToNotifications = {},
                 navigateToPumpHistory = {},
                 navigateToEvents = {},
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = ResourceHelperTest(),
+                refreshMainAppData = {}
             )
         }
     }
@@ -310,13 +306,14 @@ private fun DataDisplayPreview_WithNotification() {
             setUpPreviewState(LocalTandemDataStore.current)
             tandemDataStore.notificationsPresent.value = true
             DataDisplayMain(
-                sendPumpCommands = {_, _ -> true},
+                sendPumpCommands = { _, _ -> true},
                 //refreshDatabase = { _,_ -> },
                 aapsLogger = AAPSLoggerTest(),
                 navigateToNotifications = {},
                 navigateToPumpHistory = {},
                 navigateToEvents = {},
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = ResourceHelperTest(),
+                refreshMainAppData = {}
             )
         }
     }

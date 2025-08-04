@@ -3,6 +3,8 @@ package app.aaps.pump.tandem.common.keys
 import app.aaps.core.keys.interfaces.BooleanPreferenceKey
 import app.aaps.core.keys.interfaces.StringPreferenceKey
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
+import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
 
 enum class TandemStringPreferenceKey(
     override val key: String,
@@ -26,6 +28,10 @@ enum class TandemStringPreferenceKey(
     PumpPairCode("pref_tandem_pair_code", ""),
     PumpApiVersion("pref_tandem_api_version", ""),
     PumpVersionResponse("pref_tandem_pump_version", ""),
+
+    PumpHistorySummary("pref_tandem_history_summary", ""),
+    QualifyingEventsFilterPref("pref_tandem_qe_filter", QualifyingEventsFilter.ALL.name),
+    QualifyingEventsRangePref("pref_tandem_qe_range", QualifyingEventsRange.LAST_15_ITEMS.name)
 
     // PumpFrequency("pref_medtronic_frequency", "medtronic_pump_frequency_us_ca"),
 

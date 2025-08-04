@@ -412,10 +412,10 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             )
         }
 
-        val volume = (detailedBolusInfo.insulin * 100).toLong() // no decimals
+        val volume = (detailedBolusInfo.insulin * 1000).toLong() // no decimals
         val bolusCarbs = 0
 
-        var bolusRequest = InitiateBolusRequest(volume, permissionResponseMessage.bolusId,
+        val bolusRequest = InitiateBolusRequest(volume, permissionResponseMessage.bolusId,
                                                 BolusDeliveryHistoryLog.BolusType.FOOD1.mask(),
                                                 0, 0,
                                                 bolusCarbs, 0, 0)
@@ -460,7 +460,23 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         }
 
-        return tandemDataConverter.getBolus(bolusStatusResponse)
+        // val lastBolusStatus = getCommunicationManager()
+        //     .sendCommand(LastBolusStatusV2Request()) as LastBolusStatusV2Response?
+
+        // it seems that when CurrentBolusStatusResponse comes back as delivered, we don't have
+        // any bolus details, so we just read bolus again...
+
+        val bolusDataCommandResponse = getBolus()
+
+        if (bolusDataCommandResponse.isSuccess) {
+            this.tandemPumpStatus.tandemLastBolus = bolusDataCommandResponse.value
+        } else {
+            aapsLogger.error(TAG, "Couldn't get latest bolus, after bolus was delivered")
+        }
+
+        return bolusDataCommandResponse
+
+        //return tandemDataConverter.getBolus(lastBolusStatus!!)
 
         //return bolusData
 

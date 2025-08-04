@@ -16,7 +16,7 @@
     <string name="pump_status_label">Pump Status</string>
     <string name="pump_firmware_label">Pump Firmware</string>
     <string name="pump_address_label">BT Address</string>
-    <string name="pump_last_bolus" translatable="false">%1$.1f %2$s (%3$s)</string>
+    <string name="pump_last_bolus" translatable="false">%1$.2f %2$s (%3$s)</string>
     <string name="pump_firmware_open_loop_only">%s (Open-Loop only)</string>
     <string name="pump_firmware_demo">Ignored. Demo mode</string>
     <string name="pump_settings">Settings</string>
@@ -25,6 +25,13 @@
     <string name="pump_serial_number">Serial Number</string>
     <string name="pump_bt_state_label">BT State</string>
     <string name="pump_last_event">Last Pump Event</string>
+    <string name="pump_data_status">Pump Data:</string>
+    <string name="pump_data_status_notification">NOTIFIC</string>
+    <string name="pump_data_status_events">EVENTS</string>
+    <string name="pump_data_status_history">HISTORY</string>
+
+
+
 
     <!-- Errors -->
     <string name="tandem_error_not_bonded">Pump not configured or fully bonded</string>
@@ -48,6 +55,17 @@
     <string name="data_events_desc">Qualifying Events sent from Pump (stored in database)</string>
     <string name="data_pump_history">Pump History</string>
     <string name="data_pump_history_desc">Pump History stored in database</string>
+
+    <string name="data_qe_filter_description">Which Pump Events to Show?</string>
+    <string name="data_qe_filter_all">All</string>
+    <string name="pump_qe_filter_aaps_relevant">AAPS Relevant Only</string>
+
+    <string name="data_qe_range_description">How many Pump Events to Show?</string>
+    <string name="data_qe_range_last_15_items">Last 15 items</string>
+    <string name="pump_qe_range_last_3_hours">Last 3 hours</string>
+    <string name="pump_qe_range_last_6_hours">Last 6 hours</string>
+    <string name="pump_qe_range_last_12_hours">Last 12 hours</string>
+    <string name="pump_qe_range_last_24_hours">Last 24 hours</string>
 
     <!-- UI Configuration -->
     <string name="ui_cfg_configuration">Configuration</string>

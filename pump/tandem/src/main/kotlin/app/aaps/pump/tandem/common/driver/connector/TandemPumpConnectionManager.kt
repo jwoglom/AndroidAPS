@@ -16,6 +16,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.TempBasalPair
@@ -183,6 +184,13 @@ class TandemPumpConnectionManager @Inject constructor(
                     tandemPumpStatus.currentTempBasal = tbr
                 }
             }
+            PumpCommandType.GetBolus -> {
+                if (responseData.value!=null) {
+                    val bolusData = responseData.value as BolusData
+                    tandemPumpStatus.tandemLastBolus = bolusData
+                    aapsLogger.error(TAG, "Last Bolus Data: $bolusData")
+                }
+            }
             else -> {}
         }
     }
@@ -202,10 +210,20 @@ class TandemPumpConnectionManager @Inject constructor(
             GET_ALARMS -> {
                 val alarms = responseData.value as AlarmStatusDto
                 tandemPumpStatus.tandemAlarms = alarms.alarms
+                if (!alarms.alarms.isEmpty()) {
+                    tandemPumpStatus.semaphoreNotifications = true
+                    tandemPumpStatus.semaphoreNeedsRefresh = true
+                }
             }
             GET_ALERTS -> {
                 val alerts = responseData.value as AlertStatusDto
                 tandemPumpStatus.tandemAlerts = alerts.alerts
+
+                if (!alerts.alerts.isEmpty()) {
+                    // TODO needs to take in account anything that is self dismissed
+                    tandemPumpStatus.semaphoreNotifications = true
+                    tandemPumpStatus.semaphoreNeedsRefresh = true
+                }
 
                 // TODO only start if configuration enabled...
                 if (alerts.alerts.contains(AlertStatusResponse.AlertResponseType.MIN_BASAL_ALERT2)) {

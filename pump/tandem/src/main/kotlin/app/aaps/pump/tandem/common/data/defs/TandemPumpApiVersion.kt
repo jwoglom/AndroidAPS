@@ -29,7 +29,7 @@ enum class TandemPumpApiVersion(val description: String,
     //VERSION_2_5_OR_HIGHER("Version 2.5 or higher", 2, 5, isClosedLoopPossible = false, hasBolus = true),
     VERSION_4_x("Version 4.x", 4, 0, isClosedLoopPossible = true, hasBolus = true, hasFullControlSet = true),
 
-    Unknown("", 0, 0, false);
+    Unknown("Unknown", 0, 0, false);
 
     //constructor()
 
