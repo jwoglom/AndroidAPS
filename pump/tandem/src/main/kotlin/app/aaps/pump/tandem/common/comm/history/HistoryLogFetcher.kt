@@ -27,7 +27,8 @@ val statusResponseLock = Mutex()
 val streamResponseLock = Mutex()
 
 @Deprecated("Just sample code from controlX, HistoryRetriever will be used here")
-class HistoryLogFetcher(val context: Context, val pump: TandemPump, val peripheral: BluetoothPeripheral, val pumpSid: Int) {
+class HistoryLogFetcher(val context: Context, val pump: TandemPump,
+                        val peripheral: BluetoothPeripheral, val pumpSid: Int) {
     private var recentSeqIds = LruCache<Long, Long>(256)
     private var latestSeqId: Long = 0
 
@@ -135,26 +136,27 @@ class HistoryLogFetcher(val context: Context, val pump: TandemPump, val peripher
             recentSeqIds.put(log.sequenceNum, log.sequenceNum)
         }
     }
+
+    fun getMissingIds(present: List<Long>, min: Long, max: Long): List<LongRange> {
+        if (present.isEmpty()) {
+            return listOf(min..max)
+        }
+        val missing = mutableListOf<LongRange>()
+        if (present[0] > min) {
+            missing.add(min until present[0])
+        }
+        var prev: Long = present[0]
+        for ((k, i) in present.withIndex()) {
+            if (k == 0) continue
+            if (i > prev + 1) {
+                missing.add(prev+1..i-1)
+            }
+            prev = i
+        }
+        if (prev < max) {
+            missing.add(prev+1..max)
+        }
+        return missing
+    }
 }
 
-fun getMissingIds(present: List<Long>, min: Long, max: Long): List<LongRange> {
-    if (present.isEmpty()) {
-        return listOf(min..max)
-    }
-    val missing = mutableListOf<LongRange>()
-    if (present[0] > min) {
-        missing.add(min until present[0])
-    }
-    var prev: Long = present[0]
-    for ((k, i) in present.withIndex()) {
-        if (k == 0) continue
-        if (i > prev + 1) {
-            missing.add(prev+1..i-1)
-        }
-        prev = i
-    }
-    if (prev < max) {
-        missing.add(prev+1..max)
-    }
-    return missing
-}

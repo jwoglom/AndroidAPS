@@ -12,6 +12,7 @@ enum class PumpDataRefreshType(val commandType: PumpCommandType?) {
     BatteryStatus(PumpCommandType.GetBatteryStatus),
     PumpTime(PumpCommandType.GetTime),
     PumpStatus(PumpCommandType.GetPumpStatus),
+    GetTemporaryBasal(PumpCommandType.GetTemporaryBasal),
     Custom_1(null),
     Custom_2(null),
     Custom_3(null),

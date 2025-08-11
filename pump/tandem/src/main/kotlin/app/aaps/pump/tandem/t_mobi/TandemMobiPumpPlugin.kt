@@ -67,6 +67,7 @@ import app.aaps.pump.common.events.EventPumpForceDisconnect
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
+import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
@@ -115,7 +116,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     tandemPumpDriverConfiguration: TandemMobiPumpDriverConfiguration,
     decimalFormatter: DecimalFormatter,
     val dbDataHandler: DbDataHandler,
-    //val pumpX2L: PumpX2L,
+    val historyRetriever: HistoryRetriever,
     instantiator: Instantiator
 ) : PumpPluginAbstract(
     pluginDescription = PluginDescription() //
@@ -331,6 +332,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_INSULIN_LEVEL)) {
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.RemainingInsulin, System.currentTimeMillis())
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.PumpStatus, System.currentTimeMillis())
+            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.GetTemporaryBasal, System.currentTimeMillis())
             if (!commandQueue.statusInQueue()) {
                 commandQueue.readStatus("Status Refresh (UI)", null)
             }
@@ -402,7 +404,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     // Constraints interface
     // override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
-    //     // TODO
+    //     // TODOX
     //
     //
     //
@@ -410,7 +412,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     //     if (value.value()) {
     //         value.set(
     //             pumpStatus.tandemPumpFirmware.isClosedLoopPossible,
-    //             rh.gs(R.string.tandem_fol_closed_loop_not_allowed_x2), // TODO allowed Closed Loop on right firmware
+    //             rh.gs(R.string.tandem_fol_closed_loop_not_allowed_x2), // TODOX allowed Closed Loop on right firmware
     //             this
     //         )
     //     }
@@ -418,28 +420,26 @@ class TandemMobiPumpPlugin @Inject constructor(
     // }
 
 
-    override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
-        // TODO enable SMB
-        value.set(false)
-        return value
-
-        //
-        //
-        // if (pumpStatus.pumpDriverMode==PumpDriverMode.Demo) {
-        //     value.set(true)
-        //     return value
-        // }
-        //
-        // if (value.value()) {
-        //     value.set(
-        //         //aapsLogger,
-        //         false,  //driverMode == PumpDriverMode.Automatic, // TODO allowed SMB on right firmware
-        //         rh.gs(R.string.tandem_fol_smb_not_allowed),
-        //         this
-        //     )
-        // }
-        // return value
-    }
+    // override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
+    //     // TODOX enable SMB
+    //     // value.set(false)
+    //     // return value
+    //
+    //     if (pumpStatus.pumpDriverMode==PumpDriverMode.Demo) {
+    //         value.set(true)
+    //         return value
+    //     }
+    //
+    //     if (value.value()) {
+    //         value.set(
+    //             //aapsLogger,
+    //             true,  //driverMode == PumpDriverMode.Automatic, // TODOX allowed SMB on right firmware
+    //             rh.gs(R.string.tandem_constraint_SMB),
+    //             this
+    //         )
+    //     }
+    //     return value
+    // }
 
 
     override fun applyBasalConstraints(absoluteRate: Constraint<Double>, profile: Profile): Constraint<Double> {
@@ -767,10 +767,10 @@ class TandemMobiPumpPlugin @Inject constructor(
         for ((key, value) in statusRefresh) {
             if (value!! > 0 && System.currentTimeMillis() > value) {
                 when (key) {
-                    PumpDataRefreshType.PumpHistory      -> {
-                        aapsLogger.info(LTag.PUMP, "Refresh_PumpHistory")
-                        readPumpHistory()
-                    }
+                    // PumpDataRefreshType.PumpHistory      -> {
+                    //     aapsLogger.info(LTag.PUMP, "Refresh_PumpHistory")
+                    //     readPumpHistory()
+                    // }
 
                     PumpDataRefreshType.PumpTime         -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_PumpTime")
@@ -782,6 +782,11 @@ class TandemMobiPumpPlugin @Inject constructor(
                         //resetTime = true
                     }
 
+                    PumpDataRefreshType.GetTemporaryBasal -> {
+                        // TODO GetTemporaryBasal refresh after stop/start of pump
+                        aapsLogger.error(LTag.PUMP, "Refresh_GetTemporaryBasal: NOT IMPLEMENTED.");
+                    }
+
                     PumpDataRefreshType.BatteryStatus -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_BatteryStatus");
                         pumpConnectionManager.getBatteryLevel()
@@ -791,8 +796,9 @@ class TandemMobiPumpPlugin @Inject constructor(
                     }
 
                     PumpDataRefreshType.PumpStatus -> {
-                        getFullPumpStatus()
+                        getFullPumpStatus(readHistory = true)
                     }
+
                     PumpDataRefreshType.RemainingInsulin -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_RemainingInsulin")
                         pumpConnectionManager.getRemainingInsulin()
@@ -803,7 +809,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                     }
 
                     else -> {
-
+                        aapsLogger.error(LTag.PUMP, "Refresh Unsupported action: ${key}");
                     }
 
 
@@ -821,16 +827,21 @@ class TandemMobiPumpPlugin @Inject constructor(
         return resetDisplay
     }
 
-    private fun getFullPumpStatus() {
+    private fun getFullPumpStatus(readHistory: Boolean) {
         aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus")
         pumpConnectionManager.getPumpStatus()
+
         // TODO do all relevant notifications
         pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_ALARMS)
         pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_ALERTS)
         if (pumpStatus.semaphoreNeedsRefresh) {
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
         }
-        // TODO refresh pump data if we were in UI
+
+        if (readHistory) {
+            // TODO history
+            historyRetriever.downloadHistory()
+        }
     }
 
     private fun setRefreshButtonEnabled(enabled: Boolean) {
@@ -850,7 +861,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         checkTimeAndOptionallySetTime(!realInit)  // we read time only if its refresh and not first init
 
         // read status of pump from Db
-        getFullPumpStatus()
+        getFullPumpStatus(readHistory = true)  // TODO change this
         scheduleNextRefresh(PumpDataRefreshType.PumpStatus, 0)
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
 
@@ -1120,7 +1131,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 .enacted(false) //
                 .comment(
                     rh.gs(
-                        R.string.ypsopump_cmd_bolus_could_not_be_delivered_no_insulin,
+                        Rc.string.pump_cmd_err_bolus_could_not_be_delivered_no_insulin,
                         pumpStatus.reservoirRemainingUnits,
                         detailedBolusInfo.insulin
                     )
@@ -1165,7 +1176,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 PumpEnactResultObject(rh) //
                     .success(false) //
                     .enacted(false) //
-                    .comment(rh.gs(R.string.ypsopump_cmd_bolus_could_not_be_delivered))
+                    .comment(rh.gs(Rc.string.pump_cmd_err_bolus_could_not_be_delivered))
             }
         } finally {
             finishAction("Bolus")
@@ -1342,18 +1353,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         setRefreshButtonEnabled(true)
     }
 
-    // TODO we might want to return data
-    private fun readPumpHistory() {
-        aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistory N/A WIP.")
-
-        //ypsoPumpHistoryHandler.getFullPumpHistory()
-
-        //        pumpConnectionManager.getPumpHistory()
-
-        //scheduleNextRefresh(PumpDataRefreshType.PumpHistory)
-
-    }
-
 
     private fun readPumpHistoryAfterAction(bolusInfo: DetailedBolusInfo? = null,
                                            tempBasalInfo: TempBasalPair? = null,
@@ -1362,50 +1361,12 @@ class TandemMobiPumpPlugin @Inject constructor(
         // if (true)
         //     return
         aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistoryAfterAction N/A.")
-        // ypsoPumpHistoryHandler.getLastEventAndSendItToPumpSync(
+        // pumpHistoryHandler.getLastEventAndSendItToPumpSync(
         //     bolusInfo = bolusInfo,
         //     tempBasalInfo = tempBasalInfo,
         //     profile = profile
         // )
     }
-
-    // private fun scheduleNextRefresh(refreshType: TandemStatusRefreshType, additionalTimeInMinutes: Int = 0) {
-    //     when (refreshType) {
-    //         TandemStatusRefreshType.RemainingInsulin -> {
-    //             val remaining = pumpStatus.reservoirRemainingUnits
-    //             val min: Int
-    //             min = if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
-    //             workWithStatusRefresh(StatusRefreshAction.Add, refreshType, getTimeInFutureFromMinutes(min))
-    //         }
-    //
-    //         //  TODO TandemPumpStatusRefreshType.Configuration
-    //
-    //         TandemStatusRefreshType.PumpTime,
-    //         TandemStatusRefreshType.BatteryStatus    -> {
-    //             workWithStatusRefresh(
-    //                 StatusRefreshAction.Add, refreshType,
-    //                 getTimeInFutureFromMinutes(refreshType.refreshTime + additionalTimeInMinutes)
-    //             )
-    //         }
-    //         TandemStatusRefreshType.PumpHistory      -> {
-    //             workWithStatusRefresh(
-    //                 StatusRefreshAction.Add, refreshType,
-    //                 getTimeInFutureFromMinutes(getHistoryRefreshTime() + additionalTimeInMinutes)
-    //             )
-    //         }
-    //
-    //     }
-    // }
-
-    private fun getHistoryRefreshTime(): Int {
-        // TODO history Refresh Time
-        if (this.driverMode != PumpDriverMode.Automatic) {
-            return 15 // TODO use settings
-        } else {
-            return 5
-        }
-    }
-
 
 
     private fun readTBR(): TempBasalPair? {
@@ -1426,6 +1387,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
     }
 
+
     override fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult {
         return try {
             aapsLogger.info(TAG, "TBR cancelTempBasal - started")
@@ -1435,23 +1397,8 @@ class TandemMobiPumpPlugin @Inject constructor(
             if (tbrCurrent==null) {
                 aapsLogger.info(TAG, "cancelTempBasal - TBR is not running exiting.")
                 pumpStatus.clearTbr()
-                //finishAction("TBR")
                 return instantiator.providePumpEnactResult().success(true).enacted(false)
             }
-
-            // if (tbrCurrent != null) {
-            //     if (tbrCurrent.insulinRate == 0.0 && tbrCurrent.durationMinutes == 0) {
-            //         aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - TBR already canceled.")
-            //         finishAction("TBR")
-            //         pumpStatus.clearTbr()
-            //         return PumpEnactResultObject(rh).success(true).enacted(false)
-            //     }
-            // } else {
-            //     aapsLogger.warn(LTag.PUMP, logPrefix + "cancelTempBasal - Could not read currect TBR, canceling operation.")
-            //     finishAction("TBR")
-            //     return PumpEnactResultObject(rh).success(false).enacted(false)
-            //         .comment(rh.gs(R.string.ypsopump_cmd_cant_read_tbr))
-            // }
 
             val commandResponse = pumpConnectionManager.cancelTemporaryBasal()
 
@@ -1473,25 +1420,15 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
     }
 
+
     override fun serialNumber(): String {
         return pumpStatus.serialNumber.toString()
     }
 
+
     override fun generateTempId(objectA: Any): Long {
         return 0L
     }
-
-    //    @NotNull @Override
-    //    public Constraint<Boolean> isClosedLoopAllowed(@NotNull Constraint<Boolean> value) {
-    ////        if(pumpStatus.ypsopumpFirmware==null) {
-    ////            return value.set(aapsLogger,false, rh.gs(R.string.some_reason), this);
-    ////        } else {
-    ////            return value;
-    ////        }
-    //
-    //        return new Constraint<Boolean>(true);
-    //    }
-
 
 
     override fun setNewBasalProfile(profile: Profile): PumpEnactResult {
@@ -1538,12 +1475,11 @@ class TandemMobiPumpPlugin @Inject constructor(
     override fun getRefreshTime(pumpDataRefreshType: PumpDataRefreshType): Int {
         return (
             when(pumpDataRefreshType) {
-                PumpDataRefreshType.PumpHistory      -> getHistoryRefreshTime()
+                //PumpDataRefreshType.PumpHistory      -> getHistoryRefreshTime()
                 PumpDataRefreshType.RemainingInsulin -> {
                     val remaining = pumpStatus.reservoirRemainingUnits
 
-                    //if (remaining > 50) 60 else if (remaining > 20) 30 else 15
-                    15   // TODO use upper formula, this is just for testing
+                    if (remaining > 50) 60 else if (remaining > 20) 30 else 15
                 }
                 PumpDataRefreshType.BatteryStatus    -> 55
                 PumpDataRefreshType.PumpTime         -> 300
@@ -1564,7 +1500,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         this.hasTimeDateOrTimeZoneChanged = true
         val timeRefresh = System.currentTimeMillis() + (20*1000)  // 20s in future
         scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.PumpTime, timeRefresh)
-        // TODO this might not work as expected, needs to be tested again...
+        // TODO timezoneOrDSTChanged: this might not work as expected, needs to be tested again...
     }
 
 
@@ -1582,6 +1518,10 @@ class TandemMobiPumpPlugin @Inject constructor(
         // val batteryValues = mutableListOf<CharSequence>().also { list -> BatteryType.entries.forEach { list.add(it.key) } }.toTypedArray()
     }
 
+
+    // TODO Preferences:
+    //    - add MIN_BASAL_ALERT2 confirmation (hardcoded ATM)
+    //    - add MIN_RESERVOIR2 confirmation not implemented yet, but might be needed
 
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
         aapsLogger.info(TAG, "addPreferenceScreen: preferenceManager=$preferenceManager, parent=$parent, requiredKey=$requiredKey")

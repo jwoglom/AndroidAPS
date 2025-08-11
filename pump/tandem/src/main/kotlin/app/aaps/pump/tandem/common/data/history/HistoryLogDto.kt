@@ -11,6 +11,7 @@ import app.aaps.pump.tandem.R
 
 import java.util.*
 
+@Deprecated("This class is deprecated Tandem solu")
 sealed class HistoryLogObject {
     abstract fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String
 }

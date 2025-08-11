@@ -189,7 +189,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
 
         // last connection
         if (pumpStatus.lastConnection != 0L) {
-            val minAgo = dateUtil.minAgo(resourceHelper, pumpStatus.lastConnection)
+
             val min = (System.currentTimeMillis() - pumpStatus.lastConnection) / 1000 / 60
             if (pumpStatus.lastConnection + 60 * 1000 > System.currentTimeMillis()) {
                 binding.pumpLastConnection.setText(app.aaps.core.interfaces.R.string.now)
@@ -209,6 +209,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 }
                 binding.pumpLastConnection.setTextColor(Color.RED)
             } else {
+                val minAgo = dateUtil.minAgo(resourceHelper, pumpStatus.lastConnection)
                 binding.pumpLastConnection.text = minAgo
                 binding.pumpLastConnection.setTextColor(currentTextColor)
             }
@@ -223,9 +224,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
             updateCurrentActivity(pumpDriverState)
         }
 
-        // if (updateType== PumpUpdateFragmentType.Full) {
-        //     this.updateQueue()
-        // }
+
         this.updateQueue()
 
 
@@ -234,8 +233,6 @@ class TandemMobiPumpFragment : DaggerFragment() {
             updateType == PumpUpdateFragmentType.Full) {
 
             // Last Bolus, TBR (Profile Change)
-
-            //val bolusState: PumpSync.PumpState.Bolus? = pumpState.bolus
 
             // last bolus
             val bolus = pumpStatus.tandemLastBolus
@@ -249,8 +246,10 @@ class TandemMobiPumpFragment : DaggerFragment() {
                     ago = resourceHelper.gs(Rc.string.time_now)
                 } else if (bolusMinAgo < 60) {
                     ago = dateUtil.minAgo(resourceHelper, bolus.timestamp)
-                } else {
+                } else if (bolusMinAgo < (60*24)) {
                     ago = dateUtil.hourAgo(bolus.timestamp, resourceHelper)
+                } else {
+                    ago = dateUtil.dayAgo(bolus.timestamp, resourceHelper)
                 }
                 binding.pumpLastBolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus.amountImmediate, unit, ago)
             } else {
@@ -275,24 +274,14 @@ class TandemMobiPumpFragment : DaggerFragment() {
             } else {
                 val msDiff = pumpStatus.currentTempBasalEstimatedEnd!! - System.currentTimeMillis()
                 val min = msDiff / (60.0 * 1000.0)
-                //aapsLogger.info(TAG, "TBR Diff: estimatedEnd=${pumpStatus.currentTempBasalEstimatedEnd},msDiff=$msDiff,min=${min}")
-
                 binding.pumpTempBasal.text = resourceHelper.gs(Rc.string.pump_tbr_remaining_percent,
                                                               pumpStatus.currentTempBasal!!.insulinRate.toInt(), min.toInt())
             }
-
-            //TBR TODO
-            //binding.pumpTempBasal.text = activePlugin.getTempBasalFromHistory(System.currentTimeMillis())?.toStringFull()
-            //     ?: ""
         }
 
         if (updateType == PumpUpdateFragmentType.Configuration ||
             updateType == PumpUpdateFragmentType.Full) {
             // Firmware, Errors
-
-            // aapsLogger.info(LTag.PUMP,
-            //                 "Firmware (driverMode=${pumpStatus.pumpDriverMode}, " +
-            //                     "pumpFirmware=${pumpStatus.tandemPumpFirmware})")
 
             if (pumpStatus.pumpDriverMode == PumpDriverMode.Demo) {
                 binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_demo)
@@ -323,16 +312,16 @@ class TandemMobiPumpFragment : DaggerFragment() {
         if (updateType == PumpUpdateFragmentType.Custom_1 ||
             updateType == PumpUpdateFragmentType.Full) {
             // qualifying events
-            var sb = StringBuilder()
+            val sb = StringBuilder()
 
-            aapsLogger.info(TAG, "XA: QE: ${pumpStatus.lastQualifyingEventsInfo}")
+            //aapsLogger.info(TAG, "XA: QE: ${pumpStatus.lastQualifyingEventsInfo}")
 
             if (pumpStatus.lastQualifyingEventsInfo!=null) {
                 sb.append("QE: ")
                 sb.append(pumpStatus.lastQualifyingEventsInfo)
             }
 
-            aapsLogger.info(TAG, "XA: Alarms: ${pumpStatus.tandemAlarms}")
+            //aapsLogger.info(TAG, "XA: Alarms: ${pumpStatus.tandemAlarms}")
 
             if (pumpStatus.tandemAlarms!=null && !pumpStatus.tandemAlarms!!.isEmpty()) {
                 if (!sb.isEmpty()){
@@ -344,7 +333,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 }
             }
 
-            aapsLogger.info(TAG, "XA: Alerts: ${pumpStatus.tandemAlerts}")
+            //aapsLogger.info(TAG, "XA: Alerts: ${pumpStatus.tandemAlerts}")
 
             if (pumpStatus.tandemAlerts!=null && !pumpStatus.tandemAlerts!!.isEmpty()) {
                 if (!sb.isEmpty()){
@@ -397,8 +386,6 @@ class TandemMobiPumpFragment : DaggerFragment() {
             binding.pumpErrorsView.visibility = View.GONE
             binding.pumpErrorsDelimiter.visibility = View.GONE
         }
-
-        //binding.pumpErrors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
     }
 
     private fun updateReservoir() {
@@ -430,8 +417,6 @@ class TandemMobiPumpFragment : DaggerFragment() {
         }
     }
 
-
-    //var resourcesPumpCommon = app.aaps.pump.common.R
 
     @Synchronized
     private fun updateCurrentActivity(pumpDriverState: PumpDriverState?) {

@@ -19,8 +19,10 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.common.defs.PumpDriverMode
+import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
+import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand.*
@@ -205,6 +207,7 @@ class TandemPumpConnectionManager @Inject constructor(
                 if (tandemPumpStatus.serialNumber==0L) {
                     tandemPumpStatus.serialNumber = tandemPumpStatus.tandemPumpVersion!!.serialNum
                     preferences.put(TandemStringPreferenceKey.PumpSerial, "" + tandemPumpStatus.serialNumber)
+                    rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
                 }
             }
             GET_ALARMS -> {
@@ -218,7 +221,7 @@ class TandemPumpConnectionManager @Inject constructor(
             GET_ALERTS -> {
                 val alerts = responseData.value as AlertStatusDto
                 tandemPumpStatus.tandemAlerts = alerts.alerts
-
+                // TODO extend GetAlerts functionality to filter auto confirmed entries
                 if (!alerts.alerts.isEmpty()) {
                     // TODO needs to take in account anything that is self dismissed
                     tandemPumpStatus.semaphoreNotifications = true

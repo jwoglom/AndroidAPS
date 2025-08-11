@@ -5,8 +5,6 @@
 
 package app.aaps.pump.tandem.t_mobi.ui
 
-//import androidx.compose.material3.BottomSheetState
-//import androidx.compose.material3.BottomSheetValue
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -71,6 +69,7 @@ class ActionsActivity : DaggerComponentActivity() {
     var sectionState: ActionsLandingSection = ActionsLandingSection.ACTIONS
     var navController: NavHostController? = null
     var TAG = LTag.PUMPCOMM
+    //@Inject
     lateinit var tandemUICommunication : TandemUICommunication
 
 
@@ -97,7 +96,8 @@ class ActionsActivity : DaggerComponentActivity() {
                 onDispose {
                     aapsLogger.info(LTag.PUMP, "Data Activity was closed. Sending event to refresh.")
                     // we might be able to specify more exactly what here happens but for now this is ok, see DataActivity and method refreshMainAppData
-                    tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS, RefreshData.PUMP_INSULIN_LEVEL))
+                    tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS,
+                                                            RefreshData.PUMP_INSULIN_LEVEL))
                 }
             }
 

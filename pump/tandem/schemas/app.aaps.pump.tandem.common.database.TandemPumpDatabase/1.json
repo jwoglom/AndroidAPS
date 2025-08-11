@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d00df06d363f7276114b1b9ca656584f",
+    "identityHash": "92dea59c093c006b0b8ed77c209d171e",
     "entities": [
       {
         "tableName": "history_records",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sequenceId` INTEGER NOT NULL, `pumpSerial` INTEGER NOT NULL, `typeId` INTEGER NOT NULL, `pumpTime` INTEGER NOT NULL, `payload` BLOB NOT NULL, `entitySubId` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`sequenceId`, `pumpSerial`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sequenceId` INTEGER NOT NULL, `pumpSerial` INTEGER NOT NULL, `typeId` INTEGER NOT NULL, `pumpTime` INTEGER NOT NULL, `payload` BLOB NOT NULL, `entitySubId` INTEGER, `entitySubIdName` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`sequenceId`, `pumpSerial`))",
         "fields": [
           {
             "fieldPath": "sequenceId",
@@ -41,8 +41,12 @@
           {
             "fieldPath": "entitySubId",
             "columnName": "entitySubId",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "entitySubIdName",
+            "columnName": "entitySubIdName",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "createdAt",
@@ -63,9 +67,7 @@
             "sequenceId",
             "pumpSerial"
           ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        }
       },
       {
         "tableName": "qualifying_events",
@@ -98,8 +100,7 @@
           {
             "fieldPath": "description",
             "columnName": "description",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -107,15 +108,12 @@
           "columnNames": [
             "id"
           ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        }
       }
     ],
-    "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd00df06d363f7276114b1b9ca656584f')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '92dea59c093c006b0b8ed77c209d171e')"
     ]
   }
 }

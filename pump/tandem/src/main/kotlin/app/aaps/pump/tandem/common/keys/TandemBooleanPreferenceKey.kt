@@ -18,7 +18,14 @@ enum class TandemBooleanPreferenceKey(
     override val hideParentScreenIfHidden: Boolean = false,
 ) : BooleanPreferenceKey {
 
-    DisplayDriverVersion("pref_tandem_display_driver_version", true),
-    UseSharedConnection("pref_tandem_use_shared_connection", false),
+    DisplayDriverVersion(key = "pref_tandem_display_driver_version", defaultValue = true),
+    UseSharedConnection(key = "pref_tandem_use_shared_connection", defaultValue = false),
+
+    ShowUnknownEntriesInHistory(key ="pref_tandem_show_unknowns_in_history", defaultValue = false),
+    ShowCargoOfUnknownEntries(key ="", defaultValue = false, dependency = ShowUnknownEntriesInHistory),
+
+    AutoConfirmLowBasalDelivery(key ="", defaultValue = false)
+
+
 
 }

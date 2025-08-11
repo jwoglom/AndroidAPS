@@ -16,6 +16,7 @@ import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
 import java.util.GregorianCalendar
+import java.util.stream.Collectors
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -83,10 +84,23 @@ class DbDataHandler @Inject constructor(
 
     fun addHistoryRecords(listOfHistoryEntries: List<TandemHistoryRecordEntity>) {
         tandemPumpDatabase.historyRecordDao().saveAll(listOfHistoryEntries)
+
+
     }
 
-    fun addHistoryLogs(listOfHistoryEntries: List<HistoryLog>) {
-        //tandemPumpDatabase.historyRecordDao().saveAll(listOfHistoryEntries)
+    fun addHistoryLogs(listOfHistoryEntries: MutableCollection<HistoryLog>) {
+
+        val entities = listOfHistoryEntries.stream()
+            .map { item -> dbDataConverter.getTandemHistoryRecordEntity(item) }
+            .collect(Collectors.toList())
+
+        tandemPumpDatabase.historyRecordDao().saveAll(entities)
+            .subscribeOn(aapsSchedulers.io)
+            .observeOn(aapsSchedulers.main)
+            .subscribe(
+                { aapsLogger.error(TAG, "Inserted TandemHistoryRecordEntity/HistoryLog: ${entities.size} ") },
+                { error -> aapsLogger.error(TAG, "Failed to insert TandemHistoryRecordEntity: ${error.message}", error) }
+            )
     }
 
 

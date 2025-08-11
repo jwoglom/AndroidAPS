@@ -21,7 +21,7 @@ import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.t_mobi.ui.util.DottedDivider
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
 
-// TODO coming in phase 3
+// TODO SiteReminder: coming in phase 3
 
 @Composable
 fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),

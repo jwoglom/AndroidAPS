@@ -41,7 +41,7 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     var errorDescription: String? = null
     var tandemPumpFirmware: TandemPumpApiVersion = TandemPumpApiVersion.Unknown
     var serialNumber: Long = 0
-    //var ypsoPumpStatusList: YpsoPumpStatusList? = null
+
 
     var pumpDriverMode : PumpDriverMode? = null
 
@@ -97,17 +97,6 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
         errorDescription = null
         basalsByHour = null
     }
-
-    //var ypsoPumpStatusList: YpsoPumpStatusList? = null
-
-    // fun getPumpStatusValuesForSelectedPump(): YpsoPumpStatusEntry? {
-    //     return ypsoPumpStatusList!!.map.get(serialNumber)
-    // }
-    //
-    // fun setPumpStatusValues(entry: YpsoPumpStatusEntry) {
-    //     ypsoPumpStatusList!!.map.put(entry.serialNumber, entry)
-    //
-    // }
 
     val basalProfileForHour: Double
         get() {

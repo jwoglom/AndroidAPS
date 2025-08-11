@@ -24,16 +24,15 @@ abstract class TandemPumpDatabase : RoomDatabase() {
 
     companion object {
 
-        const val VERSION = 1
+        const val VERSION = 2
 
         fun build(context: Context) =
             Room.databaseBuilder(
                 context.applicationContext,
                 TandemPumpDatabase::class.java,
-                "tandem_pump_database.db"
-            )
+                "tandem_pump_database.db")
                 .allowMainThreadQueries()
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
 
     }

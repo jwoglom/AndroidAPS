@@ -15,17 +15,23 @@ import io.reactivex.rxjava3.core.Single
 @Dao
 abstract class TandemHistoryRecordDao {
 
-    @Query("SELECT * from history_records")
-    abstract fun all(): Single<List<TandemHistoryRecordEntity>>
+    // @Query("SELECT * from history_records")
+    // abstract fun all(): Single<List<TandemHistoryRecordEntity>>
+    //
+    // @Query("SELECT * from history_records order by sequenceId desc")
+    // abstract fun allBlocking(): List<TandemHistoryRecordEntity>
+    //
+    // @Query("SELECT * from history_records WHERE pumpTime >= :since")
+    // abstract fun allSince(since: Long): Single<List<TandemHistoryRecordEntity>>
+    //
+    // @Query("SELECT * from history_records WHERE pumpTime >= :since order by sequenceId desc")
+    // abstract fun allSinceBlocking(since: Long): List<TandemHistoryRecordEntity>
 
-    @Query("SELECT * from history_records order by sequenceId desc")
-    abstract fun allBlocking(): List<TandemHistoryRecordEntity>
+    @Query("SELECT * from history_records WHERE pumpSerial=:serialNo AND pumpTime >= :since order by sequenceId desc")
+    abstract fun allSinceWithSerial(serialNo: Int, since: Long): Single<List<TandemHistoryRecordEntity>>
 
-    @Query("SELECT * from history_records WHERE pumpTime >= :since")
-    abstract fun allSince(since: Long): Single<List<TandemHistoryRecordEntity>>
-
-    @Query("SELECT * from history_records WHERE pumpTime >= :since order by sequenceId desc")
-    abstract fun allSinceBlocking(since: Long): List<TandemHistoryRecordEntity>
+    @Query("SELECT * from history_records WHERE pumpSerial=:serialNo AND pumpTime >= :since order by sequenceId desc")
+    abstract fun allSinceWithSerialBlocking(serialNo: Int, since: Long): List<TandemHistoryRecordEntity>
 
     @Query("SELECT COUNT(*) FROM history_records")
     abstract fun getHistoryCount(): Single<Long>

@@ -56,10 +56,13 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.UnknownMobiOpcode
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
 import timber.log.Timber
 import java.time.Instant
+import javax.inject.Inject
+import javax.inject.Singleton
 
 // TODO TAF
 
-class TandemUICommunication constructor (
+@Singleton
+class TandemUICommunication @Inject constructor (
     var dataStore: TandemUIDataStore,
     var pumpStatus: TandemPumpStatus,
     var context: Context,
@@ -102,6 +105,9 @@ class TandemUICommunication constructor (
 
 
     fun sendCommand(request: Message): Boolean {
+
+        aapsLogger.warn(TAG, "Send command $request")
+
         if (tandemCommunicationManager==null) {
             aapsLogger.error(TAG, "Command ${request.javaClass.name} couldn't be executed because tandemCommunicationManager is null.")
             return false
@@ -124,6 +130,8 @@ class TandemUICommunication constructor (
 
 
     override fun onReceiveMessage(message: Message) {
+
+        aapsLogger.error(TAG, "onReceiveMessageListener: $message")
 
         if (message is ApiVersionResponse) {
             Timber.i("Got ApiVersionRequest: %s", message)

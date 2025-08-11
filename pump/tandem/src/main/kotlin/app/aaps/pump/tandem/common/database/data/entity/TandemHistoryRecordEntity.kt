@@ -11,7 +11,7 @@ data class TandemHistoryRecordEntity(
     var pumpTime: Long,   // EpochInMillis (pump stores time as EpochSeconds from Jan2008, we don't)
     var payload: ByteArray,
     var entitySubId: Int? = null, // some entities have special id (for example TBR has tempRateId)
-
+    var entitySubIdName: String? = null,
     var createdAt: Long, // creation date of the record
     var updatedAt: Long  // update date of the record
 )

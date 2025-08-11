@@ -52,7 +52,7 @@ class QualifyingEventHandler @Inject constructor(
             listOfEvents.add(TandemQualifyingEventEntity(pumpSerial = tandemPumpStatus.serialNumber.toInt(),
                                                          dateTime = event.dateTime,
                                                          name = qualifyingEvent.name))
-            // TODO description - phase 3
+            // TODO QualifyingEventHandler - description - phase 3
 
             if (!first) sb.append(", ") else first = false
 

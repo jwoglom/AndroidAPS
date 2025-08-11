@@ -81,8 +81,9 @@ class DataActivity : DaggerComponentActivity() {
     var sectionState: DataLandingSection = DataLandingSection.DATA
     var navController: NavHostController? = null
     var TAG = LTag.PUMPCOMM
+    //lateinit var tandemUICommunication : TandemUICommunication
+    //@Inject
     lateinit var tandemUICommunication : TandemUICommunication
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -262,9 +263,9 @@ class DataActivity : DaggerComponentActivity() {
 
         aapsLogger.error(TAG, "refreshDatabase not implemented: called with target=${databaseTarget.name} and parameters=$jsonParamVal")
 
-        // TODO DataActivity::refreshDatabase - work with real database
+        // TODO DataActivity::refreshDatabase - work with real database (missing HISTORY)
 
-        dbDataHandler.databaseStatistics() // TODO temporary
+        dbDataHandler.databaseStatistics() // TODO DataActivity::temporary
 
         when(databaseTarget) {
             DatabaseTarget.QUALIFYING_EVENTS -> {

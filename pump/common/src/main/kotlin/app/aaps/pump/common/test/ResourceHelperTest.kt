@@ -66,15 +66,15 @@ class ResourceHelperTest: ResourceHelper {
     }
 
     override fun dpToPx(dp: Int): Int {
-        TODO("Not yet implemented")
+        return -1
     }
 
     override fun dpToPx(dp: Float): Int {
-        TODO("Not yet implemented")
+        return -1
     }
 
     override fun shortTextMode(): Boolean {
-        TODO("Not yet implemented")
+        return false
     }
 
     override fun gac(attributeId: Int): Int {

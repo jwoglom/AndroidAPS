@@ -11,21 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-//import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
-// import androidx.compose.material.pullrefresh.PullRefreshIndicator
-// import androidx.compose.material.pullrefresh.pullRefresh
-// import androidx.compose.material.pullrefresh.rememberPullRefreshState
-//import androidx.compose.material.pullrefresh.PullRefreshIndicator
-//import androidx.compose.material.pullrefresh.pullRefresh
-//import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -66,30 +57,12 @@ import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
 
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.t_mobi.ui.util.LifecycleStateObserver
-import app.aaps.pump.tandem.t_mobi.ui.util.Line
 import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.util.compactTBRDisplay
 import app.aaps.shared.tests.AAPSLoggerTest
-
-// import com.jwoglom.controlx2.LocalDataStore
-// import com.jwoglom.controlx2.Prefs
-// import com.jwoglom.controlx2.dataStore
-// import com.jwoglom.controlx2.db.historylog.HistoryLogViewModel
-// import com.jwoglom.controlx2.presentation.components.HeaderLine
-// import com.jwoglom.controlx2.presentation.components.Line
-// import com.jwoglom.controlx2.presentation.screens.TempRatePreview
-// import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
-// import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
-// import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
-// import com.jwoglom.controlx2.shared.enums.BasalStatus
-// import com.jwoglom.controlx2.shared.enums.UserMode
-// import com.jwoglom.controlx2.shared.presentation.intervalOf
-// import com.jwoglom.controlx2.shared.util.SendType
-// import com.jwoglom.controlx2.util.determinePumpModel
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.ResumePumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
@@ -102,7 +75,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
 
-// TODO: PullToRefresh functionality is not tested (rewrite from old one)
 
 @Composable
 fun Actions(
@@ -139,7 +111,7 @@ fun Actions(
     }
 
     fun waitForLoaded() = refreshScope.launch {
-        //if (!Prefs(context).serviceEnabled()) return@launch
+
         var sinceLastFetchTime = 0
         while (true) {
             val nullFields = actionsFields.filter { field -> field.value == null }.toSet()
@@ -147,9 +119,9 @@ fun Actions(
                 break
             }
 
-            aapsLogger.info(TAG, "Actions loading: remaining ${nullFields.size}: ${actionsFields.map { it.value }}")
+            aapsLogger.debug(TAG, "Actions loading: remaining ${nullFields.size}: ${actionsFields.map { it.value }}")
             if (sinceLastFetchTime >= 2500) {
-                aapsLogger.info(TAG, "Actions loading re-fetching with cache")
+                aapsLogger.debug(TAG, "Actions loading re-fetching with cache")
                 fetchDataStoreFields(SendType.CACHED)
                 sinceLastFetchTime = 0
             }
@@ -159,13 +131,13 @@ fun Actions(
             }
             sinceLastFetchTime += 250
         }
-        aapsLogger.info(TAG, "Actions loading done: ${actionsFields.map { it.value }}")
+        aapsLogger.debug(TAG, "Actions loading done: ${actionsFields.map { it.value }}")
         refreshing = false
     }
 
     fun refresh() = refreshScope.launch {
-        //if (!Prefs(context).serviceEnabled()) return@launch
-        aapsLogger.info(TAG, "reloading Actions with force")
+
+        aapsLogger.debug(TAG, "reloading Actions with force")
         refreshing = true
 
         actionsFields.forEach { field -> field.value = null }
@@ -179,12 +151,12 @@ fun Actions(
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
         refreshScope.cancel()
     }) {
-        aapsLogger.info(TAG, "reloading Actions from onStart lifecyclestate")
+        aapsLogger.debug(TAG, "reloading Actions from onStart lifecyclestate")
         fetchDataStoreFields(SendType.STANDARD)
     }
 
     LaunchedEffect(intervalOf(60)) {
-        aapsLogger.info(TAG, "reloading Actions from interval")
+        aapsLogger.debug(TAG, "reloading Actions from interval")
         fetchDataStoreFields(SendType.STANDARD)
     }
 
@@ -198,7 +170,6 @@ fun Actions(
             .pullToRefresh(isRefreshing = refreshing,
                            state= pullRefreshState,
                            onRefresh = { refresh() })
-            //.pullRefresh(state)
     ) {
         PullToRefreshDefaults.Indicator(
             isRefreshing = refreshing,
@@ -466,7 +437,6 @@ fun Actions(
                 }
 
 
-
                 item {
                     Box(
                         modifier = Modifier
@@ -518,13 +488,11 @@ fun Actions(
 }
 val actionsCommands = listOf(
     HomeScreenMirrorRequest(),
-//    ControlIQInfoRequestBuilder.create(apiVersion()),
     TempRateRequest()
 )
 
 val actionsFields = listOf(
     tandemDataStore.basalStatus,
-//    dataStore.controlIQMode,
     tandemDataStore.tempRateActive,
     tandemDataStore.tempRateDetails,
 )
@@ -540,8 +508,6 @@ private fun DefaultPreviewInsulinActive() {
             setUpPreviewState(LocalTandemDataStore.current)
             Actions(
                 sendPumpCommands = {_, _ -> true},
-                //openTempRateWindow = {},
-                //navigateToCgmActions = {},
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 resourceHelper = ResourceHelperTest(),
@@ -561,11 +527,8 @@ private fun DefaultPreviewInsulinActive_StopMenuOpen() {
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
             Actions(
-                //sendMessage = { _, _ -> },
                 sendPumpCommands = {_, _ -> true},
                 _suspendInsulinMenuState = true,
-                //openTempRateWindow = {},
-                //navigateToCgmActions = {},
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
@@ -606,14 +569,10 @@ private fun DefaultPreviewInsulinSuspended_ResumeMenuOpen() {
             color = Color.White,
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
-            //LocalDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
             LocalTandemDataStore.current.pumpRunningState.value = PumpRunningState.Suspended
             Actions(
-                //sendMessage = { _, _ -> },
                 sendPumpCommands = {_, _ -> true},
                 _resumeInsulinMenuState = true,
-                //openTempRateWindow = {},
-                //navigateToCgmActions = {},
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
@@ -625,15 +584,8 @@ private fun DefaultPreviewInsulinSuspended_ResumeMenuOpen() {
 
 
 fun setUpPreviewState(ds: TandemUIDataStore) {
-    // ds.setupDeviceName.value = "tslim X2 ***789"
-    // ds.setupDeviceModel.value = "X2"
     ds.pumpConnected.value = true
     ds.pumpLastConnectionTimestamp.value = Instant.now().minusSeconds(120)
-    // ds.cgmReading.value = 123
-    // ds.cgmDeltaArrow.value = "⬈"
     ds.batteryPercent.value = 50
-    // ds.iobUnits.value = 0.5
     ds.cartridgeRemainingUnits.value = 100
-    //ds.basalStatus.value = BasalStatus.ON
-    //ds.controlIQMode.value = UserMode.EXERCISE
 }

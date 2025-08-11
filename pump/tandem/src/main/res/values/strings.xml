@@ -26,7 +26,7 @@
     <string name="pump_bt_state_label">BT State</string>
     <string name="pump_last_event">Last Pump Event</string>
     <string name="pump_data_status">Pump Data:</string>
-    <string name="pump_data_status_notification">NOTIFIC</string>
+    <string name="pump_data_status_notification">NOTIFICATIONS</string>
     <string name="pump_data_status_events">EVENTS</string>
     <string name="pump_data_status_history">HISTORY</string>
 
@@ -45,6 +45,7 @@
     <string name="common_percent_complete">%1$s %% complete</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_done">Done</string>
+
 
     <!-- UI Data -->
 
@@ -116,7 +117,7 @@
     <string name="fc_title">Fill Cannula</string>
     <string name="fc_complete">Cannula filled.</string>
     <string name="fc_action">filling your cannula</string>
-    <string name="fc_filling_with">"Filling cannula with %1$d units...</string>
+    <string name="fc_filling_with">"Filling cannula with %1$d unit...</string>
     <string name="fc_filling_state">State: %1$d</string>
     <string name="fc_cannula_fill_amount">Enter the cannula fill amount (U):</string>
     <string name="fc_fill_amount">Fill amount</string>
@@ -138,13 +139,13 @@
 
 
     <!-- Command Errors -->
-    <string name="ypsopump_cmd_bolus_could_not_be_delivered_no_insulin">Bolus could not be delivered, because available insulin amount (%1$.2f) is less than bolus required (%2$.2f).</string>
-    <string name="ypsopump_cmd_bolus_could_not_be_delivered">Bolus could not be delivered.</string>
-    <string name="ypsopump_cmd_tbr_could_not_be_delivered">TBR could not be set.</string>
-    <string name="ypsopump_cmd_basal_profile_could_not_be_set">Basal profile could not be set.</string>
-    <string name="ypsopump_cmd_cant_read_tbr">Could not read current TBR.</string>
-    <string name="ypsopump_cmd_cant_cancel_tbr_stop_op">Could not cancel current TBR. Stopping operation.</string>
-    <string name="ypsopump_cmd_cant_cancel_tbr">Could not cancel current TBR.</string>
+<!--    <string name="tandem_cmd_bolus_could_not_be_delivered_no_insulin">Bolus could not be delivered, because available insulin amount (%1$.2f) is less than bolus required (%2$.2f).</string>-->
+<!--    <string name="ypsopump_cmd_bolus_could_not_be_delivered">Bolus could not be delivered.</string>-->
+<!--    <string name="ypsopump_cmd_tbr_could_not_be_delivered">TBR could not be set.</string>-->
+<!--    <string name="ypsopump_cmd_basal_profile_could_not_be_set">Basal profile could not be set.</string>-->
+<!--    <string name="ypsopump_cmd_cant_read_tbr">Could not read current TBR.</string>-->
+<!--    <string name="ypsopump_cmd_cant_cancel_tbr_stop_op">Could not cancel current TBR. Stopping operation.</string>-->
+<!--    <string name="ypsopump_cmd_cant_cancel_tbr">Could not cancel current TBR.</string>-->
 
 
     <!-- Tandem Config -->
@@ -195,6 +196,7 @@
     <string name="tandem_constraint_basal_rate_on_pump">Max configured Basal Rate on pump is %.2f U/h.</string>
     <string name="tandem_constraint_basal_rate_percent">Requested TBR was %d %%, which is more than pump allows (250%%), so limiting to 250%%.</string>
     <string name="tandem_constraint_basal_rate_percent_max_pump">Requested TBR %% was bigger than max configured basal on pump %d.</string>
+    <string name="tandem_constraint_SMB">SMB Allowed on Mobi.</string>
 
     <!-- Tandem BLE Config -->
     <string name="tandem_ble_config_scan_title">Tandem Scan</string>
@@ -234,7 +236,7 @@
     <string name="tandem_pump_history_type">Type:</string>
 
     <!-- Tandem History -->
-    <string name="tandem_history_date">%02d.%02d.%d %02d:%02d:%02d</string>
+    <string name="tandem_history_date" translatable="false">%02d.%02d.%d %02d:%02d:%02d</string>
     <string name="tandem_history_date_changed">Date Changed: %s</string>
     <string name="tandem_history_time_changed">Time Changed: %s</string>
 
@@ -254,6 +256,16 @@
 
     <!-- Notifications -->
     <string name="tandem_notification_wrong_pairing_code">Your Pairing Code is no longer valid. Please reconfigure your Tandem Pump.</string>
+
+
+    <!-- Pump Common MOVE THERE -->
+
+    <!-- Configuration -->
+    <string name="eightdigitnumber" translatable="false">^\\d{8}</string>
+
+    <string name="common_on">On</string>
+    <string name="common_off">Off</string>
+
 
 
 
@@ -309,12 +321,6 @@
 <!--    <string name="ypsopump_cmd_exec_title_set_tbr">Manually Set Temporary Basal on Pump</string>-->
 <!--    <string name="ypsopump_cmd_exec_desc_set_tbr">Please set Temporary Basal of %1$d %% for %2$d min\non your Pump, and AFTER you are done\nconfirm it here:\n %1$s</string>-->
 
-
-
-    <!-- Pump Common MOVE THERE -->
-
-    <!-- Configuration -->
-    <string name="eightdigitnumber" translatable="false">^\\d{8}</string>
 
 
 
@@ -377,8 +383,7 @@
 <!--    <string name="medtronic_warning">Warning</string>  &lt;!&ndash; medtronic_warning &ndash;&gt;-->
 <!--    <string name="medtronic_pump_connected_now">Now</string> &lt;!&ndash; combo_pump_connected_now &ndash;&gt;-->
 <!--    <string name="medtronic_notification_check_time_date">Pump clock update needed</string> &lt;!&ndash; combo_notification_check_time_date &ndash;&gt;-->
-    <string name="common_on">On</string>
-    <string name="common_off">Off</string>
+
 
 <!--    <string name="key_set_neutral_temps" translatable="false">set_neutral_temps</string>-->
 <!--    <string name="set_neutral_temps_title">Set neutral temp basals</string>-->

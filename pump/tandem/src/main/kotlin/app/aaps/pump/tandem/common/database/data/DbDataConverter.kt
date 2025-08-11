@@ -4,6 +4,9 @@ import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlarmActivatedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlertActivatedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.BGHistoryLog
@@ -62,7 +65,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class DbDataConverter @Inject constructor(val tandemPumpStatus: TandemPumpStatus) {
+class DbDataConverter @Inject constructor(
+    val tandemPumpStatus: TandemPumpStatus,
+    val tandemPumpUtil: TandemPumpUtil) {
 
     val historyLogParser = HistoryLogParser()
     //val pumpStatus = MainAppData.tandemPumpStatus
@@ -82,6 +87,7 @@ class DbDataConverter @Inject constructor(val tandemPumpStatus: TandemPumpStatus
             pumpTime = historyLog.pumpTimeSecInstant.toEpochMilli(),
             payload = historyLog.cargo,
             entitySubId = getEntitySubId(historyLog = historyLog),
+            entitySubIdName = getEntitySubIdName(historyLog = historyLog),
             createdAt = now,
             updatedAt = now
         )
@@ -121,10 +127,31 @@ class DbDataConverter @Inject constructor(val tandemPumpStatus: TandemPumpStatus
             is CorrectionDeclinedHistoryLog -> {
                 historyLog.bolusId
             }
+            is BolexActivatedHistoryLog -> {
+                historyLog.bolusId
+            }
+            is BolexCompletedHistoryLog -> {
+                historyLog.bolusId
+            }
+            is BolusDeliveryHistoryLog -> {
+                historyLog.bolusID
+            }
+            is BolusRequestedMsg1HistoryLog -> {
+                historyLog.bolusId
+            }
+            is BolusRequestedMsg2HistoryLog -> {
+                historyLog.bolusId
+            }
+            is BolusRequestedMsg3HistoryLog -> {
+                historyLog.bolusId
+            }
+            is TempRateActivatedHistoryLog -> {
+                historyLog.tempRateId
+            }
+            is TempRateCompletedHistoryLog -> {
+                historyLog.tempRateId
+            }
 
-
-            is TempRateActivatedHistoryLog,
-            is TempRateCompletedHistoryLog,
             is IdpActionHistoryLog,
             is IdpActionMsg2HistoryLog,
             is IdpBolusHistoryLog,
@@ -142,12 +169,12 @@ class DbDataConverter @Inject constructor(val tandemPumpStatus: TandemPumpStatus
             is CgmDataSampleHistoryLog, // -> PumpHistoryEntryGroup.Glucose
 
             is CarbEnteredHistoryLog,
-            is BolexActivatedHistoryLog,
-            is BolexCompletedHistoryLog,
-            is BolusDeliveryHistoryLog,
-            is BolusRequestedMsg1HistoryLog,
-            is BolusRequestedMsg2HistoryLog,
-            is BolusRequestedMsg3HistoryLog, // -> PumpHistoryEntryGroup.Bolus
+            // is BolexActivatedHistoryLog,
+            // is BolexCompletedHistoryLog,
+            // is BolusDeliveryHistoryLog,
+            // is BolusRequestedMsg1HistoryLog,
+            // is BolusRequestedMsg2HistoryLog,
+            // is BolusRequestedMsg3HistoryLog, // -> PumpHistoryEntryGroup.Bolus
 
             is NewDayHistoryLog,
             is PumpingResumedHistoryLog,
@@ -188,6 +215,31 @@ class DbDataConverter @Inject constructor(val tandemPumpStatus: TandemPumpStatus
 
     }
 
+
+    private fun getEntitySubIdName(historyLog: HistoryLog?): String? {
+
+        return when(historyLog) {
+            is BolusActivatedHistoryLog,
+            is CorrectionDeclinedHistoryLog,
+            is BolexActivatedHistoryLog,
+            is BolexCompletedHistoryLog,
+            is BolusDeliveryHistoryLog,
+            is BolusRequestedMsg1HistoryLog,
+            is BolusRequestedMsg2HistoryLog,
+            is BolusRequestedMsg3HistoryLog,
+            is BolusCompletedHistoryLog -> {
+                "bolusId"
+            }
+
+            is TempRateActivatedHistoryLog,
+            is TempRateCompletedHistoryLog -> {
+                "tempRateId"
+            }
+
+            else -> null
+        }
+
+    }
 
 
     private fun getDescription(historyLog: HistoryLog?): String? {
@@ -368,6 +420,35 @@ class DbDataConverter @Inject constructor(val tandemPumpStatus: TandemPumpStatus
             else -> PumpHistoryEntryGroup.Unknown
         }
     }
+
+    fun getRawData(historyLog: HistoryLog) : String {
+        var historyLogData = tandemPumpUtil.gsonRegular.toJson(historyLog)
+
+        val elementRoot: JsonElement = JsonParser.parseString(historyLogData)
+
+        var elementMap : MutableMap<String,String> = mutableMapOf()
+        printElement(elementRoot, "", elementMap)
+
+        return ""
+    }
+
+    private fun printElement(element: JsonElement, indent: String, elementMap : MutableMap<String,String>) {
+        if (element.isJsonObject()) {
+            element.getAsJsonObject().entrySet().forEach { entry ->
+                println(indent + entry.key + ":")
+                printElement(entry.value, "$indent  ", elementMap)
+
+                elementMap.put(entry.key, entry.value.asString)
+            }
+        } else if (element.isJsonArray()) {
+            //element.getAsJsonArray().forEach { e -> printElement(e, "$indent  ", elementMap) }
+        } else {
+            ///if (element)
+            //println(indent + element.getAsString())
+            //return element.asString
+        }
+    }
+
 
 
 

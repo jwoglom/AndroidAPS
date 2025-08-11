@@ -38,11 +38,13 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionRespon
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import timber.log.Timber
 import java.time.Instant
+import javax.inject.Inject
+import javax.inject.Singleton
 
 // TODO TAF
 
-
-class TandemUIDataStore {
+//@Singleton
+class TandemUIDataStore /*@Inject constructor()*/ {
 
     // Basic Stuff
     var apiVersionResponse = MutableLiveData<ApiVersionResponse>()

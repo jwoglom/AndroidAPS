@@ -28,10 +28,7 @@ object TandemPumpConst {
 
 
 
-    //        @JvmField val PumpError = R.string.key_tandem_pair_status
-        //@JvmField val PumpBonded = R.string.key_ypsopump_bonded
-        //@JvmField val PumpStatusList = R.string.key_ypsopump_status_list
-        //@JvmField val BolusSize = R.string.key_ypsopump_bolus_size
+
     }
 
     object Statistics {

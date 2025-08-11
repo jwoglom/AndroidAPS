@@ -1,23 +1,14 @@
 package app.aaps.pump.tandem.t_mobi.ui.actions
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,11 +25,8 @@ import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.t_mobi.ui.util.DottedDivider
-import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
-
-// TODO PumpInfo  (90% implemented)
 
 @Composable
 fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
@@ -50,7 +38,6 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
     val pumpInfo = LocalTandemDataStore.current.pumpVersionResponse.value!!
     val apiVersion = LocalTandemDataStore.current.apiVersionResponse.value!!
     val isMobi = if (tandemPumpStatus==null) true else tandemPumpStatus.tandemPumpFirmware.isMobi()
-
 
 
     LazyColumn(
