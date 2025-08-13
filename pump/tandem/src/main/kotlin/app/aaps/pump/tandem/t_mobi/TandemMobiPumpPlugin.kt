@@ -162,6 +162,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     private var wantedDriverMode = PumpDriverMode.Automatic  // TODO change this (demo mode means we are not communicating with pump)
 
+    @Suppress("PropertyName")
     private val TAG = LTag.PUMP
 
     override fun onStart() {

@@ -6,6 +6,4 @@ enum class RefreshData {
     SEMAPHORE_NOTIFICATIONS,
     PUMP_STATUS,
     PUMP_INSULIN_LEVEL,
-
-
 }

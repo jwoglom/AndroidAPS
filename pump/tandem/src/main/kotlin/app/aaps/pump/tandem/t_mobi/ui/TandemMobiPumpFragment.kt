@@ -446,7 +446,6 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 val commandType: PumpCommandType? = pumpUtil.currentCommand
                 val customCommandTypeInterface : TandemCustomCommand? = pumpUtil.customCommandType as TandemCustomCommand?
                 if (commandType == null) {
-                    // binding.currentActivity.text = resourceHelper.gs(resActivity," {fa-bed} ", "")
                     binding.currentActivity.text = resourceHelper.gs(resActivity," {fa-bluetooth} ", resourceHelper.gs(pumpDriverState.resourceId))
                 } else {
                     if (commandType == PumpCommandType.CustomCommand) {
@@ -456,7 +455,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
                             binding.currentActivity.text = resourceHelper.gs(resActivity, " {fa-bluetooth} ", customCommandTypeInterface.getDescription())
                         }
                     } else {
-                        if (commandType== PumpCommandType.GetHistoryWithParameters) {
+                        if (commandType == PumpCommandType.GetHistoryWithParameters) {
                             val progress: String = pumpUtil.historyProgress.orEmpty()
                             binding.currentActivity.text = resourceHelper.gs(resActivity, " {fa-bluetooth} ", resourceHelper.gs(commandType.resourceId, progress))
                         } else {

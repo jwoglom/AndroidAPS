@@ -33,7 +33,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        //maven("https://maven.google.com")
         maven("https://jitpack.io")
     }
     tasks.withType<KotlinCompile>().configureEach {

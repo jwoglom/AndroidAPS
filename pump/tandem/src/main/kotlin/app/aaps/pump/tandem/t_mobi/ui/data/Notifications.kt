@@ -44,7 +44,6 @@ import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
@@ -81,6 +80,8 @@ fun Notifications(
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(false) }
+
+    @Suppress("PropertyName")
     val TAG = LTag.PUMPCOMM
 
     // fun fetchDataStoreFields() {

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.os.SystemClock
+import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
@@ -219,6 +220,14 @@ class MedtronicPumpPlugin @Inject constructor(
                 .subscribe({ event: EventRileyLinkDeviceStatusChange -> rxBus.send(EventSWRLStatus(event.getStatus(context))) }, fabricPrivacy::logException)
         )
         super.onStart()
+    }
+
+    override fun updatePreferenceSummary(pref: Preference) {
+        super.updatePreferenceSummary(pref)
+        if (pref.key == RileyLinkStringPreferenceKey.MacAddress.key) {
+            val value = preferences.getIfExists(RileyLinkStringPreferenceKey.MacAddress)
+            pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
+        }
     }
 
     override fun initPumpStatusData() {

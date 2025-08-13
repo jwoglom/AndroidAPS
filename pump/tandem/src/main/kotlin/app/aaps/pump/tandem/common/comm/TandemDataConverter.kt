@@ -16,7 +16,7 @@ import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.driver.history.PumpDataConverter
 import app.aaps.pump.tandem.common.data.IDPSegmentDto
 import app.aaps.pump.tandem.common.data.PumpProfileDto
-import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
+
 import app.aaps.pump.tandem.common.data.history.Bolus
 import app.aaps.pump.tandem.common.data.history.DateTimeChanged
 import app.aaps.pump.tandem.common.data.history.HistoryLogDto
@@ -74,17 +74,8 @@ import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpActionMsg2History
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpBolusHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpListHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpTimeDependentSegmentHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.LogErasedHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.NewDayHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangeGlobalSettingsHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangePumpSettingsHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangeRemSettingsHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangeReminderHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateActivatedHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateCompletedHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TimeChangedHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TubingFilledHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbConnectedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbDisconnectedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbEnumeratedHistoryLog

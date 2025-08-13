@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.common.database.data
+package app.aaps.pump.tandem.common.database.data.defs
 
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.common.driver.history.PumpHistoryPeriod

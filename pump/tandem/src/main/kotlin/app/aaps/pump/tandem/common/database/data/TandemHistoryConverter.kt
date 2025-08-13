@@ -69,7 +69,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class DbDataConverter @Inject constructor(
+class TandemHistoryConverter @Inject constructor(
     val tandemPumpStatus: TandemPumpStatus,
     val aapsLogger: AAPSLogger,
     val tandemPumpUtil: TandemPumpUtil) {

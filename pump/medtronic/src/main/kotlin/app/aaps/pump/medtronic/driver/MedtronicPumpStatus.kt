@@ -31,7 +31,7 @@ class MedtronicPumpStatus @Inject constructor(
 ) : PumpStatus(PumpType.MEDTRONIC_522_722) {
 
     var errorDescription: String? = null
-    lateinit var serialNumber: String //? = null
+    var serialNumber: String = preferences.getIfExists(MedtronicStringPreferenceKey.Serial) ?: ""
     var pumpFrequency: String? = null
     var maxBolus: Double? = null
     var maxBasal: Double? = null
@@ -59,13 +59,7 @@ class MedtronicPumpStatus @Inject constructor(
         if (medtronicPumpMap.isEmpty()) createMedtronicPumpMap()
         if (medtronicDeviceTypeMap.isEmpty()) createMedtronicDeviceTypeMap()
         lastConnection = preferences.get(MedtronicLongNonKey.LastGoodPumpCommunicationTime)
-// lastConnection = sp.getLong(MedtronicConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         lastDataTime = lastConnection
-
-        val serial = preferences.getIfExists(MedtronicStringPreferenceKey.Serial)
-        if (serial != null) {
-            serialNumber = serial
-        }
         this.tempBasalLegacyMode = true
     }
 

@@ -105,6 +105,7 @@ fun CartridgeActions(
     //var showFillCannulaMenu by remember { mutableStateOf(_fillCannulaMenuState) }
 
     val ds = LocalTandemDataStore.current
+    @Suppress("PropertyName")
     val TAG = LTag.PUMP
 
     val refreshScope = rememberCoroutineScope()

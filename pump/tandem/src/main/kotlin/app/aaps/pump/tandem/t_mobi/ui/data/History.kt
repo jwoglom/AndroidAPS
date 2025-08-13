@@ -47,8 +47,8 @@ import app.aaps.pump.common.driver.history.PumpHistoryPeriod
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
-import app.aaps.pump.tandem.common.database.data.DatabaseQueryParameters
-import app.aaps.pump.tandem.common.database.data.DatabaseTarget
+import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
+import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
@@ -72,7 +72,8 @@ fun History(
 ) {
 
     val ds = LocalTandemDataStore.current
-    val TAG = LTag.PUMPCOMM
+    @Suppress("PropertyName")
+    val TAG= LTag.PUMPCOMM
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }

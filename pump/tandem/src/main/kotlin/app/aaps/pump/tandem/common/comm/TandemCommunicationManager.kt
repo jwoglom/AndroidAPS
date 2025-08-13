@@ -1,13 +1,10 @@
 package app.aaps.pump.tandem.common.comm
 
-//import com.jwoglom.pumpx2.util.timber.LConfigurator
-
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
@@ -26,7 +23,6 @@ import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
-import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.TandemError
@@ -77,7 +73,7 @@ class TandemCommunicationManager(
             field = value
         }
 
-    var responses: MutableMap<Int, Message> = mutableMapOf()
+    //var responses: MutableMap<Int, Message> = mutableMapOf()
 
     var bluetoothHandler: TandemBluetoothHandler? = null
 
@@ -103,7 +99,7 @@ class TandemCommunicationManager(
             Thread.sleep(500)
 
             if (connected || errorConnecting) {
-                aapsLogger.info(TAG, "connected: ${connected} error: ${errorConnecting}")
+                aapsLogger.info(TAG, "connected: $connected error: $errorConnecting")
                 operationMode = OperationMode.StandardOperation
             }
         }
@@ -144,7 +140,7 @@ class TandemCommunicationManager(
         aapsLogger.info(TAG, "createBluetoothHandler for Communication")
 
         runOnUiThread {
-            bluetoothHandler = TandemBluetoothHandler.getInstance(context, this, timberTree);
+            bluetoothHandler = TandemBluetoothHandler.getInstance(context, this, timberTree)
         }
 
         while (bluetoothHandler == null) {
@@ -194,7 +190,7 @@ class TandemCommunicationManager(
 
         if (!::peripheral.isInitialized) {
             aapsLogger.warn(LTag.PUMPCOMM, "Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
-            return null;
+            return null
         }
         this.commandRequestModeRunning = true
         this.commandRequest = request
@@ -234,7 +230,7 @@ class TandemCommunicationManager(
 
         if (!::peripheral.isInitialized) {
             aapsLogger.warn(LTag.PUMPCOMM, "STM: Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
-            return null;
+            return null
         }
 
         aapsLogger.info(LTag.PUMPCOMM, "STM: Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")

@@ -5,13 +5,10 @@ import app.aaps.implementation.ui.ComposeUiModule
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
-import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
-import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
-import app.aaps.pump.tandem.common.database.data.DbDataConverter
+import app.aaps.pump.tandem.common.database.data.TandemHistoryConverter
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.config.TandemBLESelector
-import app.aaps.pump.tandem.common.driver.config.TandemHistoryDataProvider
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.service.TandemService
@@ -24,9 +21,7 @@ import app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
 import dagger.Binds
-import dagger.Provides
 import dagger.multibindings.IntoMap
-import javax.inject.Singleton
 
 @Module(includes = [TandemDatabaseModule::class, TandemModuleImpl::class],
         subcomponents = [TandemComposeUiComponent::class])
@@ -54,7 +49,7 @@ abstract class TandemModule {
 
     // Database
     @ContributesAndroidInjector abstract fun contributesDbDataHandler(): DbDataHandler
-    @ContributesAndroidInjector abstract fun contributesDbDataConverter(): DbDataConverter
+    @ContributesAndroidInjector abstract fun contributesDbDataConverter(): TandemHistoryConverter
 
     // Database Related (QE and History)
     @ContributesAndroidInjector abstract fun contributesQualifyingEventHandler(): QualifyingEventHandler

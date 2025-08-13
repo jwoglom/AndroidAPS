@@ -75,6 +75,7 @@ fun DataDisplayMain(
 ) {
 
     val ds = LocalTandemDataStore.current
+    @Suppress("PropertyName")
     val TAG = LTag.PUMPCOMM
 
 

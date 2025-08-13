@@ -74,6 +74,7 @@ class HistoryRetriever @Inject constructor(
     private val RECORDS_RETRIEVAL_AMOUNT = 1000  // how many record we retrieve in one go
     private var CHUNK_SIZE = 200 // how many records on each call
     private val HISTORY_LIMIT_IN_DAYS = 44 // how many day of history we are getting
+    @Suppress("PropertyName")
     val TAG = LTag.PUMPCOMM
 
     private var maxDateTimeInSec: Int = 0
@@ -150,8 +151,10 @@ class HistoryRetriever @Inject constructor(
     }
 
 
-    private fun resetProgress(itemsToRetrive: Int) {
-        progressAllItems = itemsToRetrive
+    private fun resetProgress(itemsToRetrive: Int?) {
+        if (itemsToRetrive!=null) {
+            progressAllItems = itemsToRetrive
+        }
         progressPreviousChunksItems = 0
         progressCurrentChunk = 0
         knownLogItemsCount = 0
@@ -167,6 +170,7 @@ class HistoryRetriever @Inject constructor(
         pumpUtil.currentCommand = null
         pumpUtil.driverStatus = PumpDriverState.Connected
         resetProgress(1000)
+        pumpUtil.historyProgress = null
     }
 
     private fun updateRetrievalProgress() {
@@ -175,7 +179,7 @@ class HistoryRetriever @Inject constructor(
         aapsLogger.error(TAG, "HST PROGRESS: $currentProgressString")
 
         if (!silentDownload) {
-            pumpUtil.historyProgress = "($currentProgressString})"
+            pumpUtil.historyProgress = "($currentProgressString)"
         }
     }
 

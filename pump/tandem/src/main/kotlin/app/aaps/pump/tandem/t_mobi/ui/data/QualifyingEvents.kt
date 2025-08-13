@@ -41,8 +41,8 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
-import app.aaps.pump.tandem.common.database.data.DatabaseQueryParameters
-import app.aaps.pump.tandem.common.database.data.DatabaseTarget
+import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
+import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
@@ -67,6 +67,7 @@ fun QualifyingEvents(
 ) {
 
     val ds = LocalTandemDataStore.current
+    @Suppress("PropertyName")
     val TAG = LTag.PUMPCOMM
 
     val refreshScope = rememberCoroutineScope()

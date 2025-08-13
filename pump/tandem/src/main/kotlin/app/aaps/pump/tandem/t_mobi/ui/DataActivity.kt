@@ -39,8 +39,8 @@ import app.aaps.core.interfaces.ui.compose.DaggerComponentActivity
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
 import app.aaps.pump.tandem.common.data.defs.RefreshData
-import app.aaps.pump.tandem.common.database.data.DatabaseQueryParameters
-import app.aaps.pump.tandem.common.database.data.DatabaseTarget
+import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
+import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus

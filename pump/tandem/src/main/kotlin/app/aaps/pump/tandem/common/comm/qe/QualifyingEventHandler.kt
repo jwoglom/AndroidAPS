@@ -36,6 +36,7 @@ class QualifyingEventHandler @Inject constructor(
     val preferences: Preferences
     ) {
 
+    @Suppress("PropertyName")
     val TAG = LTag.PUMP
 
 

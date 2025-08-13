@@ -10,6 +10,7 @@ import app.aaps.pump.common.driver.history.PumpHistoryPeriod
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
 import app.aaps.pump.tandem.common.database.TandemPumpDatabase
+import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
@@ -26,7 +27,7 @@ import javax.inject.Singleton
 
 @Singleton
 class DbDataHandler @Inject constructor(
-    val dbDataConverter: DbDataConverter,
+    val tandemHistoryConverter: TandemHistoryConverter,
     var tandemPumpDatabase: TandemPumpDatabase,
     val rxBus: RxBus,
     val aapsLogger: AAPSLogger,
@@ -37,65 +38,64 @@ class DbDataHandler @Inject constructor(
 
 ) {
 
+    @Suppress("PropertyName")
     val TAG = LTag.PUMPCOMM
 
-    fun createHistoryRecord(
-        sequenceId: Long,
-        pumpSerial: Int,
-        typeId: Int,
-        pumpTime: Long,   // EpochInMillis (pump stores time as EpochSeconds from Jan2008, we don't)
-        payload: ByteArray,
-        entitySubId: Int? = null, // some entities have special id (for example TBR has tempRateId)
-    ): Single<Long> {
-
-        // var id = sequenceId
-
-        return tandemPumpDatabase.historyRecordDao().save(
-            TandemHistoryRecordEntity(
-                sequenceId = sequenceId,
-                pumpSerial = pumpSerial,
-                typeId = typeId,
-                pumpTime = pumpTime,
-                payload = payload,
-                entitySubId = entitySubId,
-                createdAt = currentTimeMillis(),
-                updatedAt = currentTimeMillis()
-            )
-        ).toSingle { sequenceId }
-    }
-
-
-    fun createQualifyingEventRecord(
-        pumpSerial: Int,
-        dateTime: Long,
-        name: String,
-        description: String? = null, // some entities have special id (for example TBR has tempRateId)
-    ): Single<Long> {
-
-        var id :Long  = 0
-
-        return tandemPumpDatabase.qualifyingEventsDao().save(
-            TandemQualifyingEventEntity(
-                pumpSerial = pumpSerial,
-                dateTime = dateTime,
-                name = name,
-                description = description
-            )
-        ).toSingle { id }
-
-    }
+    // fun createHistoryRecord(
+    //     sequenceId: Long,
+    //     pumpSerial: Int,
+    //     typeId: Int,
+    //     pumpTime: Long,   // EpochInMillis (pump stores time as EpochSeconds from Jan2008, we don't)
+    //     payload: ByteArray,
+    //     entitySubId: Int? = null, // some entities have special id (for example TBR has tempRateId)
+    // ): Single<Long> {
+    //
+    //     // var id = sequenceId
+    //
+    //     return tandemPumpDatabase.historyRecordDao().save(
+    //         TandemHistoryRecordEntity(
+    //             sequenceId = sequenceId,
+    //             pumpSerial = pumpSerial,
+    //             typeId = typeId,
+    //             pumpTime = pumpTime,
+    //             payload = payload,
+    //             entitySubId = entitySubId,
+    //             createdAt = currentTimeMillis(),
+    //             updatedAt = currentTimeMillis()
+    //         )
+    //     ).toSingle { sequenceId }
+    // }
 
 
-    fun addHistoryRecords(listOfHistoryEntries: List<TandemHistoryRecordEntity>) {
-        tandemPumpDatabase.historyRecordDao().saveAll(listOfHistoryEntries)
+    // fun createQualifyingEventRecord(
+    //     pumpSerial: Int,
+    //     dateTime: Long,
+    //     name: String,
+    //     description: String? = null, // some entities have special id (for example TBR has tempRateId)
+    // ): Single<Long> {
+    //
+    //     var id :Long  = 0
+    //
+    //     return tandemPumpDatabase.qualifyingEventsDao().save(
+    //         TandemQualifyingEventEntity(
+    //             pumpSerial = pumpSerial,
+    //             dateTime = dateTime,
+    //             name = name,
+    //             description = description
+    //         )
+    //     ).toSingle { id }
+    //
+    // }
 
 
-    }
+    // fun addHistoryRecords(listOfHistoryEntries: List<TandemHistoryRecordEntity>) {
+    //     tandemPumpDatabase.historyRecordDao().saveAll(listOfHistoryEntries)
+    // }
 
     fun addHistoryLogs(listOfHistoryEntries: MutableCollection<HistoryLog>) {
 
         val entities = listOfHistoryEntries.stream()
-            .map { item -> dbDataConverter.getTandemHistoryRecordEntity(item) }
+            .map { item -> tandemHistoryConverter.getTandemHistoryRecordEntity(item) }
             .collect(Collectors.toList())
 
         tandemPumpDatabase.historyRecordDao().saveAll(entities)
@@ -203,7 +203,7 @@ class DbDataHandler @Inject constructor(
         val targetGroup = queryParameters.groupType!!
 
         for (entity in entities) {
-            val historyRecordDto = dbDataConverter.getHistoryRecordDto(entity)
+            val historyRecordDto = tandemHistoryConverter.getHistoryRecordDto(entity)
 
             if (isIncludedGroup(historyRecordDto, targetGroup)) {
                 listOut.add(historyRecordDto)

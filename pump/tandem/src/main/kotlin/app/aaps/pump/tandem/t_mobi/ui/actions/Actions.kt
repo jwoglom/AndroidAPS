@@ -98,6 +98,7 @@ fun Actions(
     val context = LocalContext.current
     val ds = LocalTandemDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
+    @Suppress("PropertyName")
     val TAG = LTag.PUMPCOMM
 
     val tempRateActive = ds.tempRateActive.observeAsState()

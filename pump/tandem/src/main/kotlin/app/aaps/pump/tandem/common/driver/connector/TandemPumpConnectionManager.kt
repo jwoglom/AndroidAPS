@@ -68,7 +68,9 @@ class TandemPumpConnectionManager @Inject constructor(
 
 
 
-    //val TAG = LTag.PUMPCOMM
+    //@Suppress("PropertyName")
+    // @Suppress("PropertyName")
+    // val TAG= LTag.PUMPCOMM
 
     //var lateinit tandemCommunicationManager: TandemCommunicationManager
 

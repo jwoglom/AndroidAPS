@@ -76,12 +76,13 @@ class TandemPairingManager constructor(
     var aapsSchedulers: AapsSchedulers
 ) : TandemPump(context, Optional.of(btAddress)) {
 
-    var TAG = LTag.PUMPBTCOMM
+    @Suppress("PropertyName")
+    val TAG: LTag = LTag.PUMPBTCOMM
 
     var bluetoothHandler: TandemBluetoothHandler? = null
     var finishActivity = false
 
-    private var disposable: CompositeDisposable = CompositeDisposable()
+    //private var disposable: CompositeDisposable = CompositeDisposable()
 
     fun startPairing() {
         aapsLogger.info(TAG, "start Pairing")
