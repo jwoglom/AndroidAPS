@@ -3,6 +3,7 @@ package app.aaps.pump.tandem.common.util
 import android.content.Context
 import android.util.Log
 import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.keys.interfaces.BooleanPreferenceKey
@@ -11,6 +12,7 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.StringPreferenceKey
 import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.events.EventPumpDriverStateChanged
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import app.aaps.pump.common.utils.PumpUtil
 import app.aaps.pump.tandem.common.data.defs.RefreshData
@@ -93,6 +95,17 @@ class TandemPumpUtil @Inject constructor(
     init {
         driverStatusInternal = PumpDriverState.Connecting
     }
+
+
+    var historyProgress: String? = null
+        get() {
+            return field
+        }
+        set(status) {
+            field = status
+            rxBus.send(EventPumpDriverStateChanged(if (status==null) PumpDriverState.Connected
+                                                   else PumpDriverState.ExecutingCommand))
+        }
 
 
 

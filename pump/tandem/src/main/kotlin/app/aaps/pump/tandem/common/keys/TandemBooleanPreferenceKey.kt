@@ -21,8 +21,8 @@ enum class TandemBooleanPreferenceKey(
     DisplayDriverVersion(key = "pref_tandem_display_driver_version", defaultValue = true),
     UseSharedConnection(key = "pref_tandem_use_shared_connection", defaultValue = false),
 
-    ShowUnknownEntriesInHistory(key ="pref_tandem_show_unknowns_in_history", defaultValue = false),
-    ShowCargoOfUnknownEntries(key ="", defaultValue = false, dependency = ShowUnknownEntriesInHistory),
+    //ShowUnknownEntriesInHistory(key ="pref_tandem_show_unknowns_in_history", defaultValue = false),
+    ShowCargoOfUnknownEntries(key ="", defaultValue = false),
 
     AutoConfirmLowBasalDelivery(key ="", defaultValue = false)
 

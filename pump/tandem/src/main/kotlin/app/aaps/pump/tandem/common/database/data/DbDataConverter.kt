@@ -1,11 +1,14 @@
 package app.aaps.pump.tandem.common.database.data
 
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlarmActivatedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlertActivatedHistoryLog
@@ -61,21 +64,20 @@ import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbConnectedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbDisconnectedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbEnumeratedHistoryLog
+import java.util.stream.Collectors
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class DbDataConverter @Inject constructor(
     val tandemPumpStatus: TandemPumpStatus,
+    val aapsLogger: AAPSLogger,
     val tandemPumpUtil: TandemPumpUtil) {
 
     val historyLogParser = HistoryLogParser()
     //val pumpStatus = MainAppData.tandemPumpStatus
 
 
-    /**
-     * Get TandemHistoryRecordEntity from historyLog
-     */
     fun getTandemHistoryRecordEntity(historyLog: HistoryLog): TandemHistoryRecordEntity {
 
         val now = System.currentTimeMillis()
@@ -94,9 +96,7 @@ class DbDataConverter @Inject constructor(
 
     }
 
-    /**
-     * Get TandemHistoryRecordDto from Entity object
-     */
+
     fun getHistoryRecordDto(entity: TandemHistoryRecordEntity) : TandemHistoryRecordDto {
 
         val historyLog = HistoryLogParser.parse(entity.payload)
@@ -116,7 +116,7 @@ class DbDataConverter @Inject constructor(
 
 
     private fun getEntitySubId(historyLog: HistoryLog?): Int? {
-        // TODO implement get getEntitySubId for TandemHistoryRecordDto
+        // TODO DbDataConverter::implement get getEntitySubId for TandemHistoryRecordDto
         return when(historyLog) {
             is BolusActivatedHistoryLog -> {
                 historyLog.bolusId
@@ -243,7 +243,7 @@ class DbDataConverter @Inject constructor(
 
 
     private fun getDescription(historyLog: HistoryLog?): String? {
-        // TODO implement get Description for TandemHistoryRecordDto
+        // TODO DbDataConverter::implement get Description for TandemHistoryRecordDto
         return when(historyLog) {
             is BolusActivatedHistoryLog -> {
                 "Amount: ${historyLog.bolusSize} U, BolusId=${historyLog.bolusId}"
@@ -255,16 +255,8 @@ class DbDataConverter @Inject constructor(
                 "Daily Total: ${historyLog.dailyTotalBasal}"
             }
             is CorrectionDeclinedHistoryLog -> {
-                ", BolusId=${historyLog.bolusId}"
-
+                "BolusId=${historyLog.bolusId}"
             }
-//            public class CorrectionDeclinedHistoryLog extends HistoryLog {
-//                private int bg;
-//                private int bolusId;
-//                private float iob;
-//                private int targetBg;
-//                private int isf;
-
             is AlarmActivatedHistoryLog -> {
                 "Alarm: ${historyLog.alarmResponseType.name}"
             }
@@ -292,7 +284,7 @@ class DbDataConverter @Inject constructor(
             is CgmDataGxHistoryLog,
             is CgmDataSampleHistoryLog,
 
-            is CarbEnteredHistoryLog, //-> { historyLog.},
+            is CarbEnteredHistoryLog,
             is BolexActivatedHistoryLog,
             is BolexCompletedHistoryLog,
             is BolusDeliveryHistoryLog,
@@ -313,29 +305,28 @@ class DbDataConverter @Inject constructor(
             is ParamChangePumpSettingsHistoryLog,
             is ParamChangeReminderHistoryLog,
             is ParamChangeRemSettingsHistoryLog, // -> PumpHistoryEntryGroup.Configuration
-
             is TubingFilledHistoryLog,
             is CartridgeFilledHistoryLog,
             is CannulaFilledHistoryLog, // -> PumpHistoryEntryGroup.Prime
-
-
-
             is ControlIQPcmChangeHistoryLog, //-> { historyLog.}
             is ControlIQUserModeChangeHistoryLog, //
-
-
-
-
             is HypoMinimizerResumeHistoryLog,
             is HypoMinimizerSuspendHistoryLog, // -> PumpHistoryEntryGroup.IntegratedLoop
 
-                // checked
+            // checked
 
             is UsbConnectedHistoryLog,
             is UsbDisconnectedHistoryLog,
-            is UsbEnumeratedHistoryLog -> null
+            is UnknownHistoryLog,
+            is UsbEnumeratedHistoryLog -> {
+                getRawData(historyLog)
+            }
+            //TODO is UnknownHistoryLog -> "" description
 
-            else -> null
+            else -> {
+                aapsLogger.warn(LTag.PUMPCOMM, "Unidentified item: ${historyLog}")
+                getRawData(historyLog!!)
+            }
         }
 
     }
@@ -421,16 +412,85 @@ class DbDataConverter @Inject constructor(
         }
     }
 
+
     fun getRawData(historyLog: HistoryLog) : String {
-        var historyLogData = tandemPumpUtil.gsonRegular.toJson(historyLog)
+        val historyLogData = tandemPumpUtil.gsonRegular.toJson(historyLog)
 
-        val elementRoot: JsonElement = JsonParser.parseString(historyLogData)
+        //val elementRoot: JsonElement = JsonParser.parseString(historyLogData)
 
-        var elementMap : MutableMap<String,String> = mutableMapOf()
-        printElement(elementRoot, "", elementMap)
+        val elementMap : MutableMap<String,String> = getJsonTopLevelValues(historyLogData, historyLog)
 
-        return ""
+        if (elementMap.isEmpty()) {
+            return "-"
+        } else {
+            val result: String = elementMap.entries
+                .stream()
+                .map { entry -> entry.key + ": " + entry.value }
+                .collect(Collectors.joining(", "))
+            return result
+        }
     }
+
+
+    val ignoredFields = setOf("cargo", "sequenceNum", "pumpTimeSec")
+    val smartResolvedFields = setOf("commandedRate", "tempRate", "algorithmRate", "profileBasalRate")
+
+
+    fun getJsonTopLevelValues(json: String, historyLog: HistoryLog): MutableMap<String, String> {
+        val map: MutableMap<String, String> = mutableMapOf()
+        val obj: JsonObject = JsonParser.parseString(json).asJsonObject
+
+        for (entry in obj.entrySet()) {
+            val valueData: JsonElement = entry.value
+
+            if (ignoredFields.contains(entry.key)) {
+                continue
+            }
+
+            if (valueData.isJsonPrimitive) {
+                if (smartResolvedFields.contains(entry.key)) {
+                    map.put(entry.key, smartFieldValueResolver(entry.key, valueData, historyLog))
+                } else {
+                    // Convert primitive to string
+                    map.put(entry.key, valueData.asString)
+                }
+            } else {
+                // For arrays or objects, store the JSON string
+                map.put(entry.key, valueData.toString())
+            }
+        }
+        return map
+    }
+
+
+
+    fun smartFieldValueResolver(key: String, valueData: JsonElement, historyLog: HistoryLog): String {
+        return when(key) {
+            "commandedRate",
+            "algorithmRate",
+            "profileBasalRate",
+            "tempRate" -> {
+                val intValue = valueData.asInt
+                if (intValue==65535) {
+                    "-"
+                } else {
+                    val decimal = intValue / 100.0
+                    String.format("%.3f", decimal)
+                }
+            }
+
+            else -> {
+                ""
+            }
+        }
+    }
+
+
+    fun getUnknownLogDescription(unknownHistoryLog: UnknownHistoryLog): String {
+        // TODO getUnknownLogDescription should take in account settings if
+        return "";
+    }
+
 
     private fun printElement(element: JsonElement, indent: String, elementMap : MutableMap<String,String>) {
         if (element.isJsonObject()) {

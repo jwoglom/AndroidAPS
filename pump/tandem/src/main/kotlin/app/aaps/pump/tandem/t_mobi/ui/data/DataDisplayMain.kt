@@ -50,7 +50,6 @@ import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.tandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
@@ -65,10 +64,9 @@ import java.time.Instant
 @Composable
 fun DataDisplayMain(
     innerPadding: PaddingValues = PaddingValues(),
-    navController: NavHostController? = null,
-    sendPumpCommands: (SendType, List<Message>) -> Boolean,
+    //navController: NavHostController? = null,
+    sendPumpCommands: (List<Message>) -> Boolean,
     refreshMainAppData: (RefreshData) -> Unit,
-    //refreshDatabase: (DatabaseTarget, DatabaseQueryParameters) -> Unit,
     aapsLogger: AAPSLogger,
     navigateToPumpHistory: () -> Unit,
     navigateToEvents: () -> Unit,
@@ -84,8 +82,8 @@ fun DataDisplayMain(
     var refreshing by remember { mutableStateOf(true) }
     var notificationsPresent by remember { mutableStateOf(false) }
 
-    fun fetchDataStoreFields(type: SendType) {
-        sendPumpCommands(type, dataCommands)
+    fun fetchDataStoreFields() {
+        sendPumpCommands(dataCommands)
     }
 
     // fun waitForLoaded() = refreshScope.launch {
@@ -118,7 +116,7 @@ fun DataDisplayMain(
 
         //actionsFields.forEach { field -> field.value = null }
         //fetchDataStoreFields(SendType.BUST_CACHE)
-        sendPumpCommands(SendType.STANDARD, dataCommands)
+        sendPumpCommands(dataCommands)
 
         withContext(Dispatchers.IO) {
             Thread.sleep(250)
@@ -281,7 +279,7 @@ private fun DataDisplayPreview_NoNotification() {
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
             DataDisplayMain(
-                sendPumpCommands = { _, _ -> true},
+                sendPumpCommands = { _ -> true},
                 //refreshDatabase = { _,_ -> },
                 aapsLogger = AAPSLoggerTest(),
                 navigateToNotifications = {},
@@ -306,7 +304,7 @@ private fun DataDisplayPreview_WithNotification() {
             setUpPreviewState(LocalTandemDataStore.current)
             tandemDataStore.notificationsPresent.value = true
             DataDisplayMain(
-                sendPumpCommands = { _, _ -> true},
+                sendPumpCommands = { _ -> true},
                 //refreshDatabase = { _,_ -> },
                 aapsLogger = AAPSLoggerTest(),
                 navigateToNotifications = {},
@@ -333,7 +331,7 @@ private fun DataDisplayPreview_WithNotification() {
 //            setUpPreviewState(LocalTandemDataStore.current)
 //            Actions(
 //                sendMessage = { _, _ -> },
-//                sendPumpCommands = {_, _ -> true},
+//                sendPumpCommands = { _ -> true},
 //                _suspendInsulinMenuState = true,
 //                //openTempRateWindow = {},
 //                //navigateToCgmActions = {},
@@ -357,7 +355,7 @@ private fun DataDisplayPreview_WithNotification() {
 //            LocalTandemDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
 //            Actions(
 //                sendMessage = { _, _ -> },
-//                sendPumpCommands = {_, _ -> true},
+//                sendPumpCommands = { _ -> true},
 //                //openTempRateWindow = {},
 //                //navigateToCgmActions = {},
 //                aapsLogger = AAPSLoggerTest(),
@@ -372,6 +370,4 @@ private fun DataDisplayPreview_WithNotification() {
 fun setUpPreviewState(ds: TandemUIDataStore) {
     ds.pumpConnected.value = true
     ds.pumpLastConnectionTimestamp.value = Instant.now().minusSeconds(120)
-    ds.batteryPercent.value = 50
-    ds.cartridgeRemainingUnits.value = 100
 }

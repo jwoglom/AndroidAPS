@@ -1,27 +1,19 @@
 package app.aaps.pump.tandem.common.comm.ui
 
-import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
-//import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
-// import app.aaps.pump.tandem.t_mobi.ui.actions.other.pumpTimeToLocalTz
-// import app.aaps.pump.tandem.t_mobi.ui.actions.other.shortTime
-// import app.aaps.pump.tandem.t_mobi.ui.actions.other.twoDecimalPlaces1000Unit
 
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.models.StatusMessage
-import com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse
@@ -40,16 +32,10 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateS
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.PumpingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BolusCalcDataSnapshotResponse
-
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBasalStatusResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusAbstractResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.UnknownMobiOpcode20Response
@@ -59,7 +45,6 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// TODO TAF
 
 @Singleton
 class TandemUICommunication @Inject constructor (
@@ -68,7 +53,6 @@ class TandemUICommunication @Inject constructor (
     var context: Context,
     var aapsLogger: AAPSLogger
 ): CommunicationListener {
-
 
     var TAG = LTag.PUMPCOMM
 
@@ -83,25 +67,6 @@ class TandemUICommunication @Inject constructor (
         }
 
     lateinit var historyRetriever: HistoryRetriever
-
-
-
-//    fun enableListener() {
-//        if (tandemCommunicationManager!=null) {
-//
-//        } else {
-//            aapsLogger.error(TAG ,"TandemCommunicationManager is null can't enable listener")
-//        }
-//    }
-//
-//
-//    fun disableListener() {
-//        if (tandemCommunicationManager!=null) {
-//
-//        } else {
-//            aapsLogger.error(TAG ,"TandemCommunicationManager is null can't enable listener")
-//        }
-//    }
 
 
     fun sendCommand(request: Message): Boolean {
@@ -134,19 +99,15 @@ class TandemUICommunication @Inject constructor (
         aapsLogger.error(TAG, "onReceiveMessageListener: $message")
 
         if (message is ApiVersionResponse) {
-            Timber.i("Got ApiVersionRequest: %s", message)
+            aapsLogger.debug(TAG, "Got ApiVersionRequest: $message")
             //checkPumpInitMessagesReceived(peripheral)
         } else if (message is TimeSinceResetResponse) {
-            Timber.i("Got TimeSinceResetResponse: %s", message)
+            aapsLogger.debug(TAG,"Got TimeSinceResetResponse: $message")
             //checkPumpInitMessagesReceived(peripheral)
         }
 
-
-
-        aapsLogger.info(TAG , "TUC: Message received: ${message.javaClass.name}")
-
+        aapsLogger.debug(TAG , "TUC: Message received: ${message.javaClass.name}")
         dataStore.pumpLastMessageTimestamp.value = Instant.now()
-
 
 
         if (NotificationBundle.isNotificationResponse(message)) {
@@ -155,38 +116,15 @@ class TandemUICommunication @Inject constructor (
                 dataStore.notificationBundle.value = NotificationBundle()
             }
             dataStore.notificationBundle.value = dataStore.notificationBundle.value?.add(message)
-            // TODO
-            //dataStore.notificationsPresent.value = dataStore.notificationBundle.value?.get()
             return
         }
 
 
-
         when (message) {
-
 
             is DismissNotificationResponse -> {
                 aapsLogger.info(TAG, "DismissNotificationResponse received: success=${message.isStatusOK}")
             }
-
-
-
-
-
-            // ONLY FOR TESTING
-            is CurrentBatteryAbstractResponse -> {
-                dataStore.batteryPercent.value = message.batteryPercent
-            }
-//            is ControlIQIOBResponse -> {
-//                dataStore.iobUnits.value = InsulinUnit.from1000To1(message.pumpDisplayedIOB)
-//            }
-            is InsulinStatusResponse -> {
-                dataStore.cartridgeRemainingUnits.value = message.currentInsulinAmount
-            }
-            // is LastBolusStatusAbstractResponse -> {
-            //     dataStore.lastBolusStatus.value = "${twoDecimalPlaces1000Unit(message.deliveredVolume)}u at ${shortTime(pumpTimeToLocalTz(message.timestampInstant))}"
-            //     dataStore.lastBolusStatusResponse.value = message
-            // }
             is HomeScreenMirrorResponse -> {
                 dataStore.basalStatus.value = when (message.basalStatusIcon) {
                     HomeScreenMirrorResponse.BasalStatusIcon.BASAL -> BasalStatus.ON
@@ -207,17 +145,17 @@ class TandemUICommunication @Inject constructor (
             // is CurrentBasalStatusResponse -> {
             //     dataStore.basalRate.value = "${twoDecimalPlaces1000Unit(message.currentBasalRate)} U"
             // }
+
             is TempRateResponse -> {
                 dataStore.tempRateActive.value = message.active
                 dataStore.tempRateDetails.value = message
+            }
 
-                // TODO
-            }
-            is BolusCalcDataSnapshotResponse -> {
-//                    if (!cached) {
-//                        dataStore.bolusCalcDataSnapshot.value = message
-//                    }
-            }
+//             is BolusCalcDataSnapshotResponse -> {
+// //                    if (!cached) {
+// //                        dataStore.bolusCalcDataSnapshot.value = message
+// //                    }
+//             }
 
             is BolusPermissionResponse -> {
                 dataStore.bolusPermissionResponse.value = message
@@ -241,7 +179,6 @@ class TandemUICommunication @Inject constructor (
             is TimeSinceResetResponse -> {
                 dataStore.timeSinceResetResponse.value = message
             }
-
             is EnterChangeCartridgeModeStateStreamResponse -> {
                 dataStore.enterChangeCartridgeState.value = message
             }
@@ -288,24 +225,17 @@ class TandemUICommunication @Inject constructor (
                     dataStore.inFillTubingMode.value = false
                 }
             }
-
             is UnknownMobiOpcode20Response -> {
                 aapsLogger.error(TAG, "Received UnknownMobiOpcode20Response ignoring.")
             }
-
             is SetTempRateResponse -> {
                 if (!message.isStatusOK)
                     unsuccessfulAlert(message.messageName())
                 else {
-                    aapsLogger.error("Set Temp Rate Sent: ${message.tempRateId}")
+                    aapsLogger.debug("Set Temp Rate Sent: ${message.tempRateId}")
                     sendCommand(TempRateRequest()) // for refreshing the screen
                 }
-
             }
-
-
-
-
             is HistoryLogStatusResponse -> {
                 dataStore.historyLogStatus.value = message
 
@@ -313,32 +243,20 @@ class TandemUICommunication @Inject constructor (
                     historyRetriever.receivedStatus(message)
                 }
             }
-
             is HistoryLogResponse -> {
                 if (::historyRetriever.isInitialized) {
                     historyRetriever.receivedLogResponse(message)
                 }
             }
-
-
             is HistoryLogStreamResponse -> {
-
                 if (::historyRetriever.isInitialized) {
                     historyRetriever.receivedLogStreamResponse(message)
                 }
-
             }
-
-
-            // error handlers
             is StatusMessage -> {
-
                 aapsLogger.error(TAG, "Received StatusMessage which is not yet supported: ${message.javaClass.name}, success=${message.isStatusOK}")
-
-
                 if (!message.isStatusOK) unsuccessfulAlert(message.messageName())
             }
-
             else -> {
                 aapsLogger.error(TAG, "Command processing for ${message.javaClass.name} not yet supported.")
             }

@@ -45,7 +45,6 @@ import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.tandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
 import app.aaps.pump.tandem.t_mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
@@ -72,7 +71,7 @@ import kotlinx.coroutines.withContext
 fun Notifications(
     innerPadding: PaddingValues = PaddingValues(),
     aapsLogger: AAPSLogger,
-    sendPumpCommands: (SendType, List<Message>) -> Boolean,
+    sendPumpCommands: (List<Message>) -> Boolean,
     refreshMainAppData: (RefreshData) -> Unit,
     navigateBack: () -> Unit,
     resourceHelper: ResourceHelper
@@ -84,40 +83,40 @@ fun Notifications(
     var refreshing by remember { mutableStateOf(false) }
     val TAG = LTag.PUMPCOMM
 
-    fun fetchDataStoreFields(type: SendType) {
-        sendPumpCommands(type, notificationsCommands)
-    }
+    // fun fetchDataStoreFields() {
+    //     sendPumpCommands(notificationsCommands)
+    // }
 
-    fun waitForLoaded() = refreshScope.launch {
-        var sinceLastFetchTime = 0
-        while (true) {
-            val nullFields = notificationsFields.filter { field -> field.value == null }.toSet()
-            if (nullFields.isEmpty()) {
-                break
-            }
-
-            aapsLogger.info(TAG, "Notifications loading: remaining ${nullFields.size}: ${notificationsFields.map { it.value }}")
-            if (sinceLastFetchTime >= 2500) {
-                aapsLogger.info(TAG, "Notifications loading re-fetching with cache")
-                fetchDataStoreFields(SendType.CACHED)
-                sinceLastFetchTime = 0
-            }
-
-            withContext(Dispatchers.IO) {
-                Thread.sleep(250)
-            }
-            sinceLastFetchTime += 250
-        }
-        aapsLogger.info(TAG, "Notifications loading done: ${notificationsFields.map { it.value }}")
-        refreshing = false
-    }
+    // fun waitForLoaded() = refreshScope.launch {
+    //     var sinceLastFetchTime = 0
+    //     while (true) {
+    //         val nullFields = notificationsFields.filter { field -> field.value == null }.toSet()
+    //         if (nullFields.isEmpty()) {
+    //             break
+    //         }
+    //
+    //         aapsLogger.info(TAG, "Notifications loading: remaining ${nullFields.size}: ${notificationsFields.map { it.value }}")
+    //         if (sinceLastFetchTime >= 2500) {
+    //             aapsLogger.info(TAG, "Notifications loading re-fetching with cache")
+    //             fetchDataStoreFields()
+    //             sinceLastFetchTime = 0
+    //         }
+    //
+    //         withContext(Dispatchers.IO) {
+    //             Thread.sleep(250)
+    //         }
+    //         sinceLastFetchTime += 250
+    //     }
+    //     aapsLogger.info(TAG, "Notifications loading done: ${notificationsFields.map { it.value }}")
+    //     refreshing = false
+    // }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "Reloading Notifications")
         refreshing = true
 
         //notificationsFields.forEach { field -> field.value = null }
-        sendPumpCommands(SendType.STANDARD, notificationsCommands)
+        sendPumpCommands(notificationsCommands)
 
         // workaround for indicator not disappearing after
         withContext(Dispatchers.IO) {
@@ -183,7 +182,7 @@ fun Notifications(
                     HorizontalDivider()
                 }
 
-                aapsLogger.info(TAG, "Notifications fetched: ${notifications}")
+                aapsLogger.info(TAG, "Notifications fetched: $notifications")
                 notifications.forEach {
                     item {
                         Box(
@@ -249,7 +248,7 @@ fun Notifications(
                                         when (it) {
                                             is AlertStatusResponse.AlertResponseType -> {
                                                 sendPumpCommands(
-                                                    SendType.BUST_CACHE, listOf(
+                                                    listOf(
                                                         DismissNotificationRequest(
                                                             DismissNotificationRequest.NotificationType.ALERT,
                                                             it.bitmask().toLong()
@@ -260,7 +259,7 @@ fun Notifications(
 
                                             is ReminderStatusResponse.ReminderType -> {
                                                 sendPumpCommands(
-                                                    SendType.BUST_CACHE, listOf(
+                                                    listOf(
                                                         DismissNotificationRequest(
                                                             DismissNotificationRequest.NotificationType.REMINDER,
                                                             it.id().toLong()
@@ -271,7 +270,7 @@ fun Notifications(
 
                                             is AlarmStatusResponse.AlarmResponseType -> {
                                                 sendPumpCommands(
-                                                    SendType.BUST_CACHE, listOf(
+                                                    listOf(
                                                         DismissNotificationRequest(
                                                             DismissNotificationRequest.NotificationType.ALARM,
                                                             it.bitmask().toLong()
@@ -282,7 +281,7 @@ fun Notifications(
 
                                             is CGMAlertStatusResponse.CGMAlert -> {
                                                 sendPumpCommands(
-                                                    SendType.BUST_CACHE, listOf(
+                                                    listOf(
                                                         DismissNotificationRequest(
                                                             DismissNotificationRequest.NotificationType.CGM_ALERT,
                                                             it.id().toLong()
@@ -313,21 +312,21 @@ val notificationsCommands = listOf(
     *NotificationBundle.allRequests().toTypedArray()
 )
 
-val notificationsFields = listOf(
-    tandemDataStore.notificationBundle
-)
+// val notificationsFields = listOf(
+//     tandemDataStore.notificationBundle
+// )
 
 @Preview(showBackground = true)
 @Composable
 private fun DefaultPreview_Notifications() {
-    TMobiScreensTheme() {
+    TMobiScreensTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
             Notifications(
-                sendPumpCommands = { _, _ -> true},
+                sendPumpCommands = { _ -> true},
                 aapsLogger = AAPSLoggerTest(),
                 navigateBack = {},
                 resourceHelper = ResourceHelperTest(),

@@ -59,6 +59,7 @@ import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
+import app.aaps.pump.common.driver.history.PumpHistoryPeriod
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshAction
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshCapable
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshType
@@ -166,6 +167,10 @@ class TandemMobiPumpPlugin @Inject constructor(
     override fun onStart() {
         aapsLogger.debug(LTag.PUMP, model().model + " started (t:mobi) - $version")
         dbDataHandler.databaseStatistics() // TODO remove in future
+
+        PumpHistoryEntryGroup.doTranslation(rh)
+        PumpHistoryPeriod.doTranslation(rh)
+
         super.onStart()
     }
 
@@ -723,10 +728,12 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
     }
 
+
     fun resetStatusState() {
         firstRun = true
         isRefresh = true
     }
+
 
     private fun refreshAnyStatusThatNeedsToBeRefreshed(): Boolean {
         val statusRefresh = workWithStatusRefresh(
@@ -812,8 +819,6 @@ class TandemMobiPumpPlugin @Inject constructor(
                         aapsLogger.error(LTag.PUMP, "Refresh Unsupported action: ${key}");
                     }
 
-
-                    //null                                                                                -> TODO()
                 } // when
             } // if
 

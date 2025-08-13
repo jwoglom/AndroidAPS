@@ -56,8 +56,8 @@ import java.util.*
 /**
  * This is low-level driver that does pairing with pump
  */
-// TODO: TandemPairingManager maybe add some more dialogs in case of success, error  N-5
-// TODO  Create Wizard with 2 steps:
+// TODO TandemPairingManager maybe add some more dialogs in case of success, error  N-5
+//  Create Wizard with 2 steps:
 //     1 - Eneter pin number
 //     2 - Show status of bonding (in case of error show error)
 class TandemPairingManager constructor(

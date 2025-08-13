@@ -47,7 +47,7 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributesTandemPumpBLEConfigActivity(): TandemPumpBLEConfigActivity
 
     // Data
-    @ContributesAndroidInjector abstract fun contributesTandemHistoryDataProvider(): TandemHistoryDataProvider
+    // @ContributesAndroidInjector abstract fun contributesTandemHistoryDataProvider(): TandemHistoryDataProvider
 
     // Service
     @ContributesAndroidInjector abstract fun contributesTandemService(): TandemService

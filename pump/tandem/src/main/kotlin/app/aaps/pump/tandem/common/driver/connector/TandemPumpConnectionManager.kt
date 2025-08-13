@@ -146,9 +146,8 @@ class TandemPumpConnectionManager @Inject constructor(
 
     override fun getConnector(commandType: PumpCommandType?): PumpConnectorInterface {
 
-        aapsLogger.debug(TAG, "TANDEMDBG: getConnector for ${commandType}")
+        aapsLogger.debug(TAG, "getConnector for ${commandType}")
 
-        // TODO extend this when new commands are enabled
         when(commandType) {
             PumpCommandType.GetTemporaryBasal,
             PumpCommandType.SetTemporaryBasal,
@@ -190,7 +189,7 @@ class TandemPumpConnectionManager @Inject constructor(
                 if (responseData.value!=null) {
                     val bolusData = responseData.value as BolusData
                     tandemPumpStatus.tandemLastBolus = bolusData
-                    aapsLogger.error(TAG, "Last Bolus Data: $bolusData")
+                    aapsLogger.debug(TAG, "Last Bolus Data: $bolusData")
                 }
             }
             else -> {}

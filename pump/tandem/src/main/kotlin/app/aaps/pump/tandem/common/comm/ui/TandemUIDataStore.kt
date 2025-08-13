@@ -41,10 +41,7 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// TODO TAF
-
-//@Singleton
-class TandemUIDataStore /*@Inject constructor()*/ {
+class TandemUIDataStore {
 
     // Basic Stuff
     var apiVersionResponse = MutableLiveData<ApiVersionResponse>()
@@ -92,20 +89,8 @@ class TandemUIDataStore /*@Inject constructor()*/ {
     val basalRate = MutableLiveData<String>()
     var basalStatus = MutableLiveData<BasalStatus>()
 
-    // for setting TBR
-    val tempRatePercentRawValue = MutableLiveData<String?>()
-    val tempRateMinutesRawValue = MutableLiveData<String?>()
-    val tempRateHoursRawValue = MutableLiveData<String?>()
 
-    // OLD
-    var pumpPairKey = MutableLiveData<String>()
-
-    val pumpFinderPumps = MutableLiveData<List<Pair<String, String>>>() // pump name, pump MAC
     val setupDeviceName = MutableLiveData<String>()
-    val setupPairingCodeType = MutableLiveData<PairingCodeType>()
-    val pumpSid = MutableLiveData<Int>()
-    val setupDeviceModel = MutableLiveData<String>()
-    val pumpCriticalError = MutableLiveData<Pair<String, Instant>>()
 
 
     // DATA ----------------------------------
@@ -126,43 +111,8 @@ class TandemUIDataStore /*@Inject constructor()*/ {
 //    val controlIQMode = MutableLiveData<UserMode>()
 
 
-
-//    val cgmSessionState = MutableLiveData<CGMSessionState>()
-//    val cgmSessionExpireRelative = MutableLiveData<String>()
-//    val cgmSessionExpireExact = MutableLiveData<String>()
-//    val cgmTransmitterStatus = MutableLiveData<String>()
-//    val cgmReading = MutableLiveData<Int>()
-//    val cgmDelta = MutableLiveData<Int>()
-//    val cgmStatusText = MutableLiveData<String>()
-//    val cgmHighLowState = MutableLiveData<String>()
-//    val cgmDeltaArrow = MutableLiveData<String>()
-//    val cgmSetupG6TxId = MutableLiveData<String>()
-//    val cgmSetupG6SensorCode = MutableLiveData<String>()
-//    val cgmSetupG7SensorCode = MutableLiveData<String>()
-//    val savedG7PairingCode = MutableLiveData<Int>()
     val bolusCalcDataSnapshot = MutableLiveData<BolusCalcDataSnapshotResponse>()
     val bolusCalcLastBG = MutableLiveData<LastBGResponse>()
-    //val maxBolusAmount = MutableLiveData<Int>()
-
-    val landingBasalDisplayedText = MutableLiveData<String>()
-    val landingControlIQDisplayedText = MutableLiveData<String>()
-
-    val bolusCalculatorBuilder = MutableLiveData<BolusCalculatorBuilder>()
-    val bolusCurrentParameters = MutableLiveData<BolusParameters>()
-    val bolusCurrentConditions = MutableLiveData<List<BolusCalcCondition>>()
-    val bolusConditionsPrompt = MutableLiveData<MutableList<BolusCalcCondition>>()
-    val bolusConditionsPromptAcknowledged = MutableLiveData<MutableList<BolusCalcCondition>>()
-    val bolusConditionsExcluded = MutableLiveData<MutableSet<BolusCalcCondition>>()
-    val bolusFinalParameters = MutableLiveData<BolusParameters>()
-    val bolusFinalCalcUnits = MutableLiveData<BolusCalcUnits>()
-    val bolusFinalConditions = MutableLiveData<Set<BolusCalcCondition>>()
-
-    val bolusUnitsRawValue = MutableLiveData<String?>()
-    val bolusCarbsRawValue = MutableLiveData<String?>()
-    val bolusGlucoseRawValue = MutableLiveData<String?>()
-
-
-
 
     val bolusPermissionResponse = MutableLiveData<BolusPermissionResponse>()
     val bolusCarbEntryResponse = MutableLiveData<RemoteCarbEntryResponse>()
@@ -171,12 +121,8 @@ class TandemUIDataStore /*@Inject constructor()*/ {
     val lastBolusStatusResponse = MutableLiveData<LastBolusStatusAbstractResponse>()
     val bolusCurrentResponse = MutableLiveData<CurrentBolusStatusResponse>()
 
-
     val historyLogStatus = MutableLiveData<HistoryLogStatusResponse>()
 
-    val historyLogCache = MutableLiveData<MutableMap<Long, HistoryLog>>(mutableMapOf())
-    val debugMessageCache = MutableLiveData<List<Pair<Message, Instant>>>()
-    val debugPromptAwaitingResponses = MutableLiveData<MutableSet<String>>()
 
     init {
         // pumpConnected.observeForever { t -> Timber.i("DataStore.pumpConnected=$t") }

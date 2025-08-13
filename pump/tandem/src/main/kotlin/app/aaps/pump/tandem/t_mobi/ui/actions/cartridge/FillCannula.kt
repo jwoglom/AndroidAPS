@@ -46,7 +46,7 @@ import kotlinx.coroutines.launch
 fun FillCannula(innerPadding: PaddingValues,
                 _fillCannulaMenuState: Boolean = false,
                 resourceHelper: ResourceHelper,
-                sendPumpCommands: (SendType, List<Message>) -> Boolean,
+                sendPumpCommands: (List<Message>) -> Boolean,
                 refreshScope : CoroutineScope
 ) {
 
@@ -55,7 +55,7 @@ fun FillCannula(innerPadding: PaddingValues,
 
 
     fun sendPumpCommand(msg: Message) {
-        sendPumpCommands(SendType.BUST_CACHE, listOf(msg))
+        sendPumpCommands(listOf(msg))
     }
 
 

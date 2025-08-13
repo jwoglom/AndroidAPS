@@ -80,7 +80,7 @@ import java.time.Instant
 fun Actions(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
-    sendPumpCommands: (SendType, List<Message>) -> Boolean,
+    sendPumpCommands: (List<Message>) -> Boolean,
     _resumeInsulinMenuState: Boolean = false,
     _suspendInsulinMenuState: Boolean = false,
     _stopTempRateMenuState: Boolean = false,
@@ -107,7 +107,7 @@ fun Actions(
     var refreshing by remember { mutableStateOf(true) }
 
     fun fetchDataStoreFields(type: SendType) {
-        sendPumpCommands(type, actionsCommands)
+        sendPumpCommands(actionsCommands)
     }
 
     fun waitForLoaded() = refreshScope.launch {
@@ -263,12 +263,11 @@ fun Actions(
                                     TextButton(
                                         onClick = {
                                             showResumeInsulinMenu = false
-                                            sendPumpCommands(SendType.BUST_CACHE, listOf(ResumePumpingRequest()))
+                                            sendPumpCommands(listOf(ResumePumpingRequest()))
                                             refreshScope.launch {
                                                 repeat(5) {
                                                     Thread.sleep(1000)
                                                     sendPumpCommands(
-                                                        SendType.BUST_CACHE,
                                                         listOf(HomeScreenMirrorRequest())
                                                     )
                                                 }
@@ -311,14 +310,11 @@ fun Actions(
                                     TextButton(
                                         onClick = {
                                             showSuspendInsulinMenu = false
-                                            sendPumpCommands(SendType.BUST_CACHE, listOf(SuspendPumpingRequest()))
+                                            sendPumpCommands(listOf(SuspendPumpingRequest()))
                                             refreshScope.launch {
                                                 repeat(5) {
                                                     Thread.sleep(1000)
-                                                    sendPumpCommands(
-                                                        SendType.BUST_CACHE,
-                                                        listOf(HomeScreenMirrorRequest())
-                                                    )
+                                                    sendPumpCommands(listOf(HomeScreenMirrorRequest()))
                                                 }
                                             }
                                         },
@@ -412,16 +408,11 @@ fun Actions(
                                             onClick = {
                                                 refreshScope.launch {
                                                     showStopTempRateMenu = false
-                                                    sendPumpCommands(SendType.BUST_CACHE, listOf(
-                                                        StopTempRateRequest()
-                                                    ))
+                                                    sendPumpCommands(listOf(StopTempRateRequest()))
                                                     withContext(Dispatchers.IO) {
                                                         Thread.sleep(250)
                                                     }
-                                                    sendPumpCommands(
-                                                        SendType.BUST_CACHE,
-                                                        listOf(TempRateRequest())
-                                                    )
+                                                    sendPumpCommands(listOf(TempRateRequest()))
                                                 }
                                             },
                                             modifier = Modifier.padding(top = 16.dp)
@@ -499,7 +490,7 @@ val actionsFields = listOf(
 
 @Preview(showBackground = true)
 @Composable
-private fun DefaultPreviewInsulinActive() {
+private fun PreviewInsulinActive() {
     TMobiScreensTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -507,7 +498,7 @@ private fun DefaultPreviewInsulinActive() {
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
             Actions(
-                sendPumpCommands = {_, _ -> true},
+                sendPumpCommands = { _ -> true},
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 resourceHelper = ResourceHelperTest(),
@@ -519,7 +510,7 @@ private fun DefaultPreviewInsulinActive() {
 
 @Preview(showBackground = true)
 @Composable
-private fun DefaultPreviewInsulinActive_StopMenuOpen() {
+private fun PreviewInsulinActive_StopMenuOpen() {
     TMobiScreensTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -527,7 +518,7 @@ private fun DefaultPreviewInsulinActive_StopMenuOpen() {
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
             Actions(
-                sendPumpCommands = {_, _ -> true},
+                sendPumpCommands = { _ -> true},
                 _suspendInsulinMenuState = true,
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
@@ -540,7 +531,7 @@ private fun DefaultPreviewInsulinActive_StopMenuOpen() {
 
 @Preview(showBackground = true)
 @Composable
-private fun DefaultPreviewInsulinSuspended() {
+private fun PreviewInsulinSuspended() {
     TMobiScreensTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -549,7 +540,7 @@ private fun DefaultPreviewInsulinSuspended() {
             setUpPreviewState(LocalTandemDataStore.current)
             LocalTandemDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
             Actions(
-                sendPumpCommands = {_, _ -> true},
+                sendPumpCommands = { _ -> true},
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
@@ -562,7 +553,7 @@ private fun DefaultPreviewInsulinSuspended() {
 
 @Preview(showBackground = true)
 @Composable
-private fun DefaultPreviewInsulinSuspended_ResumeMenuOpen() {
+private fun PreviewInsulinSuspended_ResumeMenuOpen() {
     TMobiScreensTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -571,7 +562,7 @@ private fun DefaultPreviewInsulinSuspended_ResumeMenuOpen() {
             setUpPreviewState(LocalTandemDataStore.current)
             LocalTandemDataStore.current.pumpRunningState.value = PumpRunningState.Suspended
             Actions(
-                sendPumpCommands = {_, _ -> true},
+                sendPumpCommands = { _ -> true},
                 _resumeInsulinMenuState = true,
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
@@ -586,6 +577,4 @@ private fun DefaultPreviewInsulinSuspended_ResumeMenuOpen() {
 fun setUpPreviewState(ds: TandemUIDataStore) {
     ds.pumpConnected.value = true
     ds.pumpLastConnectionTimestamp.value = Instant.now().minusSeconds(120)
-    ds.batteryPercent.value = 50
-    ds.cartridgeRemainingUnits.value = 100
 }

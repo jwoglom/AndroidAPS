@@ -1,6 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-
 package app.aaps.pump.tandem.t_mobi.ui
 
 import android.content.Context
@@ -37,14 +36,12 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.ui.compose.ComposeUiProvider
 import app.aaps.core.interfaces.ui.compose.DaggerComponentActivity
-import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
-import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
@@ -60,7 +57,6 @@ import app.aaps.pump.tandem.t_mobi.ui.data.QualifyingEvents
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -81,8 +77,7 @@ class DataActivity : DaggerComponentActivity() {
     var sectionState: DataLandingSection = DataLandingSection.DATA
     var navController: NavHostController? = null
     var TAG = LTag.PUMPCOMM
-    //lateinit var tandemUICommunication : TandemUICommunication
-    //@Inject
+
     lateinit var tandemUICommunication : TandemUICommunication
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,8 +123,8 @@ class DataActivity : DaggerComponentActivity() {
                                     DataLandingSection.DATA -> {
                                         DataDisplayMain(
                                             innerPadding = innerPadding,
-                                            navController = navController,
-                                            sendPumpCommands = { type, messages -> sendPumpCommands(type, messages) },
+                                            //navController = navController,
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
                                             refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
                                             aapsLogger = aapsLogger,
                                             resourceHelper = resourceHelper,
@@ -177,7 +172,7 @@ class DataActivity : DaggerComponentActivity() {
                                             innerPadding = innerPadding,
                                             resourceHelper = resourceHelper,
                                             aapsLogger = aapsLogger,
-                                            sendPumpCommands = { type, messages -> sendPumpCommands(type, messages) },
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
                                             refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
                                             navigateBack = {
                                                 selectedItem = DataLandingSection.DATA
@@ -209,7 +204,7 @@ class DataActivity : DaggerComponentActivity() {
     }
 
 
-    private fun sendPumpCommands(type: SendType, msgs: List<Message>): Boolean {
+    private fun sendPumpCommands(msgs: List<Message>): Boolean {
 
         if (tandemDataStore.pumpConnected.value==false) {
             aapsLogger.warn(TAG, "sendPumpCommands not possible, because pump is not yet connected")
@@ -224,7 +219,7 @@ class DataActivity : DaggerComponentActivity() {
 
         val listText = sb.substring(2);
 
-        aapsLogger.warn(TAG, "PumpCommands to Send [type=${type}, commands=${listText}]")
+        aapsLogger.debug(TAG, "PumpCommands to Send [commands=${listText}]")
 
         for (msg in msgs) {
             tandemUICommunication.sendCommand(msg)
@@ -260,10 +255,7 @@ class DataActivity : DaggerComponentActivity() {
     private fun refreshDatabase(databaseTarget: DatabaseTarget, queryParameters: DatabaseQueryParameters) {
         val jsonParamVal = tandemPumpUtil.gson.toJson(queryParameters)
 
-
-        aapsLogger.error(TAG, "refreshDatabase not implemented: called with target=${databaseTarget.name} and parameters=$jsonParamVal")
-
-        // TODO DataActivity::refreshDatabase - work with real database (missing HISTORY)
+        aapsLogger.debug(TAG, "refreshDatabase: called with target=${databaseTarget.name} and parameters=$jsonParamVal")
 
         dbDataHandler.databaseStatistics() // TODO DataActivity::temporary
 
@@ -289,75 +281,26 @@ class DataActivity : DaggerComponentActivity() {
                 }
 
 
-                // list.add(
-                //     TandemQualifyingEventDto(dateTime = LocalDateTime.now()
-                //                              , name = QualifyingEvent.BASAL_CHANGE, description = "" )
-                // )
-                // list.add(
-                //     TandemQualifyingEventDto(dateTime = LocalDateTime.now()
-                //                              , name = QualifyingEvent.HOME_SCREEN_CHANGE, description = "" )
-                // )
-                // list.add(
-                //     TandemQualifyingEventDto(dateTime = LocalDateTime.now()
-                //                              , name = QualifyingEvent.BATTERY, description = "Level: 20%" )
-                // )
-
                 val list2 = ds.dataQE.value!!
 
-                //list2.clear()
+                list2.clear()
                 list2.addAll(list)
 
                 ds.dataQELoaded.value = true
 
-                aapsLogger.error(TAG, "History Items ${list2.size}")
+                aapsLogger.error(TAG, "QE Items ${list2.size}")
 
             }
             DatabaseTarget.PUMP_HISTORY      -> {
 
-                count++
-
-                val list: MutableList<TandemHistoryRecordDto> = mutableListOf()
-
-                if (count.div(2)==0) {
-                    list.add(
-                        TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
-                                               name = "Basal Change", sequenceId = 57475847, historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal )
-                    )
-                    list.add(
-                        TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
-                                               name = "Start TBR", sequenceId = 57475847, historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal )
-                    )
-
-                } else {
-                    list.add(
-                        TandemHistoryRecordDto(
-                            pumpTime = System.currentTimeMillis(),
-                            name = "Bolus",
-                            sequenceId = 57475847,
-                            description = "Immediate Bolus: 12 U",
-                            historyLog = UnknownHistoryLog(),
-                            group = PumpHistoryEntryGroup.Basal
-                        )
-                    )
-                    list.add(
-                        TandemHistoryRecordDto(
-                            pumpTime = System.currentTimeMillis(),
-                            name = "Alarm",
-                            sequenceId = 57475847,
-                            historyLog = UnknownHistoryLog(),
-                            group = PumpHistoryEntryGroup.Basal
-                        )
-                    )
-                }
-
+                val list = dbDataHandler.getHistoryRecords(queryParameters)
 
                 val list2 = ds.dataHistory.value!!
 
-                //list2.clear()
+                list2.clear()
                 list2.addAll(list)
 
                 aapsLogger.error(TAG, "History Items ${list2.size}")
-
 
                 ds.dataHistoryLoaded.value = true
             }
@@ -393,7 +336,7 @@ fun DataActivity_Preview() {
                     navigateToCartridgeActions = { },
                     aapsLogger = AAPSLoggerTest(),
                     resourceHelper = ResourceHelperTest(),
-                    sendPumpCommands = {_, _ -> true},
+                    sendPumpCommands = { _ -> true},
                 )
             }
         }

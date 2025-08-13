@@ -96,30 +96,14 @@ fun History(
             )
         )
 
-        // while(true) {
-        //     if (ds.dataHistoryLoaded.value == true) {
-        //         break;
-        //     }
-        //
-        //     withContext(Dispatchers.IO) {
-        //         Thread.sleep(250)
-        //     }
-        // }
-
         // workaround for indicator not disappearing after
         withContext(Dispatchers.IO) {
             Thread.sleep(250)
         }
 
-        // withContext(Dispatchers.IO) {
-        //     Thread.sleep(250)
-        // }
-
         refreshing = false
 
     }
-
-
 
 
 
@@ -212,19 +196,6 @@ fun History(
                 .zIndex(10f)
         )
 
-        // PullRefreshIndicator(
-        //     refreshing, state,
-        //     Modifier
-        //         .align(Alignment.TopCenter)
-        //         .zIndex(10f)
-        // )
-
-
-
-
-        //val options = listOf("Apple", "Banana", "Cherry")
-
-
         val historyEntries = remember { mutableStateListOf<TandemHistoryRecordDto>() }
         ds.dataHistoryLoaded.observe(androidx.lifecycle.compose.LocalLifecycleOwner.current, {
 
@@ -236,12 +207,6 @@ fun History(
                 }
 
             }
-            //
-            // ds.dataHistory.value?.let {
-            //     historyEntries.clear()
-            //     historyEntries.addAll(it)
-            //     //aapsLogger.error(TAG, "InternalHistory: ${historyEntries.size}")
-            // }
         })
 
         var expanded1 by remember { mutableStateOf(false) }

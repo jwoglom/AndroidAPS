@@ -5,14 +5,18 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.pump.common.defs.PumpHistoryEntryGroup
+import app.aaps.pump.common.driver.history.PumpHistoryPeriod
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
 import app.aaps.pump.tandem.common.database.TandemPumpDatabase
+import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
 import java.util.GregorianCalendar
@@ -115,8 +119,8 @@ class DbDataHandler @Inject constructor(
                 { aapsLogger.error(TAG, "Inserted QualifyingEvents: ${listOfEvents.size} ") },
                 { error -> aapsLogger.error(TAG, "Failed to insert QualifyingEvents: ${error.message}", error) }
             )
-
     }
+
 
     fun getCurrentQEItemsBlocking(): List<TandemQualifyingEventEntity> {
 
@@ -147,6 +151,78 @@ class DbDataHandler @Inject constructor(
     }
 
 
+    fun getHistoryRecords(queryParameters: DatabaseQueryParameters): List<TandemHistoryRecordDto> {
+
+        var gc = GregorianCalendar()
+
+        when(queryParameters.historyTime) {
+            PumpHistoryPeriod.TODAY         -> {
+                gc = GregorianCalendar(gc.get(GregorianCalendar.DAY_OF_MONTH),
+                                       gc.get(GregorianCalendar.MONTH),
+                                       gc.get(GregorianCalendar.YEAR),
+                                       0, 0)
+            }
+            PumpHistoryPeriod.LAST_HOUR     -> {
+                gc.add(GregorianCalendar.HOUR_OF_DAY, -1)
+            }
+            null,
+            PumpHistoryPeriod.LAST_3_HOURS  -> {
+                gc.add(GregorianCalendar.HOUR_OF_DAY, -3)
+            }
+            PumpHistoryPeriod.LAST_6_HOURS  -> {
+                gc.add(GregorianCalendar.HOUR_OF_DAY, -6)
+            }
+            PumpHistoryPeriod.LAST_12_HOURS -> {
+                gc.add(GregorianCalendar.HOUR_OF_DAY, -12)
+            }
+            PumpHistoryPeriod.LAST_24_HOURS -> {
+                gc.add(GregorianCalendar.DAY_OF_YEAR, -1)
+            }
+            PumpHistoryPeriod.LAST_2_DAYS   -> {
+                gc.add(GregorianCalendar.DAY_OF_YEAR, -2)
+            }
+            PumpHistoryPeriod.LAST_4_DAYS   -> {
+                gc.add(GregorianCalendar.DAY_OF_YEAR, -4)
+            }
+            PumpHistoryPeriod.LAST_WEEK     -> {
+                gc.add(GregorianCalendar.WEEK_OF_YEAR, -1)
+            }
+            PumpHistoryPeriod.LAST_MONTH    -> {
+                gc.add(GregorianCalendar.MONTH, -1)
+            }
+            PumpHistoryPeriod.ALL           -> {
+                gc.add(GregorianCalendar.DAY_OF_YEAR, -144)
+            }
+        }
+
+        val entities = tandemPumpDatabase.historyRecordDao()
+            .allSinceWithSerialBlocking(pumpStatus.serialNumber.toInt(), gc.timeInMillis)
+
+        val listOut = mutableListOf<TandemHistoryRecordDto>()
+
+        val targetGroup = queryParameters.groupType!!
+
+        for (entity in entities) {
+            val historyRecordDto = dbDataConverter.getHistoryRecordDto(entity)
+
+            if (isIncludedGroup(historyRecordDto, targetGroup)) {
+                listOut.add(historyRecordDto)
+            }
+        }
+
+        return listOut.toList()
+    }
+
+    private fun isIncludedGroup(historyRecordDto: TandemHistoryRecordDto,
+                                targetGroup: PumpHistoryEntryGroup): Boolean {
+        if (targetGroup==PumpHistoryEntryGroup.All)
+            return true
+        else if (targetGroup== PumpHistoryEntryGroup.AllNoUnknowns) {
+            return historyRecordDto.historyLog !is UnknownHistoryLog
+        } else {
+            return historyRecordDto.group == targetGroup
+        }
+    }
 
     fun databaseStatistics() {
 
@@ -167,7 +243,6 @@ class DbDataHandler @Inject constructor(
             aapsLogger.error(LTag.PUMPCOMM, " History Records - $count") }
 
     }
-
 
 
 }

@@ -1,6 +1,7 @@
 package app.aaps.pump.common.driver.history
 
 import androidx.annotation.StringRes
+import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.R
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 
@@ -44,7 +45,7 @@ interface PumpHistoryDataProvider {
 }
 
 enum class PumpHistoryPeriod(
-    @StringRes var stringId: Int,
+    @StringRes var resourceId: Int,
     var isHours: Boolean = false,
     var translated: String? = null
 ) {
@@ -62,8 +63,25 @@ enum class PumpHistoryPeriod(
     ALL(R.string.history_group_all);
 
     fun getDisplayValue(): String {
-        return name
+        return if (translated==null)
+            name
+        else
+            translated!!
     }
+
+    companion object {
+
+        @JvmStatic private var translatedList: MutableList<PumpHistoryPeriod> = mutableListOf()
+
+        fun doTranslation(rh: ResourceHelper) {
+            if (translatedList.isNotEmpty()) return
+            for (pumpHistoryPeriod in PumpHistoryPeriod.entries) {
+                pumpHistoryPeriod.translated = rh.gs(pumpHistoryPeriod.resourceId)
+                translatedList.add(pumpHistoryPeriod)
+            }
+        }
+    }
+
 
 }
 

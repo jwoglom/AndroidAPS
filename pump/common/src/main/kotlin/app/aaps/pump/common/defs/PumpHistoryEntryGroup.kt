@@ -10,7 +10,8 @@ import app.aaps.pump.common.R
  *
  * Author: Andy {andy.rozman@gmail.com}
  */
-enum class PumpHistoryEntryGroup(val resourceId: Int, val pumpTypeGroupConfig: PumpTypeGroupConfig = PumpTypeGroupConfig.All) {
+enum class PumpHistoryEntryGroup(val resourceId: Int,
+                                 val pumpTypeGroupConfig: PumpTypeGroupConfig = PumpTypeGroupConfig.All) {
 
     All(R.string.history_group_all),
     AllNoUnknowns(R.string.history_group_all_no_unknowns, PumpTypeGroupConfig.tMobi),

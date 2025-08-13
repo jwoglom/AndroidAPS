@@ -4,8 +4,6 @@ import androidx.compose.runtime.compositionLocalOf
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.interfaces.profile.Profile
-import app.aaps.core.interfaces.pump.defs.PumpDeviceState
-import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
@@ -36,7 +34,6 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
                                            val rxBus: RxBus
 ) : PumpStatus(PumpType.TANDEM_T_MOBI_BT) {
 
-
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
     var tandemPumpFirmware: TandemPumpApiVersion = TandemPumpApiVersion.Unknown
@@ -45,17 +42,11 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
 
     var pumpDriverMode : PumpDriverMode? = null
 
-    // statuses
-    //var pumpDeviceState = PumpDriverState.NotInitialized    // TODO rename to pumpConnectionState
-
     var baseBasalRate = 0.0
     var basalProfileStatus = BasalProfileStatus.NotInitialized
     var basalProfile: Profile? = null
 
     var bolusStep: Double = 0.1   // ??
-
-    //var maxBolus: Double? = null
-    //var maxBasal: Double? = null
 
     // Tandem specific
     var pumpStatusMirror: HomeScreenMirrorDto? = null
@@ -73,8 +64,6 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     var semaphoreHistory = false
     var semaphoreNeedsRefresh = false
 
-    //var forceRefreshBasalProfile: Boolean = true
-    //var basalProfilePump: BasalProfileDto? = null
 
     fun initSettings() {
         activeProfileName = "A"
@@ -92,11 +81,11 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
         tandemPumpFirmware = TandemPumpApiVersion.Unknown
         basalProfile = null
         basalProfileStatus = BasalProfileStatus.NotInitialized
-        //pumpDeviceState = PumpDeviceState.NeverContacted
         serialNumber = 0
         errorDescription = null
         basalsByHour = null
     }
+
 
     val basalProfileForHour: Double
         get() {
@@ -107,6 +96,7 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
             }
             return 0.0
         }
+
 
     override val errorInfo: String
         get() = if (errorDescription == null) "-" else errorDescription!!

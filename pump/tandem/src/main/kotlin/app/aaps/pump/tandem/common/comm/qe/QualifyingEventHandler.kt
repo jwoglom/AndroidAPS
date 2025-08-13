@@ -53,7 +53,6 @@ class QualifyingEventHandler @Inject constructor(
                                                          dateTime = event.dateTime,
                                                          name = qualifyingEvent.name))
             // TODO QualifyingEventHandler - description - phase 3
-
             if (!first) sb.append(", ") else first = false
 
             sb.append(qualifyingEvent.name)

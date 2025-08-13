@@ -45,7 +45,7 @@ import kotlinx.coroutines.launch
 fun FillTubing(innerPadding: PaddingValues,
                _fillTubingMenuState: Boolean = false,
                 resourceHelper: ResourceHelper,
-                sendPumpCommands: (SendType, List<Message>) -> Boolean,
+                sendPumpCommands: (List<Message>) -> Boolean,
                 refreshScope : CoroutineScope
 ) {
 
@@ -71,11 +71,7 @@ fun FillTubing(innerPadding: PaddingValues,
                     ds.fillTubingState.value = null
                     ds.exitFillTubingState.value = null
                     ds.inFillTubingMode.value = false
-                    sendPumpCommands(
-                        SendType.BUST_CACHE, listOf(
-                            TimeSinceResetRequest()
-                        )
-                    )
+                    sendPumpCommands(listOf(TimeSinceResetRequest()))
                     showFillTubingMenu = true
                 }
             }
@@ -186,12 +182,7 @@ fun FillTubing(innerPadding: PaddingValues,
                             TextButton(
                                 onClick = {
                                     refreshScope.launch {
-                                        sendPumpCommands(
-                                            SendType.BUST_CACHE, listOf(
-                                                ExitFillTubingModeRequest()
-                                            )
-                                        )
-
+                                        sendPumpCommands(listOf(ExitFillTubingModeRequest()))
                                     }
                                 },
                                 enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
@@ -204,7 +195,7 @@ fun FillTubing(innerPadding: PaddingValues,
                         TextButton(
                             onClick = {
                                 refreshScope.launch {
-                                    sendPumpCommands(SendType.BUST_CACHE, listOf(EnterFillTubingModeRequest()))
+                                    sendPumpCommands(listOf(EnterFillTubingModeRequest()))
                                 }
                             },
                             enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,

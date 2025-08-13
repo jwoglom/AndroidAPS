@@ -7,7 +7,9 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
+import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
@@ -102,7 +104,7 @@ class HistoryRetriever @Inject constructor(
         this.communication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
 
         this.silentDownload = false
-        var startTime = System.currentTimeMillis()
+        val startTime = System.currentTimeMillis()
         resetProgress(1000)
         downloadRunning = true
         startDataRetrieval()
@@ -114,6 +116,7 @@ class HistoryRetriever @Inject constructor(
 
         this.communication.tandemCommunicationManager = null
 
+        setSemaphore()
         endProgress()
 
         var diffTime = System.currentTimeMillis() - startTime
@@ -121,26 +124,25 @@ class HistoryRetriever @Inject constructor(
 
         aapsLogger.error(TAG, "HST: Download finished in $diffTime seconds.")
 
-        setSemaphore()
+
+        dbDataHandler.databaseStatistics() // TODO HistoryRetriever::temporary db stats
 
         return true
     }
 
-    private fun setSemaphore() {
 
-        // TODO this needs to be checked against configuration
-        // if (!(entry is UnknownHistoryLog)) {
-        //     knownLogItemsCount++;
-        // }
+    private fun setSemaphore() {
+        aapsLogger.error("setSemaphore: knownItems=$knownLogItemsCount")
+
         if (knownLogItemsCount>0) {
             if (!pumpStatus.semaphoreHistory) {
                 pumpStatus.semaphoreHistory = true
+                pumpStatus.semaphoreNeedsRefresh = true
                 rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
             }
         }
-
-
     }
+
 
     fun downloadHistoryRecentItems() {
         // TODO downloadHistoryRecentItems
@@ -156,35 +158,43 @@ class HistoryRetriever @Inject constructor(
     }
 
     private fun startProgress() {
-        // TODO prepare History Progress Retrieval
         if (!silentDownload) {
-
+            pumpUtil.currentCommand = PumpCommandType.GetHistoryWithParameters
         }
     }
 
     private fun endProgress() {
-        // TODO HistoryRetriever: reset History Retreival progress in
+        pumpUtil.currentCommand = null
+        pumpUtil.driverStatus = PumpDriverState.Connected
+        resetProgress(1000)
+    }
+
+    private fun updateRetrievalProgress() {
+        val currentProgress = this.progressCurrentChunk + progressPreviousChunksItems
+        val currentProgressString = "${currentProgress}/${this.progressAllItems}"
+        aapsLogger.error(TAG, "HST PROGRESS: $currentProgressString")
+
+        if (!silentDownload) {
+            pumpUtil.historyProgress = "($currentProgressString})"
+        }
     }
 
     fun startDataRetrieval()  {
         val summaryData = preferences.get(TandemStringNonPreferenceKey.HistorySummaryData)
         if (summaryData.isNotBlank()) {
-            // TODO re-enable
-            // historySummaryDto = pumpUtil.gsonRegular.fromJson(summaryData, HistorySummaryDto::class.java)
+            historySummaryDto = pumpUtil.gsonRegular.fromJson(summaryData, HistorySummaryDto::class.java)
+            aapsLogger.error(TAG, "Initial Summary: $historySummaryDto")
         }
 
         val gc = GregorianCalendar()
         gc.add(GregorianCalendar.DAY_OF_YEAR, -1*HISTORY_LIMIT_IN_DAYS)
-
-        aapsLogger.error(TAG, "GC: ${gc}")
 
         // pump stores time in seconds from 1st Jan 2008
         val timeFromDate =  gc.timeInMillis/1000 - Dates.JANUARY_1_2008_UNIX_EPOCH
 
         maxDateTimeInSec = timeFromDate.toInt()
 
-        aapsLogger.error(TAG, "Max Time Seconds: ${maxDateTimeInSec}")
-
+        //aapsLogger.error(TAG, "Max Time Seconds: ${maxDateTimeInSec}")
 
         startProgress()
 
@@ -249,6 +259,7 @@ class HistoryRetriever @Inject constructor(
 
                 // take something from missedRanges and update missed Ranger
                 listOfRequests.addAll(getNextChunks(howMuchToGet.toInt()))
+
             } else {
                 aapsLogger.error(TAG, "HST: Non-First read: We have more than ${RECORDS_RETRIEVAL_AMOUNT} new records.")
                 listOfRequests.addAll(prepareChunks(message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT,
@@ -274,14 +285,13 @@ class HistoryRetriever @Inject constructor(
         historySummaryDto!!.activeProcessing.addAll(listOfRequests)
         saveSummary()
 
-        // TODO reset progress with correct amount
-        // resetProgress(1000)
+        resetProgress(howManyItemsInNextChunks(listOfRequests))
 
         aapsLogger.error(TAG, "HST: HistorySummary: ${pumpUtil.gsonRegular.toJson(historySummaryDto)}")
 
         aapsLogger.info(TAG, "HST: List Of Requests: ${pumpUtil.gsonRegular.toJson(listOfRequests)}")
 
-        if (listOfRequests.size==0) {
+        if (listOfRequests.isEmpty()) {
             aapsLogger.info(TAG, "HST: There is no new records to retrieve")
             this.downloadRunning = false
         } else {
@@ -289,13 +299,14 @@ class HistoryRetriever @Inject constructor(
             // start reading
             executeNextLogGet(listOfRequests)
         }
-
     }
+
 
     private fun doShortHistoryReading(message: HistoryLogStatusResponse) {
         aapsLogger.error(TAG, "HST: doShortHistoryReading NOT IMPLEMENTED")
         TODO("HistoryRetriever::doShortHistoryReading - Not yet implemented (Phase 3)")
     }
+
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun getNextChunks(howManyEntriesDoWeNeed: Int): MutableList<HistoryRequestInfo> {
@@ -398,6 +409,10 @@ class HistoryRetriever @Inject constructor(
         return countItems
     }
 
+    private fun debugSummary() {
+        aapsLogger.error(TAG, "Summary: active=${historySummaryDto!!.activeProcessing.size}, missed=${historySummaryDto!!.missedRanges.size}")
+    }
+
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun getNewestRange(): HistoryRange? {
@@ -431,16 +446,6 @@ class HistoryRetriever @Inject constructor(
         return prepareChunks(historyRange.start, historyRange.end)
     }
 
-    private fun updateRetrievalProgress() {
-        val currentProgress = this.progressCurrentChunk + progressPreviousChunksItems
-        aapsLogger.error(TAG, "HST PROGRESS: ${currentProgress}/${this.progressAllItems}")
-
-
-        if (!silentDownload) {
-            // TODO updateRetrievalProgress
-        }
-    }
-
 
     private fun prepareChunks(startRange: Long, endRange: Long): MutableList<HistoryRequestInfo> {
         aapsLogger.error(TAG, "HST: Start range: $startRange and End range : $endRange")
@@ -468,16 +473,14 @@ class HistoryRetriever @Inject constructor(
 
 
     private fun saveSummary() {
-        aapsLogger.error(TAG, "HST: Save Summary N/A")
-        //preferences.put(TandemStringNonPreferenceKey.HistorySummaryData, this.pumpUtil.gsonRegular.toJson(this.historySummaryDto))
+        aapsLogger.error(TAG, "HST: Save Summary: $historySummaryDto")
+        preferences.put(TandemStringNonPreferenceKey.HistorySummaryData, this.pumpUtil.gsonRegular.toJson(this.historySummaryDto))
+        debugSummary()
     }
 
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun executeNextLogGet(queue: ArrayDeque<HistoryRequestInfo>) {
-
-        //aapsLogger.error(TAG, "HST: executeNextLogGet NOT ENABLED")
-
         currentRequest = queue.removeFirst()
         aapsLogger.error(TAG, "HST: executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
         this.communication.sendCommand(HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs))
@@ -522,6 +525,7 @@ class HistoryRetriever @Inject constructor(
 
         addToDatabase(this.currentRequest!!)
         removeFromActiveItems(this.currentRequest!!)
+        saveSummary()
 
         this.progressPreviousChunksItems += currentRequest!!.historyLogMap.size
         this.progressCurrentChunk = 0
@@ -534,7 +538,6 @@ class HistoryRetriever @Inject constructor(
             saveSummary()
             return;
         }
-
 
         if (listOfMissingItemsInChunk.size!=0) {
             aapsLogger.error(TAG, "HST: Missing items in the chunk: ${pumpUtil.gsonRegular.toJson(listOfMissingItemsInChunk)}")
@@ -613,42 +616,31 @@ class HistoryRetriever @Inject constructor(
         .withZone(ZoneId.systemDefault())
 
     private fun addToDatabase(historyRequestInfo: HistoryRequestInfo) {
-        aapsLogger.error(TAG, "Add History Logs to Database (count=${historyRequestInfo.historyLogMap.values.size}) N/A")
-        // TODO re-enable
-        // aapsLogger.debug(TAG, "Add History Logs to Database (count=${historyRequestInfo.historyLogMap.values.size})")
-        // dbDataHandler.addHistoryLogs(historyRequestInfo.historyLogMap.values);
+        aapsLogger.debug(TAG, "Add History Logs to Database (count=${historyRequestInfo.historyLogMap.values.size}) N/A")
 
         val listOfRecords: MutableList<HistoryLog> = mutableListOf()
-
-        aapsLogger.error(TAG, "Max Time Seconds: ${maxDateTimeInSec}")
 
         for (entry in historyRequestInfo.historyLogMap.values) {
             if (entry.pumpTimeSec >= maxDateTimeInSec) {
                 listOfRecords.add(entry)
-                aapsLogger.error(TAG, "Entry:  (${entry.pumpTimeSec}) - ${formatter.format(entry.pumpTimeSecInstant)} - ${entry.javaClass.simpleName}")
+                // TODO HistoryRetriever remove
+                aapsLogger.error(TAG, "Entry:  ${formatter.format(entry.pumpTimeSecInstant)} - ${entry.javaClass.simpleName}")
 
-                // TODO this needs to be checked against configuration
-                if (!(entry is UnknownHistoryLog)) {
+                if (entry !is UnknownHistoryLog) {
                     knownLogItemsCount++;
                 }
-
-
-            } else {
-                aapsLogger.error(TAG, "Entry(Old):  (${entry.pumpTimeSec}) - ${formatter.format(entry.pumpTimeSecInstant)} - ${entry.javaClass.simpleName}")
             }
         }
 
-
-
-
-
+        aapsLogger.info(TAG, "Add History Logs to Database (filtered_count=${listOfRecords.size},retrieved_count=${historyRequestInfo.historyLogMap.values.size})")
+        dbDataHandler.addHistoryLogs(listOfRecords);
     }
 
 
     private fun removeFromActiveItems(historyRequestInfo: HistoryRequestInfo) {
-        aapsLogger.error(TAG, "HST Before remove ${historySummaryDto!!.activeProcessing.size}")
+        //aapsLogger.error(TAG, "HST Before remove ${historySummaryDto!!.activeProcessing.size}")
         this.historySummaryDto!!.activeProcessing.remove(historyRequestInfo)
-        aapsLogger.error(TAG, "HST After Remove remove ${historySummaryDto!!.activeProcessing.size}")
+        //aapsLogger.error(TAG, "HST After Remove remove ${historySummaryDto!!.activeProcessing.size}")
     }
 
 
@@ -656,27 +648,27 @@ class HistoryRetriever @Inject constructor(
 
         for (entry in this.currentRequest!!.historyLogMap) {
             if (entry.value.pumpTimeSec < maxDateTimeInSec) {
-                aapsLogger.error(TAG, "Found entry older than 1.5 months: $entry")
+                aapsLogger.info(TAG, "Found entry older than 1.5 months: $entry")
                 return true
             }
         }
 
-        aapsLogger.error(TAG, "HST: haveWeReachedHistoryLimit: all entries are newer, returning false")
+        aapsLogger.debug(TAG, "HST: haveWeReachedHistoryLimit: all entries are newer, returning false")
 
         return false
     }
 
 
     private fun disableLastMessageWatchdog() {
-        // TODO  disableLastMessageWatchdog - we will try without this for now, if needed it will be added in phase 4
-        aapsLogger.error(TAG, "HST: disableLastMessageWatchdog not implemented.")
+        // TODOX  disableLastMessageWatchdog - we will try without this for now, if needed it will be added in phase 4
+        //aapsLogger.error(TAG, "HST: disableLastMessageWatchdog not implemented.")
     }
 
     private fun enableLastMessageWatchdog() {
-        // TODO enableLastMessageWatchdog -  - we will try without this for now, if needed it will be added in phase 4
+        // TODOX enableLastMessageWatchdog -  - we will try without this for now, if needed it will be added in phase 4
         //    when message is received we note the time and wait in special thread if timeout is reached
         //    if watchdog already exists, we just extend time
-        aapsLogger.error(TAG, "HST: enableLastMessageWatchdog not implemented.")
+        //aapsLogger.error(TAG, "HST: enableLastMessageWatchdog not implemented.")
     }
 
     fun receivedLogResponse(message: HistoryLogResponse) {

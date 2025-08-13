@@ -120,7 +120,7 @@ class ActionsActivity : DaggerComponentActivity() {
                                         Actions(
                                             innerPadding = innerPadding,
                                             navController = navController,
-                                            sendPumpCommands = { type, messages -> sendPumpCommands(type, messages) },
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
                                             aapsLogger = aapsLogger,
                                             resourceHelper = resourceHelper,
                                             navigateToPumpInfo = {
@@ -148,8 +148,9 @@ class ActionsActivity : DaggerComponentActivity() {
                                     ActionsLandingSection.CARTRIDGE_ACTIONS -> {
                                         CartridgeActions(
                                             innerPadding = innerPadding,
-                                            navController = navController,
-                                            sendPumpCommands = { type, messages -> sendPumpCommands(type, messages) },
+                                            aapsLogger = aapsLogger,
+                                            //navController = navController,
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
                                             resourceHelper = resourceHelper,
                                             navigateToSiteReminder = {
                                                 selectedItem = ActionsLandingSection.SITE_REMINDER
@@ -195,7 +196,7 @@ class ActionsActivity : DaggerComponentActivity() {
     }
 
 
-    private fun sendPumpCommands(type: SendType, msgs: List<Message>): Boolean {
+    private fun sendPumpCommands(msgs: List<Message>): Boolean {
 
         if (tandemDataStore.pumpConnected.value==false) {
             aapsLogger.warn(TAG, "sendPumpCommands not possible, because pump is not yet connected")
@@ -210,7 +211,7 @@ class ActionsActivity : DaggerComponentActivity() {
 
         val listText = sb.substring(2);
 
-        aapsLogger.warn(TAG, "PumpCommands to Send [type=${type}, commands=${listText}]")
+        aapsLogger.warn(TAG, "PumpCommands to Send [commands=${listText}]")
 
         for (msg in msgs) {
             tandemUICommunication.sendCommand(msg)
@@ -250,7 +251,7 @@ fun ActionsActivity_Preview() {
                     navigateToCartridgeActions = { },
                     aapsLogger = AAPSLoggerTest(),
                     resourceHelper = ResourceHelperTest(),
-                    sendPumpCommands = {_, _ -> true},
+                    sendPumpCommands = { _ -> true},
                 )
             }
         }

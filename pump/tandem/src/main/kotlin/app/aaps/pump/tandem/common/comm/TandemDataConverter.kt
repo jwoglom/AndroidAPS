@@ -387,10 +387,7 @@ class TandemDataConverter @Inject constructor(
 
     fun decodeHistoryLog(historyLogPump: HistoryLog): HistoryLogDto? {
 
-        TODO()
-
-
-        // // TODO this is not correctly implemented yet
+        // // TODOX this is not correctly implemented yet
         // if (!isLogTypeSupported(historyLogPump)) {
         //     return null
         // }
@@ -411,7 +408,7 @@ class TandemDataConverter @Inject constructor(
         //
         //     // Pump Status Changes - WIP
         //     // is PumpingResumedHistoryLog        -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpRunning)
-        //     // is PumpingSuspendedHistoryLog      -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpSuspended, historyLogPump.reasonId) // TODO maybe different handling?
+        //     // is PumpingSuspendedHistoryLog      -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpSuspended, historyLogPump.reasonId) // XTODO maybe different handling?
         //
         //     // TBR
         //     is TempRateActivatedHistoryLog     -> historyLog.subObject = createTBRRecord(historyLogPump)
@@ -574,114 +571,114 @@ class TandemDataConverter @Inject constructor(
 
 
 
-    private fun createBolusRecord(bolusLog: BolexCompletedHistoryLog): HistoryLogObject {
+    // private fun createBolusRecord(bolusLog: BolexCompletedHistoryLog): HistoryLogObject {
+    //
+    //     val bolus = Bolus(bolusId = bolusLog.bolusId,
+    //                       immediateAmount = bolusLog.insulinDelivered.toDouble(),
+    //                       isCancelled = false,
+    //                       isRunning = bolusLog.completionStatus == 0  // XTODO createBolusRecord::completionStatus Bolus
+    //     )
+    //
+    //     return bolus
+    //
+    // }
 
-        val bolus = Bolus(bolusId = bolusLog.bolusId,
-                          immediateAmount = bolusLog.insulinDelivered.toDouble(),
-                          isCancelled = false,
-                          isRunning = bolusLog.completionStatus == 0  // TODO createBolusRecord::completionStatus Bolus
-        )
+    // private fun createBolusRecord(historyLogPump: BolusActivatedHistoryLog): HistoryLogObject? {
+    //     // TODOX ("createBolusRecord(BolusActivatedHistoryLog) Not yet implemented")
+    // }
 
-        return bolus
-
-    }
-
-    private fun createBolusRecord(historyLogPump: BolusActivatedHistoryLog): HistoryLogObject? {
-        TODO("createBolusRecord(BolusActivatedHistoryLog) Not yet implemented")
-    }
-
-    private fun createBolusRecord(historyLogPump: BolexActivatedHistoryLog): HistoryLogObject? {
-        TODO("createBolusRecord(BolexActivatedHistoryLog)  Not yet implemented")
-    }
-
-
-    private fun createTBRRecord(historyLogPump: TempRateActivatedHistoryLog): HistoryLogObject? {
-        val temporaryBasal = TemporaryBasal(
-                    percent = historyLogPump.percent.toInt(),
-                    minutes = historyLogPump.duration.toInt(),
-                    isRunning = true,
-                    tempRateId = historyLogPump.tempRateId
-                )
-        tbrMap.put(historyLogPump.tempRateId, temporaryBasal)
-
-        return temporaryBasal
-    }
+    // private fun createBolusRecord(historyLogPump: BolexActivatedHistoryLog): HistoryLogObject? {
+    //     // TODOX createBolusRecord(BolexActivatedHistoryLog)  Not yet implemented
+    // }
 
 
-    private fun createTBRRecord(historyLogPump: TempRateCompletedHistoryLog): HistoryLogObject? {
-        // TODO("createTBRRecord(TempRateCompletedHistoryLog)  Not yet implemented")
-        //return TemporaryBasal(historyLogPump.)
+    // private fun createTBRRecord(historyLogPump: TempRateActivatedHistoryLog): HistoryLogObject? {
+    //     val temporaryBasal = TemporaryBasal(
+    //                 percent = historyLogPump.percent.toInt(),
+    //                 minutes = historyLogPump.duration.toInt(),
+    //                 isRunning = true,
+    //                 tempRateId = historyLogPump.tempRateId
+    //             )
+    //     tbrMap.put(historyLogPump.tempRateId, temporaryBasal)
+    //
+    //     return temporaryBasal
+    // }
 
 
-
-
-        historyLogPump.tempRateId
-        historyLogPump.timeLeft
-
-        //TemporaryBasal tbr =
-
-        return null
-    }
-
-
+    // private fun createTBRRecord(historyLogPump: TempRateCompletedHistoryLog): HistoryLogObject? {
+    //     // TODOX ("createTBRRecord(TempRateCompletedHistoryLog)  Not yet implemented")
+    //     //return TemporaryBasal(historyLogPump.)
+    //
+    //
+    //
+    //
+    //     historyLogPump.tempRateId
+    //     historyLogPump.timeLeft
+    //
+    //     //TemporaryBasal tbr =
+    //
+    //     return null
+    // }
 
 
 
 
-    private fun createBolusRecord(bolusLog: BolusCompletedHistoryLog): HistoryLogObject {
-
-        val bolus = Bolus(bolusId = bolusLog.bolusId,
-                          immediateAmount = bolusLog.insulinDelivered.toDouble(),
-                          isCancelled = false,
-                          isRunning = bolusLog.completionStatusId == 0  // TODO completionStatus Bolus maybe different handling
-        )
-
-        return bolus
-
-    }
 
 
-    private fun createAlertRecord(historyLogPump: AlertActivatedHistoryLog): HistoryLogObject? {
-        TODO("createAlertRecord Not yet implemented")
-    }
+    // private fun createBolusRecord(bolusLog: BolusCompletedHistoryLog): HistoryLogObject {
+    //
+    //     val bolus = Bolus(bolusId = bolusLog.bolusId,
+    //                       immediateAmount = bolusLog.insulinDelivered.toDouble(),
+    //                       isCancelled = false,
+    //                       isRunning = bolusLog.completionStatusId == 0  // TODOX completionStatus Bolus maybe different handling
+    //     )
+    //
+    //     return bolus
+    //
+    // }
 
-    private fun createAlarmRecord(historyLogPump: AlarmActivatedHistoryLog): HistoryLogObject? {
-        TODO("createAlarmRecord Not yet implemented")
-    }
+
+    // private fun createAlertRecord(historyLogPump: AlertActivatedHistoryLog): HistoryLogObject? {
+    //     // TODOX ("createAlertRecord Not yet implemented")
+    // }
+    //
+    // private fun createAlarmRecord(historyLogPump: AlarmActivatedHistoryLog): HistoryLogObject? {
+    //     // TODOX ("createAlarmRecord Not yet implemented")
+    // }
 
 
 
-    private fun createDateChangeRecord(historyLogPump: DateChangeHistoryLog): HistoryLogObject {
-        return createDateTimeChangeRecord(historyLogPump.getDateAfterInstant().toEpochMilli(), false)
-    }
+    // private fun createDateChangeRecord(historyLogPump: DateChangeHistoryLog): HistoryLogObject {
+    //     return createDateTimeChangeRecord(historyLogPump.getDateAfterInstant().toEpochMilli(), false)
+    // }
 
     // private fun createDateChangeRecord(historyLogPump: DateChangeResponse): HistoryLogObject {
     //     return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.dateAfter).toEpochMilli(), false)
     // }
 
-    private fun createTimeChangeRecord(historyLogPump: TimeChangedHistoryLog): HistoryLogObject {
-        return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.timeAfter).toEpochMilli(), true)
-    }
+    // private fun createTimeChangeRecord(historyLogPump: TimeChangedHistoryLog): HistoryLogObject {
+    //     return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.timeAfter).toEpochMilli(), true)
+    // }
+    //
+    // private fun createDateTimeChangeRecord(dateTime: Long, timeChanged: Boolean): DateTimeChanged {
+    //     val dt = DateTime().withMillis(dateTime)
+    //     return DateTimeChanged(year = dt.year, month = dt.monthOfYear, day = dt.dayOfMonth,
+    //                            hour = dt.hourOfDay, minute = dt.minuteOfHour, second = dt.secondOfMinute,
+    //                            timeChanged = timeChanged)
+    // }
 
-    private fun createDateTimeChangeRecord(dateTime: Long, timeChanged: Boolean): DateTimeChanged {
-        val dt = DateTime().withMillis(dateTime)
-        return DateTimeChanged(year = dt.year, month = dt.monthOfYear, day = dt.dayOfMonth,
-                               hour = dt.hourOfDay, minute = dt.minuteOfHour, second = dt.secondOfMinute,
-                               timeChanged = timeChanged)
-    }
-
-    fun createHistoryLogDto(historyLogPump: HistoryLog) : HistoryLogDto {
-        return HistoryLogDto(sequenceId= historyLogPump.sequenceNum,
-                             pumpSerial = 0,  // TODO createHistoryLogDto pumpSerial missing
-                             typeId = historyLogPump.typeId(),
-                             //historyType = TandemPumpHistoryType.getByCode(historyLogPump.typeId()),
-                             pumpTime = historyLogPump.pumpTimeSecInstant.toEpochMilli(),
-                             //sequenceNum = historyLogPump.sequenceNum,
-                             entitySubId = null,
-                             payload = historyLogPump.cargo //ByteUtil.getCompactString(historyLogPump.cargo),
-                             //subObject = null
-        )
-    }
+    // fun createHistoryLogDto(historyLogPump: HistoryLog) : HistoryLogDto {
+    //     return HistoryLogDto(sequenceId= historyLogPump.sequenceNum,
+    //                          pumpSerial = 0,  // TODOX createHistoryLogDto pumpSerial missing
+    //                          typeId = historyLogPump.typeId(),
+    //                          //historyType = TandemPumpHistoryType.getByCode(historyLogPump.typeId()),
+    //                          pumpTime = historyLogPump.pumpTimeSecInstant.toEpochMilli(),
+    //                          //sequenceNum = historyLogPump.sequenceNum,
+    //                          entitySubId = null,
+    //                          payload = historyLogPump.cargo //ByteUtil.getCompactString(historyLogPump.cargo),
+    //                          //subObject = null
+    //     )
+    // }
 
 
 
