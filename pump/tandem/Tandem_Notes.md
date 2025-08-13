@@ -5,6 +5,21 @@ needed and common where it isn't. Project is now targeting t:mobi device and if 
 Slim will support all required remote commands, that part of project can be resurected and made
 work with current code.
 
+Dev version:  3.3.3.0-dev-a
+Dev Date:     14. Jun 2025
+
+
+Issues with merging of this dev:
+- new settings config:
+     - doesn't work with UI BLE selector (enabled is also missing)
+     - string preference would need enabled flag
+- migration of settings is failing, objectives and nightscout information got lost, as well as
+   some other configurations: selected driver, selected BG source (defaults to BYODA)
+
+
+
+
+
 # Tandem Mobi
 
 Work on Mobi is in progress. Planned are 5 phases of development:

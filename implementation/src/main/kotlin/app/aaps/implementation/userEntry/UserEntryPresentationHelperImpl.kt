@@ -37,7 +37,7 @@ class UserEntryPresentationHelperImpl @Inject constructor(
         Action.ColorGroup.Careportal       -> app.aaps.core.ui.R.color.high
         Action.ColorGroup.Pump             -> app.aaps.core.ui.R.color.loopDisconnected
         Action.ColorGroup.Aaps             -> app.aaps.core.ui.R.color.defaultText
-        else                               -> app.aaps.core.ui.R.color.defaultText
+        // else                               -> app.aaps.core.ui.R.color.defaultText
     }
 
     override fun iconId(source: Sources): Int = when (source) {
@@ -139,7 +139,7 @@ class UserEntryPresentationHelperImpl @Inject constructor(
         is ValueWithUnit.SimpleString -> valueWithUnit.value
         is ValueWithUnit.TEMeterType  -> translator.translate(valueWithUnit.value)
         is ValueWithUnit.TETTReason   -> translator.translate(valueWithUnit.value)
-        is ValueWithUnit.OEReason     -> translator.translate(valueWithUnit.value)
+        is ValueWithUnit.RMMode       -> translator.translate(valueWithUnit.value)
         is ValueWithUnit.TEType       -> translator.translate(valueWithUnit.value)
         is ValueWithUnit.Timestamp    -> dateUtil.dateAndTimeAndSecondsString(valueWithUnit.value)
 
@@ -214,7 +214,7 @@ class UserEntryPresentationHelperImpl @Inject constructor(
                 is ValueWithUnit.SimpleString -> simpleString = simpleString.addWithSeparator(valueWithUnit.value)
                 is ValueWithUnit.TEMeterType  -> therapyEvent = therapyEvent.addWithSeparator(translator.translate(valueWithUnit.value))
                 is ValueWithUnit.TETTReason   -> therapyEvent = therapyEvent.addWithSeparator(translator.translate(valueWithUnit.value))
-                is ValueWithUnit.OEReason     -> therapyEvent = therapyEvent.addWithSeparator(translator.translate(valueWithUnit.value))
+                is ValueWithUnit.RMMode       -> therapyEvent = therapyEvent.addWithSeparator(translator.translate(valueWithUnit.value))
                 is ValueWithUnit.TEType       -> therapyEvent = therapyEvent.addWithSeparator(translator.translate(valueWithUnit.value))
                 is ValueWithUnit.Timestamp    -> timestamp = dateUtil.dateAndTimeAndSecondsString(valueWithUnit.value)
 

@@ -13,12 +13,16 @@ import app.aaps.core.interfaces.pump.BlePreCheck
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.defs.PumpStateX2
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
+import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
@@ -36,10 +40,11 @@ class TandemService : DaggerService() {
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var sp: SP
     @Inject lateinit var rxBus: RxBus
-    @Inject lateinit var tandemUtil: TandemPumpUtil
+    @Inject lateinit var tandemPumpUtil: TandemPumpUtil
     @Inject lateinit var pumpStatus: TandemPumpStatus
     @Inject lateinit var context: Context
     @Inject lateinit var blePreCheck: BlePreCheck
+    @Inject lateinit var preferences: Preferences
     @Inject lateinit var tandemPumpConnectionManager: TandemPumpConnectionManager
 
 
@@ -79,12 +84,14 @@ class TandemService : DaggerService() {
 
         var pumpConfigured = false
 
-        val useSharedConnection: Boolean = sp.getBoolean(TandemPumpConst.Prefs.UseSharedConnection, true)
+        val useSharedConnection: Boolean = tandemPumpUtil.getBooleanPreferenceOrDefault(TandemBooleanPreferenceKey.UseSharedConnection, true)
+            //sp.getBoolean(TandemPumpConst.Prefs.UseSharedConnection, true)
 
         if (useSharedConnection) {
             aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection Use")
 
-            val sharedConnectionString = sp.getStringOrNull(TandemPumpConst.Prefs.SharedConnectionData, null)
+            val sharedConnectionString = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.SharedConnectionData, null)
+                //sp.getStringOrNull(TandemPumpConst.Prefs.SharedConnectionData, null)
             var notFound = false
 
             aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection: ${sharedConnectionString}")
@@ -94,7 +101,9 @@ class TandemService : DaggerService() {
                 aapsLogger.error(LTag.PUMP, "PumpConfig: Shared Connection Use: Data empty")
             } else {
 
-                val sharedConnectionData : PumpStateX2 = tandemUtil.gson.fromJson(sharedConnectionString, PumpStateX2::class.java)
+                //aapsLogger.debug("Shared Connection String")
+
+                val sharedConnectionData : PumpStateX2 = tandemPumpUtil.gson.fromJson(sharedConnectionString, PumpStateX2::class.java)
 
                 if (sharedConnectionData.jpakeDerivedSecret.isEmpty()) {
                     notFound = true
@@ -106,12 +115,16 @@ class TandemService : DaggerService() {
                     } else {
                         aapsLogger.info(LTag.PUMP, "PumpConfig: Setting Shared Connection Data. NEW")
 
-                        sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 100)
-                        sp.putString(TandemPumpConst.Prefs.PumpAddress, sharedConnectionData.savedBluetoothMAC)
-                        sp.getString(TandemPumpConst.Prefs.PumpPairCode, sharedConnectionData.pairingCode)
+                        preferences.put(TandemIntPreferenceKey.PumpPairStatus, 100)
+                        //sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 100)
+                        //sp.putString(TandemPumpConst.Prefs.PumpAddress, sharedConnectionData.savedBluetoothMAC)
+                        preferences.put(TandemStringPreferenceKey.PumpAddress, sharedConnectionData.savedBluetoothMAC)
+                        //sp.getString(TandemPumpConst.Prefs.PumpPairCode, sharedConnectionData.pairingCode)
+                        preferences.put(TandemStringPreferenceKey.PumpPairCode, sharedConnectionData.pairingCode)
 
                         if (!sharedConnectionData.pumpSerialNum.isNullOrEmpty()) {
-                            sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + sharedConnectionData.pumpSerialNum)
+                            preferences.put(TandemStringPreferenceKey.PumpSerial, "" + sharedConnectionData.pumpSerialNum)
+                            //sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + sharedConnectionData.pumpSerialNum)
                             pumpStatus.serialNumber = (sharedConnectionData.pumpSerialNum.toLong())
                         }
 
@@ -128,15 +141,18 @@ class TandemService : DaggerService() {
         }
 
 
-        pumpAddress = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
+        pumpAddress = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpAddress, "")
+            //sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
 
-        val pumpBondStatus = sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
+        val pumpBondStatus = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1)
+            //sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
+
 
         aapsLogger.debug(LTag.PUMP, "PumpConfig: Pump Mobi [address=$pumpAddress,bondStatus=$pumpBondStatus]")
 
         pumpConfigured = (pumpAddress!!.isNotEmpty() &&
             pumpBondStatus == 100 &&
-            !tandemUtil.preventConnect)
+            !tandemPumpUtil.preventConnect)
 
         aapsLogger.debug(LTag.PUMP, "Service: Validation of parameters - Pump Configured: $pumpConfigured")
 
@@ -161,10 +177,14 @@ class TandemService : DaggerService() {
     fun isSharedConfigurationAlreadyApplied(sharedConnectionData: PumpStateX2): Boolean {
 
         // check our internal stuff
-        val address = sp.getStringOrNull(TandemPumpConst.Prefs.PumpAddress, null)
-        val pairCode = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
+        val address = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpAddress, null)
+            //sp.getStringOrNull(TandemPumpConst.Prefs.PumpAddress, null)
+        val pairCode = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpPairCode, null)
+            //sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
 
-        return (sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, 0)==100 &&
+
+        return (//sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, 0)==100
+            tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, 0)==100 &&
             address!=null && address.equals(sharedConnectionData.savedBluetoothMAC) &&
             pairCode!=null && pairCode.equals(sharedConnectionData.pairingCode) &&
             PumpState.getJpakeDerivedSecret(context).equals(sharedConnectionData.jpakeDerivedSecret) &&

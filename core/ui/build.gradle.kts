@@ -18,8 +18,10 @@ dependencies {
     api(libs.androidx.gridlayout)
 
 
+
     api(libs.com.google.android.material)
 
     api(libs.com.google.dagger.android)
     api(libs.com.google.dagger.android.support)
+    implementation(project(":core:interfaces"))
 }

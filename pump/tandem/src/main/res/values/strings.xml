@@ -16,14 +16,22 @@
     <string name="pump_status_label">Pump Status</string>
     <string name="pump_firmware_label">Pump Firmware</string>
     <string name="pump_address_label">BT Address</string>
-    <string name="pump_last_bolus" translatable="false">%1$.1f %2$s (%3$s)</string>
+    <string name="pump_last_bolus" translatable="false">%1$.2f %2$s (%3$s)</string>
     <string name="pump_firmware_open_loop_only">%s (Open-Loop only)</string>
     <string name="pump_firmware_demo">Ignored. Demo mode</string>
     <string name="pump_settings">Settings</string>
+    <string name="pump_data">Data</string>
     <string name="driver_version">Driver Version</string>
     <string name="pump_serial_number">Serial Number</string>
     <string name="pump_bt_state_label">BT State</string>
     <string name="pump_last_event">Last Pump Event</string>
+    <string name="pump_data_status">Pump Data:</string>
+    <string name="pump_data_status_notification">NOTIFICATIONS</string>
+    <string name="pump_data_status_events">EVENTS</string>
+    <string name="pump_data_status_history">HISTORY</string>
+
+
+
 
     <!-- Errors -->
     <string name="tandem_error_not_bonded">Pump not configured or fully bonded</string>
@@ -32,41 +40,131 @@
     <string name="tandem_error_no_shared_conn_data">Missing Shared Connection Data (connection sharing enabled)</string>
     <string name="tandem_error_profile_only_16_segments">t:mobi supports only 16 basal segments, adjust your profile accordingly.</string>
 
-    <!-- State Machines -->
-    <string name="state_machine_common_cancel">Cancel</string>
-    <string name="state_machine_common_continue">Continue</string>
-    <string name="state_machine_common_no">No</string>
-    <string name="state_machine_common_yes">Yes</string>
-<!--    <string name="tandem_state_machine_error_pump_critical_error">Pump Critical Error: %s</string>-->
+
+    <!-- UI Common -->
+    <string name="common_percent_complete">%1$s %% complete</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_done">Done</string>
+
+
+    <!-- UI Data -->
+
+    <string name="data_data">Data</string>
+    <string name="data_notifications">Notifications</string>
+    <string name="data_notifications_desc">Notifications sent by Pump</string>
+    <string name="data_events">Events</string>
+    <string name="data_events_desc">Qualifying Events sent from Pump (stored in database)</string>
+    <string name="data_pump_history">Pump History</string>
+    <string name="data_pump_history_desc">Pump History stored in database</string>
+
+    <string name="data_qe_filter_description">Which Pump Events to Show?</string>
+    <string name="data_qe_filter_all">All</string>
+    <string name="pump_qe_filter_aaps_relevant">AAPS Relevant Only</string>
+
+    <string name="data_qe_range_description">How many Pump Events to Show?</string>
+    <string name="data_qe_range_last_15_items">Last 15 items</string>
+    <string name="pump_qe_range_last_3_hours">Last 3 hours</string>
+    <string name="pump_qe_range_last_6_hours">Last 6 hours</string>
+    <string name="pump_qe_range_last_12_hours">Last 12 hours</string>
+    <string name="pump_qe_range_last_24_hours">Last 24 hours</string>
+
+    <!-- UI Configuration -->
+    <string name="ui_cfg_configuration">Configuration</string>
+
+    <!-- UI Configuration::PumpInfo -->
+    <string name="pi_title">Pump Info</string>
+    <string name="pi_version">Version</string>
+    <string name="pi_sw_part_num">S/W Part Number</string>
+    <string name="pi_pcba_serial">PCBA serial</string>
+    <string name="pi_pump_model">Pump Model</string>
+    <string name="pi_pump_sw">Pump Software</string>
+
+    <!-- UI Configuration::Actions -->
+
+
+    <!-- UI Actions::Cartridge Actions -->
+    <string name="ca_disconnect_pump_from_site">Disconnect your pump from your body/site and press \'%1$s\' button below.</string>
+    <string name="ca_before_stop_delivery">Before %1$s, stop delivery of insulin.</string>
+
+
+
+    <!-- UI Cartridge Actions:Change Cartridge -->
+    <string name="cc_title">Change Cartridge</string>
+    <string name="cc_complete">Cartridge change complete.</string>
+    <string name="cc_detect_insulin_cart">Detecting insulin in the cartridge...</string>
+    <string name="cc_can_remove_cart">You can now remove the cartridge from the pump.</string>
+    <string name="cc_when_inserted_press">When you\'ve inserted a new cartridge, press \'Cartridge Inserted\' button below.</string>
+    <string name="cc_preparing_cc">Preparing to change cartridge...</string>
+    <string name="cc_btn_cart_inserted">Cartridge Inserted</string>
+    <string name="cc_action">changing your cartridge</string>
+    <string name="cc_btn_begin">Begin Change Cartridge</string>
+
+    <!-- UI Cartridge Actions:Fill Tubing -->
+    <string name="ft_title">Fill Tubing</string>
+    <string name="ft_complete">Successfully filled tubing. Press button \'Done\' to exit.</string>
+    <string name="ft_hold_pump_button">Hold down the pump button to fill insulin through the tubing.</string>
+    <string name="ft_no_filled_insulin">You haven\'t filled any insulin through the tubing yet.</string>
+    <string name="ft_filling">FILLING... continue to hold down button until you see insulin drops at the cannula.</string>
+    <string name="ft_stopped_fill_1">STOPPED FILLING... do you see insulin drops at the cannula?</string>
+    <string name="ft_stopped_fill_2">"If not press pump button to continue filling, else if you are done, press \'Complete Fill\' button below."</string>
+    <string name="ft_btn_begin">Begin Fill Tubing</string>
+    <string name="ft_action">filling your tubing</string>
+    <string name="ft_btn_complete">Complete Fill</string>
+    <string name="ft_finalizing_wait">Please wait, finalizing tubing fill...</string>
+    <string name="ft_finalizing_status_NOT_COMPLETE">NOT COMPLETE</string>
+
+    <!-- UI Cartridge Actions:Fill Cannula -->
+    <string name="fc_title">Fill Cannula</string>
+    <string name="fc_complete">Cannula filled.</string>
+    <string name="fc_action">filling your cannula</string>
+    <string name="fc_filling_with">"Filling cannula with %1$d unit...</string>
+    <string name="fc_filling_state">State: %1$d</string>
+    <string name="fc_cannula_fill_amount">Enter the cannula fill amount (U):</string>
+    <string name="fc_fill_amount">Fill amount</string>
+    <string name="fc_btn_fill_cannula_u">Fill %1$dU Cannula</string>
+
+
+
+
+
+
+    <!-- UI Cartridge Actions:ChangeCartridge -->
+
+    <!-- UI Cartridge Actions:Site Reminder -->
+    <string name="sr_title">Site Reminder</string>
+    <string name="sr_coming_soon">Coming soon</string>
+
+
+
 
 
     <!-- Command Errors -->
-    <string name="ypsopump_cmd_bolus_could_not_be_delivered_no_insulin">Bolus could not be delivered, because available insulin amount (%1$.2f) is less than bolus required (%2$.2f).</string>
-    <string name="ypsopump_cmd_bolus_could_not_be_delivered">Bolus could not be delivered.</string>
-    <string name="ypsopump_cmd_tbr_could_not_be_delivered">TBR could not be set.</string>
-    <string name="ypsopump_cmd_basal_profile_could_not_be_set">Basal profile could not be set.</string>
-    <string name="ypsopump_cmd_cant_read_tbr">Could not read current TBR.</string>
-    <string name="ypsopump_cmd_cant_cancel_tbr_stop_op">Could not cancel current TBR. Stopping operation.</string>
-    <string name="ypsopump_cmd_cant_cancel_tbr">Could not cancel current TBR.</string>
+<!--    <string name="tandem_cmd_bolus_could_not_be_delivered_no_insulin">Bolus could not be delivered, because available insulin amount (%1$.2f) is less than bolus required (%2$.2f).</string>-->
+<!--    <string name="ypsopump_cmd_bolus_could_not_be_delivered">Bolus could not be delivered.</string>-->
+<!--    <string name="ypsopump_cmd_tbr_could_not_be_delivered">TBR could not be set.</string>-->
+<!--    <string name="ypsopump_cmd_basal_profile_could_not_be_set">Basal profile could not be set.</string>-->
+<!--    <string name="ypsopump_cmd_cant_read_tbr">Could not read current TBR.</string>-->
+<!--    <string name="ypsopump_cmd_cant_cancel_tbr_stop_op">Could not cancel current TBR. Stopping operation.</string>-->
+<!--    <string name="ypsopump_cmd_cant_cancel_tbr">Could not cancel current TBR.</string>-->
 
 
     <!-- Tandem Config -->
-    <string name="key_tandem_address" translatable="false">pref_tandem_address</string>
-    <string name="key_tandem_serial" translatable="false">pref_tandem_serial</string>
-    <string name="key_tandem_name" translatable="false">pref_tandem_name</string>
-    <string name="key_tandem_pair_status" translatable="false">pref_tandem_pair_status</string>
-    <string name="key_tandem_pair_code" translatable="false">pref_tandem_pair_code</string>
-    <string name="key_tandem_api_version" translatable="false">pref_tandem_api_version</string>
-    <string name="key_tandem_pump_version" translatable="false">pref_tandem_pump_version</string>
+<!--    <string name="key_tandem_address" translatable="false">pref_tandem_address</string>-->
+<!--    <string name="key_tandem_serial" translatable="false">pref_tandem_serial</string>-->
+<!--    <string name="key_tandem_name" translatable="false">pref_tandem_name</string>-->
+<!--    <string name="key_tandem_pair_status" translatable="false">pref_tandem_pair_status</string>-->
+<!--    <string name="key_tandem_pair_code" translatable="false">pref_tandem_pair_code</string>-->
+<!--    <string name="key_tandem_api_version" translatable="false">pref_tandem_api_version</string>-->
+<!--    <string name="key_tandem_pump_version" translatable="false">pref_tandem_pump_version</string>-->
     <string name="key_tandem_error" translatable="false">pref_tandem_error</string>
-    <string name="key_tandem_max_basal" translatable="false">pref_tandem_max_basal</string>
-    <string name="key_tandem_max_bolus" translatable="false">pref_tandem_max_bolus</string>
-    <string name="key_tandem_display_driver_version" translatable="false">pref_tandem_display_driver_version</string>
-<!--    <string name="key_tandem_version_response" translatable="false">pref_tandem_version_response</string>-->
+<!--    <string name="key_tandem_max_basal" translatable="false">pref_tandem_max_basal</string>-->
+<!--    <string name="key_tandem_max_bolus" translatable="false">pref_tandem_max_bolus</string>-->
+<!--    <string name="key_tandem_display_driver_version" translatable="false">pref_tandem_display_driver_version</string>-->
+<!-- X   <string name="key_tandem_version_response" translatable="false">pref_tandem_version_response</string>-->
 
     <!-- Temporary Config - START -->
-    <string name="key_tandem_use_shared_connection" translatable="false">pref_tandem_use_shared_connection</string>
-    <string name="key_tandem_shared_connection_data" translatable="false">pref_tandem_shared_connection_data</string>
+<!--    <string name="key_tandem_use_shared_connection" translatable="false">pref_tandem_use_shared_connection</string>-->
+<!--    <string name="key_tandem_shared_connection_data" translatable="false">pref_tandem_shared_connection_data</string>-->
     <string name="tandem_cfg_use_shared_connection">Use Shared Connection</string>
     <string name="tandem_cfg_use_shared_connection_summary">Use Shared Connection with ControlX2</string>
     <string name="tandem_cfg_shared_connection_data">Shared Connection Data</string>
@@ -75,6 +173,7 @@
 
 
     <string name="tandem_configuration">Tandem Configuration</string>
+    <string name="tandem_pump_configuration">Tandem Pump Selector</string>
     <string name="tandem_pump_max_bolus">Max Bolus on Pump (U) [Max 25]</string>
     <string name="tandem_pump_max_basal">Max Basal on Pump (U/h) [Max 15]</string>
     <string name="tandem_cfg_display_driver_version">Display Driver Version</string>
@@ -87,6 +186,9 @@
     <string name="tandem_custom_command_get_pump_info">Get Pump Info</string>
     <string name="tandem_custom_command_get_alarms">Get Alarms</string>
     <string name="tandem_custom_command_get_alerts">Get Alerts</string>
+    <string name="tandem_custom_command_dismiss_alert">Dismiss Alert</string>
+
+
 
 
     <!-- Tandem specific constraints -->
@@ -94,6 +196,7 @@
     <string name="tandem_constraint_basal_rate_on_pump">Max configured Basal Rate on pump is %.2f U/h.</string>
     <string name="tandem_constraint_basal_rate_percent">Requested TBR was %d %%, which is more than pump allows (250%%), so limiting to 250%%.</string>
     <string name="tandem_constraint_basal_rate_percent_max_pump">Requested TBR %% was bigger than max configured basal on pump %d.</string>
+    <string name="tandem_constraint_SMB">SMB Allowed on Mobi.</string>
 
     <!-- Tandem BLE Config -->
     <string name="tandem_ble_config_scan_title">Tandem Scan</string>
@@ -105,7 +208,7 @@
 
 
 
-    <!-- Tandem Mobi Management  -->
+    <!-- Tandem Mobi Management  DEP -->
     <string name="tandem_mobi_management">t:mobi Management</string>
     <string name="tandem_sett_delivery_limits">Delivery Limits</string>
     <string name="tandem_sett_load_cartridge">Load Cartridge</string>
@@ -133,10 +236,17 @@
     <string name="tandem_pump_history_type">Type:</string>
 
     <!-- Tandem History -->
-    <string name="tandem_history_date">%02d.%02d.%d %02d:%02d:%02d</string>
+    <string name="tandem_history_date" translatable="false">%02d.%02d.%d %02d:%02d:%02d</string>
     <string name="tandem_history_date_changed">Date Changed: %s</string>
     <string name="tandem_history_time_changed">Time Changed: %s</string>
 
+
+    <!-- State Machines - Deprecated-->
+    <string name="state_machine_common_cancel">Cancel</string>
+    <string name="state_machine_common_continue">Continue</string>
+    <string name="state_machine_common_no">No</string>
+    <string name="state_machine_common_yes">Yes</string>
+    <!--    <string name="tandem_state_machine_error_pump_critical_error">Pump Critical Error: %s</string>-->
 
 
 
@@ -146,6 +256,16 @@
 
     <!-- Notifications -->
     <string name="tandem_notification_wrong_pairing_code">Your Pairing Code is no longer valid. Please reconfigure your Tandem Pump.</string>
+
+
+    <!-- Pump Common MOVE THERE -->
+
+    <!-- Configuration -->
+    <string name="eightdigitnumber" translatable="false">^\\d{8}</string>
+
+    <string name="common_on">On</string>
+    <string name="common_off">Off</string>
+
 
 
 
@@ -201,12 +321,6 @@
 <!--    <string name="ypsopump_cmd_exec_title_set_tbr">Manually Set Temporary Basal on Pump</string>-->
 <!--    <string name="ypsopump_cmd_exec_desc_set_tbr">Please set Temporary Basal of %1$d %% for %2$d min\non your Pump, and AFTER you are done\nconfirm it here:\n %1$s</string>-->
 
-
-
-    <!-- Pump Common MOVE THERE -->
-
-    <!-- Configuration -->
-    <string name="eightdigitnumber" translatable="false">^\\d{8}</string>
 
 
 
@@ -269,8 +383,7 @@
 <!--    <string name="medtronic_warning">Warning</string>  &lt;!&ndash; medtronic_warning &ndash;&gt;-->
 <!--    <string name="medtronic_pump_connected_now">Now</string> &lt;!&ndash; combo_pump_connected_now &ndash;&gt;-->
 <!--    <string name="medtronic_notification_check_time_date">Pump clock update needed</string> &lt;!&ndash; combo_notification_check_time_date &ndash;&gt;-->
-    <string name="common_on">On</string>
-    <string name="common_off">Off</string>
+
 
 <!--    <string name="key_set_neutral_temps" translatable="false">set_neutral_temps</string>-->
 <!--    <string name="set_neutral_temps_title">Set neutral temp basals</string>-->

@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b0cb923799ac760bb15069ec84c47a9a",
+    "identityHash": "92dea59c093c006b0b8ed77c209d171e",
     "entities": [
       {
         "tableName": "history_records",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sequenceId` INTEGER NOT NULL, `pumpSerial` INTEGER NOT NULL, `typeId` INTEGER NOT NULL, `pumpTime` INTEGER NOT NULL, `payload` BLOB NOT NULL, `entitySubId` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`sequenceId`, `pumpSerial`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sequenceId` INTEGER NOT NULL, `pumpSerial` INTEGER NOT NULL, `typeId` INTEGER NOT NULL, `pumpTime` INTEGER NOT NULL, `payload` BLOB NOT NULL, `entitySubId` INTEGER, `entitySubIdName` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`sequenceId`, `pumpSerial`))",
         "fields": [
           {
             "fieldPath": "sequenceId",
@@ -41,8 +41,12 @@
           {
             "fieldPath": "entitySubId",
             "columnName": "entitySubId",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "entitySubIdName",
+            "columnName": "entitySubIdName",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "createdAt",
@@ -63,15 +67,53 @@
             "sequenceId",
             "pumpSerial"
           ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        }
+      },
+      {
+        "tableName": "qualifying_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `pumpSerial` INTEGER NOT NULL, `dateTime` INTEGER NOT NULL, `name` TEXT NOT NULL, `description` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pumpSerial",
+            "columnName": "pumpSerial",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateTime",
+            "columnName": "dateTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
       }
     ],
-    "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b0cb923799ac760bb15069ec84c47a9a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '92dea59c093c006b0b8ed77c209d171e')"
     ]
   }
 }

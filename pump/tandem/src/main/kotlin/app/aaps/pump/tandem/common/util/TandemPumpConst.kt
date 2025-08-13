@@ -11,27 +11,24 @@ object TandemPumpConst {
 
     object Prefs {
 
-        @JvmField val PumpSerial = R.string.key_tandem_serial
-        @JvmField val PumpAddress = R.string.key_tandem_address
-        @JvmField val PumpName = R.string.key_tandem_name
-        @JvmField val PumpPairStatus = R.string.key_tandem_pair_status
-        @JvmField val PumpPairCode = R.string.key_tandem_pair_code
-        @JvmField val PumpApiVersion = R.string.key_tandem_api_version
-        @JvmField val PumpVersionResponse = R.string.key_tandem_pump_version
+        // @JvmField val PumpSerial = R.string.key_tandem_serial
+        // @JvmField val PumpAddress = R.string.key_tandem_address
+        // @JvmField val PumpName = R.string.key_tandem_name
+        //@JvmField val PumpPairStatus = R.string.key_tandem_pair_status
+        // @JvmField val PumpPairCode = R.string.key_tandem_pair_code
+        // @JvmField val PumpApiVersion = R.string.key_tandem_api_version
+        // @JvmField val PumpVersionResponse = R.string.key_tandem_pump_version
 
-        @JvmField val DisplayDriverVersion = R.string.key_tandem_display_driver_version
-        @JvmField val MaxBasal = R.string.key_tandem_max_basal
-        @JvmField val MaxBolus = R.string.key_tandem_max_bolus
+        // @JvmField val DisplayDriverVersion = R.string.key_tandem_display_driver_version
+        // @JvmField val MaxBasal = R.string.key_tandem_max_basal
+        // @JvmField val MaxBolus = R.string.key_tandem_max_bolus
 
-        @JvmField val UseSharedConnection = R.string.key_tandem_use_shared_connection
-        @JvmField val SharedConnectionData = R.string.key_tandem_shared_connection_data
+        // @JvmField val UseSharedConnection = R.string.key_tandem_use_shared_connection
+        //@JvmField val SharedConnectionData = R.string.key_tandem_shared_connection_data
 
 
 
-    //        @JvmField val PumpError = R.string.key_tandem_pair_status
-        //@JvmField val PumpBonded = R.string.key_ypsopump_bonded
-        //@JvmField val PumpStatusList = R.string.key_ypsopump_status_list
-        //@JvmField val BolusSize = R.string.key_ypsopump_bolus_size
+
     }
 
     object Statistics {

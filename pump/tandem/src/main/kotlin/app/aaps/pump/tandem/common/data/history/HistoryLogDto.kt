@@ -11,6 +11,7 @@ import app.aaps.pump.tandem.R
 
 import java.util.*
 
+@Deprecated("This class is deprecated Tandem solu")
 sealed class HistoryLogObject {
     abstract fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String
 }
@@ -37,12 +38,13 @@ data class HistoryLogDto(var sequenceId: Long,
         get() = resolvedDate
 
     fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
-        TODO()
+        // TODOX ()
         // if (subObject != null) {
         //     return subObject!!.getDisplayableValue(resourceHelper, dataConverter)
         // } else {
         //     return "???"
         // }
+        return "???"
     }
 
     override fun prepareEntryData(resourceHelper: ResourceHelper, pumpDataConverter: PumpDataConverter) {
@@ -58,7 +60,7 @@ data class HistoryLogDto(var sequenceId: Long,
                                          dateTimeObject.get(Calendar.HOUR_OF_DAY),
                                          dateTimeObject.get(Calendar.MINUTE),
                                          dateTimeObject.get(Calendar.SECOND))
-        resolvedType = "" + typeId   // TODO Db resolveType resourceHelper.gs(historyType.getDescriptionResourceId())
+        resolvedType = "" + typeId   // TODOX Db resolveType resourceHelper.gs(historyType.getDescriptionResourceId())
         resolvedValue = getDisplayableValue(resourceHelper, tandemPumpDataConverter)
     }
 
@@ -68,11 +70,11 @@ data class HistoryLogDto(var sequenceId: Long,
 
     override fun getEntryValue(): String = resolvedValue
 
-    override fun getEntryTypeGroup(): PumpHistoryEntryGroup = PumpHistoryEntryGroup.Unknown  // TODO resolve group
+    override fun getEntryTypeGroup(): PumpHistoryEntryGroup = PumpHistoryEntryGroup.Unknown  // TODOX resolve group
 
     override fun toString(): String {
 
-        var entryTypeFormated = "" + typeId  // TODO Db resolve entry type historyType.name
+        var entryTypeFormated = "" + typeId  // TODOX Db resolve entry type historyType.name
 
         if (entryTypeFormated.length > 24) {
             entryTypeFormated = entryTypeFormated.substring(0, 24)
@@ -94,7 +96,7 @@ data class HistoryLogDto(var sequenceId: Long,
     }
 
     override fun compareTo(other: HistoryLogDto): Int {
-        // TODO use pumpSerial too
+        // TODOX use pumpSerial too
         return (this.sequenceId - other.sequenceId).toInt()
     }
 

@@ -15,18 +15,23 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
-import app.aaps.pump.common.data.PumpTimeDifferenceDto
+import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.common.defs.PumpDriverMode
+import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
+import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand.*
 import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpConst
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,6 +46,7 @@ class TandemPumpConnectionManager @Inject constructor(
     rxBus: RxBus,
     context: Context,
     val tandemDataConverter: TandemDataConverter,
+    var preferences: Preferences,
     val tandemConnector: TandemPumpConnector
 ): PumpConnectionManager(tandemPumpStatus, tandemPumpUtil, sp, aapsLogger, rxBus, context) {
 
@@ -62,7 +68,9 @@ class TandemPumpConnectionManager @Inject constructor(
 
 
 
-    //val TAG = LTag.PUMPCOMM
+    //@Suppress("PropertyName")
+    // @Suppress("PropertyName")
+    // val TAG= LTag.PUMPCOMM
 
     //var lateinit tandemCommunicationManager: TandemCommunicationManager
 
@@ -140,9 +148,8 @@ class TandemPumpConnectionManager @Inject constructor(
 
     override fun getConnector(commandType: PumpCommandType?): PumpConnectorInterface {
 
-        aapsLogger.debug(TAG, "TANDEMDBG: getConnector for ${commandType}")
+        aapsLogger.debug(TAG, "getConnector for ${commandType}")
 
-        // TODO extend this when new commands are enabled
         when(commandType) {
             PumpCommandType.GetTemporaryBasal,
             PumpCommandType.SetTemporaryBasal,
@@ -155,6 +162,9 @@ class TandemPumpConnectionManager @Inject constructor(
             PumpCommandType.GetRemainingInsulin,
             PumpCommandType.GetTime,
             PumpCommandType.SetTime,
+            PumpCommandType.GetBolus,
+            PumpCommandType.SetBolus,
+            PumpCommandType.CancelBolus,
             PumpCommandType.GetBatteryStatus        -> return tandemConnector
 
             else                    -> return dummyConnector
@@ -177,6 +187,13 @@ class TandemPumpConnectionManager @Inject constructor(
                     tandemPumpStatus.currentTempBasal = tbr
                 }
             }
+            PumpCommandType.GetBolus -> {
+                if (responseData.value!=null) {
+                    val bolusData = responseData.value as BolusData
+                    tandemPumpStatus.tandemLastBolus = bolusData
+                    aapsLogger.debug(TAG, "Last Bolus Data: $bolusData")
+                }
+            }
             else -> {}
         }
     }
@@ -190,16 +207,37 @@ class TandemPumpConnectionManager @Inject constructor(
                 tandemPumpStatus.tandemPumpVersion = responseData.value as PumpVersionDto
                 if (tandemPumpStatus.serialNumber==0L) {
                     tandemPumpStatus.serialNumber = tandemPumpStatus.tandemPumpVersion!!.serialNum
-                    sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + tandemPumpStatus.serialNumber)
+                    preferences.put(TandemStringPreferenceKey.PumpSerial, "" + tandemPumpStatus.serialNumber)
+                    rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
                 }
             }
             GET_ALARMS -> {
                 val alarms = responseData.value as AlarmStatusDto
                 tandemPumpStatus.tandemAlarms = alarms.alarms
+                if (!alarms.alarms.isEmpty()) {
+                    tandemPumpStatus.semaphoreNotifications = true
+                    tandemPumpStatus.semaphoreNeedsRefresh = true
+                }
             }
             GET_ALERTS -> {
-                val alarms = responseData.value as AlertStatusDto
-                tandemPumpStatus.tandemAlerts = alarms.alerts
+                val alerts = responseData.value as AlertStatusDto
+                tandemPumpStatus.tandemAlerts = alerts.alerts
+                // TODO extend GetAlerts functionality to filter auto confirmed entries
+                if (!alerts.alerts.isEmpty()) {
+                    // TODO needs to take in account anything that is self dismissed
+                    tandemPumpStatus.semaphoreNotifications = true
+                    tandemPumpStatus.semaphoreNeedsRefresh = true
+                }
+
+                // TODO only start if configuration enabled...
+                if (alerts.alerts.contains(AlertStatusResponse.AlertResponseType.MIN_BASAL_ALERT2)) {
+                    executeCustomCommand(DISMISS_ALERT,
+                                         AlertStatusResponse.AlertResponseType.MIN_BASAL_ALERT2.bitmask().toLong())
+                }
+
+                // LOW_POWER_ALERT     LOW_POWER_ALERT2
+
+                // MIN_BASAL_ALERT2
             }
             else -> { }
         }

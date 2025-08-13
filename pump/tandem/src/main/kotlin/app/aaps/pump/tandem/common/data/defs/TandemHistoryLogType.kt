@@ -1,5 +1,6 @@
 package app.aaps.pump.tandem.common.data.defs
 
+@Deprecated("Not needed we use data directly from pumpX2")
 enum class TandemHistoryLogType (var typeId: Int) {
 
     TimeChange(13),

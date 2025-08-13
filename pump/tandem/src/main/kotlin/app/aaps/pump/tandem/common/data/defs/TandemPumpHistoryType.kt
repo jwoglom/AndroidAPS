@@ -2,6 +2,7 @@ package app.aaps.pump.tandem.common.data.defs
 
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 
+@Deprecated("Grouping is done in in TandemHistoryConverter")
 enum class TandemPumpHistoryType(val code: Int, val group: PumpHistoryEntryGroup, val resourceId: Int? = null) {
 
     UNDEFINED(-1, PumpHistoryEntryGroup.Unknown),

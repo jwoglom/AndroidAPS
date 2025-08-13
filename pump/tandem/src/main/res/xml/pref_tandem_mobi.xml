@@ -3,80 +3,80 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:validate="http://schemas.android.com/apk/res-auto">
 
-    <PreferenceCategory
-        android:title="@string/tandem_name_mobi"
-        app:initialExpandedChildrenCount="0">
+<!--    <PreferenceCategory-->
+<!--        android:title="@string/tandem_name_mobi"-->
+<!--        app:initialExpandedChildrenCount="0">-->
 
-        <EditTextPreference
-            android:defaultValue="00000000"
-            android:key="@string/key_tandem_serial"
-            android:selectAllOnFocus="true"
-            android:singleLine="false"
-            android:enabled="false"
-            android:shouldDisableView="false"
-            android:title="@string/pump_serial_number"
-            />
-        <!--            validate:customRegexp="@string/eightdigitnumber"-->
-        <!--            validate:testErrorString="@string/error_mustbe8digitnumber"-->
-        <!--            validate:testType="regexp" -->
+<!--        <EditTextPreference-->
+<!--            android:defaultValue="00000000"-->
+<!--            android:key="@string/key_tandem_serial"-->
+<!--            android:selectAllOnFocus="true"-->
+<!--            android:singleLine="false"-->
+<!--            android:enabled="false"-->
+<!--            android:shouldDisableView="false"-->
+<!--            android:title="@string/pump_serial_number"-->
+<!--            />-->
+<!--        &lt;!&ndash;            validate:customRegexp="@string/eightdigitnumber"&ndash;&gt;-->
+<!--        &lt;!&ndash;            validate:testErrorString="@string/error_mustbe8digitnumber"&ndash;&gt;-->
+<!--        &lt;!&ndash;            validate:testType="regexp" &ndash;&gt;-->
 
-        <SwitchPreference
-            android:defaultValue="true"
-            android:enabled="true"
-            android:key="@string/key_tandem_use_shared_connection"
-            android:summary="@string/tandem_cfg_use_shared_connection_summary"
-            android:title="@string/tandem_cfg_use_shared_connection" />
+<!--        <SwitchPreference-->
+<!--            android:defaultValue="true"-->
+<!--            android:enabled="true"-->
+<!--            android:key="@string/key_tandem_use_shared_connection"-->
+<!--            android:summary="@string/tandem_cfg_use_shared_connection_summary"-->
+<!--            android:title="@string/tandem_cfg_use_shared_connection" />-->
 
-        <EditTextPreference
-            android:defaultValue=""
-            android:key="@string/key_tandem_shared_connection_data"
-            android:selectAllOnFocus="true"
-            android:singleLine="false"
-            android:enabled="true"
-            android:shouldDisableView="false"
-            android:summary="@string/tandem_cfg_shared_connection_data_summary"
-            android:title="@string/tandem_cfg_shared_connection_data"
-            />
+<!--        <EditTextPreference-->
+<!--            android:defaultValue=""-->
+<!--            android:key="@string/key_tandem_shared_connection_data"-->
+<!--            android:selectAllOnFocus="true"-->
+<!--            android:singleLine="false"-->
+<!--            android:enabled="true"-->
+<!--            android:shouldDisableView="false"-->
+<!--            android:summary="@string/tandem_cfg_shared_connection_data_summary"-->
+<!--            android:title="@string/tandem_cfg_shared_connection_data"-->
+<!--            />-->
 
-        <Preference
-            android:enabled="false"
-            android:key="@string/key_tandem_address"
-            android:summary=""
-            android:title="Tandem Configuration">
-            <intent android:action="app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity" />
-        </Preference>
+<!--        <Preference-->
+<!--            android:enabled="false"-->
+<!--            android:key="@string/key_tandem_address"-->
+<!--            android:summary=""-->
+<!--            android:title="Tandem Configuration">-->
+<!--            <intent android:action="app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity" />-->
+<!--        </Preference>-->
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="25"
-            android:digits="0123456789"
-            android:inputType="number"
-            android:key="@string/key_tandem_max_bolus"
-            android:selectAllOnFocus="true"
-            android:singleLine="false"
-            android:title="@string/tandem_pump_max_bolus"
-            validate:maxNumber="25"
-            validate:minNumber="1"
-            validate:testType="numericRange" />
+<!--        <app.aaps.core.validators.ValidatingEditTextPreference-->
+<!--            android:defaultValue="25"-->
+<!--            android:digits="0123456789"-->
+<!--            android:inputType="number"-->
+<!--            android:key="@string/key_tandem_max_bolus"-->
+<!--            android:selectAllOnFocus="true"-->
+<!--            android:singleLine="false"-->
+<!--            android:title="@string/tandem_pump_max_bolus"-->
+<!--            validate:maxNumber="25"-->
+<!--            validate:minNumber="1"-->
+<!--            validate:testType="numericRange" />-->
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="15"
-            android:digits="0123456789"
-            android:inputType="number"
-            android:key="@string/key_tandem_max_basal"
-            android:selectAllOnFocus="true"
-            android:singleLine="false"
-            android:title="@string/tandem_pump_max_basal"
-            validate:maxNumber="15"
-            validate:minNumber="1"
-            validate:testType="numericRange" />
+<!--        <app.aaps.core.validators.ValidatingEditTextPreference-->
+<!--            android:defaultValue="15"-->
+<!--            android:digits="0123456789"-->
+<!--            android:inputType="number"-->
+<!--            android:key="@string/key_tandem_max_basal"-->
+<!--            android:selectAllOnFocus="true"-->
+<!--            android:singleLine="false"-->
+<!--            android:title="@string/tandem_pump_max_basal"-->
+<!--            validate:maxNumber="15"-->
+<!--            validate:minNumber="1"-->
+<!--            validate:testType="numericRange" />-->
 
 
-        <SwitchPreference
-            android:defaultValue="true"
-            android:key="@string/key_tandem_display_driver_version"
-            android:summary="@string/tandem_cfg_display_driver_version_summary"
-            android:title="@string/tandem_cfg_display_driver_version" />
+<!--        <SwitchPreference-->
+<!--            android:defaultValue="true"-->
+<!--            android:key="@string/key_tandem_display_driver_version"-->
+<!--            android:summary="@string/tandem_cfg_display_driver_version_summary"-->
+<!--            android:title="@string/tandem_cfg_display_driver_version" />-->
 
-    </PreferenceCategory>
+<!--    </PreferenceCategory>-->
 
 </androidx.preference.PreferenceScreen>

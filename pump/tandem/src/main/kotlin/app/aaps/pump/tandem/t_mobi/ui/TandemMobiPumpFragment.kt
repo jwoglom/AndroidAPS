@@ -8,6 +8,8 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import androidx.core.view.isVisible
 import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -26,7 +28,6 @@ import app.aaps.core.interfaces.rx.events.EventTempBasalChange
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
-import app.aaps.core.ui.dialogs.OKDialog
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.R as Rc
 import app.aaps.pump.tandem.R
@@ -45,11 +46,12 @@ import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.databinding.TandemMobiFragmentBinding
 
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
-import app.aaps.pump.common.ui.PumpHistoryActivity
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
+import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.CustomAlertDialog
+import com.google.gson.Gson
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
@@ -71,6 +73,8 @@ class TandemMobiPumpFragment : DaggerFragment() {
     @Inject lateinit var tandemPumpPlugin: TandemMobiPumpPlugin
     @Inject lateinit var aapsSchedulers: AapsSchedulers
     @Inject lateinit var sp: SP
+    lateinit var gson: Gson
+    var currentTextColor: Int = 0
 
     private var disposable: CompositeDisposable = CompositeDisposable()
     var TAG = LTag.PUMP
@@ -100,21 +104,19 @@ class TandemMobiPumpFragment : DaggerFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.pumpRefresh.setOnClickListener {
-            binding.pumpRefresh.isEnabled = false
+        binding.pumpRefreshMobi.setOnClickListener {
+            binding.pumpRefreshMobi.isEnabled = false
             tandemPumpPlugin.resetStatusState()
             commandQueue.readStatus("Clicked refresh", object : Callback() {
                 override fun run() {
-                    activity?.runOnUiThread { binding.pumpRefresh.isEnabled = true }
-                    rxBus.send(EventPumpDataRefresh())
+                    activity?.runOnUiThread { binding.pumpRefreshMobi.isEnabled = true }
+                    //rxBus.send(EventPumpDataRefresh())
                 }
             })
         }
 
         binding.pumpHistory.setOnClickListener {
-
-
-            //startActivity(Intent(context, PumpHistoryActivity::class.java))
+            startActivity(Intent(context, DataActivity::class.java))
         }
 
         binding.pumpConfig.setOnClickListener {
@@ -133,7 +135,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
         disposable += rxBus
             .toObservable(EventRefreshButtonState::class.java)
             .observeOn(aapsSchedulers.main)
-            .subscribe({ binding.pumpRefresh.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
+            .subscribe({ binding.pumpRefreshMobi.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventPumpDriverStateChanged::class.java)
             .observeOn(aapsSchedulers.main)
@@ -157,6 +159,8 @@ class TandemMobiPumpFragment : DaggerFragment() {
 
         this.binding.pumpDriverVersion.text = tandemPumpPlugin.version
 
+        //this.gson = TandemPumpUtil
+
         updateGUI(PumpUpdateFragmentType.Full)
     }
 
@@ -174,18 +178,22 @@ class TandemMobiPumpFragment : DaggerFragment() {
     //     }
     // }
 
+
+
     @Synchronized
     fun updateGUI(updateType: PumpUpdateFragmentType) {
 
         //val pumpState = pumpSync.expectedPumpState()
 
+        currentTextColor = binding.pumpBaseBasalRate.currentTextColor // we need color from item, in case we are not running in dark mode
+
         // last connection
         if (pumpStatus.lastConnection != 0L) {
-            val minAgo = dateUtil.minAgo(resourceHelper, pumpStatus.lastConnection)
+
             val min = (System.currentTimeMillis() - pumpStatus.lastConnection) / 1000 / 60
             if (pumpStatus.lastConnection + 60 * 1000 > System.currentTimeMillis()) {
                 binding.pumpLastConnection.setText(app.aaps.core.interfaces.R.string.now)
-                binding.pumpLastConnection.setTextColor(Color.WHITE)
+                binding.pumpLastConnection.setTextColor(currentTextColor)
             } else if (pumpStatus.lastConnection + 30 * 60 * 1000 < System.currentTimeMillis()) {
 
                 if (min < 60) {
@@ -201,8 +209,9 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 }
                 binding.pumpLastConnection.setTextColor(Color.RED)
             } else {
+                val minAgo = dateUtil.minAgo(resourceHelper, pumpStatus.lastConnection)
                 binding.pumpLastConnection.text = minAgo
-                binding.pumpLastConnection.setTextColor(Color.WHITE)
+                binding.pumpLastConnection.setTextColor(currentTextColor)
             }
         }
 
@@ -215,37 +224,48 @@ class TandemMobiPumpFragment : DaggerFragment() {
             updateCurrentActivity(pumpDriverState)
         }
 
-        if (updateType== PumpUpdateFragmentType.Full) {
-            this.updateQueue()
-        }
 
-        if (updateType == PumpUpdateFragmentType.TreatmentValues || updateType == PumpUpdateFragmentType.Full) {
+        this.updateQueue()
+
+
+        if (updateType == PumpUpdateFragmentType.Bolus ||
+            updateType == PumpUpdateFragmentType.TreatmentValues ||
+            updateType == PumpUpdateFragmentType.Full) {
+
             // Last Bolus, TBR (Profile Change)
 
-            //val bolusState: PumpSync.PumpState.Bolus? = pumpState.bolus
-            
             // last bolus
-           val bolus = pumpStatus.lastBolus
+            val bolus = pumpStatus.tandemLastBolus
+
             if (bolus != null) {
-                val agoMsc = System.currentTimeMillis() - bolus.bolusTimestamp!!
+                val agoMsc = System.currentTimeMillis() - bolus.timestamp
                 val bolusMinAgo = agoMsc.toDouble() / 60.0 / 1000.0
                 val unit = resourceHelper.gs(app.aaps.core.ui.R.string.insulin_unit_shortname)
                 val ago: String
                 if (agoMsc < 60 * 1000) {
                     ago = resourceHelper.gs(Rc.string.time_now)
                 } else if (bolusMinAgo < 60) {
-                    ago = dateUtil.minAgo(resourceHelper, pumpStatus.lastBolusTime!!.time)
+                    ago = dateUtil.minAgo(resourceHelper, bolus.timestamp)
+                } else if (bolusMinAgo < (60*24)) {
+                    ago = dateUtil.hourAgo(bolus.timestamp, resourceHelper)
                 } else {
-                    ago = dateUtil.hourAgo(pumpStatus.lastBolusTime!!.time, resourceHelper)
+                    ago = dateUtil.dayAgo(bolus.timestamp, resourceHelper)
                 }
-                binding.pumpLastBolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus.insulin, unit, ago)
+                binding.pumpLastBolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus.amountImmediate, unit, ago)
             } else {
                 binding.pumpLastBolus.text = "-"
             }
 
+        }
+
+        if (updateType == PumpUpdateFragmentType.TBR ||
+            updateType == PumpUpdateFragmentType.TreatmentValues ||
+            updateType == PumpUpdateFragmentType.Full) {
+
             // base basal rate
             binding.pumpBaseBasalRate.text = resourceHelper.gs(Rc.string.pump_base_basal_rate_with_profile,
-                                                               pumpStatus.activeProfileName, tandemPumpPlugin.baseBasalRate)
+                                                               pumpStatus.activeProfileName,
+                                                               tandemPumpPlugin.baseBasalRate)
 
             // tbr (always saved on pumpStatus)
             if (pumpStatus.currentTempBasal==null || System.currentTimeMillis() > pumpStatus.currentTempBasalEstimatedEnd!!) {
@@ -254,23 +274,14 @@ class TandemMobiPumpFragment : DaggerFragment() {
             } else {
                 val msDiff = pumpStatus.currentTempBasalEstimatedEnd!! - System.currentTimeMillis()
                 val min = msDiff / (60.0 * 1000.0)
-                //aapsLogger.info(TAG, "TBR Diff: estimatedEnd=${pumpStatus.currentTempBasalEstimatedEnd},msDiff=$msDiff,min=${min}")
-
                 binding.pumpTempBasal.text = resourceHelper.gs(Rc.string.pump_tbr_remaining_percent,
                                                               pumpStatus.currentTempBasal!!.insulinRate.toInt(), min.toInt())
             }
-
-            //TBR TODO
-            //binding.pumpTempBasal.text = activePlugin.getTempBasalFromHistory(System.currentTimeMillis())?.toStringFull()
-            //     ?: ""
         }
 
-        if (updateType == PumpUpdateFragmentType.Configuration || updateType == PumpUpdateFragmentType.Full) {
+        if (updateType == PumpUpdateFragmentType.Configuration ||
+            updateType == PumpUpdateFragmentType.Full) {
             // Firmware, Errors
-
-            // aapsLogger.info(LTag.PUMP,
-            //                 "Firmware (driverMode=${pumpStatus.pumpDriverMode}, " +
-            //                     "pumpFirmware=${pumpStatus.tandemPumpFirmware})")
 
             if (pumpStatus.pumpDriverMode == PumpDriverMode.Demo) {
                 binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_demo)
@@ -282,35 +293,35 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 }
             }
 
-            binding.pumpSerialNo.text = sp.getString(TandemPumpConst.Prefs.PumpSerial, "-")
-            binding.pumpAddress.text = sp.getString(TandemPumpConst.Prefs.PumpAddress, "-")
-
+            binding.pumpSerialNo.text = pumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpSerial, "-")
+            binding.pumpAddress.text = pumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpAddress, "-")
         }
 
-        if (updateType == PumpUpdateFragmentType.OtherValues || updateType == PumpUpdateFragmentType.Full) {
-            // Battery, Reservoir
-
-            // battery
-            binding.pumpBattery.text = "{fa-battery-" + pumpStatus.batteryRemaining / 25 + "}  " + pumpStatus.batteryRemaining + "%"
-            warnColors.setColorInverse(binding.pumpBattery, pumpStatus.batteryRemaining.toDouble(), 30, 20)
-
-            // reservoir
-            binding.pumpReservoir.text = resourceHelper.gs(app.aaps.core.ui.R.string.reservoir_value, pumpStatus.reservoirRemainingUnits, pumpStatus.reservoirFullUnits)
-            warnColors.setColorInverse(binding.pumpReservoir, pumpStatus.reservoirRemainingUnits, 50, 20)
+        if (updateType == PumpUpdateFragmentType.Battery ||
+            updateType == PumpUpdateFragmentType.OtherValues ||
+            updateType == PumpUpdateFragmentType.Full) {
+            updateBattery()
         }
 
-        if (updateType == PumpUpdateFragmentType.Custom_1 || updateType == PumpUpdateFragmentType.Full) {
+        if (updateType == PumpUpdateFragmentType.Reservoir ||
+            updateType == PumpUpdateFragmentType.OtherValues ||
+            updateType == PumpUpdateFragmentType.Full) {
+            updateReservoir()
+        }
+
+        if (updateType == PumpUpdateFragmentType.Custom_1 ||
+            updateType == PumpUpdateFragmentType.Full) {
             // qualifying events
-            var sb = StringBuilder()
+            val sb = StringBuilder()
 
-            aapsLogger.info(TAG, "XA: QE: ${pumpStatus.lastQualifyingEventsInfo}")
+            //aapsLogger.info(TAG, "XA: QE: ${pumpStatus.lastQualifyingEventsInfo}")
 
             if (pumpStatus.lastQualifyingEventsInfo!=null) {
                 sb.append("QE: ")
                 sb.append(pumpStatus.lastQualifyingEventsInfo)
             }
 
-            aapsLogger.info(TAG, "XA: Alarms: ${pumpStatus.tandemAlarms}")
+            //aapsLogger.info(TAG, "XA: Alarms: ${pumpStatus.tandemAlarms}")
 
             if (pumpStatus.tandemAlarms!=null && !pumpStatus.tandemAlarms!!.isEmpty()) {
                 if (!sb.isEmpty()){
@@ -322,7 +333,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 }
             }
 
-            aapsLogger.info(TAG, "XA: Alerts: ${pumpStatus.tandemAlerts}")
+            //aapsLogger.info(TAG, "XA: Alerts: ${pumpStatus.tandemAlerts}")
 
             if (pumpStatus.tandemAlerts!=null && !pumpStatus.tandemAlerts!!.isEmpty()) {
                 if (!sb.isEmpty()){
@@ -343,12 +354,54 @@ class TandemMobiPumpFragment : DaggerFragment() {
             binding.pumpQeInfo.text = endText
         }
 
-        binding.pumpErrors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
+        if (updateType == PumpUpdateFragmentType.Custom_2 ||
+            updateType == PumpUpdateFragmentType.Full) {
+            updateDataSemaphore()
+        }
+
+        showPumpErrors()
         setVisibilityOfDriverVersion()
     }
 
+    private fun updateDataSemaphore() {
+        updateLabelColor(binding.pumpDataStatusNotification, pumpStatus.semaphoreNotifications, Color.RED)
+        updateLabelColor(binding.pumpDataStatusEvents, pumpStatus.semaphoreEvents, Color.GREEN)
+        updateLabelColor(binding.pumpDataStatusHistory, pumpStatus.semaphoreHistory, Color.BLUE)
+    }
+
+    private fun updateLabelColor(pumpDataStatusLabel: TextView, semaphoreFlag: Boolean, color: Int) {
+        if (semaphoreFlag) {
+            pumpDataStatusLabel.setTextColor(color)
+        } else {
+            pumpDataStatusLabel.setTextColor(currentTextColor)
+        }
+    }
+
+    private fun showPumpErrors() {
+        if (pumpStatus.errorDescription != null) {
+            binding.pumpErrors.text = pumpStatus.errorDescription
+            binding.pumpErrorsView.visibility = View.VISIBLE
+            binding.pumpErrorsDelimiter.visibility = View.VISIBLE
+        } else {
+            binding.pumpErrorsView.visibility = View.GONE
+            binding.pumpErrorsDelimiter.visibility = View.GONE
+        }
+    }
+
+    private fun updateReservoir() {
+        // reservoir
+        binding.pumpReservoir.text = resourceHelper.gs(app.aaps.core.ui.R.string.reservoir_value, pumpStatus.reservoirRemainingUnits, pumpStatus.reservoirFullUnits)
+        warnColors.setColorInverse(binding.pumpReservoir, pumpStatus.reservoirRemainingUnits, 50, 20)
+    }
+
+    private fun updateBattery() {
+        // battery
+        binding.pumpBattery.text = "{fa-battery-" + pumpStatus.batteryRemaining / 25 + "}  " + pumpStatus.batteryRemaining + "%"
+        warnColors.setColorInverse(binding.pumpBattery, pumpStatus.batteryRemaining.toDouble(), 30, 20)
+    }
+
     private fun setVisibilityOfDriverVersion() {
-        val displayDriverVersion = sp.getBoolean(TandemPumpConst.Prefs.DisplayDriverVersion, true)
+        val displayDriverVersion = pumpUtil.getBooleanPreferenceOrDefault(TandemBooleanPreferenceKey.DisplayDriverVersion, true)
         binding.showDriverLayout.visibility = if (displayDriverVersion) View.VISIBLE else View.GONE
     }
 
@@ -364,8 +417,6 @@ class TandemMobiPumpFragment : DaggerFragment() {
         }
     }
 
-
-    //var resourcesPumpCommon = app.aaps.pump.common.R
 
     @Synchronized
     private fun updateCurrentActivity(pumpDriverState: PumpDriverState?) {
@@ -395,7 +446,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 val commandType: PumpCommandType? = pumpUtil.currentCommand
                 val customCommandTypeInterface : TandemCustomCommand? = pumpUtil.customCommandType as TandemCustomCommand?
                 if (commandType == null) {
-                    binding.currentActivity.text = resourceHelper.gs(resActivity," {fa-bed} ", "")
+                    binding.currentActivity.text = resourceHelper.gs(resActivity," {fa-bluetooth} ", resourceHelper.gs(pumpDriverState.resourceId))
                 } else {
                     if (commandType == PumpCommandType.CustomCommand) {
                         if (customCommandTypeInterface==null) {
@@ -404,7 +455,12 @@ class TandemMobiPumpFragment : DaggerFragment() {
                             binding.currentActivity.text = resourceHelper.gs(resActivity, " {fa-bluetooth} ", customCommandTypeInterface.getDescription())
                         }
                     } else {
-                        binding.currentActivity.text = resourceHelper.gs(resActivity, " {fa-bluetooth} ", resourceHelper.gs(commandType.resourceId))
+                        if (commandType == PumpCommandType.GetHistoryWithParameters) {
+                            val progress: String = pumpUtil.historyProgress.orEmpty()
+                            binding.currentActivity.text = resourceHelper.gs(resActivity, " {fa-bluetooth} ", resourceHelper.gs(commandType.resourceId, progress))
+                        } else {
+                            binding.currentActivity.text = resourceHelper.gs(resActivity, " {fa-bluetooth} ", resourceHelper.gs(commandType.resourceId))
+                        }
                     }
                 }
             }
@@ -424,14 +480,5 @@ class TandemMobiPumpFragment : DaggerFragment() {
             PumpRunningState.Suspended -> binding.pumpStatus.text = resourceHelper.gs(Rc.string.pump_status_suspended)
         }
     }
-
-    // enum class UpdateGui {
-    //     Status, // Pump Status (Error)
-    //     Queue, // Queue
-    //     TreatmentValues, // Last Bolus, TBR, Profile Change
-    //     Full,
-    //     Configuration,  // Firmware, Errors
-    //     OtherValues // Battery, Reservoir
-    // }
 
 }

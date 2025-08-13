@@ -7,13 +7,16 @@ import app.aaps.core.interfaces.profile.Profile.ProfileValue
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.data.BasalProfileDto
+import app.aaps.pump.common.defs.BolusData
+import app.aaps.pump.common.defs.BolusStatus
+import app.aaps.pump.common.defs.BolusType
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.driver.history.PumpDataConverter
 import app.aaps.pump.tandem.common.data.IDPSegmentDto
 import app.aaps.pump.tandem.common.data.PumpProfileDto
-import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
+
 import app.aaps.pump.tandem.common.data.history.Bolus
 import app.aaps.pump.tandem.common.data.history.DateTimeChanged
 import app.aaps.pump.tandem.common.data.history.HistoryLogDto
@@ -23,14 +26,17 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalLimitSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GlobalMaxBolusSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlarmActivatedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlertActivatedHistoryLog
@@ -68,17 +74,8 @@ import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpActionMsg2History
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpBolusHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpListHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.IdpTimeDependentSegmentHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.LogErasedHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.NewDayHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangeGlobalSettingsHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangePumpSettingsHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangeRemSettingsHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.ParamChangeReminderHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateActivatedHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateCompletedHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TimeChangedHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TubingFilledHistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbConnectedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbDisconnectedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbEnumeratedHistoryLog
@@ -154,14 +151,98 @@ class TandemDataConverter @Inject constructor(
 
     }
 
+
     fun getInsulinStatus(message: InsulinStatusResponse): DataCommandResponse<Double?> {
         return DataCommandResponse(
             PumpCommandType.GetRemainingInsulin, true, null, message.currentInsulinAmount.toDouble())
     }
 
-    fun getTempBasalRate(message: TempRateResponse): DataCommandResponse<TempBasalPair?> {
+
+    fun getBolus(message: LastBolusStatusV2Response): DataCommandResponse<BolusData?> {
 
         var jsonVal = pumpUtil.gson.toJson(message)
+        aapsLogger.info(TAG, "BOLUS: LastBolusStatusV2Response [${jsonVal}]")
+
+        val additionalData = mutableMapOf<String,Any?>()
+        additionalData["BolusSource"] = message.bolusSource
+        additionalData["BolusSourceId"] = message.bolusSourceId
+
+        val bolusStatus: BolusStatus = BolusStatus.DONE
+
+        val bolusTypes = message.bolusType
+
+        val bolusType: BolusType = if (bolusTypes.contains(element = BolusDeliveryHistoryLog.BolusType.EXTENDED)) {
+            BolusType.EXTENDED
+        } else {
+            BolusType.NORMAL
+        }
+
+        val bolusData = BolusData(
+            timestamp = message.timestampInstant.toEpochMilli(),
+            amountImmediate = message.requestedVolume * 0.001,
+            bolusType = bolusType,   // we can't determine if SMB at this point
+            bolusId = message.bolusId.toLong(),
+            bolusStatus = bolusStatus,
+            additionalData = additionalData
+        )
+
+        jsonVal = pumpUtil.gson.toJson(message)
+        aapsLogger.info(TAG, "BOLUS: BolusData [${jsonVal}]")
+
+        return DataCommandResponse(
+            PumpCommandType.GetBolus, true, null, bolusData)
+
+    }
+
+
+    fun getBolus(message: CurrentBolusStatusResponse?): DataCommandResponse<BolusData?> {
+
+        var jsonVal = pumpUtil.gson.toJson(message)
+        aapsLogger.info(TAG, "BOLUS: CurrentBolusStatusResponse [${jsonVal}]")
+
+        if (message==null) {
+            return DataCommandResponse(
+                PumpCommandType.GetBolus, false, "Bolus data response from pump could not be read.", null)
+        }
+
+        val additionalData = mutableMapOf<String,Any?>()
+        additionalData["BolusSource"] = message.bolusSource
+        additionalData["BolusSourceId"] = message.bolusSourceId
+
+        val bolusStatus: BolusStatus = when (message.status) {
+            CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> BolusStatus.DELIVERING
+            CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> BolusStatus.REQUESTED
+            else                                                     -> BolusStatus.DONE
+        }
+
+        val bolusTypes = message.bolusTypes
+
+        val bolusType: BolusType = if (bolusTypes.contains(element = BolusDeliveryHistoryLog.BolusType.EXTENDED)) {
+            BolusType.EXTENDED
+        } else {
+            BolusType.NORMAL
+        }
+
+        val bolusData = BolusData(
+            timestamp = message.timestampInstant.toEpochMilli(),
+            amountImmediate = message.requestedVolume * 0.001,
+            bolusType = bolusType,   // we can't determine if SMB at this point
+            bolusId = message.bolusId.toLong(),
+            bolusStatus = bolusStatus,
+            additionalData = additionalData
+        )
+
+        jsonVal = pumpUtil.gson.toJson(message)
+        aapsLogger.info(TAG, "BOLUS: BolusData [${jsonVal}]")
+
+        return DataCommandResponse(
+            PumpCommandType.GetBolus, true, null, bolusData)
+    }
+
+
+    fun getTempBasalRate(message: TempRateResponse): DataCommandResponse<TempBasalPair?> {
+
+        val jsonVal = pumpUtil.gson.toJson(message)
 
         aapsLogger.info(TAG, "TBR: TempRateResponse [${jsonVal}]")
 
@@ -206,6 +287,7 @@ class TandemDataConverter @Inject constructor(
         )
     }
 
+
     private fun findCorrectValueInSegments(targetTimeAsMinutes: Int, profileValueList : MutableCollection<IDPSegmentResponse>) : Double {
         var targetValue = 0.0
         for (profileValue in profileValueList) {
@@ -216,7 +298,6 @@ class TandemDataConverter @Inject constructor(
 
         return targetValue
     }
-
 
 
     fun getIDPSegmentsFromProfile(profile: Profile) : List<IDPSegmentDto> {
@@ -261,6 +342,7 @@ class TandemDataConverter @Inject constructor(
         return message.basalLimit
     }
 
+
     private fun getControlIQEnabled(message: Message): Boolean {
         if (message is ControlIQInfoV1Response)
             return message.closedLoopEnabled
@@ -269,6 +351,7 @@ class TandemDataConverter @Inject constructor(
 
         return false
     }
+
 
     fun getBatteryResponse(message: CurrentBatteryAbstractResponse): DataCommandResponse<Int?> {
         return DataCommandResponse(
@@ -295,10 +378,7 @@ class TandemDataConverter @Inject constructor(
 
     fun decodeHistoryLog(historyLogPump: HistoryLog): HistoryLogDto? {
 
-        TODO()
-
-
-        // // TODO this is not correctly implemented yet
+        // // TODOX this is not correctly implemented yet
         // if (!isLogTypeSupported(historyLogPump)) {
         //     return null
         // }
@@ -319,7 +399,7 @@ class TandemDataConverter @Inject constructor(
         //
         //     // Pump Status Changes - WIP
         //     // is PumpingResumedHistoryLog        -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpRunning)
-        //     // is PumpingSuspendedHistoryLog      -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpSuspended, historyLogPump.reasonId) // TODO maybe different handling?
+        //     // is PumpingSuspendedHistoryLog      -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpSuspended, historyLogPump.reasonId) // XTODO maybe different handling?
         //
         //     // TBR
         //     is TempRateActivatedHistoryLog     -> historyLog.subObject = createTBRRecord(historyLogPump)
@@ -482,114 +562,114 @@ class TandemDataConverter @Inject constructor(
 
 
 
-    private fun createBolusRecord(bolusLog: BolexCompletedHistoryLog): HistoryLogObject {
+    // private fun createBolusRecord(bolusLog: BolexCompletedHistoryLog): HistoryLogObject {
+    //
+    //     val bolus = Bolus(bolusId = bolusLog.bolusId,
+    //                       immediateAmount = bolusLog.insulinDelivered.toDouble(),
+    //                       isCancelled = false,
+    //                       isRunning = bolusLog.completionStatus == 0  // XTODO createBolusRecord::completionStatus Bolus
+    //     )
+    //
+    //     return bolus
+    //
+    // }
 
-        val bolus = Bolus(bolusId = bolusLog.bolusId,
-                          immediateAmount = bolusLog.insulinDelivered.toDouble(),
-                          isCancelled = false,
-                          isRunning = bolusLog.completionStatus == 0  // TODO createBolusRecord::completionStatus Bolus
-        )
+    // private fun createBolusRecord(historyLogPump: BolusActivatedHistoryLog): HistoryLogObject? {
+    //     // TODOX ("createBolusRecord(BolusActivatedHistoryLog) Not yet implemented")
+    // }
 
-        return bolus
-
-    }
-
-    private fun createBolusRecord(historyLogPump: BolusActivatedHistoryLog): HistoryLogObject? {
-        TODO("createBolusRecord(BolusActivatedHistoryLog) Not yet implemented")
-    }
-
-    private fun createBolusRecord(historyLogPump: BolexActivatedHistoryLog): HistoryLogObject? {
-        TODO("createBolusRecord(BolexActivatedHistoryLog)  Not yet implemented")
-    }
-
-
-    private fun createTBRRecord(historyLogPump: TempRateActivatedHistoryLog): HistoryLogObject? {
-        val temporaryBasal = TemporaryBasal(
-                    percent = historyLogPump.percent.toInt(),
-                    minutes = historyLogPump.duration.toInt(),
-                    isRunning = true,
-                    tempRateId = historyLogPump.tempRateId
-                )
-        tbrMap.put(historyLogPump.tempRateId, temporaryBasal)
-
-        return temporaryBasal
-    }
+    // private fun createBolusRecord(historyLogPump: BolexActivatedHistoryLog): HistoryLogObject? {
+    //     // TODOX createBolusRecord(BolexActivatedHistoryLog)  Not yet implemented
+    // }
 
 
-    private fun createTBRRecord(historyLogPump: TempRateCompletedHistoryLog): HistoryLogObject? {
-        // TODO("createTBRRecord(TempRateCompletedHistoryLog)  Not yet implemented")
-        //return TemporaryBasal(historyLogPump.)
+    // private fun createTBRRecord(historyLogPump: TempRateActivatedHistoryLog): HistoryLogObject? {
+    //     val temporaryBasal = TemporaryBasal(
+    //                 percent = historyLogPump.percent.toInt(),
+    //                 minutes = historyLogPump.duration.toInt(),
+    //                 isRunning = true,
+    //                 tempRateId = historyLogPump.tempRateId
+    //             )
+    //     tbrMap.put(historyLogPump.tempRateId, temporaryBasal)
+    //
+    //     return temporaryBasal
+    // }
 
 
-
-
-        historyLogPump.tempRateId
-        historyLogPump.timeLeft
-
-        //TemporaryBasal tbr =
-
-        return null
-    }
-
-
+    // private fun createTBRRecord(historyLogPump: TempRateCompletedHistoryLog): HistoryLogObject? {
+    //     // TODOX ("createTBRRecord(TempRateCompletedHistoryLog)  Not yet implemented")
+    //     //return TemporaryBasal(historyLogPump.)
+    //
+    //
+    //
+    //
+    //     historyLogPump.tempRateId
+    //     historyLogPump.timeLeft
+    //
+    //     //TemporaryBasal tbr =
+    //
+    //     return null
+    // }
 
 
 
 
-    private fun createBolusRecord(bolusLog: BolusCompletedHistoryLog): HistoryLogObject {
-
-        val bolus = Bolus(bolusId = bolusLog.bolusId,
-                          immediateAmount = bolusLog.insulinDelivered.toDouble(),
-                          isCancelled = false,
-                          isRunning = bolusLog.completionStatusId == 0  // TODO completionStatus Bolus maybe different handling
-        )
-
-        return bolus
-
-    }
 
 
-    private fun createAlertRecord(historyLogPump: AlertActivatedHistoryLog): HistoryLogObject? {
-        TODO("createAlertRecord Not yet implemented")
-    }
+    // private fun createBolusRecord(bolusLog: BolusCompletedHistoryLog): HistoryLogObject {
+    //
+    //     val bolus = Bolus(bolusId = bolusLog.bolusId,
+    //                       immediateAmount = bolusLog.insulinDelivered.toDouble(),
+    //                       isCancelled = false,
+    //                       isRunning = bolusLog.completionStatusId == 0  // TODOX completionStatus Bolus maybe different handling
+    //     )
+    //
+    //     return bolus
+    //
+    // }
 
-    private fun createAlarmRecord(historyLogPump: AlarmActivatedHistoryLog): HistoryLogObject? {
-        TODO("createAlarmRecord Not yet implemented")
-    }
+
+    // private fun createAlertRecord(historyLogPump: AlertActivatedHistoryLog): HistoryLogObject? {
+    //     // TODOX ("createAlertRecord Not yet implemented")
+    // }
+    //
+    // private fun createAlarmRecord(historyLogPump: AlarmActivatedHistoryLog): HistoryLogObject? {
+    //     // TODOX ("createAlarmRecord Not yet implemented")
+    // }
 
 
 
-    private fun createDateChangeRecord(historyLogPump: DateChangeHistoryLog): HistoryLogObject {
-        return createDateTimeChangeRecord(historyLogPump.getDateAfterInstant().toEpochMilli(), false)
-    }
+    // private fun createDateChangeRecord(historyLogPump: DateChangeHistoryLog): HistoryLogObject {
+    //     return createDateTimeChangeRecord(historyLogPump.getDateAfterInstant().toEpochMilli(), false)
+    // }
 
     // private fun createDateChangeRecord(historyLogPump: DateChangeResponse): HistoryLogObject {
     //     return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.dateAfter).toEpochMilli(), false)
     // }
 
-    private fun createTimeChangeRecord(historyLogPump: TimeChangedHistoryLog): HistoryLogObject {
-        return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.timeAfter).toEpochMilli(), true)
-    }
+    // private fun createTimeChangeRecord(historyLogPump: TimeChangedHistoryLog): HistoryLogObject {
+    //     return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.timeAfter).toEpochMilli(), true)
+    // }
+    //
+    // private fun createDateTimeChangeRecord(dateTime: Long, timeChanged: Boolean): DateTimeChanged {
+    //     val dt = DateTime().withMillis(dateTime)
+    //     return DateTimeChanged(year = dt.year, month = dt.monthOfYear, day = dt.dayOfMonth,
+    //                            hour = dt.hourOfDay, minute = dt.minuteOfHour, second = dt.secondOfMinute,
+    //                            timeChanged = timeChanged)
+    // }
 
-    private fun createDateTimeChangeRecord(dateTime: Long, timeChanged: Boolean): DateTimeChanged {
-        val dt = DateTime().withMillis(dateTime)
-        return DateTimeChanged(year = dt.year, month = dt.monthOfYear, day = dt.dayOfMonth,
-                               hour = dt.hourOfDay, minute = dt.minuteOfHour, second = dt.secondOfMinute,
-                               timeChanged = timeChanged)
-    }
-
-    fun createHistoryLogDto(historyLogPump: HistoryLog) : HistoryLogDto {
-        return HistoryLogDto(sequenceId= historyLogPump.sequenceNum,
-                             pumpSerial = 0,  // TODO createHistoryLogDto pumpSerial missing
-                             typeId = historyLogPump.typeId(),
-                             //historyType = TandemPumpHistoryType.getByCode(historyLogPump.typeId()),
-                             pumpTime = historyLogPump.pumpTimeSecInstant.toEpochMilli(),
-                             //sequenceNum = historyLogPump.sequenceNum,
-                             entitySubId = null,
-                             payload = historyLogPump.cargo //ByteUtil.getCompactString(historyLogPump.cargo),
-                             //subObject = null
-        )
-    }
+    // fun createHistoryLogDto(historyLogPump: HistoryLog) : HistoryLogDto {
+    //     return HistoryLogDto(sequenceId= historyLogPump.sequenceNum,
+    //                          pumpSerial = 0,  // TODOX createHistoryLogDto pumpSerial missing
+    //                          typeId = historyLogPump.typeId(),
+    //                          //historyType = TandemPumpHistoryType.getByCode(historyLogPump.typeId()),
+    //                          pumpTime = historyLogPump.pumpTimeSecInstant.toEpochMilli(),
+    //                          //sequenceNum = historyLogPump.sequenceNum,
+    //                          entitySubId = null,
+    //                          payload = historyLogPump.cargo //ByteUtil.getCompactString(historyLogPump.cargo),
+    //                          //subObject = null
+    //     )
+    // }
 
 
 

@@ -5,31 +5,22 @@ import app.aaps.pump.common.driver.history.PumpHistoryEntry
 import app.aaps.pump.common.driver.history.PumpHistoryPeriod
 import app.aaps.pump.common.driver.history.PumpHistoryText
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.common.database.TandemHistoryRecordEntity
-import app.aaps.pump.tandem.common.database.TandemPumpHistory
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.utils.DateTimeUtil
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
-import app.aaps.pump.tandem.common.comm.TandemDataConverter
-import app.aaps.pump.tandem.common.data.history.Bolus
-import app.aaps.pump.tandem.common.data.history.HistoryLogDto
-import app.aaps.pump.tandem.common.data.defs.TandemPumpHistoryType
+import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 
-import javax.inject.Inject
+// This class was meant to be used with old History UI, no longer needed for Compose implementation
+// but it might be useful for future implementation, so it will stay here for now
 
-// TODO needs to be fully refactored
-class TandemHistoryDataProvider @Inject constructor(
+// TODOX needs to be removed
+class TandemHistoryDataProvider constructor(
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,
     var tandemPumpUtil: TandemPumpUtil,
-    private val tandemDataConverter: TandemDataConverter,
-    private var tandemPumpHistory: TandemPumpHistory
 ) : PumpHistoryDataProviderAbstract() {
-
-    //@Inject lateinit var tandemPumpHistory: TandemPumpHistory;
 
     private var groupList: List<PumpHistoryEntryGroup> = listOf()
 
@@ -42,17 +33,17 @@ class TandemHistoryDataProvider @Inject constructor(
         }
 
         if (period == PumpHistoryPeriod.ALL) {
-            dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allBlocking()
+            //dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allBlocking()
         } else {
             val startingTimeForData = getStartingTimeForData(period)
-            dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allSinceBlocking(DateTimeUtil.toATechDate(startingTimeForData))
+            //dbHistoryList = tandemPumpHistory.pumpHistoryDatabase.historyRecordDao().allSinceBlocking(DateTimeUtil.toATechDate(startingTimeForData))
         }
 
-        for (historyRecordEntity in dbHistoryList) {
-            val domainObject = tandemPumpHistory.historyMapper.entityToDomain(historyRecordEntity)
-            domainObject.prepareEntryData(resourceHelper = resourceHelper, pumpDataConverter = tandemDataConverter)
-            outList.add(domainObject)
-        }
+        // for (historyRecordEntity in dbHistoryList) {
+        //     val domainObject = tandemPumpHistory.historyMapper.entityToDomain(historyRecordEntity)
+        //     domainObject.prepareEntryData(resourceHelper = resourceHelper, pumpDataConverter = tandemDataConverter)
+        //     outList.add(domainObject)
+        // }
 
         return outList
     }
@@ -61,7 +52,7 @@ class TandemHistoryDataProvider @Inject constructor(
 
         val serial : Long = 48758748
 
-        TODO()
+        // XTODO()
 
         // outList.add(HistoryLogDto(47, serial, 1,
         //                           TandemPumpHistoryType.BOLUS_COMPLETED, 1,
@@ -134,7 +125,7 @@ class TandemHistoryDataProvider @Inject constructor(
     }
 
     override fun isItemInSelection(itemGroup: PumpHistoryEntryGroup, targetGroup: PumpHistoryEntryGroup): Boolean {
-        TODO()
+        // TODOX
         return if (targetGroup == PumpHistoryEntryGroup.EventsNoStat || targetGroup == PumpHistoryEntryGroup.EventsOnly) {
             if (targetGroup == PumpHistoryEntryGroup.EventsOnly) {
                 itemGroup != PumpHistoryEntryGroup.Alarm

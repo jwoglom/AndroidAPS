@@ -1,0 +1,387 @@
+package app.aaps.pump.tandem.t_mobi.ui.util
+
+import android.os.Handler
+import android.os.Looper
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier;
+import androidx.compose.ui.composed
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.debugInspectorInfo
+import androidx.compose.ui.text.AnnotatedString;
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle;
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
+import timber.log.Timber
+import java.time.Instant
+import androidx.compose.material3.Text as Text1
+import java.time.Duration
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+
+
+@Composable
+fun Line(
+    text: String,
+    style: TextStyle = MaterialTheme.typography.bodyLarge,
+    bold: Boolean = false,
+    modifier: Modifier = Modifier,
+        ) {
+    Text1(
+            text = text,
+            style = style,
+            fontWeight = when (bold) {
+        true -> FontWeight.Bold
+            else -> FontWeight.Normal
+    },
+    modifier = modifier
+    )
+}
+
+@Composable
+fun Line(
+        text:AnnotatedString,
+        style:TextStyle= MaterialTheme.typography.bodyLarge,
+        bold: Boolean = false,
+        modifier:Modifier= Modifier,
+        ) {
+    Text1(
+            text = text,
+            style = style,
+            fontWeight = when (bold) {
+        true -> FontWeight.Bold
+            else -> FontWeight.Normal
+    },
+    modifier = modifier
+    )
+}
+
+@Composable
+fun intervalOf(seconds: Int): Int {
+    var value by remember { mutableStateOf(0) }
+
+    DisposableEffect(value) {
+        val handler = Handler(Looper.getMainLooper())
+
+        val runnable = {
+            value += 1
+        }
+
+        handler.postDelayed(runnable, (seconds * 1000).toLong())
+
+        onDispose {
+            handler.removeCallbacks(runnable)
+        }
+    }
+
+    return value
+}
+
+@Composable
+fun HeaderLine(
+    text: String
+) {
+    Line(text, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(all = 20.dp))
+}
+
+
+@Composable
+fun HeaderLineWithBackButton(
+    text: String,
+    backgroundColor: Color = Color.White,
+    onBackClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .background(backgroundColor)
+            .padding(horizontal = 8.dp),
+
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier.padding(start = 14.dp),
+            text = text,
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        IconButton(onClick = onBackClick,
+            modifier = Modifier.padding(end = 8.dp)
+        ) {
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back"
+            )
+        }
+    }
+}
+
+val dateTimeFormatter24h = DateTimeFormatter.ofPattern("dd.MM.y HH:mm:ss")
+
+@Composable
+fun DateTimeInTwoLines(localDateTime: LocalDateTime,
+                       fontSize: TextUnit = 13.sp,
+                       fieldWidth: Dp? = null
+) {
+    val dt = localDateTime.format(dateTimeFormatter24h)
+    if (fieldWidth==null) {
+        Text(text = dt, fontSize = fontSize)
+    } else {
+        Text(text = dt, fontSize = fontSize, modifier = Modifier.width(fieldWidth))
+    }
+}
+
+@Composable
+fun DateTimeInTwoLines(timeInMillis: Long,
+                       fontSize: TextUnit = 13.sp,
+                       fieldWidth: Dp? = null
+) {
+
+    val dt = timeInMillisToLocalDateTime(timeInMillis).format(dateTimeFormatter24h)
+    if (fieldWidth==null) {
+        Text(text = dt, fontSize = fontSize)
+    } else {
+        Text(text = dt, fontSize = fontSize, modifier = Modifier.width(fieldWidth))
+    }
+}
+
+
+fun timeInMillisToLocalDateTime(timeInMillis: Long): LocalDateTime {
+    return Instant.ofEpochMilli(timeInMillis)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDateTime()
+}
+
+
+
+@Composable
+fun DottedDivider(
+    color: Color = Color.Gray,
+    dotRadius: Dp = 2.dp,
+    spaceBetween: Dp = 4.dp,
+    modifier: Modifier = Modifier.fillMaxWidth().height(1.dp)
+) {
+    val dotPx = with(LocalDensity.current) { dotRadius.toPx() }
+    val spacePx = with(LocalDensity.current) { spaceBetween.toPx() }
+
+    Canvas(modifier = modifier) {
+        val totalWidth = size.width
+        var x = 0f
+        while (x < totalWidth) {
+            drawCircle(
+                color = color,
+                radius = dotPx,
+                center = Offset(x + dotPx, size.height / 2)
+            )
+            x += (dotPx * 2) + spacePx
+        }
+    }
+}
+
+
+// https://stackoverflow.com/a/72504219
+fun Modifier.onFocusSelectAll(textFieldValueState: MutableState<TextFieldValue>): Modifier =
+    composed(
+        inspectorInfo = debugInspectorInfo {
+            name = "textFieldValueState"
+            properties["textFieldValueState"] = textFieldValueState
+        }
+    ) {
+        var triggerEffect by remember {
+            mutableStateOf<Boolean?>(null)
+        }
+        if (triggerEffect != null) {
+            LaunchedEffect(triggerEffect) {
+                val tfv = textFieldValueState.value
+                Timber.d("tfv: $tfv oldValue: ${textFieldValueState.value}")
+                textFieldValueState.value = tfv.copy(selection = TextRange(0, tfv.text.length))
+            }
+        }
+        Modifier.onFocusChanged { focusState ->
+            if (focusState.isFocused) {
+                triggerEffect = triggerEffect?.let { bool ->
+                    !bool
+                } ?: true
+            }
+        }
+    }
+
+
+// https://developer.android.com/jetpack/compose/side-effects#disposableeffect
+@Composable
+fun LifecycleStateObserver(
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    onStop: () -> Unit,   // Send the 'stopped' analytics event
+    onStart: () -> Unit, // Send the 'started' analytics event
+) {
+    // Safely update the current lambdas when a new one is provided
+    val currentOnStart by rememberUpdatedState(onStart)
+    val currentOnStop by rememberUpdatedState(onStop)
+
+    // If `lifecycleOwner` changes, dispose and reset the effect
+    DisposableEffect(lifecycleOwner) {
+        // Create an observer that triggers our remembered callbacks
+        // for sending analytics events
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                currentOnStart()
+            } else if (event == Lifecycle.Event.ON_STOP) {
+                currentOnStop()
+            }
+        }
+
+        // Add the observer to the lifecycle
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        // When the effect leaves the Composition, remove the observer
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DecimalOutlinedText(
+    title: String,
+    value: String?,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var error = false
+    val decimalPlaces = 2
+
+    var textFieldValue = remember {
+        mutableStateOf(TextFieldValue(value ?: ""))
+    }
+
+    LaunchedEffect (value) {
+        textFieldValue.value = textFieldValue.value.copy(text = value ?: "")
+    }
+
+    OutlinedTextField(
+        value = textFieldValue.value,
+        onValueChange = {
+            textFieldValue.value = it
+            val text = it.text
+            var filtered = text.filter { (it in '0'..'9') || it == '.' }
+            val dotIndex = filtered.lastIndexOf('.')
+            if (dotIndex >= 0 && filtered.length - dotIndex > decimalPlaces + 1) {
+                filtered = filtered.substring(0, dotIndex + decimalPlaces + 1)
+            }
+            error = (filtered.toDoubleOrNull() == null)
+            onValueChange(filtered)
+        },
+        keyboardOptions = KeyboardOptions(
+            autoCorrect = false,
+            capitalization = KeyboardCapitalization.None,
+            keyboardType = KeyboardType.Number,
+        ),
+        label = { Text(text = title) },
+//        label = {
+//            Text(title)
+//        },
+        isError = error,
+//        colors = if (isSystemInDarkTheme())
+//            TextFieldDefaults.outlinedTextFieldColors( focusedTextColor = Color.DarkGray,  focusedPlaceholderColor = Color.DarkGray)
+//        else TextFieldDefaults.outlinedTextFieldColors(),
+        modifier = modifier.fillMaxWidth().onFocusSelectAll(textFieldValue)
+    )
+}
+
+
+fun twoDecimalPlaces(decimal: Double): String {
+    return String.format("%.2f", decimal)
+}
+
+fun prettyDuration(seconds: Long?): String {
+    val minutes = seconds?.div(60)
+    println("Pretty Duration: ${minutes}")
+    return "${minutes?.div(60)}h${minutes?.rem(60)}m"
+}
+
+val zoneId = ZoneId.systemDefault()
+val formatterTime = DateTimeFormatter.ofPattern("HH:mm")
+
+fun prettyTime(startTime: Instant?): String {
+    if (startTime==null) {
+        return "??"
+    }
+
+    val zonedDateTime = startTime.atZone(zoneId)
+
+    return zonedDateTime.format(formatterTime)
+}
+
+fun remainingTime(secondsDuration: Long?, startTime: Instant?): String {
+    if (secondsDuration==null || startTime==null) {
+        return "?"
+    }
+
+    val endTime = startTime.plusSeconds(secondsDuration)
+
+    val duration = Duration.between(Instant.now(), endTime)
+
+    return "${duration.toMinutes()} min left"
+
+}
+
+
+fun compactTBRDisplay(tempRateResponse: TempRateResponse?): String {
+    if (tempRateResponse==null) {
+        return "?"
+    }
+
+    return if (tempRateResponse.active) {
+        "${tempRateResponse.percentage}%  (${remainingTime(tempRateResponse.duration,tempRateResponse.startTimeInstant)})"
+    } else {
+        " - "
+    }
+}
+
