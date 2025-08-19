@@ -202,6 +202,8 @@ class DbDataHandler @Inject constructor(
 
         val targetGroup = queryParameters.groupType!!
 
+        tandemHistoryConverter.prepareForConversion()
+
         for (entity in entities) {
             val historyRecordDto = tandemHistoryConverter.getHistoryRecordDto(entity)
 

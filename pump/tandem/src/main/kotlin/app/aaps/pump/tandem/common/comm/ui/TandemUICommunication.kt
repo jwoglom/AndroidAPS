@@ -24,6 +24,7 @@ import com.jwoglom.pumpx2.pump.messages.response.control.ExitChangeCartridgeMode
 import com.jwoglom.pumpx2.pump.messages.response.control.ExitFillTubingModeResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.InitiateBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.RemoteCarbEntryResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.ResumePumpingResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.DetectingCartridgeStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartridgeModeStateStreamResponse
@@ -253,7 +254,16 @@ class TandemUICommunication @Inject constructor (
                     historyRetriever.receivedLogStreamResponse(message)
                 }
             }
-            is StatusMessage -> {
+            is ResumePumpingResponse    -> {
+                aapsLogger.error(TAG, "ResumePumpingResponse received with status=${message.isStatusOK}")
+                if (message.isStatusOK) {
+                    dataStore.basalStatus.value = BasalStatus.ON
+                    dataStore.pumpRunningState.value = PumpRunningState.Running
+                } else {
+                    unsuccessfulAlert(message.messageName())
+                }
+            }
+            is StatusMessage            -> {
                 aapsLogger.error(TAG, "Received StatusMessage which is not yet supported: ${message.javaClass.name}, success=${message.isStatusOK}")
                 if (!message.isStatusOK) unsuccessfulAlert(message.messageName())
             }

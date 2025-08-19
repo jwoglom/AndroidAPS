@@ -37,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Observer
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -164,7 +165,7 @@ fun Notifications(
         )
 
         val notifications = remember { mutableStateListOf<Any>()}
-        ds.notificationBundle.observe(androidx.lifecycle.compose.LocalLifecycleOwner.current, Observer {
+        ds.notificationBundle.observe(LocalLifecycleOwner.current, Observer {
             ds.notificationBundle.value?.let {
                 notifications.clear()
                 notifications.addAll(it.get().toTypedArray())
@@ -179,7 +180,10 @@ fun Notifications(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLineWithBackButton(text=resourceHelper.gs(R.string.data_notifications), onBackClick=navigateBack, backgroundColor = Color.LightGray)
+                    HeaderLineWithBackButton(text=resourceHelper.gs(R.string.data_notifications),
+                                             onBackClick=navigateBack,
+                                             backgroundColor = Color.LightGray,
+                                             resourceHelper = resourceHelper)
                     HorizontalDivider()
                 }
 

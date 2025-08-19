@@ -35,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -115,7 +116,7 @@ fun QualifyingEvents(
 
         val events = remember { mutableStateListOf<TandemQualifyingEventDto>() }
 
-        ds.dataQELoaded.observe(androidx.lifecycle.compose.LocalLifecycleOwner.current, {
+        ds.dataQELoaded.observe(LocalLifecycleOwner.current, {
             if (ds.dataQELoaded.value==true) {
                 ds.dataQE.value?.let {
                     events.clear()
@@ -133,7 +134,10 @@ fun QualifyingEvents(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLineWithBackButton(text= resourceHelper.gs(R.string.data_events), onBackClick=navigateBack, backgroundColor = Color.LightGray)
+                    HeaderLineWithBackButton(text= resourceHelper.gs(R.string.data_events),
+                                             onBackClick=navigateBack,
+                                             backgroundColor = Color.LightGray,
+                                             resourceHelper = resourceHelper)
                     HorizontalDivider()
                 }
 

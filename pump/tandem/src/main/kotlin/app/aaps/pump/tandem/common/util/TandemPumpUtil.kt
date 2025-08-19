@@ -30,10 +30,10 @@ class TandemPumpUtil @Inject constructor(
     rxBus: RxBus,
     context: Context,
     resourceHelper: ResourceHelper,
-    var preferences: Preferences,
+    preferences: Preferences,
     var tandemPumpStatus: TandemPumpStatus
 
-): PumpUtil(aapsLogger, rxBus, context, resourceHelper) {
+): PumpUtil(aapsLogger, rxBus, context, resourceHelper, preferences) {
 
     fun getTimeFromPumpAsEpochMillis(pumpTime: Long): Long {
         return Dates.fromJan12008EpochSecondsToDate(pumpTime).toEpochMilli();

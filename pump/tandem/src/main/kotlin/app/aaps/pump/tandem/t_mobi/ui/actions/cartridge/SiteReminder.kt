@@ -37,7 +37,10 @@ fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLineWithBackButton(text= resourceHelper.gs(R.string.sr_title), onBackClick=navigateBack, backgroundColor = Color.LightGray)
+                HeaderLineWithBackButton(text= resourceHelper.gs(R.string.sr_title),
+                                         onBackClick=navigateBack,
+                                         backgroundColor = Color.LightGray,
+                                         resourceHelper = resourceHelper)
                 HorizontalDivider()
             }
 

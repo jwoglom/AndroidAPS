@@ -15,9 +15,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.pump.tandem.R
+import app.aaps.core.ui.R as Rco
 
 @Composable
-fun CustomAlertDialog(title: String, content: String) {
+fun CustomAlertDialog(title: String,
+                      content: String,
+                      resourceHelper: ResourceHelper) {
 
     var showDialog by remember { mutableStateOf(false) }
 
@@ -35,12 +40,12 @@ fun CustomAlertDialog(title: String, content: String) {
                     onClick = { showDialog = false },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Green)
                 ) {
-                    Text("Yes", color = Color.White)
+                    Text(resourceHelper.gs(Rco.string.yes), color = Color.White)
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = { showDialog = false }) {
-                    Text("No")
+                    Text(resourceHelper.gs(Rco.string.no))
                 }
             },
             shape = RoundedCornerShape(16.dp), // Rounded corners

@@ -472,6 +472,11 @@ abstract class PumpPluginAbstract protected constructor(
             PumpDataRefreshAction.GetData -> {
                 HashMap(statusRefreshMap)
             }
+
+            PumpDataRefreshAction.Delete -> {
+                statusRefreshMap.remove(statusRefreshType)
+                null
+            }
         }
     }
 
@@ -496,6 +501,17 @@ abstract class PumpPluginAbstract protected constructor(
                 PumpDataRefreshAction.Add, refreshType,
                 getTimeInFutureFromMinutes(refreshTime + additionalTimeInMinutes)
             )
+        } else if (refreshTime==-1) {
+            val statusRefresh = workWithStatusRefresh(
+                PumpDataRefreshAction.GetData, null,
+                null)!!
+
+            if (statusRefresh.containsKey(refreshType)) {
+                workWithStatusRefresh(
+                    PumpDataRefreshAction.Delete, refreshType,
+                    -1
+                )
+            }
         }
     }
 

@@ -7,6 +7,7 @@ import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventNewNotification
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.data.DateTimeDto
 import app.aaps.pump.common.defs.NotificationTypeInterface
@@ -32,7 +33,8 @@ open class PumpUtil constructor(
     val aapsLogger: AAPSLogger,
     val rxBus: RxBus,
     val context: Context,
-    val resourceHelper: ResourceHelper
+    val resourceHelper: ResourceHelper,
+    val preferences: Preferences
 ) {
 
     var preventConnect: Boolean = false
@@ -225,6 +227,11 @@ open class PumpUtil constructor(
         rxBus.send(EventNewNotification(notification))
     }
 
+
+    fun isAAPSDarkTheme(isSystemDarkTheme: Boolean): Boolean {
+        // TODO isAAPSDarkTheme implement
+        return isSystemDarkTheme;
+    }
 
 
     companion object {

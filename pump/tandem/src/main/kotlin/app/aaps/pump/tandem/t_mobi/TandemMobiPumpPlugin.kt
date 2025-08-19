@@ -337,7 +337,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_INSULIN_LEVEL)) {
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.RemainingInsulin, System.currentTimeMillis())
-            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.PumpStatus, System.currentTimeMillis())
+            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, System.currentTimeMillis())
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.GetTemporaryBasal, System.currentTimeMillis())
             if (!commandQueue.statusInQueue()) {
                 commandQueue.readStatus("Status Refresh (UI)", null)
@@ -701,7 +701,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isBusy(): Boolean {
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy")
+        if (displayConnectionMessages) aapsLogger.error(LTag.PUMP, logPrefix + "isBusy")
         if (busy || tandemPumpUtil.preventConnect) {
             if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy")
             return true
@@ -792,7 +792,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     PumpDataRefreshType.GetTemporaryBasal -> {
                         // TODO GetTemporaryBasal refresh after stop/start of pump
-                        aapsLogger.error(LTag.PUMP, "Refresh_GetTemporaryBasal: NOT IMPLEMENTED.");
+                        aapsLogger.error(LTag.PUMP, "Refresh_GetTemporaryBasal: NOT IMPLEMENTED.")
+
                     }
 
                     PumpDataRefreshType.BatteryStatus -> {
@@ -807,12 +808,19 @@ class TandemMobiPumpPlugin @Inject constructor(
                         getFullPumpStatus(readHistory = true)
                     }
 
+                    // this is for simple status refresh (only PumpStatus without Alerts/Alarms or history
+                    PumpDataRefreshType.Custom_1 -> {
+                        aapsLogger.info(LTag.PUMP, "Refresh_Custom_1 (simple pump status after UI)")
+                        pumpConnectionManager.getPumpStatus()
+                        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
+                    }
+
                     PumpDataRefreshType.RemainingInsulin -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_RemainingInsulin")
                         pumpConnectionManager.getRemainingInsulin()
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Reservoir))
 
-                        resetDisplay = true
+                        //resetDisplay = true
                         //resetTime = true
                     }
 
@@ -845,7 +853,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
 
         if (readHistory) {
-            // TODO history
             historyRetriever.downloadHistory()
         }
     }
@@ -1680,8 +1687,15 @@ class TandemMobiPumpPlugin @Inject constructor(
                 )
             )
 
+            addPreference(
+                AdaptiveSwitchPreference(
+                    ctx = context,
+                    booleanKey = TandemBooleanPreferenceKey.ShowCargoOfUnknownEntries,
+                    title = R.string.tandem_cfg_show_cargo_of_unknown_logs,
+                    summary = R.string.tandem_cfg_show_cargo_of_unknown_logs_summary
+                )
+            )
         }
-
 
 
 
