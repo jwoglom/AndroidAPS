@@ -7,6 +7,7 @@ import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventNewNotification
+import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.data.DateTimeDto
@@ -229,8 +230,15 @@ open class PumpUtil constructor(
 
 
     fun isAAPSDarkTheme(isSystemDarkTheme: Boolean): Boolean {
-        // TODO isAAPSDarkTheme implement
-        return isSystemDarkTheme;
+        val colorscheme = preferences.get(StringKey.GeneralDarkMode)
+
+        if (colorscheme.equals("dark")) {
+            return true
+        } else if (colorscheme.equals("light")) {
+            return false
+        } else {
+            return isSystemDarkTheme
+        }
     }
 
 

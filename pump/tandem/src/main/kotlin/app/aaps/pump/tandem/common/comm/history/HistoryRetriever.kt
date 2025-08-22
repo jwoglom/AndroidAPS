@@ -111,7 +111,7 @@ class HistoryRetriever @Inject constructor(
         startDataRetrieval()
 
         while(downloadRunning) {
-            aapsLogger.error("HST: download running")
+            aapsLogger.debug("HST: download running")
             pumpUtil.sleepSeconds(5)
         }
 
@@ -123,8 +123,7 @@ class HistoryRetriever @Inject constructor(
         var diffTime = System.currentTimeMillis() - startTime
         diffTime /= 1000
 
-        aapsLogger.error(TAG, "HST: Download finished in $diffTime seconds.")
-
+        aapsLogger.info(TAG, "Download finished in $diffTime seconds.")
 
         dbDataHandler.databaseStatistics() // TODO HistoryRetriever::temporary db stats
 
@@ -133,7 +132,7 @@ class HistoryRetriever @Inject constructor(
 
 
     private fun setSemaphore() {
-        aapsLogger.error("setSemaphore: knownItems=$knownLogItemsCount")
+        aapsLogger.debug("setSemaphore: knownItems=$knownLogItemsCount")
 
         if (knownLogItemsCount>0) {
             if (!pumpStatus.semaphoreHistory) {
@@ -176,7 +175,7 @@ class HistoryRetriever @Inject constructor(
     private fun updateRetrievalProgress() {
         val currentProgress = this.progressCurrentChunk + progressPreviousChunksItems
         val currentProgressString = "${currentProgress}/${this.progressAllItems}"
-        aapsLogger.error(TAG, "HST PROGRESS: $currentProgressString")
+        //aapsLogger.error(TAG, "HST PROGRESS: $currentProgressString")
 
         if (!silentDownload) {
             pumpUtil.historyProgress = "($currentProgressString)"
@@ -187,7 +186,7 @@ class HistoryRetriever @Inject constructor(
         val summaryData = preferences.get(TandemStringNonPreferenceKey.HistorySummaryData)
         if (summaryData.isNotBlank()) {
             historySummaryDto = pumpUtil.gsonRegular.fromJson(summaryData, HistorySummaryDto::class.java)
-            aapsLogger.error(TAG, "Initial Summary: $historySummaryDto")
+            aapsLogger.debug(TAG, "Initial Summary: $historySummaryDto")
         }
 
         val gc = GregorianCalendar()
@@ -208,11 +207,11 @@ class HistoryRetriever @Inject constructor(
 
     fun receivedStatus(message: HistoryLogStatusResponse) {
 
-        aapsLogger.error(TAG, "HST: Got LogStatusResponse: $message")
+        aapsLogger.debug(TAG, "Got LogStatusResponse: $message")
 
         if (historySummaryDto==null) {
 
-            aapsLogger.error(TAG, "HST: First read")
+            aapsLogger.debug(TAG, "First read")
 
             val remainingRange = HistoryRange(message.firstSequenceNum,
                                               message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT)
@@ -245,16 +244,16 @@ class HistoryRetriever @Inject constructor(
                 return
             }
 
-            aapsLogger.error(TAG, "HST: Non-First read")
+            aapsLogger.debug(TAG, "HST: Non-First read")
 
             val diff = message.lastSequenceNum - historySummaryDto!!.lastRecord
 
             if (diff==0L) {
-                aapsLogger.error(TAG, "HST: Non-First read: No new records.")
+                aapsLogger.debug(TAG, "HST: Non-First read: No new records.")
                 // no new records
                 listOfRequests.addAll(getNextChunks(RECORDS_RETRIEVAL_AMOUNT))
             } else if (diff<RECORDS_RETRIEVAL_AMOUNT) {
-                aapsLogger.error(TAG, "HST: Non-First read: Less than $RECORDS_RETRIEVAL_AMOUNT new records.")
+                aapsLogger.debug(TAG, "HST: Non-First read: Less than $RECORDS_RETRIEVAL_AMOUNT new records.")
                 // less than 1000 new records
                 listOfRequests.addAll(prepareChunks(historySummaryDto!!.lastRecord+1,
                                                     message.lastSequenceNum))
@@ -265,7 +264,7 @@ class HistoryRetriever @Inject constructor(
                 listOfRequests.addAll(getNextChunks(howMuchToGet.toInt()))
 
             } else {
-                aapsLogger.error(TAG, "HST: Non-First read: We have more than $RECORDS_RETRIEVAL_AMOUNT new records.")
+                aapsLogger.debug(TAG, "HST: Non-First read: We have more than $RECORDS_RETRIEVAL_AMOUNT new records.")
                 listOfRequests.addAll(prepareChunks(message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT,
                                                     message.lastSequenceNum))
 
@@ -291,7 +290,7 @@ class HistoryRetriever @Inject constructor(
 
         resetProgress(howManyItemsInNextChunks(listOfRequests))
 
-        aapsLogger.error(TAG, "HST: HistorySummary: ${pumpUtil.gsonRegular.toJson(historySummaryDto)}")
+        //aapsLogger.error(TAG, "HST: HistorySummary: ${pumpUtil.gsonRegular.toJson(historySummaryDto)}")
 
         aapsLogger.info(TAG, "HST: List Of Requests: ${pumpUtil.gsonRegular.toJson(listOfRequests)}")
 
@@ -315,12 +314,12 @@ class HistoryRetriever @Inject constructor(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun getNextChunks(howManyEntriesDoWeNeed: Int): MutableList<HistoryRequestInfo> {
 
-        aapsLogger.error(TAG, "HST getNextChunks (howManyEntriesDoWeNeed=$howManyEntriesDoWeNeed)")
+        aapsLogger.debug(TAG, "HST getNextChunks (howManyEntriesDoWeNeed=$howManyEntriesDoWeNeed)")
 
         val newChunks: MutableList<HistoryRequestInfo> = mutableListOf()
 
         if (historySummaryDto!!.missedRanges.isEmpty() && historySummaryDto!!.activeProcessing.isEmpty()) {
-            aapsLogger.error(TAG, "getNextChunks: No missed ranges found.")
+            aapsLogger.debug(TAG, "getNextChunks: No missed ranges found.")
             return newChunks
         }
 
@@ -371,7 +370,7 @@ class HistoryRetriever @Inject constructor(
             }
         }
 
-        aapsLogger.error(TAG, "getNextChunks: New Chunks Found: $newChunks")
+        aapsLogger.debug(TAG, "getNextChunks: New Chunks Found: $newChunks")
 
         return newChunks
 
@@ -414,17 +413,17 @@ class HistoryRetriever @Inject constructor(
     }
 
     private fun debugSummary() {
-        aapsLogger.error(TAG, "Summary: active=${historySummaryDto!!.activeProcessing.size}, missed=${historySummaryDto!!.missedRanges.size}")
+        //aapsLogger.error(TAG, "Summary: active=${historySummaryDto!!.activeProcessing.size}, missed=${historySummaryDto!!.missedRanges.size}")
     }
 
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun getNewestRange(): HistoryRange? {
         if (this.historySummaryDto!!.missedRanges.isEmpty()) {
-            aapsLogger.error(TAG, "getNewestChunk: No missed ranges found.")
+            aapsLogger.debug(TAG, "getNewestChunk: No missed ranges found.")
             return null
         } else if (this.historySummaryDto!!.missedRanges.size==1) {
-            aapsLogger.error(TAG, "getNewestChunk: One missed range found.")
+            aapsLogger.debug(TAG, "getNewestChunk: One missed range found.")
             val selectedRange = this.historySummaryDto!!.missedRanges[0]
             this.historySummaryDto!!.missedRanges.removeAt(0)
             return selectedRange
@@ -440,7 +439,7 @@ class HistoryRetriever @Inject constructor(
                 }
             }
             this.historySummaryDto!!.missedRanges.remove(selectedRange)
-            aapsLogger.error(TAG, "getNewestChunk: One of many missed ranges found: $selectedRange")
+            aapsLogger.debug(TAG, "getNewestChunk: One of many missed ranges found: $selectedRange")
             return selectedRange
         }
     }
@@ -452,7 +451,7 @@ class HistoryRetriever @Inject constructor(
 
 
     private fun prepareChunks(startRange: Long, endRange: Long): MutableList<HistoryRequestInfo> {
-        aapsLogger.error(TAG, "HST: Start range: $startRange and End range : $endRange")
+        aapsLogger.debug(TAG, "prepareChunks: Start range: $startRange and End range : $endRange")
 
         var currentEnd = endRange
         val chunksList: MutableList<HistoryRequestInfo> = mutableListOf()
@@ -477,7 +476,7 @@ class HistoryRetriever @Inject constructor(
 
 
     private fun saveSummary() {
-        aapsLogger.error(TAG, "HST: Save Summary: $historySummaryDto")
+        //aapsLogger.debug(TAG, "HST: Save Summary: $historySummaryDto")
         preferences.put(TandemStringNonPreferenceKey.HistorySummaryData, this.pumpUtil.gsonRegular.toJson(this.historySummaryDto))
         debugSummary()
     }
@@ -486,20 +485,20 @@ class HistoryRetriever @Inject constructor(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun executeNextLogGet(queue: ArrayDeque<HistoryRequestInfo>) {
         currentRequest = queue.removeFirst()
-        aapsLogger.error(TAG, "HST: executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
+        aapsLogger.info(TAG, "HST: executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
         this.communication.sendCommand(HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs))
     }
 
 
     fun receivedLogStreamResponse(message: HistoryLogStreamResponse) {
 
-        aapsLogger.warn(TAG, "Received from Stream: numberOfHistoryLogs=${message.numberOfHistoryLogs}, streamId=${message.streamId}, historyLogsSize=${message.historyLogs.size} ")
+        aapsLogger.debug(TAG, "Received from Stream: numberOfHistoryLogs=${message.numberOfHistoryLogs}, streamId=${message.streamId}, historyLogsSize=${message.historyLogs.size} ")
 
         this.currentRequest!!.historyLogMap.putAll(message.historyLogs.associateBy { it.sequenceNum })
 
         this.progressCurrentChunk = currentRequest!!.historyLogMap.size
 
-        aapsLogger.error(TAG, "HST: Number of Logs: $progressCurrentChunk")
+        //aapsLogger.error(TAG, "HST: Number of Logs: $progressCurrentChunk")
 
         updateRetrievalProgress()
 
@@ -516,14 +515,14 @@ class HistoryRetriever @Inject constructor(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun processChunkComplete() {
 
-        aapsLogger.error(TAG, "HST: processChunkComplete: ${currentRequest!!.historyLogMap.size}")
+        aapsLogger.info(TAG, "HST: processChunkComplete: ${currentRequest!!.historyLogMap.size}")
 
         disableLastMessageWatchdog()
 
         if (this.currentRequest!!.chunkHasAllItems()) {
-            aapsLogger.warn(TAG, "HST: Chunk Has All Items: ${currentRequest!!.historyLogMap.size}")
+            aapsLogger.info(TAG, "HST: Chunk Has All Items: ${currentRequest!!.historyLogMap.size}")
         } else {
-            aapsLogger.error(TAG, "HST: Chunk Has MISSING Items: ${currentRequest!!.historyLogMap.size}")
+            aapsLogger.warn(TAG, "HST: Chunk Has MISSING Items: ${currentRequest!!.historyLogMap.size}")
             addMissingItemsInChunk(this.currentRequest!!)
         }
 
@@ -544,14 +543,14 @@ class HistoryRetriever @Inject constructor(
         }
 
         if (listOfMissingItemsInChunk.isNotEmpty()) {
-            aapsLogger.error(TAG, "HST: Missing items in the chunk: ${pumpUtil.gsonRegular.toJson(listOfMissingItemsInChunk)}")
+            aapsLogger.debug(TAG, "HST: Missing items in the chunk: ${pumpUtil.gsonRegular.toJson(listOfMissingItemsInChunk)}")
             executeNextLogGet(listOfMissingItemsInChunk)
         } else {
             if (listOfRequests.isNotEmpty()) {
-                aapsLogger.error(TAG, "HST: Next chunk retrieval (listOfRequests=${listOfRequests.size})")
+                aapsLogger.debug(TAG, "HST: Next chunk retrieval (listOfRequests=${listOfRequests.size})")
                 executeNextLogGet(listOfRequests)
             } else {
-                aapsLogger.error(TAG, "HST: No more chunks to get... Exiting")
+                aapsLogger.debug(TAG, "HST: No more chunks to get... Exiting")
                 this.downloadRunning = false
             }
         }
@@ -587,12 +586,12 @@ class HistoryRetriever @Inject constructor(
                 //aapsLogger.error(TAG, "Not found $i")
 
                 for(j in startSeq+1..currentRequest.endSequence) {
-                    aapsLogger.error(TAG, "For $j")
+                    //aapsLogger.error(TAG, "For $j")
                     if (currentRequest.historyLogMap.containsKey(j)) {
                         //aapsLogger.error(TAG, "Key found $j")
                         endSeq = j-1
                         historyRangeList.add(HistoryRequestInfo(startSeq, endSeq))
-                        aapsLogger.error(TAG, "Add History Range (start=$startSeq, end=$endSeq)")
+                        //aapsLogger.error(TAG, "Add History Range (start=$startSeq, end=$endSeq)")
                         //startSeq = null
                         //endSeq = null
                         i = j-1
@@ -601,7 +600,7 @@ class HistoryRetriever @Inject constructor(
 
                     if (j==currentRequest.endSequence) {
                         //aapsLogger.error(TAG, "End Reached ($startSeq-$endSeq)")
-                        aapsLogger.error(TAG, "Add History Range On End (start=$startSeq, end=$endSeq)")
+                        //aapsLogger.error(TAG, "Add History Range On End (start=$startSeq, end=$endSeq)")
                         historyRangeList.add(HistoryRequestInfo(startSeq, currentRequest.endSequence))
                         i=currentRequest.endSequence
                     }
@@ -624,11 +623,16 @@ class HistoryRetriever @Inject constructor(
 
         val listOfRecords: MutableList<HistoryLog> = mutableListOf()
 
+        var historyLog: HistoryLog? = null
+
         for (entry in historyRequestInfo.historyLogMap.values) {
+            if (historyLog==null) {
+                historyLog = entry;
+            }
             if (entry.pumpTimeSec >= maxDateTimeInSec) {
                 listOfRecords.add(entry)
-                // TODO HistoryRetriever remove
-                aapsLogger.error(TAG, "Entry:  ${formatter.format(entry.pumpTimeSecInstant)} - ${entry.javaClass.simpleName}")
+
+                //aapsLogger.error(TAG, "Entry:  ${formatter.format(entry.pumpTimeSecInstant)} - ${entry.javaClass.simpleName}")
 
                 if (entry !is UnknownHistoryLog) {
                     knownLogItemsCount++
@@ -636,7 +640,11 @@ class HistoryRetriever @Inject constructor(
             }
         }
 
+        //if (historyRequestInfo.)
 
+        if (historyLog!=null) {
+            aapsLogger.debug(TAG, "Newest entry for database: ${formatter.format(historyLog.pumpTimeSecInstant)} - ${historyLog.javaClass.simpleName}")
+        }
 
         aapsLogger.info(TAG, "Add History Logs to Database (filtered_count=${listOfRecords.size},retrieved_count=${historyRequestInfo.historyLogMap.values.size})")
         dbDataHandler.addHistoryLogs(listOfRecords)
@@ -678,7 +686,7 @@ class HistoryRetriever @Inject constructor(
     }
 
     fun receivedLogResponse(message: HistoryLogResponse) {
-        aapsLogger.error(TAG, "Received LogResponse: $message")
+        //aapsLogger.error(TAG, "Received LogResponse: $message")
     }
 
 

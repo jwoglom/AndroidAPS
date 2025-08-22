@@ -1,9 +1,14 @@
 package app.aaps.pump.tandem.common.database.data.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 
-
-@Entity(tableName = "history_records", primaryKeys = ["sequenceId", "pumpSerial"])
+@Entity(tableName = "history_records",
+        primaryKeys = ["sequenceId", "pumpSerial"],
+        indices = [
+            Index(name = "idx_history_records_pumpTime", value = ["pumpTime"])
+        ]
+)
 data class TandemHistoryRecordEntity(
     var sequenceId: Long,
     var pumpSerial: Int,

@@ -97,7 +97,7 @@ class TandemUICommunication @Inject constructor (
 
     override fun onReceiveMessage(message: Message) {
 
-        aapsLogger.error(TAG, "onReceiveMessageListener: $message")
+        //aapsLogger.error(TAG, "onReceiveMessageListener: $message")
 
         if (message is ApiVersionResponse) {
             aapsLogger.debug(TAG, "Got ApiVersionRequest: $message")

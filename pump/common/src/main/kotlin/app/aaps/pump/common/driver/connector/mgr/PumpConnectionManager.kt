@@ -488,6 +488,7 @@ abstract class PumpConnectionManager constructor(
 
         if (responseData.isSuccess) {
             pumpStatus.batteryRemaining = responseData.value!!
+            aapsLogger.error(TAG, "New Battery remaining: ${pumpStatus.batteryRemaining}")
         }
 
         return responseData
