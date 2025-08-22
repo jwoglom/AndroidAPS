@@ -35,12 +35,13 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLifecycleOwner
+
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.text.AnnotatedString;
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle;
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -51,6 +52,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.pump.tandem.R
+import app.aaps.core.ui.R as Rco
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import timber.log.Timber
 import java.time.Instant
@@ -82,9 +87,9 @@ fun Line(
 @Composable
 fun Line(
         text:AnnotatedString,
+        modifier:Modifier= Modifier,
         style:TextStyle= MaterialTheme.typography.bodyLarge,
         bold: Boolean = false,
-        modifier:Modifier= Modifier,
         ) {
     Text1(
             text = text,
@@ -122,7 +127,8 @@ fun intervalOf(seconds: Int): Int {
 fun HeaderLine(
     text: String
 ) {
-    Line(text, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(all = 20.dp))
+    Line(text, style = MaterialTheme.typography.headlineMedium,
+         modifier = Modifier.padding(all = 20.dp))
 }
 
 
@@ -130,7 +136,8 @@ fun HeaderLine(
 fun HeaderLineWithBackButton(
     text: String,
     backgroundColor: Color = Color.White,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    resourceHelper: ResourceHelper
 ) {
     Row(
         modifier = Modifier
@@ -155,7 +162,7 @@ fun HeaderLineWithBackButton(
 
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back"
+                contentDescription = resourceHelper.gs(R.string.common_back)
             )
         }
     }
@@ -238,7 +245,7 @@ fun Modifier.onFocusSelectAll(textFieldValueState: MutableState<TextFieldValue>)
         if (triggerEffect != null) {
             LaunchedEffect(triggerEffect) {
                 val tfv = textFieldValueState.value
-                Timber.d("tfv: $tfv oldValue: ${textFieldValueState.value}")
+                //Timber.d("tfv: $tfv oldValue: ${textFieldValueState.value}")
                 textFieldValueState.value = tfv.copy(selection = TextRange(0, tfv.text.length))
             }
         }
@@ -292,10 +299,11 @@ fun DecimalOutlinedText(
     title: String,
     value: String?,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    decimalPlaces: Int = 2
 ) {
     var error = false
-    val decimalPlaces = 2
+
 
     var textFieldValue = remember {
         mutableStateOf(TextFieldValue(value ?: ""))
@@ -318,15 +326,12 @@ fun DecimalOutlinedText(
             error = (filtered.toDoubleOrNull() == null)
             onValueChange(filtered)
         },
-        keyboardOptions = KeyboardOptions(
-            autoCorrect = false,
-            capitalization = KeyboardCapitalization.None,
-            keyboardType = KeyboardType.Number,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None,
+                                          autoCorrectEnabled = false,
+                                          keyboardType = KeyboardType.Number,
+                                          imeAction = ImeAction.Unspecified
         ),
         label = { Text(text = title) },
-//        label = {
-//            Text(title)
-//        },
         isError = error,
 //        colors = if (isSystemInDarkTheme())
 //            TextFieldDefaults.outlinedTextFieldColors( focusedTextColor = Color.DarkGray,  focusedPlaceholderColor = Color.DarkGray)
@@ -340,11 +345,11 @@ fun twoDecimalPlaces(decimal: Double): String {
     return String.format("%.2f", decimal)
 }
 
-fun prettyDuration(seconds: Long?): String {
-    val minutes = seconds?.div(60)
-    println("Pretty Duration: ${minutes}")
-    return "${minutes?.div(60)}h${minutes?.rem(60)}m"
-}
+// fun prettyDuration(seconds: Long?): String {
+//     val minutes = seconds?.div(60)
+//     println("Pretty Duration: ${minutes}")
+//     return "${minutes?.div(60)}h${minutes?.rem(60)}m"
+// }
 
 val zoneId = ZoneId.systemDefault()
 val formatterTime = DateTimeFormatter.ofPattern("HH:mm")
@@ -359,7 +364,7 @@ fun prettyTime(startTime: Instant?): String {
     return zonedDateTime.format(formatterTime)
 }
 
-fun remainingTime(secondsDuration: Long?, startTime: Instant?): String {
+fun remainingTime(secondsDuration: Long?, startTime: Instant?, resourceHelper: ResourceHelper): String {
     if (secondsDuration==null || startTime==null) {
         return "?"
     }
@@ -368,18 +373,18 @@ fun remainingTime(secondsDuration: Long?, startTime: Instant?): String {
 
     val duration = Duration.between(Instant.now(), endTime)
 
-    return "${duration.toMinutes()} min left"
+    return resourceHelper.gs(R.string.ui_a_min_ago, duration.toMinutes())
 
 }
 
 
-fun compactTBRDisplay(tempRateResponse: TempRateResponse?): String {
+fun compactTBRDisplay(tempRateResponse: TempRateResponse?, resourceHelper: ResourceHelper): String {
     if (tempRateResponse==null) {
         return "?"
     }
 
     return if (tempRateResponse.active) {
-        "${tempRateResponse.percentage}%  (${remainingTime(tempRateResponse.duration,tempRateResponse.startTimeInstant)})"
+        "${tempRateResponse.percentage}%  (${remainingTime(tempRateResponse.duration,tempRateResponse.startTimeInstant, resourceHelper)})"
     } else {
         " - "
     }

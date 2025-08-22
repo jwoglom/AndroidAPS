@@ -1,11 +1,9 @@
-@file:OptIn(
-    ExperimentalMaterial3Api::class
-)
-
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package app.aaps.pump.tandem.t_mobi.ui
 
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,6 +34,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.ui.compose.ComposeUiProvider
 import app.aaps.core.interfaces.ui.compose.DaggerComponentActivity
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
 import app.aaps.pump.tandem.common.data.defs.RefreshData
@@ -48,14 +47,11 @@ import app.aaps.pump.tandem.t_mobi.ui.actions.Actions
 import app.aaps.pump.tandem.t_mobi.ui.actions.PumpInfo
 import app.aaps.pump.tandem.t_mobi.ui.actions.cartridge.CartridgeActions
 import app.aaps.pump.tandem.t_mobi.ui.actions.cartridge.SiteReminder
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import javax.inject.Inject
 
-// var dataStore = DataStore()
-// val LocalDataStore = compositionLocalOf { dataStore }
 
 class ActionsActivity : DaggerComponentActivity() {
 
@@ -72,6 +68,9 @@ class ActionsActivity : DaggerComponentActivity() {
     //@Inject
     lateinit var tandemUICommunication : TandemUICommunication
 
+    val isDarkTheme: Boolean
+        get() = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,6 +84,8 @@ class ActionsActivity : DaggerComponentActivity() {
                                                       pumpStatus = tandemPumpStatus,
                                                       context = context,
                                                       aapsLogger= aapsLogger)
+
+
 
         enableEdgeToEdge()
         setContent {
@@ -101,7 +102,7 @@ class ActionsActivity : DaggerComponentActivity() {
                 }
             }
 
-            TMobiScreensTheme {
+            TMobiScreensTheme(darkTheme = tandemPumpUtil.isAAPSDarkTheme(isSystemDarkTheme = isDarkTheme)) {
                 Scaffold(
                     content = { innerPadding ->
                         BottomSheetScaffold(
@@ -181,6 +182,7 @@ class ActionsActivity : DaggerComponentActivity() {
         }
     }
 
+
     override fun onResume() {
         super.onResume()
         this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
@@ -209,7 +211,7 @@ class ActionsActivity : DaggerComponentActivity() {
             sb.append(", ${msg.javaClass.name}")
         }
 
-        val listText = sb.substring(2);
+        val listText = sb.substring(2)
 
         aapsLogger.warn(TAG, "PumpCommands to Send [commands=${listText}]")
 
@@ -228,12 +230,12 @@ class ActionsActivity : DaggerComponentActivity() {
 
 // HACK: subpages should have the same label as an item appearing in the nav
 // so that item appears as selected when it is navigated to within the app
-enum class ActionsLandingSection(val label: String, val icon: ImageVector, val showInNav: Boolean) {
+enum class ActionsLandingSection(val label: String, val icon: ImageVector) {
 
-    ACTIONS("Actions", Icons.Filled.Create, true),
-    CARTRIDGE_ACTIONS("Actions", Icons.Filled.Create, false),
-    PUMP_INFO("Pump Info", Icons.Filled.Create, false),
-    SITE_REMINDER("Site Reminder", Icons.Filled.Create, false)
+    ACTIONS("Actions", Icons.Filled.Create),
+    CARTRIDGE_ACTIONS("Actions", Icons.Filled.Create),
+    PUMP_INFO("Pump Info", Icons.Filled.Create),
+    SITE_REMINDER("Site Reminder", Icons.Filled.Create)
     ;
 }
 

@@ -1,6 +1,8 @@
 package app.aaps.pump.tandem.common.comm.history
 
+import android.content.Context
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
 import app.aaps.pump.tandem.common.data.history.HistoryRange
@@ -8,6 +10,7 @@ import app.aaps.pump.tandem.common.data.history.HistoryRequestInfo
 import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.google.gson.Gson
@@ -43,6 +46,9 @@ class HistoryRetrieverTest {
     @Mock lateinit var tandemPumpUtil: TandemPumpUtil
     @Mock lateinit var preferences: Preferences
     @Mock lateinit var dbDataHandler: DbDataHandler
+    @Mock lateinit var rxBus: RxBus
+    @Mock lateinit var context: Context
+    @Mock lateinit var tandemPumpConnector: TandemPumpConnector
 
 
     val aapsLogger = AAPSLoggerTest()
@@ -61,12 +67,15 @@ class HistoryRetrieverTest {
         `when`(this.tandemPumpUtil.gsonRegular).thenReturn(gsonRegular)
 
         this.unitToTest = HistoryRetriever(
-            communication = tandemUICommunication,
+            //communication = tandemUICommunication,
             pumpStatus = tandemPumpStatus,
             aapsLogger = aapsLogger,
             pumpUtil = tandemPumpUtil,
             preferences = preferences,
-            dbDataHandler = dbDataHandler
+            dbDataHandler = dbDataHandler,
+            rxBus = rxBus,
+            context = context,
+            tandemPumpConnector = tandemPumpConnector
         )
 
         this.unitToTestSpy = spy(this.unitToTest)

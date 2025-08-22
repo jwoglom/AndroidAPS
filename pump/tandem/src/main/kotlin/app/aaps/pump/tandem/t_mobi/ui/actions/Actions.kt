@@ -40,11 +40,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+// import androidx.compose.ui.platform.LocalContext
+//import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -53,8 +54,8 @@ import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
-
+import app.aaps.pump.tandem.R
+import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.t_mobi.ui.util.LifecycleStateObserver
 import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
@@ -89,25 +90,26 @@ fun Actions(
     navigateToCartridgeActions: () -> Unit,
     navigateToPumpInfo: () -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
+    //val coroutineScope = rememberCoroutineScope()
 
     var showResumeInsulinMenu by remember { mutableStateOf(_resumeInsulinMenuState) }
     var showSuspendInsulinMenu by remember { mutableStateOf(_suspendInsulinMenuState) }
     var showStopTempRateMenu by remember { mutableStateOf(_stopTempRateMenuState) }
 
-    val context = LocalContext.current
+    //val context = LocalContext.current
     val ds = LocalTandemDataStore.current
-    val deviceName = ds.setupDeviceName.observeAsState()
-    @Suppress("PropertyName")
+    //val deviceName = ds.setupDeviceName.observeAsState()
+    @Suppress("LocalVariable")
     val TAG = LTag.PUMPCOMM
 
     val tempRateActive = ds.tempRateActive.observeAsState()
     val tempRateDetails = ds.tempRateDetails.observeAsState()
+    val basalStatus = ds.pumpRunningState.observeAsState()
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
 
-    fun fetchDataStoreFields(type: SendType) {
+    fun fetchDataStoreFields() {
         sendPumpCommands(actionsCommands)
     }
 
@@ -123,7 +125,7 @@ fun Actions(
             aapsLogger.debug(TAG, "Actions loading: remaining ${nullFields.size}: ${actionsFields.map { it.value }}")
             if (sinceLastFetchTime >= 2500) {
                 aapsLogger.debug(TAG, "Actions loading re-fetching with cache")
-                fetchDataStoreFields(SendType.CACHED)
+                fetchDataStoreFields()
                 sinceLastFetchTime = 0
             }
 
@@ -142,23 +144,23 @@ fun Actions(
         refreshing = true
 
         actionsFields.forEach { field -> field.value = null }
-        fetchDataStoreFields(SendType.BUST_CACHE)
+        fetchDataStoreFields()
     }
 
     //val state = rememberPullRefreshState(refreshing, ::refresh)
     val pullRefreshState = rememberPullToRefreshState()
 
-
+// LocalLifecycleOwner.current
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
         refreshScope.cancel()
     }) {
         aapsLogger.debug(TAG, "reloading Actions from onStart lifecyclestate")
-        fetchDataStoreFields(SendType.STANDARD)
+        fetchDataStoreFields()
     }
 
     LaunchedEffect(intervalOf(60)) {
         aapsLogger.debug(TAG, "reloading Actions from interval")
-        fetchDataStoreFields(SendType.STANDARD)
+        fetchDataStoreFields()
     }
 
     LaunchedEffect(refreshing) {
@@ -187,10 +189,10 @@ fun Actions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("Actions")
+                    HeaderLine(resourceHelper.gs(R.string.ca_label))
                 }
                 item {
-                    val basalStatus = ds.pumpRunningState.observeAsState()
+
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -267,6 +269,9 @@ fun Actions(
                                             sendPumpCommands(listOf(ResumePumpingRequest()))
                                             refreshScope.launch {
                                                 repeat(5) {
+                                                    if (basalStatus.value == PumpRunningState.Running) {
+                                                        return@repeat
+                                                    }
                                                     Thread.sleep(1000)
                                                     sendPumpCommands(
                                                         listOf(HomeScreenMirrorRequest())
@@ -314,6 +319,9 @@ fun Actions(
                                             sendPumpCommands(listOf(SuspendPumpingRequest()))
                                             refreshScope.launch {
                                                 repeat(5) {
+                                                    if (basalStatus.value == PumpRunningState.Suspended) {
+                                                        return@repeat
+                                                    }
                                                     Thread.sleep(1000)
                                                     sendPumpCommands(listOf(HomeScreenMirrorRequest()))
                                                 }
@@ -359,7 +367,8 @@ fun Actions(
                                 )},
                                 supportingContent =  {
                                     when (tempRateActive.value) {
-                                        true -> Text("Active: ${compactTBRDisplay(tempRateDetails.value)}")
+                                        true -> Text("Active: ${compactTBRDisplay(tempRateResponse = tempRateDetails.value, 
+                                                                                  resourceHelper = resourceHelper)}")
                                         else -> null
                                     }
                                 },
@@ -492,7 +501,7 @@ val actionsFields = listOf(
 @Preview(showBackground = true)
 @Composable
 private fun PreviewInsulinActive() {
-    TMobiScreensTheme() {
+    TMobiScreensTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

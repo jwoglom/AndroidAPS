@@ -11,6 +11,7 @@ data class TandemHistoryRecordDto(
 
     var name: String,
     var description: String? = null,
+    var descriptionLines: String = "",
 
     var group: PumpHistoryEntryGroup,
 

@@ -32,7 +32,6 @@ import app.aaps.core.ui.R as Rco
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
 import app.aaps.pump.tandem.t_mobi.ui.util.DecimalOutlinedText
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
@@ -131,6 +130,7 @@ fun FillCannula(innerPadding: PaddingValues,
                                     DecimalOutlinedText(
                                         title = resourceHelper.gs(R.string.fc_fill_amount),
                                         value = cannulaFillAmountStr,
+                                        decimalPlaces = 1,
                                         onValueChange = {
                                             cannulaFillAmountStr = it
                                             cannulaFillAmount = when {
@@ -200,7 +200,7 @@ fun FillCannula(innerPadding: PaddingValues,
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
                             if (allowedCannulaFillAmount(cannulaFillAmount)) {
-                                Text(text = resourceHelper.gs(R.string.fc_btn_fill_cannula_u, cannulaFillAmount))
+                                Text(text = resourceHelper.gs(R.string.fc_btn_fill_cannula_u, cannulaFillAmount!!))
                             } else {
                                 Text(text = resourceHelper.gs(R.string.fc_title))
                             }

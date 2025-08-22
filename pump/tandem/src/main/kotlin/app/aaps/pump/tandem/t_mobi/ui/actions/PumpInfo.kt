@@ -48,7 +48,10 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLineWithBackButton(text= resourceHelper.gs(R.string.pi_title), onBackClick=navigateBack, backgroundColor = Color.LightGray)
+                HeaderLineWithBackButton(text= resourceHelper.gs(R.string.pi_title),
+                                         onBackClick=navigateBack,
+                                         backgroundColor = Color.LightGray,
+                                         resourceHelper = resourceHelper)
                 HorizontalDivider()
             }
 

@@ -48,20 +48,20 @@ data class HistoryLogDto(var sequenceId: Long,
     }
 
     override fun prepareEntryData(resourceHelper: ResourceHelper, pumpDataConverter: PumpDataConverter) {
-        val tandemPumpDataConverter = pumpDataConverter as TandemDataConverter
-
-        val dateTimeObject = GregorianCalendar()
-        dateTimeObject.timeInMillis = pumpTime
-
-        resolvedDate = resourceHelper.gs(R.string.tandem_history_date,
-                                         dateTimeObject.get(Calendar.DAY_OF_MONTH),
-                                         dateTimeObject.get(Calendar.MONTH),
-                                         dateTimeObject.get(Calendar.YEAR),
-                                         dateTimeObject.get(Calendar.HOUR_OF_DAY),
-                                         dateTimeObject.get(Calendar.MINUTE),
-                                         dateTimeObject.get(Calendar.SECOND))
-        resolvedType = "" + typeId   // TODOX Db resolveType resourceHelper.gs(historyType.getDescriptionResourceId())
-        resolvedValue = getDisplayableValue(resourceHelper, tandemPumpDataConverter)
+        // val tandemPumpDataConverter = pumpDataConverter as TandemDataConverter
+        //
+        // val dateTimeObject = GregorianCalendar()
+        // dateTimeObject.timeInMillis = pumpTime
+        //
+        // resolvedDate = resourceHelper.gs(R.string.tandem_history_date,
+        //                                  dateTimeObject.get(Calendar.DAY_OF_MONTH),
+        //                                  dateTimeObject.get(Calendar.MONTH),
+        //                                  dateTimeObject.get(Calendar.YEAR),
+        //                                  dateTimeObject.get(Calendar.HOUR_OF_DAY),
+        //                                  dateTimeObject.get(Calendar.MINUTE),
+        //                                  dateTimeObject.get(Calendar.SECOND))
+        // resolvedType = "" + typeId   // TODOX Db resolveType resourceHelper.gs(historyType.getDescriptionResourceId())
+        // resolvedValue = getDisplayableValue(resourceHelper, tandemPumpDataConverter)
     }
 
     override fun getEntryDateTime(): String = resolvedDate
@@ -113,12 +113,13 @@ data class DateTimeChanged(var year: Int? = 0,
 ): HistoryLogObject() {
 
     override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
-        val dt = resourceHelper.gs(R.string.tandem_history_date, day, month, year, hour, minute, second)
-        return if (timeChanged) {
-            resourceHelper.gs(R.string.tandem_history_time_changed, dt)
-        } else {
-            resourceHelper.gs(R.string.tandem_history_date_changed, dt)
-        }
+        // val dt = resourceHelper.gs(R.string.tandem_history_date, day, month, year, hour, minute, second)
+        // return if (timeChanged) {
+        //     resourceHelper.gs(R.string.tandem_history_time_changed, dt)
+        // } else {
+        //     resourceHelper.gs(R.string.tandem_history_date_changed, dt)
+        // }
+        return ""
     }
 }
 

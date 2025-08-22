@@ -2,10 +2,13 @@ package app.aaps.pump.tandem.common.database.data
 
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
@@ -72,11 +75,12 @@ import javax.inject.Singleton
 class TandemHistoryConverter @Inject constructor(
     val tandemPumpStatus: TandemPumpStatus,
     val aapsLogger: AAPSLogger,
+    val preferences: Preferences,
     val tandemPumpUtil: TandemPumpUtil) {
 
     val historyLogParser = HistoryLogParser()
     //val pumpStatus = MainAppData.tandemPumpStatus
-
+    var showUndefinedLogsCargo = false
 
     fun getTandemHistoryRecordEntity(historyLog: HistoryLog): TandemHistoryRecordEntity {
 
@@ -100,6 +104,13 @@ class TandemHistoryConverter @Inject constructor(
     fun getHistoryRecordDto(entity: TandemHistoryRecordEntity) : TandemHistoryRecordDto {
 
         val historyLog = HistoryLogParser.parse(entity.payload)
+        val isUnknown = (historyLog is UnknownHistoryLog)
+
+        val description = if (isUnknown) {
+            getUnknownLogDescription(unknownHistoryLog = historyLog)
+        } else {
+            getDescription(historyLog = historyLog) ?: ""
+        }
 
         val dto = TandemHistoryRecordDto(
             pumpTime = historyLog.pumpTimeSecInstant.toEpochMilli(),
@@ -108,7 +119,8 @@ class TandemHistoryConverter @Inject constructor(
             sequenceId = entity.sequenceId,
             entitySubId = entity.entitySubId,
             name = parseName(historyLog = historyLog),
-            description = getDescription(historyLog = historyLog)
+            description = description,
+            descriptionLines = description.replace(", ", "\n")
         )
 
         return dto
@@ -487,8 +499,22 @@ class TandemHistoryConverter @Inject constructor(
 
 
     fun getUnknownLogDescription(unknownHistoryLog: UnknownHistoryLog): String {
-        // TODO getUnknownLogDescription should take in account settings if
-        return "";
+        val stringBuilder = StringBuilder()
+
+        stringBuilder.append("typeId:")
+        stringBuilder.append(unknownHistoryLog.typeId())
+
+        var cargoHex = ByteUtil.getHex(unknownHistoryLog.cargo) ?: ""
+        cargoHex = cargoHex.replace("0x","")
+
+        if (showUndefinedLogsCargo) {
+            stringBuilder.append(", ")
+            stringBuilder.append("cargo: [")
+            stringBuilder.append(cargoHex)
+            stringBuilder.append("]")
+        }
+
+        return stringBuilder.toString()
     }
 
 
@@ -509,7 +535,8 @@ class TandemHistoryConverter @Inject constructor(
         }
     }
 
-
-
+    fun prepareForConversion() {
+        this.showUndefinedLogsCargo = preferences.getIfExists(TandemBooleanPreferenceKey.ShowCargoOfUnknownEntries) ?: false
+    }
 
 }

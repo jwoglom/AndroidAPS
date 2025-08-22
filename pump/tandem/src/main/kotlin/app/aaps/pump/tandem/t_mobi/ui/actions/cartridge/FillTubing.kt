@@ -32,7 +32,6 @@ import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.EnterFillTubingModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ExitFillTubingModeRequest

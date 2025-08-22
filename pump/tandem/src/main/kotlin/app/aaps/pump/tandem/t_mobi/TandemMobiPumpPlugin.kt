@@ -337,7 +337,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_INSULIN_LEVEL)) {
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.RemainingInsulin, System.currentTimeMillis())
-            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.PumpStatus, System.currentTimeMillis())
+            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, System.currentTimeMillis())
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.GetTemporaryBasal, System.currentTimeMillis())
             if (!commandQueue.statusInQueue()) {
                 commandQueue.readStatus("Status Refresh (UI)", null)
@@ -701,7 +701,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isBusy(): Boolean {
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy")
+        if (displayConnectionMessages) aapsLogger.error(LTag.PUMP, logPrefix + "isBusy")
         if (busy || tandemPumpUtil.preventConnect) {
             if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy")
             return true
@@ -771,9 +771,14 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
 
         // execute
+        val currentTimeMillis = System.currentTimeMillis()
+
+        aapsLogger.error("RefreshCheck: $statusRefresh  (currentTime=$currentTimeMillis)")
 
         for ((key, value) in statusRefresh) {
-            if (value!! > 0 && System.currentTimeMillis() > value) {
+            //aapsLogger.error("RefreshCheck: $key = $value  (currentTime=$currentTimeMillis)")
+            if (value!! > 0 && currentTimeMillis > value) {
+                var resetTime = false
                 when (key) {
                     // PumpDataRefreshType.PumpHistory      -> {
                     //     aapsLogger.info(LTag.PUMP, "Refresh_PumpHistory")
@@ -786,25 +791,35 @@ class TandemMobiPumpPlugin @Inject constructor(
                         if (checkTimeAndOptionallySetTime(readTime = true)) {
                             resetDisplay = true
                         }
+                        resetTime = true
                         //refreshTypesNeededToReschedule.add(key)
                         //resetTime = true
                     }
 
                     PumpDataRefreshType.GetTemporaryBasal -> {
                         // TODO GetTemporaryBasal refresh after stop/start of pump
-                        aapsLogger.error(LTag.PUMP, "Refresh_GetTemporaryBasal: NOT IMPLEMENTED.");
+                        aapsLogger.error(LTag.PUMP, "Refresh_GetTemporaryBasal: NOT IMPLEMENTED.")
+
                     }
 
                     PumpDataRefreshType.BatteryStatus -> {
-                        aapsLogger.info(LTag.PUMP, "Refresh_BatteryStatus");
+                        aapsLogger.error(LTag.PUMP, "Refresh_BatteryStatus");
                         pumpConnectionManager.getBatteryLevel()
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Battery))
                         //refreshTypesNeededToReschedule.add(key)
-                        //resetTime = true
+                        resetTime = true
                     }
 
                     PumpDataRefreshType.PumpStatus -> {
                         getFullPumpStatus(readHistory = true)
+                        resetTime = true
+                    }
+
+                    // this is for simple status refresh (only PumpStatus without Alerts/Alarms or history
+                    PumpDataRefreshType.Custom_1 -> {
+                        aapsLogger.info(LTag.PUMP, "Refresh_Custom_1 (simple pump status after UI)")
+                        pumpConnectionManager.getPumpStatus()
+                        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
                     }
 
                     PumpDataRefreshType.RemainingInsulin -> {
@@ -812,19 +827,29 @@ class TandemMobiPumpPlugin @Inject constructor(
                         pumpConnectionManager.getRemainingInsulin()
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Reservoir))
 
-                        resetDisplay = true
-                        //resetTime = true
+                        //resetDisplay = true
+                        resetTime = true
                     }
 
                     else -> {
                         aapsLogger.error(LTag.PUMP, "Refresh Unsupported action: ${key}");
                     }
 
+
+
                 } // when
+
+                //scheduleNextRefresh(key!!)
+
+                if (resetTime) {
+                    scheduleNextRefresh(key!!)
+                }
+
+
             } // if
 
             // we always schedule refresh
-            scheduleNextRefresh(key!!)
+
         }
 
         // we always reset time
@@ -845,7 +870,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
 
         if (readHistory) {
-            // TODO history
             historyRetriever.downloadHistory()
         }
     }
@@ -917,52 +941,6 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    // TODO remove this, needed for now if there is some issue with profiles that we need to resolve
-    private fun testModeCode() {
-
-        val okProfile = "{\"dia\":\"5\"," +
-            "\"carbratio\":[{\"time\":\"00:00\",\"value\":\"30\"}]," +
-            "\"sens\":[{\"time\":\"00:00\",\"value\":\"6\"}," +
-            "          {\"time\":\"08:00\",\"value\":\"6.5\"}," +
-            "          {\"time\":\"12:00\",\"value\":\"7\"}," +
-            "          {\"time\":\"15:00\",\"value\":\"7.1\"}," +
-            "          {\"time\":\"19:00\",\"value\":\"8\"}" +
-            "]," +
-            "\"timezone\":\"GMT\"," +
-            "\"basal\":[{\"time\":\"00:00\",\"value\":\"0.8\"}," +
-            "           {\"time\":\"05:00\",\"value\":\"0.9\"}," +
-            "           {\"time\":\"07:00\",\"value\":\"1.2\"}," +
-            "           {\"time\":\"13:00\",\"value\":\"1.4\"}," +
-            "           {\"time\":\"18:00\",\"value\":\"2.2\"}," +
-            "           {\"time\":\"20:00\",\"value\":\"3\"}" +
-            "]," +
-            "\"target_low\":[{\"time\":\"00:00\",\"value\":\"8\"}," +
-            "                 {\"time\":\"06:00\",\"value\":\"6\"}," +
-            "                 {\"time\":\"12:00\",\"value\":\"5\"}," +
-            "                 {\"time\":\"19:00\",\"value\":\"6\"}]," +
-            "\"target_high\":[{\"time\":\"00:00\",\"value\":\"8\"}," +
-            "                 {\"time\":\"06:00\",\"value\":\"6\"}," +
-            "                 {\"time\":\"12:00\",\"value\":\"5\"}," +
-            "                 {\"time\":\"19:00\",\"value\":\"6\"}]," +
-            "\"startDate\":\"1970-01-01T00:00:00.000Z\",\"units\":\"mmol\"}"
-
-        val profile = ProfileSealed.Pure(pureProfileFromJson(JSONObject(okProfile), dateUtil)!!,
-                                         activePlugin)
-
-        aapsLogger.error(LTag.PUMP, "SBP - Setting Profile")
-        val result = pumpConnectionManager.setBasalProfile(profile)
-
-        if (result.isSuccess) {
-            aapsLogger.error(LTag.PUMP, "SBP - Setting Profile was SUCCESS")
-            pumpConnectionManager.getBasalProfile()
-        } else {
-            aapsLogger.error(LTag.PUMP, "SBP - Problem setting Profile: ${result.errorDescription}")
-        }
-
-        System.exit(44)
-    }
-
-
     override fun isThisProfileSet(profile: Profile): Boolean {
 
         aapsLogger.debug(TAG, "isThisProfileSet")
@@ -979,13 +957,12 @@ class TandemMobiPumpPlugin @Inject constructor(
             val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArrayV2(profile, PumpType.TANDEM_T_MOBI_BT)
             val profileDriver = ProfileUtil.getProfilesByHourToString(pumpStatus.basalsByHour)
 
-            // TODO isThisProfile Set display profile - set logging to debug
-            aapsLogger.info(TAG, "AAPS Profile:     $profileAsString")
-            aapsLogger.info(TAG, "Pump Profile:     $profileDriver")
+            aapsLogger.debug(TAG, "AAPS Profile:     $profileAsString")
+            aapsLogger.debug(TAG, "Pump Profile:     $profileDriver")
 
             val areTheySame = profileAsString.equals(profileDriver)
 
-            aapsLogger.info(TAG, "Pump Profile is the same: $areTheySame")  // TODO set to debug
+            aapsLogger.debug(TAG, "Pump Profile is the same: $areTheySame")
 
             return areTheySame
         }
@@ -1487,7 +1464,10 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     if (remaining > 50) 60 else if (remaining > 20) 30 else 15
                 }
-                PumpDataRefreshType.BatteryStatus    -> 55
+                PumpDataRefreshType.BatteryStatus    -> {
+                    val power = pumpStatus.batteryRemaining
+                    if (power > 30) 55 else if (power > 20) 30 else 15
+                }
                 PumpDataRefreshType.PumpTime         -> 300
                 PumpDataRefreshType.PumpStatus       -> 5
                 else                                 -> -1
@@ -1680,8 +1660,15 @@ class TandemMobiPumpPlugin @Inject constructor(
                 )
             )
 
+            addPreference(
+                AdaptiveSwitchPreference(
+                    ctx = context,
+                    booleanKey = TandemBooleanPreferenceKey.ShowCargoOfUnknownEntries,
+                    title = R.string.tandem_cfg_show_cargo_of_unknown_logs,
+                    summary = R.string.tandem_cfg_show_cargo_of_unknown_logs_summary
+                )
+            )
         }
-
 
 
 
