@@ -123,7 +123,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     pluginDescription = PluginDescription() //
         .mainType(PluginType.PUMP) //
         .fragmentClass(TandemMobiPumpFragment::class.java.name) //
-        .pluginIcon(R.drawable.t_mobi)
+        .pluginIcon(app.aaps.core.ui.R.drawable.ic_tmobi_128)
         .pluginName(R.string.tandem_name_mobi) //
         .shortName(R.string.tandem_name_mobi_short) //
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)

@@ -101,6 +101,7 @@ class UserEntryPresentationHelperImpl @Inject constructor(
         Sources.Medtrum             -> app.aaps.core.ui.R.drawable.ic_medtrum_128
         Sources.MDI                 -> R.drawable.ic_ict
         Sources.VirtualPump         -> R.drawable.ic_virtual_pump
+        Sources.Tandem              -> app.aaps.core.ui.R.drawable.ic_tmobi_128
         Sources.SMS                 -> R.drawable.ic_sms
         Sources.Treatments          -> R.drawable.ic_treatments
         Sources.Wear                -> R.drawable.ic_watch
