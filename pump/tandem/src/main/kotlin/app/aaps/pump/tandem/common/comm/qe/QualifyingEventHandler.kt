@@ -22,6 +22,7 @@ import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import dagger.android.HasAndroidInjector
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -108,6 +109,10 @@ class QualifyingEventHandler @Inject constructor(
         } else {
             return qeItems
         }
+    }
+
+    fun isAapsRelevant() {
+        //QualifyingEvent.
     }
 
 }

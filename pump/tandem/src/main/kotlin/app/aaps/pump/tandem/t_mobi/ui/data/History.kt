@@ -268,7 +268,7 @@ fun History(
                                     expanded = expanded1,
                                     onDismissRequest = { expanded1 = false }
                                 ) {
-                                    PumpHistoryEntryGroup.entries.forEach { group ->
+                                    PumpHistoryEntryGroup.filteredEntries.forEach { group ->
                                         DropdownMenuItem(
                                             text = { Text(group.getDisplayValue()) },
                                             onClick = {

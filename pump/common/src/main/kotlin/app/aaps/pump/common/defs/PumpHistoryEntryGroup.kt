@@ -52,6 +52,7 @@ enum class PumpHistoryEntryGroup(val resourceId: Int,
     companion object {
 
         @JvmStatic private var translatedList: MutableList<PumpHistoryEntryGroup>? = null
+        @JvmStatic var filteredEntries: MutableList<PumpHistoryEntryGroup> = mutableListOf()
 
         fun doTranslation(rh: ResourceHelper) {
             if (translatedList != null) return
@@ -78,6 +79,16 @@ enum class PumpHistoryEntryGroup(val resourceId: Int,
                 }
 
             return outList
+        }
+
+
+
+        fun filterByGroupConfig(groupConfig: PumpTypeGroupConfig) {
+            for (entry in entries) {
+                if (entry.pumpTypeGroupConfig==PumpTypeGroupConfig.All || entry.pumpTypeGroupConfig==groupConfig) {
+                    this.filteredEntries.add(entry)
+                }
+            }
         }
     }
 }

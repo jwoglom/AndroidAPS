@@ -65,6 +65,15 @@
     <string name="data_history_log_name">Name</string>
 
 
+    <string name="notif_alert">Alert</string>
+    <string name="notif_reminder">Reminder</string>
+    <string name="notif_alarm">Alarm</string>
+    <string name="notif_cgm_alert">CGM Alert</string>
+    <string name="notif_malfunction_big">MALFUNCTION</string>
+    <string name="notif_malfunction">Malfunction</string>
+    <string name="notif_cant_be_cleared">This alert cannot be cleared and DIY app developers cannot assist you with this problem.\nFor further instructions please contact Tandem technical support and reference the above code.</string>
+
+
     <string name="data_qe_filter_description">Which Pump Events to Show?</string>
     <string name="data_qe_filter_all">All</string>
     <string name="pump_qe_filter_aaps_relevant">AAPS Relevant Only</string>
@@ -75,6 +84,18 @@
     <string name="pump_qe_range_last_6_hours">Last 6 hours</string>
     <string name="pump_qe_range_last_12_hours">Last 12 hours</string>
     <string name="pump_qe_range_last_24_hours">Last 24 hours</string>
+
+    <string name="pump_quick_bolus_description">Quick Bolus</string>
+    <string name="pump_quick_bolus_disabled">Disabled</string>
+    <string name="pump_quick_bolus_units_0_5">0.5 Units</string>
+    <string name="pump_quick_bolus_units_1_0">1 Unit</string>
+    <string name="pump_quick_bolus_units_2_0">2 Units</string>
+    <string name="pump_quick_bolus_units_5_0">5 Units</string>
+    <string name="pump_quick_bolus_carbs_2g">For 2g of Carbs</string>
+    <string name="pump_quick_bolus_carbs_5g">For 5g of Carbs</string>
+    <string name="pump_quick_bolus_carbs_10g">For 10g of Carbs</string>
+    <string name="pump_quick_bolus_carbs_15g">For 15g of Carbs</string>
+
 
     <!-- UI Configuration -->
     <string name="ui_cfg_configuration">Configuration</string>
@@ -102,6 +123,29 @@
     <string name="ca_label">Cartridge Actions</string>
     <string name="ca_disconnect_pump_from_site">Disconnect your pump from your body/site and press \'%1$s\' button below.</string>
     <string name="ca_before_stop_delivery">Before %1$s, stop delivery of insulin.</string>
+
+    <string name="ca_stop_start_insulin">Stop / Start Insulin</string>
+    <string name="ca_start_insulin">Start Insulin</string>
+    <string name="ca_stop_insulin">Stop Insulin</string>
+    <string name="ca_stop_resume_insulin_deliveries">Stop or resume insulin deliveries</string>
+    <string name="ca_resume_insulin_deliveries">Resume insulin deliveries</string>
+    <string name="ca_stop_insulin_deliveries">Stop insulin deliveries</string>
+
+    <string name="ca_resume_insulin">Resume insulin</string>
+    <string name="ca_resume_all_insulin_deliveries">Resume all insulin deliveries?</string>
+    <string name="ca_stop_insulin_small">Stop insulin</string>
+    <string name="ca_start_insulin_small">Start insulin</string>
+    <string name="ca_suspend_all_insulin_deliveries">Suspend all insulin deliveries?</string>
+
+    <string name="ca_stop_temp_rate">Stop Temp Rate</string>
+    <string name="ca_start_temp_rate">Start Temp Rate</string>
+    <string name="ca_active">Active: %s</string>
+    <string name="ca_stop_active_temp_rate">Stop the active temp rate: %1$d%% for %2$s beginning %3$s</string>
+
+    <string name="ca_cartridge_cannula_setup">Cartridge/Cannula Setup</string>
+    <string name="ca_pump_info">Pump Info</string>
+    <string name="ca_hours_minutes_short">%1$dh %2$dm</string>
+
 
     <!-- UI Cartridge Actions:Change Cartridge -->
     <string name="cc_title">Change Cartridge</string>
@@ -174,6 +218,8 @@
     <string name="tandem_cfg_shared_connection_data_summary">Shared Connection Data (exported from ControlX2)</string>
     <string name="tandem_cfg_show_cargo_of_unknown_logs">Show Cargo/Payload of Unknown Logs</string>
     <string name="tandem_cfg_show_cargo_of_unknown_logs_summary">If Unknown Logs are displayed, we also display payload (raw data)</string>
+    <string name="tandem_cfg_auto_confirm_low_basal_delivery">Auto confirm Low Basal Delivery Alert</string>
+    <string name="tandem_cfg_auto_confirm_low_basal_delivery_summary">When Basal delivery is less that certain percent, Low Basal Delivery alert gets triggered. This automatically confirms that alert.</string>
 
 
 
@@ -185,6 +231,7 @@
     <string name="tandem_custom_command_get_alarms">Get Alarms</string>
     <string name="tandem_custom_command_get_alerts">Get Alerts</string>
     <string name="tandem_custom_command_dismiss_alert">Dismiss Alert</string>
+    <string name="tandem_custom_command_set_quick_bolus">Set Quick Bolus</string>
 
 
 

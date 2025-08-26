@@ -5,6 +5,7 @@ import app.aaps.core.keys.interfaces.StringPreferenceKey
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
+import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 
 enum class TandemStringPreferenceKey(
     override val key: String,
@@ -31,7 +32,9 @@ enum class TandemStringPreferenceKey(
 
     PumpHistorySummary("pref_tandem_history_summary", ""),
     QualifyingEventsFilterPref("pref_tandem_qe_filter", QualifyingEventsFilter.ALL.name),
-    QualifyingEventsRangePref("pref_tandem_qe_range", QualifyingEventsRange.LAST_15_ITEMS.name)
+    QualifyingEventsRangePref("pref_tandem_qe_range", QualifyingEventsRange.LAST_15_ITEMS.name),
+
+    QuickBolusTypePref("pref_tandem_quick_bolus", QuickBolusType.DISABLED.name)
 
     // PumpFrequency("pref_medtronic_frequency", "medtronic_pump_frequency_us_ca"),
 

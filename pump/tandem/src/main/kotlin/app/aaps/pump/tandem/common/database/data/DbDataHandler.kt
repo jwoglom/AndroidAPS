@@ -102,7 +102,7 @@ class DbDataHandler @Inject constructor(
             .subscribeOn(aapsSchedulers.io)
             .observeOn(aapsSchedulers.main)
             .subscribe(
-                { aapsLogger.error(TAG, "Inserted TandemHistoryRecordEntity/HistoryLog: ${entities.size} ") },
+                { aapsLogger.debug(TAG, "Inserted TandemHistoryRecordEntity/HistoryLog: ${entities.size} ") },
                 { error -> aapsLogger.error(TAG, "Failed to insert TandemHistoryRecordEntity: ${error.message}", error) }
             )
     }
@@ -116,7 +116,7 @@ class DbDataHandler @Inject constructor(
             .subscribeOn(aapsSchedulers.io)
             .observeOn(aapsSchedulers.main)
             .subscribe(
-                { aapsLogger.error(TAG, "Inserted QualifyingEvents: ${listOfEvents.size} ") },
+                { aapsLogger.debug(TAG, "Inserted QualifyingEvents: ${listOfEvents.size} ") },
                 { error -> aapsLogger.error(TAG, "Failed to insert QualifyingEvents: ${error.message}", error) }
             )
     }

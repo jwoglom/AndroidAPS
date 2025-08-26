@@ -23,7 +23,7 @@ enum class TandemBooleanPreferenceKey(
 
     ShowCargoOfUnknownEntries(key ="pref_tandem_show_unknowns_cargo", defaultValue = false),
 
-    AutoConfirmLowBasalDelivery(key ="", defaultValue = false)
+    AutoConfirmLowBasalDelivery(key ="pref_tandem_auto_confirm_low_basal_delivery", defaultValue = false)
 
 
 

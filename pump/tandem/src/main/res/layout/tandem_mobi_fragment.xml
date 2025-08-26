@@ -593,6 +593,7 @@
                     android:background="@color/list_delimiter" />
 
                 <LinearLayout
+                    android:id="@+id/show_last_pump_event"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
@@ -628,6 +629,7 @@
                 </LinearLayout>
 
                 <View
+                    android:id="@+id/show_last_pump_event_line"
                     android:layout_width="fill_parent"
                     android:layout_height="2dip"
                     android:layout_marginBottom="5dp"

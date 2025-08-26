@@ -199,11 +199,11 @@ fun Notifications(
                                 headlineContent = {
                                     Text(
                                         when (it) {
-                                            is AlertStatusResponse.AlertResponseType -> "Alert: ${it.name}"
-                                            is ReminderStatusResponse.ReminderType -> "Reminder: ${it.name}"
-                                            is AlarmStatusResponse.AlarmResponseType -> "Alarm: ${it.name}"
-                                            is CGMAlertStatusResponse.CGMAlert -> "CGM Alert: ${it.name}"
-                                            is MalfunctionStatusResponse -> "MALFUNCTION: ${it.errorString}"
+                                            is AlertStatusResponse.AlertResponseType -> resourceHelper.gs(R.string.notif_alert) + ": ${it.name}"
+                                            is ReminderStatusResponse.ReminderType -> resourceHelper.gs(R.string.notif_reminder) + ": ${it.name}"
+                                            is AlarmStatusResponse.AlarmResponseType -> resourceHelper.gs(R.string.notif_alarm) + ": ${it.name}"
+                                            is CGMAlertStatusResponse.CGMAlert -> resourceHelper.gs(R.string.notif_cgm_alert) + ": ${it.name}"
+                                            is MalfunctionStatusResponse -> resourceHelper.gs(R.string.notif_malfunction_big) + ": ${it.errorString}"
                                             else -> "$it"
                                         }
                                     )
@@ -216,7 +216,7 @@ fun Notifications(
                                         is AlarmStatusResponse.AlarmResponseType -> Text(
                                             it.description ?: ""
                                         )
-                                        is MalfunctionStatusResponse -> Text("This alert cannot be cleared and DIY app developers cannot assist you with this problem.\nFor further instructions please contact Tandem technical support and reference the above code.")
+                                        is MalfunctionStatusResponse -> Text(resourceHelper.gs(R.string.notif_cant_be_cleared))
                                         else -> {}
                                     }
                                 },
@@ -224,27 +224,27 @@ fun Notifications(
                                     when (it) {
                                         is AlertStatusResponse.AlertResponseType -> Icon(
                                             Icons.Filled.Info,
-                                            contentDescription = "Alert"
+                                            contentDescription = resourceHelper.gs(R.string.notif_alert)
                                         )
 
                                         is ReminderStatusResponse.ReminderType -> Icon(
                                             Icons.Filled.Info,
-                                            contentDescription = "Reminder"
+                                            contentDescription = resourceHelper.gs(R.string.notif_reminder)
                                         )
 
                                         is AlarmStatusResponse.AlarmResponseType -> Icon(
                                             Icons.Filled.Warning,
-                                            contentDescription = "Alarm"
+                                            contentDescription = resourceHelper.gs(R.string.notif_alarm)
                                         )
 
                                         is CGMAlertStatusResponse.CGMAlert -> Icon(
                                             Icons.Filled.Info,
-                                            contentDescription = "CGM Alert"
+                                            contentDescription = resourceHelper.gs(R.string.notif_cgm_alert)
                                         )
 
                                         is MalfunctionStatusResponse -> Icon(
                                             Icons.Filled.Warning,
-                                            contentDescription = "Malfunction"
+                                            contentDescription = resourceHelper.gs(R.string.notif_malfunction)
                                         )
                                     }
                                 },
