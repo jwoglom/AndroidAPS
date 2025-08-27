@@ -721,10 +721,12 @@
                 <TextView
                     android:layout_width="239dp"
                     android:layout_height="157dp"
-                    android:layout_marginTop="20dp"
+                    android:layout_marginTop="10dp"
                     android:layout_gravity="center"
                     android:drawableTop="@drawable/ic_tmobi_128"
-                    android:paddingTop="20dp" />
+                    android:scaleX="2"
+                    android:scaleY="2"
+                    android:paddingTop="14dp" />
 
             </LinearLayout>
 
