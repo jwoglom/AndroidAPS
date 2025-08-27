@@ -36,8 +36,6 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.core.objects.extensions.pureProfileFromJson
-import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.validators.preferences.AdaptiveIntPreference
 import app.aaps.core.validators.preferences.AdaptiveListPreference
 import app.aaps.core.validators.preferences.AdaptiveStringPreference
@@ -72,6 +70,7 @@ import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
+import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
@@ -86,7 +85,6 @@ import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
 import io.reactivex.rxjava3.kotlin.plusAssign
-import org.json.JSONObject
 
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -127,7 +125,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         .pluginName(R.string.tandem_name_mobi) //
         .shortName(R.string.tandem_name_mobi_short) //
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
-        //.preferencesId(R.xml.pref_tandem_mobi)
         .description(R.string.description_pump_tandem_mobi),  //
     pumpType = PumpType.TANDEM_T_MOBI_BT,
     rh = rh,
@@ -156,11 +153,11 @@ class TandemMobiPumpPlugin @Inject constructor(
     // variables for handling statuses and history
 
     private var tandemService: TandemService? = null
-    private var driverMode = PumpDriverMode.Automatic // TODO when implementation fully done, default should be automatic
+    private var driverMode = PumpDriverMode.Automatic
 
     private val versionInternal = TandemMobiPluginVersion()
 
-    private var wantedDriverMode = PumpDriverMode.Automatic  // TODO change this (demo mode means we are not communicating with pump)
+    private var wantedDriverMode = PumpDriverMode.Automatic
 
     @Suppress("PropertyName")
     private val TAG = LTag.PUMP
@@ -170,6 +167,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         dbDataHandler.databaseStatistics() // TODO remove in future
 
         PumpHistoryEntryGroup.doTranslation(rh)
+        PumpHistoryEntryGroup.filterByGroupConfig(PumpTypeGroupConfig.tMobi)
         PumpHistoryPeriod.doTranslation(rh)
 
         super.onStart()
@@ -197,8 +195,18 @@ class TandemMobiPumpPlugin @Inject constructor(
                     tandemService!!.connectToPump()
                 }
             }
+        } else if (pref.key == TandemStringPreferenceKey.QuickBolusTypePref.key) {
+            val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.QuickBolusTypePref, null)
+            aapsLogger.error(LTag.PUMP, "Quick Bolus Setting changed: $value")
+            if (value!=null && value.isNotEmpty()) {
+                newQuickBolusType = QuickBolusType.valueOf(value)
+                scheduleNextRefreshAtSameTimeAsOtherType(refreshType = PumpDataRefreshType.Custom_2,
+                                                         refreshTypeToCopy = PumpDataRefreshType.PumpStatus)
+            }
         }
     }
+
+    var newQuickBolusType : QuickBolusType? = null
 
     // PumpAbstract implementations
     override fun initPumpStatusData() {
@@ -225,7 +233,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             preferences.put(TandemLongNonPreferenceKey.FirstPumpUse, System.currentTimeMillis())
 
         if (preferences.getIfExists(TandemStringPreferenceKey.PumpSerial) != null) {
-            val preference = preferences.get(TandemStringPreferenceKey.PumpSerial);
+            val preference = preferences.get(TandemStringPreferenceKey.PumpSerial)
             if (preference.isNotEmpty()) {
                 pumpStatus.serialNumber = preferences.get(TandemStringPreferenceKey.PumpSerial).toLong()
             }
@@ -337,13 +345,13 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_INSULIN_LEVEL)) {
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.RemainingInsulin, System.currentTimeMillis())
-            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.PumpStatus, System.currentTimeMillis())
+            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, System.currentTimeMillis())
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.GetTemporaryBasal, System.currentTimeMillis())
             if (!commandQueue.statusInQueue()) {
                 commandQueue.readStatus("Status Refresh (UI)", null)
             }
         } else if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_STATUS)) {
-            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.PumpStatus, System.currentTimeMillis())
+            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, System.currentTimeMillis())
             if (!commandQueue.statusInQueue()) {
                 commandQueue.readStatus("Status Refresh (UI)", null)
             }
@@ -701,12 +709,20 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isBusy(): Boolean {
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy")
-        if (busy || tandemPumpUtil.preventConnect) {
-            if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy")
-            return true
-        } else
-            return false
+        //if (displayConnectionMessages) aapsLogger.error(LTag.PUMP, logPrefix + "isBusy")
+        val isBusy = busy || tandemPumpUtil.preventConnect
+        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isBusy: $isBusy")
+        return isBusy
+
+
+        // if (busy || tandemPumpUtil.preventConnect) {
+        //     if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy: true")
+        //     return true
+        // } else {
+        //     if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy: false")
+        //
+        //     return false
+        // }
     }
 
     var busy = false
@@ -771,9 +787,14 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
 
         // execute
+        val currentTimeMillis = System.currentTimeMillis()
+
+        aapsLogger.error("RefreshCheck: $statusRefresh  (currentTime=$currentTimeMillis)")
 
         for ((key, value) in statusRefresh) {
-            if (value!! > 0 && System.currentTimeMillis() > value) {
+            //aapsLogger.error("RefreshCheck: $key = $value  (currentTime=$currentTimeMillis)")
+            if (value!! > 0 && currentTimeMillis > value) {
+                var resetTime = false
                 when (key) {
                     // PumpDataRefreshType.PumpHistory      -> {
                     //     aapsLogger.info(LTag.PUMP, "Refresh_PumpHistory")
@@ -786,25 +807,41 @@ class TandemMobiPumpPlugin @Inject constructor(
                         if (checkTimeAndOptionallySetTime(readTime = true)) {
                             resetDisplay = true
                         }
+                        resetTime = true
                         //refreshTypesNeededToReschedule.add(key)
                         //resetTime = true
                     }
 
                     PumpDataRefreshType.GetTemporaryBasal -> {
                         // TODO GetTemporaryBasal refresh after stop/start of pump
-                        aapsLogger.error(LTag.PUMP, "Refresh_GetTemporaryBasal: NOT IMPLEMENTED.");
+                        aapsLogger.error(LTag.PUMP, "Refresh_GetTemporaryBasal: NOT IMPLEMENTED.")
+
                     }
 
                     PumpDataRefreshType.BatteryStatus -> {
-                        aapsLogger.info(LTag.PUMP, "Refresh_BatteryStatus");
+                        aapsLogger.error(LTag.PUMP, "Refresh_BatteryStatus")
                         pumpConnectionManager.getBatteryLevel()
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Battery))
                         //refreshTypesNeededToReschedule.add(key)
-                        //resetTime = true
+                        resetTime = true
                     }
 
                     PumpDataRefreshType.PumpStatus -> {
                         getFullPumpStatus(readHistory = true)
+                        resetTime = true
+                    }
+
+                    // this is for simple status refresh (only PumpStatus without Alerts/Alarms or history
+                    PumpDataRefreshType.Custom_1 -> {
+                        aapsLogger.info(LTag.PUMP, "Refresh_Custom_1 (simple pump status after UI)")
+                        pumpConnectionManager.getPumpStatus()
+                        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
+                    }
+
+                    PumpDataRefreshType.Custom_2 -> {
+                        aapsLogger.error(LTag.PUMP, "Refresh_Custom_2 - Set QuickBolus settings on pump")
+                        pumpConnectionManager.executeCustomCommand(command = TandemCustomCommand.SET_QUICK_BOLUS,
+                                                                   data = this.newQuickBolusType)
                     }
 
                     PumpDataRefreshType.RemainingInsulin -> {
@@ -812,19 +849,27 @@ class TandemMobiPumpPlugin @Inject constructor(
                         pumpConnectionManager.getRemainingInsulin()
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Reservoir))
 
-                        resetDisplay = true
-                        //resetTime = true
+                        //resetDisplay = true
+                        resetTime = true
                     }
 
                     else -> {
-                        aapsLogger.error(LTag.PUMP, "Refresh Unsupported action: ${key}");
+                        aapsLogger.error(LTag.PUMP, "Refresh Unsupported action: ${key}")
                     }
 
                 } // when
+
+                //scheduleNextRefresh(key!!)
+
+                if (resetTime) {
+                    scheduleNextRefresh(key!!)
+                }
+
+
             } // if
 
             // we always schedule refresh
-            scheduleNextRefresh(key!!)
+
         }
 
         // we always reset time
@@ -845,7 +890,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
 
         if (readHistory) {
-            // TODO history
             historyRetriever.downloadHistory()
         }
     }
@@ -854,7 +898,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         rxBus.send(EventRefreshButtonState(enabled))
     }
 
-    // TODO not implemented fully
+
     private fun initializePump(realInit: Boolean): Boolean {
         //if (isDriverInitialized) return false
         aapsLogger.info(LTag.PUMP, logPrefix + "initializePump - start")
@@ -867,7 +911,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         checkTimeAndOptionallySetTime(!realInit)  // we read time only if its refresh and not first init
 
         // read status of pump from Db
-        getFullPumpStatus(readHistory = true)  // TODO change this
+        getFullPumpStatus(readHistory = true)
         scheduleNextRefresh(PumpDataRefreshType.PumpStatus, 0)
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
 
@@ -917,52 +961,6 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    // TODO remove this, needed for now if there is some issue with profiles that we need to resolve
-    private fun testModeCode() {
-
-        val okProfile = "{\"dia\":\"5\"," +
-            "\"carbratio\":[{\"time\":\"00:00\",\"value\":\"30\"}]," +
-            "\"sens\":[{\"time\":\"00:00\",\"value\":\"6\"}," +
-            "          {\"time\":\"08:00\",\"value\":\"6.5\"}," +
-            "          {\"time\":\"12:00\",\"value\":\"7\"}," +
-            "          {\"time\":\"15:00\",\"value\":\"7.1\"}," +
-            "          {\"time\":\"19:00\",\"value\":\"8\"}" +
-            "]," +
-            "\"timezone\":\"GMT\"," +
-            "\"basal\":[{\"time\":\"00:00\",\"value\":\"0.8\"}," +
-            "           {\"time\":\"05:00\",\"value\":\"0.9\"}," +
-            "           {\"time\":\"07:00\",\"value\":\"1.2\"}," +
-            "           {\"time\":\"13:00\",\"value\":\"1.4\"}," +
-            "           {\"time\":\"18:00\",\"value\":\"2.2\"}," +
-            "           {\"time\":\"20:00\",\"value\":\"3\"}" +
-            "]," +
-            "\"target_low\":[{\"time\":\"00:00\",\"value\":\"8\"}," +
-            "                 {\"time\":\"06:00\",\"value\":\"6\"}," +
-            "                 {\"time\":\"12:00\",\"value\":\"5\"}," +
-            "                 {\"time\":\"19:00\",\"value\":\"6\"}]," +
-            "\"target_high\":[{\"time\":\"00:00\",\"value\":\"8\"}," +
-            "                 {\"time\":\"06:00\",\"value\":\"6\"}," +
-            "                 {\"time\":\"12:00\",\"value\":\"5\"}," +
-            "                 {\"time\":\"19:00\",\"value\":\"6\"}]," +
-            "\"startDate\":\"1970-01-01T00:00:00.000Z\",\"units\":\"mmol\"}"
-
-        val profile = ProfileSealed.Pure(pureProfileFromJson(JSONObject(okProfile), dateUtil)!!,
-                                         activePlugin)
-
-        aapsLogger.error(LTag.PUMP, "SBP - Setting Profile")
-        val result = pumpConnectionManager.setBasalProfile(profile)
-
-        if (result.isSuccess) {
-            aapsLogger.error(LTag.PUMP, "SBP - Setting Profile was SUCCESS")
-            pumpConnectionManager.getBasalProfile()
-        } else {
-            aapsLogger.error(LTag.PUMP, "SBP - Problem setting Profile: ${result.errorDescription}")
-        }
-
-        System.exit(44)
-    }
-
-
     override fun isThisProfileSet(profile: Profile): Boolean {
 
         aapsLogger.debug(TAG, "isThisProfileSet")
@@ -979,17 +977,17 @@ class TandemMobiPumpPlugin @Inject constructor(
             val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArrayV2(profile, PumpType.TANDEM_T_MOBI_BT)
             val profileDriver = ProfileUtil.getProfilesByHourToString(pumpStatus.basalsByHour)
 
-            // TODO isThisProfile Set display profile - set logging to debug
-            aapsLogger.info(TAG, "AAPS Profile:     $profileAsString")
-            aapsLogger.info(TAG, "Pump Profile:     $profileDriver")
+            aapsLogger.debug(TAG, "AAPS Profile:     $profileAsString")
+            aapsLogger.debug(TAG, "Pump Profile:     $profileDriver")
 
             val areTheySame = profileAsString.equals(profileDriver)
 
-            aapsLogger.info(TAG, "Pump Profile is the same: $areTheySame")  // TODO set to debug
+            aapsLogger.debug(TAG, "Pump Profile is the same: $areTheySame")
 
             return areTheySame
         }
     }
+
 
     override fun lastDataTime(): Long {
         return if (pumpStatus.lastConnection != 0L) {
@@ -1073,8 +1071,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
 
     }
-
-
 
 
     private fun checkTimeAndOptionallySetTime(readTime: Boolean): Boolean {
@@ -1474,7 +1470,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     init {
-        displayConnectionMessages = false // TODO can be removed in future
+        displayConnectionMessages = true // TODO can be removed in future
     }
 
 
@@ -1487,7 +1483,10 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     if (remaining > 50) 60 else if (remaining > 20) 30 else 15
                 }
-                PumpDataRefreshType.BatteryStatus    -> 55
+                PumpDataRefreshType.BatteryStatus    -> {
+                    val power = pumpStatus.batteryRemaining
+                    if (power > 30) 55 else if (power > 20) 30 else 15
+                }
                 PumpDataRefreshType.PumpTime         -> 300
                 PumpDataRefreshType.PumpStatus       -> 5
                 else                                 -> -1
@@ -1518,41 +1517,24 @@ class TandemMobiPumpPlugin @Inject constructor(
                                                   QualifyingEventsRange.LAST_12_HOURS.name,
                                                   QualifyingEventsRange.LAST_24_HOURS.name)
 
-
-        // val pumpFreqValues = arrayOf<CharSequence>(RileyLinkTargetFrequency.MedtronicUS.key!!, RileyLinkTargetFrequency.MedtronicWorldWide.key!!)
-        // val encodingValues = arrayOf<CharSequence>(RileyLinkEncodingType.FourByteSixByteLocal.key!!, RileyLinkEncodingType.FourByteSixByteRileyLink.key!!)
-        // val batteryValues = mutableListOf<CharSequence>().also { list -> BatteryType.entries.forEach { list.add(it.key) } }.toTypedArray()
+        val quickBolusValues = arrayOf<CharSequence>(QuickBolusType.DISABLED.name,
+                                                     QuickBolusType.UNITS_0_5.name,
+                                                     QuickBolusType.UNITS_1_0.name,
+                                                     QuickBolusType.UNITS_2_O.name,
+                                                     QuickBolusType.UNITS_5_0.name,
+                                                     QuickBolusType.CARBS_2G.name,
+                                                     QuickBolusType.CARBS_5G.name,
+                                                     QuickBolusType.CARBS_10G.name,
+                                                     QuickBolusType.CARBS_15G.name)
     }
 
 
     // TODO Preferences:
-    //    - add MIN_BASAL_ALERT2 confirmation (hardcoded ATM)
     //    - add MIN_RESERVOIR2 confirmation not implemented yet, but might be needed
 
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
         aapsLogger.info(TAG, "addPreferenceScreen: preferenceManager=$preferenceManager, parent=$parent, requiredKey=$requiredKey")
         if (requiredKey != null) return
-
-        // val batteryEntries = mutableListOf<CharSequence>().also { list -> BatteryType.entries.forEach { list.add(rh.gs(it.friendlyName)) } }.toTypedArray()
-        // val encodingEntries = arrayOf<CharSequence>(rh.gs(RileyLinkEncodingType.FourByteSixByteLocal.friendlyName!!), rh.gs(RileyLinkEncodingType.FourByteSixByteLocal.friendlyName!!))
-        //
-        // val pumpTypeEntries = arrayOf<CharSequence>(
-        //     "Other (unsupported)",
-        //     "512",
-        //     "712",
-        //     "515",
-        //     "715",
-        //     "522",
-        //     "722",
-        //     "523 (Fw 2.4A or lower)",
-        //     "723 (Fw 2.4A or lower)",
-        //     "554 (EU Fw. <= 2.6A)",
-        //     "754 (EU Fw. <= 2.6A)",
-        //     "554 (CA Fw. <= 2.7A)",
-        //     "754 (CA Fw. <= 2.7A)"
-        // )
-        //
-        // val bolusDelayEntries = arrayOf<CharSequence>("5", "10", "15")
 
         val qeFilterEntries = arrayOf<CharSequence>(rh.gs(QualifyingEventsFilter.ALL.friendlyName),
                                              rh.gs(QualifyingEventsFilter.AAPS_RELEVANT.friendlyName))
@@ -1562,6 +1544,15 @@ class TandemMobiPumpPlugin @Inject constructor(
                                                    rh.gs(QualifyingEventsRange.LAST_12_HOURS.friendlyName),
                                                    rh.gs(QualifyingEventsRange.LAST_24_HOURS.friendlyName))
 
+        val quickBolusEntries = arrayOf<CharSequence>(rh.gs(QuickBolusType.DISABLED.friendlyName),
+                                                      rh.gs(QuickBolusType.UNITS_0_5.friendlyName),
+                                                      rh.gs(QuickBolusType.UNITS_1_0.friendlyName),
+                                                      rh.gs(QuickBolusType.UNITS_2_O.friendlyName),
+                                                      rh.gs(QuickBolusType.UNITS_5_0.friendlyName),
+                                                      rh.gs(QuickBolusType.CARBS_2G.friendlyName),
+                                                      rh.gs(QuickBolusType.CARBS_5G.friendlyName),
+                                                      rh.gs(QuickBolusType.CARBS_10G.friendlyName),
+                                                      rh.gs(QuickBolusType.CARBS_15G.friendlyName))
 
         val category = PreferenceCategory(context)
         parent.addPreference(category)
@@ -1680,99 +1671,34 @@ class TandemMobiPumpPlugin @Inject constructor(
                 )
             )
 
+            addPreference(
+                AdaptiveSwitchPreference(
+                    ctx = context,
+                    booleanKey = TandemBooleanPreferenceKey.ShowCargoOfUnknownEntries,
+                    title = R.string.tandem_cfg_show_cargo_of_unknown_logs,
+                    summary = R.string.tandem_cfg_show_cargo_of_unknown_logs_summary
+                )
+            )
+
+            addPreference(
+                AdaptiveSwitchPreference(
+                    ctx = context,
+                    booleanKey = TandemBooleanPreferenceKey.AutoConfirmLowBasalDelivery,
+                    title = R.string.tandem_cfg_auto_confirm_low_basal_delivery,
+                    summary = R.string.tandem_cfg_auto_confirm_low_basal_delivery_summary
+                )
+            )
+
+            addPreference(
+                AdaptiveListPreference(
+                    ctx = context,
+                    stringKey = TandemStringPreferenceKey.QuickBolusTypePref,
+                    title = R.string.pump_quick_bolus_description,
+                    entries = quickBolusEntries,
+                    entryValues = quickBolusValues
+                )
+            )
         }
-
-
-
-
-
-        // val batteryEntries = mutableListOf<CharSequence>().also { list -> BatteryType.entries.forEach { list.add(rh.gs(it.friendlyName)) } }.toTypedArray()
-        // val encodingEntries = arrayOf<CharSequence>(rh.gs(RileyLinkEncodingType.FourByteSixByteLocal.friendlyName!!), rh.gs(RileyLinkEncodingType.FourByteSixByteLocal.friendlyName!!))
-        //
-        //
-        //
-        // val bolusDelayEntries = arrayOf<CharSequence>("5", "10", "15")
-
-            // addPreference(
-            //     AdaptiveStringPreference(
-            //         ctx = context, stringKey = MedtronicStringPreferenceKey.Serial, title = R.string.medtronic_serial_number,
-            //         validatorParams = DefaultEditTextValidator.Parameters(
-            //             testType = EditTextValidator.TEST_REGEXP,
-            //             customRegexp = rh.gs(R.string.sixdigitnumber),
-            //             testErrorString = rh.gs(app.aaps.core.validators.R.string.error_mustbe6digitnumber)
-            //         )
-            //     )
-            // )
-            // addPreference(
-            //     AdaptiveListPreference(
-            //         ctx = context,
-            //         stringKey = MedtronicStringPreferenceKey.PumpType,
-            //         title = R.string.medtronic_pump_type,
-            //         entries = pumpTypeEntries,
-            //         entryValues = pumpTypeEntries
-            //     )
-            // )
-            // addPreference(
-            //     AdaptiveListPreference(
-            //         ctx = context,
-            //         stringKey = MedtronicStringPreferenceKey.PumpFrequency,
-            //         title = R.string.medtronic_pump_frequency,
-            //         entries = pumpFreqEntries,
-            //         entryValues = pumpFreqValues
-            //     )
-            // )
-            // addPreference(AdaptiveIntPreference(ctx = context, intKey = MedtronicIntPreferenceKey.MaxBasal, title = R.string.medtronic_pump_max_basal))
-            // addPreference(AdaptiveIntPreference(ctx = context, intKey = MedtronicIntPreferenceKey.MaxBolus, title = R.string.medtronic_pump_max_bolus))
-            // addPreference(
-            //     AdaptiveListIntPreference(
-            //         ctx = context,
-            //         intKey = MedtronicIntPreferenceKey.BolusDelay,
-            //         title = R.string.medtronic_pump_bolus_delay,
-            //         entries = bolusDelayEntries,
-            //         entryValues = bolusDelayEntries
-            //     )
-            // )
-            // addPreference(
-            //     AdaptiveListPreference(
-            //         ctx = context,
-            //         stringKey = RileyLinkStringPreferenceKey.Encoding,
-            //         title = R.string.medtronic_pump_encoding,
-            //         entries = encodingEntries,
-            //         entryValues = encodingValues
-            //     )
-            // )
-            // addPreference(
-            //     AdaptiveListPreference(
-            //         ctx = context,
-            //         stringKey = MedtronicStringPreferenceKey.BatteryType,
-            //         title = R.string.medtronic_pump_battery_select,
-            //         entries = batteryEntries,
-            //         entryValues = batteryValues
-            //     )
-            // )
-            // addPreference(
-            //     AdaptiveIntentPreference(
-            //         ctx = context, intentKey = RileyLinkIntentPreferenceKey.MacAddressSelector, title = app.aaps.pump.common.hw.rileylink.R.string.rileylink_configuration,
-            //         intent = Intent(context, RileyLinkBLEConfigActivity::class.java)
-            //     )
-            // )
-            // addPreference(
-            //     AdaptiveSwitchPreference(
-            //         ctx = context,
-            //         booleanKey = RileylinkBooleanPreferenceKey.OrangeUseScanning,
-            //         title = app.aaps.pump.common.hw.rileylink.R.string.orange_use_scanning_level,
-            //         summary = app.aaps.pump.common.hw.rileylink.R.string.orange_use_scanning_level_summary
-            //     )
-            // )
-            // addPreference(
-            //     AdaptiveSwitchPreference(
-            //         ctx = context,
-            //         booleanKey = RileylinkBooleanPreferenceKey.ShowReportedBatteryLevel,
-            //         title = app.aaps.pump.common.hw.rileylink.R.string.riley_link_show_battery_level,
-            //         summary = app.aaps.pump.common.hw.rileylink.R.string.riley_link_show_battery_level_summary
-            //     )
-            // )
-            // addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = MedtronicBooleanPreferenceKey.SetNeutralTemp, title = R.string.set_neutral_temps_title, summary = R.string.set_neutral_temps_summary))
 
     }
 

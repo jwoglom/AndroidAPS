@@ -3,6 +3,7 @@
 package app.aaps.pump.tandem.t_mobi.ui
 
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -49,7 +50,6 @@ import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.di.TandemComposeUiComponent
 import app.aaps.pump.tandem.t_mobi.ui.actions.Actions
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
 import app.aaps.pump.tandem.t_mobi.ui.data.DataDisplayMain
 import app.aaps.pump.tandem.t_mobi.ui.data.History
 import app.aaps.pump.tandem.t_mobi.ui.data.Notifications
@@ -77,6 +77,10 @@ class DataActivity : DaggerComponentActivity() {
     var sectionState: DataLandingSection = DataLandingSection.DATA
     var navController: NavHostController? = null
     var TAG = LTag.PUMPCOMM
+
+    val isDarkTheme: Boolean
+        get() = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
 
     lateinit var tandemUICommunication : TandemUICommunication
 
@@ -106,7 +110,8 @@ class DataActivity : DaggerComponentActivity() {
                 }
             }
 
-            TMobiScreensTheme {
+
+            TMobiScreensTheme(darkTheme = tandemPumpUtil.isAAPSDarkTheme(isSystemDarkTheme = isDarkTheme)) {
                 Scaffold(
                     content = { innerPadding ->
                         BottomSheetScaffold(
@@ -256,8 +261,6 @@ class DataActivity : DaggerComponentActivity() {
         val jsonParamVal = tandemPumpUtil.gson.toJson(queryParameters)
 
         aapsLogger.debug(TAG, "refreshDatabase: called with target=${databaseTarget.name} and parameters=$jsonParamVal")
-
-        dbDataHandler.databaseStatistics() // TODO DataActivity::temporary
 
         when(databaseTarget) {
             DatabaseTarget.QUALIFYING_EVENTS -> {

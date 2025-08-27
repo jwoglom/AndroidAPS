@@ -461,7 +461,8 @@ abstract class PumpPluginAbstract protected constructor(
     protected fun workWithStatusRefresh(
         action: PumpDataRefreshAction,
         statusRefreshType: PumpDataRefreshType?,
-        time: Long?
+        time: Long?,
+        customParameter: Any? = null
     ): HashMap<PumpDataRefreshType?, Long?>? {
         return when (action) {
             PumpDataRefreshAction.Add     -> {
@@ -469,8 +470,20 @@ abstract class PumpPluginAbstract protected constructor(
                 null
             }
 
+            PumpDataRefreshAction.AddSameAsOther     -> {
+                val statusRefreshType2 = customParameter as PumpDataRefreshType
+                val timeFromType = statusRefreshMap[statusRefreshType2]
+                statusRefreshMap[statusRefreshType] = timeFromType
+                null
+            }
+
             PumpDataRefreshAction.GetData -> {
                 HashMap(statusRefreshMap)
+            }
+
+            PumpDataRefreshAction.Delete -> {
+                statusRefreshMap.remove(statusRefreshType)
+                null
             }
         }
     }
@@ -496,6 +509,17 @@ abstract class PumpPluginAbstract protected constructor(
                 PumpDataRefreshAction.Add, refreshType,
                 getTimeInFutureFromMinutes(refreshTime + additionalTimeInMinutes)
             )
+        } else if (refreshTime==-1) {
+            val statusRefresh = workWithStatusRefresh(
+                PumpDataRefreshAction.GetData, null,
+                null)!!
+
+            if (statusRefresh.containsKey(refreshType)) {
+                workWithStatusRefresh(
+                    PumpDataRefreshAction.Delete, refreshType,
+                    -1
+                )
+            }
         }
     }
 
@@ -505,6 +529,16 @@ abstract class PumpPluginAbstract protected constructor(
             whenToRefresh
         )
     }
+
+    protected fun scheduleNextRefreshAtSameTimeAsOtherType(refreshType: PumpDataRefreshType, refreshTypeToCopy: PumpDataRefreshType) {
+        workWithStatusRefresh(
+            action = PumpDataRefreshAction.Add,
+            statusRefreshType = refreshType,
+            time = null,
+            customParameter = refreshTypeToCopy
+        )
+    }
+
 
 
 

@@ -40,11 +40,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+// import androidx.compose.ui.platform.LocalContext
+//import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -53,8 +54,8 @@ import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.SendType
-
+import app.aaps.pump.tandem.R
+import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.t_mobi.ui.util.LifecycleStateObserver
 import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
@@ -89,25 +90,26 @@ fun Actions(
     navigateToCartridgeActions: () -> Unit,
     navigateToPumpInfo: () -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
+    //val coroutineScope = rememberCoroutineScope()
 
     var showResumeInsulinMenu by remember { mutableStateOf(_resumeInsulinMenuState) }
     var showSuspendInsulinMenu by remember { mutableStateOf(_suspendInsulinMenuState) }
     var showStopTempRateMenu by remember { mutableStateOf(_stopTempRateMenuState) }
 
-    val context = LocalContext.current
+    //val context = LocalContext.current
     val ds = LocalTandemDataStore.current
-    val deviceName = ds.setupDeviceName.observeAsState()
-    @Suppress("PropertyName")
+    //val deviceName = ds.setupDeviceName.observeAsState()
+    @Suppress("LocalVariable")
     val TAG = LTag.PUMPCOMM
 
     val tempRateActive = ds.tempRateActive.observeAsState()
     val tempRateDetails = ds.tempRateDetails.observeAsState()
+    val basalStatus = ds.pumpRunningState.observeAsState()
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
 
-    fun fetchDataStoreFields(type: SendType) {
+    fun fetchDataStoreFields() {
         sendPumpCommands(actionsCommands)
     }
 
@@ -123,7 +125,7 @@ fun Actions(
             aapsLogger.debug(TAG, "Actions loading: remaining ${nullFields.size}: ${actionsFields.map { it.value }}")
             if (sinceLastFetchTime >= 2500) {
                 aapsLogger.debug(TAG, "Actions loading re-fetching with cache")
-                fetchDataStoreFields(SendType.CACHED)
+                fetchDataStoreFields()
                 sinceLastFetchTime = 0
             }
 
@@ -142,23 +144,23 @@ fun Actions(
         refreshing = true
 
         actionsFields.forEach { field -> field.value = null }
-        fetchDataStoreFields(SendType.BUST_CACHE)
+        fetchDataStoreFields()
     }
 
     //val state = rememberPullRefreshState(refreshing, ::refresh)
     val pullRefreshState = rememberPullToRefreshState()
 
-
+// LocalLifecycleOwner.current
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
         refreshScope.cancel()
     }) {
         aapsLogger.debug(TAG, "reloading Actions from onStart lifecyclestate")
-        fetchDataStoreFields(SendType.STANDARD)
+        fetchDataStoreFields()
     }
 
     LaunchedEffect(intervalOf(60)) {
         aapsLogger.debug(TAG, "reloading Actions from interval")
-        fetchDataStoreFields(SendType.STANDARD)
+        fetchDataStoreFields()
     }
 
     LaunchedEffect(refreshing) {
@@ -187,10 +189,10 @@ fun Actions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("Actions")
+                    HeaderLine(resourceHelper.gs(R.string.ca_label))
                 }
                 item {
-                    val basalStatus = ds.pumpRunningState.observeAsState()
+
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -199,16 +201,16 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (basalStatus.value) {
-                                    PumpRunningState.Unknown, null  -> "Stop / Start Insulin"
-                                    PumpRunningState.Suspended -> "Start Insulin"
-                                    else                       -> "Stop Insulin"
+                                    PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_start_insulin)
+                                    PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_start_insulin)
+                                    else                       -> resourceHelper.gs(R.string.ca_stop_insulin)
                                 }
                             )},
                             supportingContent = { Text(
                                 when (basalStatus.value) {
-                                    PumpRunningState.Unknown, null  -> "Stop or resume insulin deliveries"
-                                    PumpRunningState.Suspended -> "Resume insulin deliveries"
-                                    else                       -> "Stop insulin deliveries"
+                                    PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_resume_insulin_deliveries)
+                                    PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_resume_insulin_deliveries)
+                                    else                       -> resourceHelper.gs(R.string.ca_stop_insulin_deliveries)
                                 }
                             ) },
                             leadingContent = {
@@ -245,10 +247,10 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = {},
                                 title = {
-                                    Text("Resume insulin")
+                                    Text(resourceHelper.gs(R.string.ca_resume_insulin))
                                 },
                                 text = {
-                                    Text("Resume all insulin deliveries?")
+                                    Text(resourceHelper.gs(R.string.ca_resume_all_insulin_deliveries))
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -257,7 +259,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(resourceHelper.gs(Rco.string.cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -267,6 +269,9 @@ fun Actions(
                                             sendPumpCommands(listOf(ResumePumpingRequest()))
                                             refreshScope.launch {
                                                 repeat(5) {
+                                                    if (basalStatus.value == PumpRunningState.Running) {
+                                                        return@repeat
+                                                    }
                                                     Thread.sleep(1000)
                                                     sendPumpCommands(
                                                         listOf(HomeScreenMirrorRequest())
@@ -276,7 +281,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Resume insulin")
+                                        Text(resourceHelper.gs(R.string.ca_resume_insulin))
                                     }
                                 }
                             )
@@ -292,10 +297,10 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = {},
                                 title = {
-                                    Text("Stop insulin")
+                                    Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
                                 },
                                 text = {
-                                    Text("Suspend all insulin deliveries?")
+                                    Text(resourceHelper.gs(R.string.ca_suspend_all_insulin_deliveries))
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -304,7 +309,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(resourceHelper.gs(Rco.string.cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -314,6 +319,9 @@ fun Actions(
                                             sendPumpCommands(listOf(SuspendPumpingRequest()))
                                             refreshScope.launch {
                                                 repeat(5) {
+                                                    if (basalStatus.value == PumpRunningState.Suspended) {
+                                                        return@repeat
+                                                    }
                                                     Thread.sleep(1000)
                                                     sendPumpCommands(listOf(HomeScreenMirrorRequest()))
                                                 }
@@ -321,7 +329,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Stop insulin")
+                                        Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
                                     }
                                 }
                             )
@@ -347,19 +355,22 @@ fun Actions(
                                 .wrapContentSize(Alignment.TopStart)
                         ) {
                             fun prettyDuration(minutes: Long?): String {
-                                return "${minutes?.div(60)}h${minutes?.rem(60)}m"
+                                return resourceHelper.gs(R.string.ca_hours_minutes_short,
+                                                         minutes?.div(60),
+                                                         minutes?.rem(60))
                             }
 
                             ListItem(
                                 headlineContent = { Text(
                                     when (tempRateActive.value) {
-                                        true -> "Stop Temp Rate"
-                                        else -> "Start Temp Rate"
+                                        true -> resourceHelper.gs(R.string.ca_stop_temp_rate)
+                                        else -> resourceHelper.gs(R.string.ca_start_temp_rate)
                                     }
                                 )},
                                 supportingContent =  {
                                     when (tempRateActive.value) {
-                                        true -> Text("Active: ${compactTBRDisplay(tempRateDetails.value)}")
+                                        true -> Text(resourceHelper.gs(R.string.ca_active,
+                                                                       compactTBRDisplay(tempRateResponse = tempRateDetails.value, resourceHelper = resourceHelper)))
                                         else -> null
                                     }
                                 },
@@ -389,10 +400,13 @@ fun Actions(
                                 AlertDialog(
                                     onDismissRequest = { showStopTempRateMenu = false },
                                     title = {
-                                        Text("Stop Temp Rate")
+                                        Text(resourceHelper.gs(R.string.ca_stop_temp_rate))
                                     },
                                     text = {
-                                        Text("Stop the active temp rate: ${tempRateDetails.value?.percentage}% for ${prettyDuration(tempRateDetails.value?.duration?.div(60))} beginning ${tempRateDetails.value?.startTimeInstant}")
+                                        Text(resourceHelper.gs(R.string.ca_stop_active_temp_rate,
+                                                               tempRateDetails.value?.percentage,
+                                                               "${prettyDuration(tempRateDetails.value?.duration?.div(60))}",
+                                                               "${tempRateDetails.value?.startTimeInstant}"))
                                     },
                                     dismissButton = {
                                         TextButton(
@@ -401,7 +415,7 @@ fun Actions(
                                             },
                                             modifier = Modifier.padding(top = 16.dp)
                                         ) {
-                                            Text("Cancel")
+                                            Text(resourceHelper.gs(Rco.string.cancel))
                                         }
                                     },
                                     confirmButton = {
@@ -418,7 +432,7 @@ fun Actions(
                                             },
                                             modifier = Modifier.padding(top = 16.dp)
                                         ) {
-                                            Text("Stop temp rate")
+                                            Text(resourceHelper.gs(R.string.ca_stop_temp_rate))
                                         }
                                     }
                                 )
@@ -437,7 +451,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Cartridge/Cannula Setup"
+                                resourceHelper.gs(R.string.ca_cartridge_cannula_setup)
                             )},
                             supportingContent = {
                             },
@@ -460,7 +474,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Pump Info"
+                                resourceHelper.gs(R.string.ca_pump_info)
                             )},
                             supportingContent = {
                             },
@@ -492,7 +506,7 @@ val actionsFields = listOf(
 @Preview(showBackground = true)
 @Composable
 private fun PreviewInsulinActive() {
-    TMobiScreensTheme() {
+    TMobiScreensTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

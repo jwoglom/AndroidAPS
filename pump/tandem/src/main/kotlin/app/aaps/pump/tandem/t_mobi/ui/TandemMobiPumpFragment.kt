@@ -38,7 +38,6 @@ import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
-import app.aaps.pump.common.events.EventPumpDataRefresh
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 
@@ -49,7 +48,6 @@ import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
-import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
 import com.google.gson.Gson
 
@@ -105,12 +103,13 @@ class TandemMobiPumpFragment : DaggerFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.pumpRefreshMobi.setOnClickListener {
-            binding.pumpRefreshMobi.isEnabled = false
+            setButtonState(false)
             tandemPumpPlugin.resetStatusState()
             commandQueue.readStatus("Clicked refresh", object : Callback() {
                 override fun run() {
-                    activity?.runOnUiThread { binding.pumpRefreshMobi.isEnabled = true }
-                    //rxBus.send(EventPumpDataRefresh())
+                    activity?.runOnUiThread {
+                        setButtonState(true)
+                    }
                 }
             })
         }
@@ -125,7 +124,22 @@ class TandemMobiPumpFragment : DaggerFragment() {
 
         setVisibilityOfDriverVersion()
 
+        disableLastPumpEvent()
+
     }
+
+    private fun disableLastPumpEvent() {
+        binding.showLastPumpEvent.visibility = View.GONE
+        binding.showLastPumpEventLine.visibility = View.GONE
+    }
+
+    private fun setButtonState(enabled: Boolean) {
+        binding.pumpRefreshMobi.isEnabled = enabled
+        binding.pumpHistory.isEnabled = enabled
+        binding.pumpConfig.isEnabled = enabled
+    }
+
+
 
     @Synchronized
     override fun onResume() {

@@ -5,7 +5,4 @@ class PumpStateX2(val pairingCode: String,
                   val jpakeServerNonce: String,
                   val savedBluetoothMAC: String,
                   val pumpSerialNum: String?
-                  ) {
-
-
-}
+                  )

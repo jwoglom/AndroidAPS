@@ -15,9 +15,6 @@ import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.ExperimentalMaterial3Api
-// import androidx.compose.material.pullrefresh.PullRefreshIndicator
-// import androidx.compose.material.pullrefresh.pullRefresh
-// import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -39,7 +36,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.navigation.NavHostController
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper

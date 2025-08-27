@@ -31,9 +31,9 @@ import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.data.IDPSegmentDto
 import app.aaps.pump.tandem.common.data.PumpProfileDto
+import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 import app.aaps.pump.tandem.common.data.defs.TandemCommandType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
-import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion.VERSION_2_1_to_2_4
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand.*
@@ -61,6 +61,7 @@ import com.jwoglom.pumpx2.pump.messages.request.control.InitiateBolusRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetIDPSegmentRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBasalLimitRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBolusLimitRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
@@ -94,6 +95,7 @@ import com.jwoglom.pumpx2.pump.messages.response.control.InitiateBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetIDPSegmentResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBasalLimitResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBolusLimitResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.SetQuickBolusSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.StopTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SuspendPumpingResponse
@@ -231,7 +233,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             addToSettings(TandemPumpSettingType.BASAL_LIMIT, map, getCommunicationManager().sendCommand(BasalLimitSettingsRequest()))
             addToSettings(TandemPumpSettingType.MAX_BOLUS, map, getCommunicationManager().sendCommand(GlobalMaxBolusSettingsRequest()))
 
-            if (this.tandemPumpStatus.tandemPumpFirmware.isSameVersion(VERSION_2_1_to_2_4)) {
+            if (this.tandemPumpStatus.tandemPumpFirmware.isSameVersion(TandemPumpApiVersion.VERSION_2_1_to_2_4)) {
                 if (tandemPumpStatus.featuresV1==null) {
                     addToSettings(TandemPumpSettingType.PUMP_FEATURES_1, map, getCommunicationManager().sendCommand(PumpFeaturesV1Request()))
                 }
@@ -362,9 +364,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                 0, 0,
                                                 bolusCarbs, 0, 0)
 
-        // InitiateBolusRequest(long totalVolume, int bolusID, int bolusTypeBitmask, long foodVolume,
-        //     long correctionVolume, int bolusCarbs, int bolusBG, long bolusIOB)
-
         val bolusRequestResponse: InitiateBolusResponse? = getCommunicationManager().sendCommand(
             bolusRequest
         ) as InitiateBolusResponse?
@@ -472,7 +471,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-    // Mobi Only
     override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<TempBasalPair?> {
 
         aapsLogger.info(LTag.PUMPCOMM, "sendTemporaryBasal [amount=$value,duration=$duration]")
@@ -640,7 +638,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     var zeroByte : Byte = 0
 
-    // TODO remove SDP tags as soon as this is fully tested and implemented
+
     fun getInitialBasalProfileConfiguration(): PumpProfileDto {
 
         var responseMessage: Message? = getCommunicationManager().sendCommand(ProfileStatusRequest())
@@ -656,9 +654,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         }
 
         pumpProfileDto.profileStatusResponse = responseMessage as ProfileStatusResponse
-
-        //var gsonText = pumpUtil.gson.toJson(profileStatusResponse);
-        //aapsLogger.info(LTag.PUMPCOMM, "DBG: Profile status response: $gsonText")
 
         val idpId = pumpProfileDto.profileStatusResponse!!.idpSlot0Id
 
@@ -898,8 +893,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-
-
     private fun deleteIDPSegment(idpSegment: IDPSegmentResponse, index: Int): Boolean {
 
         val setSegment = SetIDPSegmentRequest(idpSegment.idpId, 0, index, SetIDPSegmentRequest.IDPSegmentOperation.DELETE_SEGMENT_ID,
@@ -1024,6 +1017,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             GET_ALERTS         -> return getAlerts()
             GET_ALARMS         -> return getAlarms()
             DISMISS_ALERT      -> return dismissNotificationAlert(data as Long)
+            SET_QUICK_BOLUS    -> return setQuickBolus(data as QuickBolusType)
             // else                              -> {
             //     aapsLogger.error(TAG, "Unhandled Custom Command: ${commandType.name}")
             // }
@@ -1196,6 +1190,31 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
+    private fun setQuickBolus(quickBolusType: QuickBolusType): DataCommandResponse<AdditionalResponseDataInterface?> {
+        aapsLogger.info(LTag.PUMPCOMM, "set QuickBolus [quickBolus=$quickBolusType]")
+
+        val quickBolusIncrement = SetQuickBolusSettingsRequest.QuickBolusIncrement.valueOf(quickBolusType.name)
+
+        val responseMessage: SetQuickBolusSettingsResponse? = getCommunicationManager()
+            .sendCommand(SetQuickBolusSettingsRequest(quickBolusIncrement)) as SetQuickBolusSettingsResponse?
+
+        if (responseMessage!=null) {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, responseMessage.status==0,
+                if (responseMessage.status==0) null else "Error sending SetQuickBolusSettings(quickBolus=$quickBolusType): status=${responseMessage.status}",
+                null
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending SetQuickBolusSettings: null",
+                null
+            )
+        }
+    }
+
+
+
     private fun setControlIQDisabled(): DataCommandResponse<AdditionalResponseDataInterface?> {
 
         aapsLogger.info(LTag.PUMPCOMM, "setControlIQDisabled")
@@ -1250,6 +1269,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     private fun getCorrectRequest(command: TandemCommandType): Message {
         return when(this.tandemPumpStatus.tandemPumpFirmware) {
+
             TandemPumpApiVersion.VERSION_2_1_to_2_4,
             -> {
                 when(command) {

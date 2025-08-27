@@ -2,6 +2,7 @@
 
 package app.aaps.pump.tandem.t_mobi.ui.data
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,10 +36,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -51,6 +54,7 @@ import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
+import app.aaps.pump.tandem.t_mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.t_mobi.ui.util.DateTimeInTwoLines
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
@@ -73,7 +77,7 @@ fun History(
 
     val ds = LocalTandemDataStore.current
     @Suppress("PropertyName")
-    val TAG= LTag.PUMPCOMM
+    val TAG: LTag = LTag.PUMPCOMM
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -88,7 +92,7 @@ fun History(
     fun doDatabaseRefresh() = refreshScope.launch {
         refreshing = true
         ds.dataHistoryLoaded.value = false
-        aapsLogger.error(TAG, "Database Refresh: Group: ${selectedGroup}  Time: ${selectedTimeRange}")
+        aapsLogger.debug(TAG, "Database Refresh: Group: $selectedGroup  Time: $selectedTimeRange")
 
         refreshDatabase(
             DatabaseTarget.PUMP_HISTORY, DatabaseQueryParameters(
@@ -198,13 +202,13 @@ fun History(
         )
 
         val historyEntries = remember { mutableStateListOf<TandemHistoryRecordDto>() }
-        ds.dataHistoryLoaded.observe(androidx.lifecycle.compose.LocalLifecycleOwner.current, {
+        ds.dataHistoryLoaded.observe(LocalLifecycleOwner.current, {
 
             if (ds.dataHistoryLoaded.value==true) {
                 ds.dataHistory.value?.let {
                     historyEntries.clear()
                     historyEntries.addAll(it)
-                    aapsLogger.error(TAG, "Internal History: ${historyEntries.size}")
+                    aapsLogger.debug(TAG, "Internal History: ${historyEntries.size}")
                 }
 
             }
@@ -222,7 +226,10 @@ fun History(
             content = {
 
                 item {
-                    HeaderLineWithBackButton(text = resourceHelper.gs(R.string.data_pump_history), onBackClick=navigateBack, backgroundColor = Color.LightGray)
+                    HeaderLineWithBackButton(text = resourceHelper.gs(R.string.data_pump_history),
+                                             onBackClick=navigateBack,
+                                             backgroundColor = Color.LightGray,
+                                             resourceHelper = resourceHelper)
                     HorizontalDivider()
                 }
 
@@ -261,7 +268,7 @@ fun History(
                                     expanded = expanded1,
                                     onDismissRequest = { expanded1 = false }
                                 ) {
-                                    PumpHistoryEntryGroup.entries.forEach { group ->
+                                    PumpHistoryEntryGroup.filteredEntries.forEach { group ->
                                         DropdownMenuItem(
                                             text = { Text(group.getDisplayValue()) },
                                             onClick = {
@@ -319,7 +326,7 @@ fun History(
 
                 historyEntries.forEach {
                     item {
-                        HistoryEventRow(it)
+                        HistoryEventRow(historyRecordDto = it, resourceHelper = resourceHelper)
                     }
                 }
 
@@ -331,10 +338,14 @@ fun History(
 
 
 @Composable
-fun HistoryEventRow(historyRecordDto: TandemHistoryRecordDto) {
+fun HistoryEventRow(historyRecordDto: TandemHistoryRecordDto, resourceHelper: ResourceHelper) {
+
+    var showDialog by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(role = Role.Button) { showDialog = true }
             .height(46.dp)
             .padding(horizontal = 13.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -368,6 +379,19 @@ fun HistoryEventRow(historyRecordDto: TandemHistoryRecordDto) {
             Text(text = if (historyRecordDto.description==null) "" else historyRecordDto.description!!,
                  fontSize = 12.sp)
         }
+
+        if (showDialog) {
+            HistoryEntryDisplay(
+
+
+                title = resourceHelper.gs(R.string.data_pump_history_log_details_title),
+                historyRecordDto = historyRecordDto,
+                onDismiss = { showDialog = false },
+                resourceHelper = resourceHelper
+            )
+        }
+
+
     }
     HorizontalDivider(thickness = 1.dp)
 }
@@ -383,7 +407,7 @@ private fun DefaultPreview_History() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
-            app.aaps.pump.tandem.t_mobi.ui.actions.setUpPreviewState(LocalTandemDataStore.current)
+            setUpPreviewState(LocalTandemDataStore.current)
 
             LocalTandemDataStore.current.dataHistory.value!!.add(TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
                 name = "Basal Change", sequenceId = 57475847, historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal ))

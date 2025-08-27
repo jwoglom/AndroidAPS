@@ -29,6 +29,7 @@ import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand.*
 import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
+import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpConst
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
@@ -54,7 +55,7 @@ class TandemPumpConnectionManager @Inject constructor(
     //     : PumpConnectorInterface
     //private val selectedConnector: PumpConnectorInterface
 
-    private val dummyConnector: PumpConnectorInterface
+    //private val dummyConnector: PumpConnectorInterface
 
     //private val mobiPumpStatus : TandemMobiPumpStatus = pumpStatus as TandemMobiPumpStatus
 
@@ -128,10 +129,10 @@ class TandemPumpConnectionManager @Inject constructor(
         tandemPumpStatus.setLastCommunicationToNow()
         pumpUtil.driverStatus = PumpDriverState.Disconnected
 
-        if (tandemPumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
-            aapsLogger.debug(TAG, "disconnect from Pump - DummyConnector")
-            return dummyConnector.disconnectFromPump();
-        }
+        // if (tandemPumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
+        //     aapsLogger.debug(TAG, "disconnect from Pump - DummyConnector")
+        //     return dummyConnector.disconnectFromPump();
+        // }
 
         return tandemConnector.disconnectFromPump()
     }
@@ -150,25 +151,27 @@ class TandemPumpConnectionManager @Inject constructor(
 
         aapsLogger.debug(TAG, "getConnector for ${commandType}")
 
-        when(commandType) {
-            PumpCommandType.GetTemporaryBasal,
-            PumpCommandType.SetTemporaryBasal,
-            PumpCommandType.CancelTemporaryBasal,
-            PumpCommandType.CustomCommand,
-            PumpCommandType.GetBasalProfile,
-            PumpCommandType.SetBasalProfile,
-            PumpCommandType.GetSettings,
-            PumpCommandType.GetPumpStatus,
-            PumpCommandType.GetRemainingInsulin,
-            PumpCommandType.GetTime,
-            PumpCommandType.SetTime,
-            PumpCommandType.GetBolus,
-            PumpCommandType.SetBolus,
-            PumpCommandType.CancelBolus,
-            PumpCommandType.GetBatteryStatus        -> return tandemConnector
+        return tandemConnector
 
-            else                    -> return dummyConnector
-        }
+        // when(commandType) {
+        //     PumpCommandType.GetTemporaryBasal,
+        //     PumpCommandType.SetTemporaryBasal,
+        //     PumpCommandType.CancelTemporaryBasal,
+        //     PumpCommandType.CustomCommand,
+        //     PumpCommandType.GetBasalProfile,
+        //     PumpCommandType.SetBasalProfile,
+        //     PumpCommandType.GetSettings,
+        //     PumpCommandType.GetPumpStatus,
+        //     PumpCommandType.GetRemainingInsulin,
+        //     PumpCommandType.GetTime,
+        //     PumpCommandType.SetTime,
+        //     PumpCommandType.GetBolus,
+        //     PumpCommandType.SetBolus,
+        //     PumpCommandType.CancelBolus,
+        //     PumpCommandType.GetBatteryStatus        -> return tandemConnector
+        //
+        //     else                    -> return dummyConnector
+        // }
     }
 
 
@@ -215,33 +218,42 @@ class TandemPumpConnectionManager @Inject constructor(
                 val alarms = responseData.value as AlarmStatusDto
                 tandemPumpStatus.tandemAlarms = alarms.alarms
                 if (!alarms.alarms.isEmpty()) {
-                    tandemPumpStatus.semaphoreNotifications = true
-                    tandemPumpStatus.semaphoreNeedsRefresh = true
+                    setNotificationSemaphore()
                 }
             }
             GET_ALERTS -> {
                 val alerts = responseData.value as AlertStatusDto
                 tandemPumpStatus.tandemAlerts = alerts.alerts
-                // TODO extend GetAlerts functionality to filter auto confirmed entries
-                if (!alerts.alerts.isEmpty()) {
-                    // TODO needs to take in account anything that is self dismissed
-                    tandemPumpStatus.semaphoreNotifications = true
-                    tandemPumpStatus.semaphoreNeedsRefresh = true
-                }
 
-                // TODO only start if configuration enabled...
                 if (alerts.alerts.contains(AlertStatusResponse.AlertResponseType.MIN_BASAL_ALERT2)) {
-                    executeCustomCommand(DISMISS_ALERT,
-                                         AlertStatusResponse.AlertResponseType.MIN_BASAL_ALERT2.bitmask().toLong())
+
+                    if (preferences.get(TandemBooleanPreferenceKey.AutoConfirmLowBasalDelivery)) {
+                        executeCustomCommand(
+                            command = DISMISS_ALERT,
+                            data = AlertStatusResponse.AlertResponseType.MIN_BASAL_ALERT2.bitmask().toLong()
+                        )
+
+                        if (alerts.alerts.size > 1) {
+                            setNotificationSemaphore()
+                        }
+                    } else {
+                        setNotificationSemaphore()
+                    }
+                } else if (!alerts.alerts.isEmpty()) {
+                    setNotificationSemaphore()
                 }
 
-                // LOW_POWER_ALERT     LOW_POWER_ALERT2
-
-                // MIN_BASAL_ALERT2
+                // LOW_POWER_ALERT     LOW_POWER_ALERT2 ??
             }
             else -> { }
         }
 
+    }
+
+
+    private fun setNotificationSemaphore() {
+        tandemPumpStatus.semaphoreNotifications = true
+        tandemPumpStatus.semaphoreNeedsRefresh = true
     }
 
 
@@ -264,6 +276,6 @@ class TandemPumpConnectionManager @Inject constructor(
 
     init {
         // TODO TandemPumpConnectionManager - remove dummyConnector when not needed anymore
-        dummyConnector = PumpDummyConnector(pumpStatus, pumpUtil, /*injector,*/ aapsLogger)
+        //dummyConnector = PumpDummyConnector(pumpStatus, pumpUtil, /*injector,*/ aapsLogger)
     }
 }
