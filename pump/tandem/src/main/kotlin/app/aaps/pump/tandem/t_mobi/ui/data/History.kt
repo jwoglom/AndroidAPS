@@ -228,7 +228,6 @@ fun History(
                 item {
                     HeaderLineWithBackButton(text = resourceHelper.gs(R.string.data_pump_history),
                                              onBackClick=navigateBack,
-                                             backgroundColor = Color.LightGray,
                                              resourceHelper = resourceHelper)
                     HorizontalDivider()
                 }
@@ -430,5 +429,36 @@ private fun DefaultPreview_History() {
     }
 }
 
+
+@Preview(showBackground = true)
+@Composable
+private fun DefaultPreview_HistoryDark() {
+    TMobiScreensTheme(darkTheme = true) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White,
+        ) {
+            setUpPreviewState(LocalTandemDataStore.current)
+
+            LocalTandemDataStore.current.dataHistory.value!!.add(TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
+                                                                                        name = "Basal Change", sequenceId = 57475847, historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal ))
+            LocalTandemDataStore.current.dataHistory.value!!.add(TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
+                                                                                        name = "Start TBR", sequenceId = 57475847, historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal ))
+            LocalTandemDataStore.current.dataHistory.value!!.add(TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
+                                                                                        name = "Bolus", sequenceId = 57475847, description = "Immediate Bolus: 12 U", historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal ))
+            LocalTandemDataStore.current.dataHistory.value!!.add(TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
+                                                                                        name = "Basal Change", sequenceId = 57475847, historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal ))
+            LocalTandemDataStore.current.dataHistoryLoaded.value = true
+            History(
+                innerPadding = PaddingValues(),
+                navigateBack = { },
+                aapsLogger = AAPSLoggerTest(),
+                refreshDatabase = { _,_ ->},
+                resourceHelper = ResourceHelperTest(),
+                refreshMainAppData = {}
+            )
+        }
+    }
+}
 
 

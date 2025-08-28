@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -135,7 +136,7 @@ fun HeaderLine(
 @Composable
 fun HeaderLineWithBackButton(
     text: String,
-    backgroundColor: Color = Color.White,
+    backgroundColor: Color = MenuDefaults.containerColor,
     onBackClick: () -> Unit,
     resourceHelper: ResourceHelper
 ) {

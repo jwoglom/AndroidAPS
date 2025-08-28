@@ -182,7 +182,6 @@ fun Notifications(
                 item {
                     HeaderLineWithBackButton(text=resourceHelper.gs(R.string.data_notifications),
                                              onBackClick=navigateBack,
-                                             backgroundColor = Color.LightGray,
                                              resourceHelper = resourceHelper)
                     HorizontalDivider()
                 }

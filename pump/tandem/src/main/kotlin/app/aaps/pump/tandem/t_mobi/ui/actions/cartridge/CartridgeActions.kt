@@ -157,7 +157,6 @@ fun CartridgeActions(
                 item {
                     HeaderLineWithBackButton(text= resourceHelper.gs(R.string.ca_label),
                                              onBackClick=navigateBack,
-                                             backgroundColor = Color.LightGray,
                                              resourceHelper = resourceHelper)
                     HorizontalDivider()
                 }
