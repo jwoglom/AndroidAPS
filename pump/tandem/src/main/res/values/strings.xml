@@ -63,7 +63,7 @@
     <string name="data_history_log_group">Group</string>
     <string name="data_history_log_details">Details</string>
     <string name="data_history_log_name">Name</string>
-
+    <string name="data_history_time_range">Time Range</string>
 
     <string name="notif_alert">Alert</string>
     <string name="notif_reminder">Reminder</string>

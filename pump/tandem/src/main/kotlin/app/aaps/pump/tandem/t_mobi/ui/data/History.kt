@@ -19,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -256,10 +257,13 @@ fun History(
                                     value = selectedGroup.getDisplayValue(),
                                     onValueChange = {}, // disable manual text editing
                                     readOnly = true,
-                                    label = { Text("Group") },
+                                    label = { Text(resourceHelper.gs(R.string.data_history_log_group)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded1) },
                                     modifier = Modifier
-                                        .menuAnchor()
+                                        .menuAnchor(
+                                            type = MenuAnchorType.PrimaryNotEditable,
+                                            enabled = true
+                                        )
                                         .fillMaxWidth()
                                 )
 
@@ -294,10 +298,13 @@ fun History(
                                     value = selectedTimeRange.getDisplayValue(),
                                     onValueChange = {}, // disable manual text editing
                                     readOnly = true,
-                                    label = { Text("Time Range") },
+                                    label = { Text(resourceHelper.gs(R.string.data_history_time_range)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2) },
                                     modifier = Modifier
-                                        .menuAnchor()
+                                        .menuAnchor(
+                                            type = MenuAnchorType.PrimaryNotEditable,
+                                            enabled = true
+                                        )
                                         .fillMaxWidth()
                                 )
 
@@ -381,8 +388,6 @@ fun HistoryEventRow(historyRecordDto: TandemHistoryRecordDto, resourceHelper: Re
 
         if (showDialog) {
             HistoryEntryDisplay(
-
-
                 title = resourceHelper.gs(R.string.data_pump_history_log_details_title),
                 historyRecordDto = historyRecordDto,
                 onDismiss = { showDialog = false },

@@ -416,45 +416,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         get() = pumpStatus
 
 
-    // Constraints interface
-    // override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
-    //     // TODOX
-    //
-    //
-    //
-    //
-    //     if (value.value()) {
-    //         value.set(
-    //             pumpStatus.tandemPumpFirmware.isClosedLoopPossible,
-    //             rh.gs(R.string.tandem_fol_closed_loop_not_allowed_x2), // TODOX allowed Closed Loop on right firmware
-    //             this
-    //         )
-    //     }
-    //     return value
-    // }
-
-
-    // override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
-    //     // TODOX enable SMB
-    //     // value.set(false)
-    //     // return value
-    //
-    //     if (pumpStatus.pumpDriverMode==PumpDriverMode.Demo) {
-    //         value.set(true)
-    //         return value
-    //     }
-    //
-    //     if (value.value()) {
-    //         value.set(
-    //             //aapsLogger,
-    //             true,  //driverMode == PumpDriverMode.Automatic, // TODOX allowed SMB on right firmware
-    //             rh.gs(R.string.tandem_constraint_SMB),
-    //             this
-    //         )
-    //     }
-    //     return value
-    // }
-
 
     override fun applyBasalConstraints(absoluteRate: Constraint<Double>, profile: Profile): Constraint<Double> {
         val maxBasalBySettings = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBasal)
