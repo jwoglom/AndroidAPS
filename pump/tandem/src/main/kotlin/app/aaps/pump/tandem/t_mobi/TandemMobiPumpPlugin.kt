@@ -74,6 +74,7 @@ import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
+import app.aaps.pump.tandem.common.driver.connector.def.ControlCommandResponse
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.events.EventDatabaseAddQEData
 import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
@@ -477,7 +478,6 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-
     override var serviceConnection: ServiceConnection? = object : ServiceConnection {
         override fun onServiceDisconnected(name: ComponentName) {
             aapsLogger.info(LTag.PUMP, "Tandem Service is disconnected")
@@ -662,11 +662,13 @@ class TandemMobiPumpPlugin @Inject constructor(
     //         aapsLogger.debug(LTag.PUMP, "finishHandshaking [PumpPluginAbstract] - default (empty) implementation.")
     // }
 
+
     override val isFakingTempsByExtendedBoluses: Boolean
         get() = false
 
+
     override fun canHandleDST(): Boolean {
-        return false
+        return true
     }
 
     override fun isBusy(): Boolean {
@@ -1187,6 +1189,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     }
 
+
     private val isLoggingEnabled: Boolean
         get() = true
 
@@ -1213,20 +1216,21 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                 aapsLogger.info(LTag.PUMP, "TBR Current Basal: ${tbrCurrent}")
             }
+
             if (!enforceNew && tbrCurrent!=null) {
                 aapsLogger.info(LTag.PUMP, "enforceNEW = false")
                 if (tandemPumpUtil.isSame(tbrCurrent.insulinRate, percent)) {
                     aapsLogger.info(LTag.PUMP, "enforceNEW = false, same = true")
-                    var sameRate = true
+                    //var sameRate = true
                     // if (tandemUtil.isSame(0.0, percent) && durationInMinutes > 0) {
                     //     // if rate is 0.0 and duration>0 then the rate is not the same
                     //     aapsLogger.info(LTag.PUMP, "enforceNEW = false, same = true, value=0%/0min NOT THE SAME")
                     //     sameRate = false
                     // }
-                    if (sameRate) {
+                    //if (sameRate) {
                         aapsLogger.info(LTag.PUMP, logPrefix + "TBR setTempBasalPercent - No enforceNew and same rate. Exiting.")
                         return instantiator.providePumpEnactResult().success(true).enacted(false)
-                    }
+                    //}
                 }
                 // if not the same rate, we cancel and start new
             }
@@ -1236,9 +1240,25 @@ class TandemMobiPumpPlugin @Inject constructor(
                 aapsLogger.info(LTag.PUMP, "setTempBasalPercent - TBR running - so canceling it.")
 
                 // CANCEL
-                val commandResponseCancel = pumpConnectionManager.cancelTemporaryBasal()
-                if (commandResponseCancel.isSuccess) {
-                    aapsLogger.info(LTag.PUMP, " TBR setTempBasalPercent - Current TBR cancelled.")
+                //val commandResponseCancel = pumpConnectionManager.cancelTemporaryBasal()
+                if (sendCancelTbrToPump()) {
+                    // aapsLogger.info(LTag.PUMP, " TBR setTempBasalPercent - Current TBR cancelled.")
+                    //
+                    // //processCancelledTBR()
+                    //
+                    // val controlCommandResponse = commandResponseCancel.value as ControlCommandResponse
+                    //
+                    //
+                    // pumpSync.syncStopTemporaryBasalWithPumpId(
+                    //     timestamp = System.currentTimeMillis(),
+                    //     pumpSerial = serialNumber(),
+                    //     pumpType = PumpType.TANDEM_T_MOBI_BT,
+                    //     endPumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus =false)
+                    // )
+                    //
+                    // pumpStatus.currentTempBasalInternal = null
+                    // //readPumpHistoryAfterAction()
+
                 } else {
                     aapsLogger.error(logPrefix + "setTempBasalPercent - Cancel TBR failed.")
                     return instantiator.providePumpEnactResult().success(false).enacted(false)
@@ -1263,25 +1283,29 @@ class TandemMobiPumpPlugin @Inject constructor(
                 //     start = System.currentTimeMillis(),
                 //     durationMinutes = durationInMinutes)
 
-                pumpStatus.currentTempBasal = controlCommandResponse
+                pumpStatus.currentTempBasalInternal = controlCommandResponse
 
-                readPumpHistoryAfterAction(tempBasalInfo = controlCommandResponse)
+                //readPumpHistoryAfterAction(tempBasalInfo = controlCommandResponse)
 
                 //val tempData = PumpDbEntryTBR(percent.toDouble(), false, durationInMinutes * 60, tbrType)
                 //medtronicPumpStatus.runningTBRWithTemp = tempData
                 //pumpSyncStorage.addTemporaryBasalRateWithTempId(tempData, true, this)
 
                 //commandResponse.value as
+                // tempId = (100000000 + controlCommandResponse.id!!),
 
-                pumpSync.addTemporaryBasalWithTempId(timestamp = controlCommandResponse.start!!,
-                                                     isAbsolute = false,
-                                                     pumpSerial = serialNumber(),
-                                                     pumpType = PumpType.TANDEM_T_MOBI_BT,
-                                                     type = tbrType,
-                                                     duration = (controlCommandResponse.durationMinutes*60*1000).toLong(),
-                                                     rate = percent.toDouble(),
-                                                     tempId = (100000000 + controlCommandResponse.id!!)
-                                                     )
+
+                // TODO TBR: use real values for Db or cancel won't work
+                pumpSync.syncTemporaryBasalWithPumpId(
+                    timestamp = controlCommandResponse.start!!,
+                    isAbsolute = false,
+                    pumpSerial = serialNumber(),
+                    pumpType = PumpType.TANDEM_T_MOBI_BT,
+                    type = tbrType,
+                    duration = (controlCommandResponse.durationMinutes * 60 * 1000).toLong(),
+                    rate = percent.toDouble(),
+                    pumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id!!, isBolus =false)
+                )
 
                 incrementStatistics(TandemLongNonPreferenceKey.TbrsSet)
 
@@ -1296,6 +1320,18 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
     }
 
+    private fun processCancelledTBR() {
+
+        // TODO
+        //   1. read history
+        //   2. change value in Db
+        //   3. delete currentItem
+
+        val downloadHistoryRecentItems = historyRetriever.downloadHistoryRecentItems()
+
+        aapsLogger.error(TAG, "processCancelledTBR not implemented yet")
+
+    }
 
     override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int, profile: Profile,
                                       enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType
@@ -1363,13 +1399,25 @@ class TandemMobiPumpPlugin @Inject constructor(
                 return instantiator.providePumpEnactResult().success(true).enacted(false)
             }
 
-            val commandResponse = pumpConnectionManager.cancelTemporaryBasal()
+            //val commandResponseCancel = pumpConnectionManager.cancelTemporaryBasal()
 
-            if (commandResponse.isSuccess) {
+            if (sendCancelTbrToPump()) {
                 aapsLogger.info(TAG, "cancelTempBasal - Cancel TBR successful.")
 
-                readPumpHistoryAfterAction(tempBasalInfo = TempBasalPair(insulinRate = 0.0, isPercent = true, durationMinutes = 0))
-                pumpStatus.clearTbr()
+                // //readPumpHistoryAfterAction(tempBasalInfo = TempBasalPair(insulinRate = 0.0, isPercent = true, durationMinutes = 0))
+                // pumpStatus.clearTbr()
+                //
+                // val controlCommandResponse = commandResponseCancel.value as ControlCommandResponse
+                //
+                //
+                // pumpSync.syncStopTemporaryBasalWithPumpId(
+                //     timestamp = System.currentTimeMillis(),
+                //     pumpSerial = serialNumber(),
+                //     pumpType = PumpType.TANDEM_T_MOBI_BT,
+                //     endPumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus =false)
+                // )
+                //
+                // pumpStatus.currentTempBasalInternal = null
 
                 instantiator.providePumpEnactResult().success(true).enacted(true) //
                     .isTempCancel(true)
@@ -1384,6 +1432,31 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
+    fun sendCancelTbrToPump(): Boolean {
+
+        val commandResponseCancel = pumpConnectionManager.cancelTemporaryBasal()
+
+        if (commandResponseCancel.isSuccess) {
+            aapsLogger.info(TAG, "cancelTempBasal - Cancel TBR successful.")
+
+            pumpStatus.clearTbr()
+
+            val controlCommandResponse = commandResponseCancel.value as ControlCommandResponse
+
+            pumpSync.syncStopTemporaryBasalWithPumpId(
+                timestamp = System.currentTimeMillis(),
+                pumpSerial = serialNumber(),
+                pumpType = PumpType.TANDEM_T_MOBI_BT,
+                endPumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus = false)
+            )
+
+            pumpStatus.currentTempBasalInternal = null
+
+        }
+
+        return commandResponseCancel.isSuccess
+    }
+
     override fun serialNumber(): String {
         return pumpStatus.serialNumber.toString()
     }
@@ -1391,6 +1464,19 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     override fun generateTempId(objectA: Any): Long {
         return 0L
+    }
+
+
+    val TBR_PREFIX: Int = 100000000;
+
+    val BOLUS_PREFIX: Int = 500000000;
+
+
+    // we don't use real pumpId, because each of items would have a lot of entries, but each of boluses or tbr has
+    // also uniqueId, which is the one we use, prefixed, so that we differentiate
+    fun getPrefixedIdForDb(pumpEventId: Long, isBolus: Boolean): Long {
+        val newNumber = if (isBolus) BOLUS_PREFIX else TBR_PREFIX
+        return newNumber + pumpEventId
     }
 
 

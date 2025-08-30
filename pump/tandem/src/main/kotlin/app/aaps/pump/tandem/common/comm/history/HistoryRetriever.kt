@@ -215,7 +215,7 @@ class HistoryRetriever @Inject constructor(
         }
     }
 
-    fun startDataRetrieval()  {
+    private fun startDataRetrieval()  {
         val summaryData = preferences.get(TandemStringNonPreferenceKey.HistorySummaryData)
         if (summaryData.isNotBlank()) {
             historySummaryDto = pumpUtil.gsonRegular.fromJson(summaryData, HistorySummaryDto::class.java)
@@ -606,7 +606,8 @@ class HistoryRetriever @Inject constructor(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun processChunkComplete() {
 
-        aapsLogger.info(TAG, "HST: processChunkComplete: ${currentRequest!!.historyLogMap.size}")
+        // TODO chaneg this to info
+        aapsLogger.error(TAG, "HST: processChunkComplete: ${currentRequest!!.historyLogMap.size}")
 
         disableLastMessageWatchdog()
 

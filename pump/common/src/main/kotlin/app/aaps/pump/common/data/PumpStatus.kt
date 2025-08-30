@@ -59,6 +59,8 @@ abstract class PumpStatus(var pumpType: PumpType) {
             field = value
         }
 
+    var currentTempBasalInternal: TempBasalPair? = null
+
 
     var currentTempBasalEstimatedEnd: Long? = null
     var tempBasalLegacyMode = false

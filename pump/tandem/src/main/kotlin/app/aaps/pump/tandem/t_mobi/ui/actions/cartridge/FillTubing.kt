@@ -82,6 +82,7 @@ fun FillTubing(innerPadding: PaddingValues,
             modifier = Modifier.fillMaxWidth().fillMaxHeight(),
         ) {
             val basalStatus = ds.basalStatus.observeAsState()
+            val pumpRunningState = ds.pumpRunningState.observeAsState()
             val inFillTubingMode = ds.inFillTubingMode.observeAsState()
             val fillTubingState = ds.fillTubingState.observeAsState()
             val exitFillTubingState = ds.exitFillTubingState.observeAsState()

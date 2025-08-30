@@ -43,7 +43,7 @@ class QualifyingEventHandler @Inject constructor(
 
     fun handleEventReceivedFromPump(event : EventHandleQualifyingEvent) {
 
-        aapsLogger.info(TAG, "handleEventReceivedFromPump: {}", event.events)
+        aapsLogger.info(TAG, "handleEventReceivedFromPump: ${event.events}")
 
         val sb = StringBuilder()
         var first = true
@@ -54,7 +54,8 @@ class QualifyingEventHandler @Inject constructor(
             listOfEvents.add(TandemQualifyingEventEntity(pumpSerial = tandemPumpStatus.serialNumber.toInt(),
                                                          dateTime = event.dateTime,
                                                          name = qualifyingEvent.name))
-            // TODO QualifyingEventHandler - description - phase 3
+            // TODOX description - at the moment we don't add any special details, since that would
+            //    require extra reading. Not sure if this is even needed, so letting it of for now
             if (!first) sb.append(", ") else first = false
 
             sb.append(qualifyingEvent.name)
@@ -69,16 +70,6 @@ class QualifyingEventHandler @Inject constructor(
 
         tandemPumpStatus.semaphoreEvents = true
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
-
-        // L0: ignore
-        // L1: we receive events and just list them in fragment     <---
-        // L4: store them in database
-        // L5: view them from database
-        // L2:
-        //     A: preprocess events, determine important
-        //     B: (add ignore list) ones
-        //     C: send CustomPumpCommand to retrieve more data about them
-        // L3: handle QE do changes on pump "configuration"
     }
 
 
@@ -98,21 +89,64 @@ class QualifyingEventHandler @Inject constructor(
 
 
     fun filterQualifyingEvents(qeItems: List<TandemQualifyingEventEntity>): List<TandemQualifyingEventEntity> {
-
         val qeFilter = QualifyingEventsFilter.valueOf(preferences.get(TandemStringPreferenceKey.QualifyingEventsFilterPref))
 
         if (qeFilter==QualifyingEventsFilter.AAPS_RELEVANT) {
-            // TODO filter events (configuration = show only AAPS relevant events from pump) - phase 3
-            aapsLogger.error(TAG, "Filtering of Qualifying Events is not yet implemented, returning all.")
-
-            return qeItems // this needs to return only filtered data
+            return filterEvents(qeItems)
         } else {
             return qeItems
         }
     }
 
-    fun isAapsRelevant() {
-        //QualifyingEvent.
+    fun filterEvents(qeItems: List<TandemQualifyingEventEntity>): List<TandemQualifyingEventEntity> {
+        val outList: MutableList<TandemQualifyingEventEntity> = mutableListOf()
+
+        for (entity in qeItems) {
+            if (isAapsRelevant(QualifyingEvent.valueOf(entity.name))) {
+                outList.add(entity)
+            }
+        }
+
+        aapsLogger.info(TAG, "QualifyingEvents filtering [before=${qeItems.size}, after=${outList.size}]")
+
+        return outList
+    }
+
+
+    fun isAapsRelevant(event: QualifyingEvent): Boolean {
+        return when (event) {
+            QualifyingEvent.ALERT,
+            QualifyingEvent.ALARM,
+            QualifyingEvent.REMINDER,
+            QualifyingEvent.MALFUNCTION,
+            QualifyingEvent.HOME_SCREEN_CHANGE,
+            QualifyingEvent.PUMP_SUSPEND,
+            QualifyingEvent.PUMP_RESUME,
+            QualifyingEvent.TIME_CHANGE,
+            QualifyingEvent.BASAL_CHANGE,
+            QualifyingEvent.BOLUS_CHANGE,
+            QualifyingEvent.PROFILE_CHANGE,
+            QualifyingEvent.BATTERY,
+            QualifyingEvent.REMAINING_INSULIN,
+            QualifyingEvent.SUSPEND_COMM,
+            QualifyingEvent.ACTIVE_SEGMENT_CHANGE,
+            QualifyingEvent.BOLUS_PERMISSION_REVOKED -> {
+                true
+            }
+
+            QualifyingEvent.CGM_ALERT,
+            QualifyingEvent.BASAL_IQ_STATUS,
+            QualifyingEvent.IOB_CHANGE,
+            QualifyingEvent.BG,
+            QualifyingEvent.EXTENDED_BOLUS_CHANGE,
+            QualifyingEvent.CGM_CHANGE,
+            QualifyingEvent.BASAL_IQ,
+            QualifyingEvent.CONTROL_IQ_INFO,
+            QualifyingEvent.CONTROL_IQ_SLEEP         -> {
+                false
+            }
+
+        }
     }
 
 }

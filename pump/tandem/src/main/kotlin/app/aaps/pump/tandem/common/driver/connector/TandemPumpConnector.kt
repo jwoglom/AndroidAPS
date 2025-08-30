@@ -523,9 +523,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         return if (responseMessage!=null) {
             DataCommandResponse(
-                PumpCommandType.CancelTemporaryBasal, responseMessage.isStatusOK,
-                if (responseMessage.isStatusOK) null else "Error sending cancelTBR: status=${responseMessage.status}",
-                ControlCommandResponse(responseMessage.tempRateId, responseMessage.status)
+                commandType = PumpCommandType.CancelTemporaryBasal, responseMessage.isStatusOK,
+                errorDescription = if (responseMessage.isStatusOK) null else "Error sending cancelTBR: status=${responseMessage.status}",
+                value = ControlCommandResponse(responseMessage.tempRateId, responseMessage.status)
             )
         } else {
             DataCommandResponse(
