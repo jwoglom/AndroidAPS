@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 @Suppress("ConstPropertyName")
 object Versions {
 
-    const val appVersion = "3.3.3.0-dev-b-tandem-0.6.x"
+    const val appVersion = "3.3.3.0-dev-b-tandem-m-0.6.x"
     const val versionCode = 1500
 
     const val ndkVersion = "21.1.6352462"
