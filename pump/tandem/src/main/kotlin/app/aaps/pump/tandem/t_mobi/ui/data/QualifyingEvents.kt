@@ -136,7 +136,6 @@ fun QualifyingEvents(
                 item {
                     HeaderLineWithBackButton(text= resourceHelper.gs(R.string.data_events),
                                              onBackClick=navigateBack,
-                                             backgroundColor = Color.LightGray,
                                              resourceHelper = resourceHelper)
                     HorizontalDivider()
                 }

@@ -58,7 +58,9 @@ fun TMobiScreensTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
+            @Suppress("DEPRECATION")
             (view.context as Activity).window.statusBarColor = colorScheme.primary.toArgb()
+            @Suppress("DEPRECATION")
             ViewCompat.getWindowInsetsController(view)?.isAppearanceLightStatusBars = darkTheme
         }
     }

@@ -201,16 +201,16 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (basalStatus.value) {
-                                    PumpRunningState.Unknown, null  -> "Stop / Start Insulin"
-                                    PumpRunningState.Suspended -> "Start Insulin"
-                                    else                       -> "Stop Insulin"
+                                    PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_start_insulin)
+                                    PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_start_insulin)
+                                    else                       -> resourceHelper.gs(R.string.ca_stop_insulin)
                                 }
                             )},
                             supportingContent = { Text(
                                 when (basalStatus.value) {
-                                    PumpRunningState.Unknown, null  -> "Stop or resume insulin deliveries"
-                                    PumpRunningState.Suspended -> "Resume insulin deliveries"
-                                    else                       -> "Stop insulin deliveries"
+                                    PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_resume_insulin_deliveries)
+                                    PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_resume_insulin_deliveries)
+                                    else                       -> resourceHelper.gs(R.string.ca_stop_insulin_deliveries)
                                 }
                             ) },
                             leadingContent = {
@@ -247,10 +247,10 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = {},
                                 title = {
-                                    Text("Resume insulin")
+                                    Text(resourceHelper.gs(R.string.ca_resume_insulin))
                                 },
                                 text = {
-                                    Text("Resume all insulin deliveries?")
+                                    Text(resourceHelper.gs(R.string.ca_resume_all_insulin_deliveries))
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -259,7 +259,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(resourceHelper.gs(Rco.string.cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -281,7 +281,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Resume insulin")
+                                        Text(resourceHelper.gs(R.string.ca_resume_insulin))
                                     }
                                 }
                             )
@@ -297,10 +297,10 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = {},
                                 title = {
-                                    Text("Stop insulin")
+                                    Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
                                 },
                                 text = {
-                                    Text("Suspend all insulin deliveries?")
+                                    Text(resourceHelper.gs(R.string.ca_suspend_all_insulin_deliveries))
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -309,7 +309,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(resourceHelper.gs(Rco.string.cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -329,7 +329,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Stop insulin")
+                                        Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
                                     }
                                 }
                             )
@@ -355,20 +355,22 @@ fun Actions(
                                 .wrapContentSize(Alignment.TopStart)
                         ) {
                             fun prettyDuration(minutes: Long?): String {
-                                return "${minutes?.div(60)}h${minutes?.rem(60)}m"
+                                return resourceHelper.gs(R.string.ca_hours_minutes_short,
+                                                         minutes?.div(60),
+                                                         minutes?.rem(60))
                             }
 
                             ListItem(
                                 headlineContent = { Text(
                                     when (tempRateActive.value) {
-                                        true -> "Stop Temp Rate"
-                                        else -> "Start Temp Rate"
+                                        true -> resourceHelper.gs(R.string.ca_stop_temp_rate)
+                                        else -> resourceHelper.gs(R.string.ca_start_temp_rate)
                                     }
                                 )},
                                 supportingContent =  {
                                     when (tempRateActive.value) {
-                                        true -> Text("Active: ${compactTBRDisplay(tempRateResponse = tempRateDetails.value, 
-                                                                                  resourceHelper = resourceHelper)}")
+                                        true -> Text(resourceHelper.gs(R.string.ca_active,
+                                                                       compactTBRDisplay(tempRateResponse = tempRateDetails.value, resourceHelper = resourceHelper)))
                                         else -> null
                                     }
                                 },
@@ -398,10 +400,13 @@ fun Actions(
                                 AlertDialog(
                                     onDismissRequest = { showStopTempRateMenu = false },
                                     title = {
-                                        Text("Stop Temp Rate")
+                                        Text(resourceHelper.gs(R.string.ca_stop_temp_rate))
                                     },
                                     text = {
-                                        Text("Stop the active temp rate: ${tempRateDetails.value?.percentage}% for ${prettyDuration(tempRateDetails.value?.duration?.div(60))} beginning ${tempRateDetails.value?.startTimeInstant}")
+                                        Text(resourceHelper.gs(R.string.ca_stop_active_temp_rate,
+                                                               tempRateDetails.value?.percentage,
+                                                               "${prettyDuration(tempRateDetails.value?.duration?.div(60))}",
+                                                               "${tempRateDetails.value?.startTimeInstant}"))
                                     },
                                     dismissButton = {
                                         TextButton(
@@ -410,7 +415,7 @@ fun Actions(
                                             },
                                             modifier = Modifier.padding(top = 16.dp)
                                         ) {
-                                            Text("Cancel")
+                                            Text(resourceHelper.gs(Rco.string.cancel))
                                         }
                                     },
                                     confirmButton = {
@@ -427,7 +432,7 @@ fun Actions(
                                             },
                                             modifier = Modifier.padding(top = 16.dp)
                                         ) {
-                                            Text("Stop temp rate")
+                                            Text(resourceHelper.gs(R.string.ca_stop_temp_rate))
                                         }
                                     }
                                 )
@@ -446,7 +451,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Cartridge/Cannula Setup"
+                                resourceHelper.gs(R.string.ca_cartridge_cannula_setup)
                             )},
                             supportingContent = {
                             },
@@ -469,7 +474,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Pump Info"
+                                resourceHelper.gs(R.string.ca_pump_info)
                             )},
                             supportingContent = {
                             },

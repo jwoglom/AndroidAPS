@@ -128,7 +128,7 @@ class TandemHistoryConverter @Inject constructor(
 
 
     private fun getEntitySubId(historyLog: HistoryLog?): Int? {
-        // TODO DbDataConverter::implement get getEntitySubId for TandemHistoryRecordDto
+
         return when(historyLog) {
             is BolusActivatedHistoryLog -> {
                 historyLog.bolusId
@@ -170,28 +170,18 @@ class TandemHistoryConverter @Inject constructor(
             is IdpListHistoryLog,
             is IdpTimeDependentSegmentHistoryLog,
             is BasalRateChangeHistoryLog,
-            is BasalDeliveryHistoryLog, // -> PumpHistoryEntryGroup.Basal
-
+            is BasalDeliveryHistoryLog,
             is BGHistoryLog,
             is DexcomG6CGMHistoryLog,
             is DexcomG7CGMHistoryLog,
             is CgmCalibrationGxHistoryLog,
             is CgmCalibrationHistoryLog,
             is CgmDataGxHistoryLog,
-            is CgmDataSampleHistoryLog, // -> PumpHistoryEntryGroup.Glucose
-
+            is CgmDataSampleHistoryLog,
             is CarbEnteredHistoryLog,
-            // is BolexActivatedHistoryLog,
-            // is BolexCompletedHistoryLog,
-            // is BolusDeliveryHistoryLog,
-            // is BolusRequestedMsg1HistoryLog,
-            // is BolusRequestedMsg2HistoryLog,
-            // is BolusRequestedMsg3HistoryLog, // -> PumpHistoryEntryGroup.Bolus
-
             is NewDayHistoryLog,
             is PumpingResumedHistoryLog,
-            is PumpingSuspendedHistoryLog, // -> PumpHistoryEntryGroup.Base
-
+            is PumpingSuspendedHistoryLog,
             is DataLogCorruptionHistoryLog,
             is DateChangeHistoryLog,
             is FactoryResetHistoryLog,
@@ -200,15 +190,10 @@ class TandemHistoryConverter @Inject constructor(
             is ParamChangeGlobalSettingsHistoryLog,
             is ParamChangePumpSettingsHistoryLog,
             is ParamChangeReminderHistoryLog,
-            is ParamChangeRemSettingsHistoryLog, // -> PumpHistoryEntryGroup.Configuration
-
+            is ParamChangeRemSettingsHistoryLog,
             is TubingFilledHistoryLog,
             is CartridgeFilledHistoryLog,
-            is CannulaFilledHistoryLog, // -> PumpHistoryEntryGroup.Prime
-
-
-                // no subId
-
+            is CannulaFilledHistoryLog,
 
             is UsbConnectedHistoryLog,
             is UsbDisconnectedHistoryLog,
@@ -276,8 +261,6 @@ class TandemHistoryConverter @Inject constructor(
                 "Alert: ${historyLog.alertResponseType.name}"
             }
 
-
-
             is TempRateActivatedHistoryLog,
             is TempRateCompletedHistoryLog,
             is IdpActionHistoryLog,
@@ -302,11 +285,11 @@ class TandemHistoryConverter @Inject constructor(
             is BolusDeliveryHistoryLog,
             is BolusRequestedMsg1HistoryLog,
             is BolusRequestedMsg2HistoryLog,
-            is BolusRequestedMsg3HistoryLog, // -> PumpHistoryEntryGroup.Bolus
+            is BolusRequestedMsg3HistoryLog,
 
             is NewDayHistoryLog,
             is PumpingResumedHistoryLog,
-            is PumpingSuspendedHistoryLog, // -> PumpHistoryEntryGroup.Base
+            is PumpingSuspendedHistoryLog,
 
             is DataLogCorruptionHistoryLog,
             is DateChangeHistoryLog,
@@ -333,7 +316,6 @@ class TandemHistoryConverter @Inject constructor(
             is UsbEnumeratedHistoryLog -> {
                 getRawData(historyLog)
             }
-            //TODO is UnknownHistoryLog -> "" description
 
             else -> {
                 aapsLogger.warn(LTag.PUMPCOMM, "Unidentified item: ${historyLog}")
@@ -473,7 +455,6 @@ class TandemHistoryConverter @Inject constructor(
         }
         return map
     }
-
 
 
     fun smartFieldValueResolver(key: String, valueData: JsonElement, historyLog: HistoryLog): String {

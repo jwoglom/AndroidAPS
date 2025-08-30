@@ -19,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -228,7 +229,6 @@ fun History(
                 item {
                     HeaderLineWithBackButton(text = resourceHelper.gs(R.string.data_pump_history),
                                              onBackClick=navigateBack,
-                                             backgroundColor = Color.LightGray,
                                              resourceHelper = resourceHelper)
                     HorizontalDivider()
                 }
@@ -257,10 +257,13 @@ fun History(
                                     value = selectedGroup.getDisplayValue(),
                                     onValueChange = {}, // disable manual text editing
                                     readOnly = true,
-                                    label = { Text("Group") },
+                                    label = { Text(resourceHelper.gs(R.string.data_history_log_group)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded1) },
                                     modifier = Modifier
-                                        .menuAnchor()
+                                        .menuAnchor(
+                                            type = MenuAnchorType.PrimaryNotEditable,
+                                            enabled = true
+                                        )
                                         .fillMaxWidth()
                                 )
 
@@ -268,7 +271,7 @@ fun History(
                                     expanded = expanded1,
                                     onDismissRequest = { expanded1 = false }
                                 ) {
-                                    PumpHistoryEntryGroup.entries.forEach { group ->
+                                    PumpHistoryEntryGroup.filteredEntries.forEach { group ->
                                         DropdownMenuItem(
                                             text = { Text(group.getDisplayValue()) },
                                             onClick = {
@@ -295,10 +298,13 @@ fun History(
                                     value = selectedTimeRange.getDisplayValue(),
                                     onValueChange = {}, // disable manual text editing
                                     readOnly = true,
-                                    label = { Text("Time Range") },
+                                    label = { Text(resourceHelper.gs(R.string.data_history_time_range)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded2) },
                                     modifier = Modifier
-                                        .menuAnchor()
+                                        .menuAnchor(
+                                            type = MenuAnchorType.PrimaryNotEditable,
+                                            enabled = true
+                                        )
                                         .fillMaxWidth()
                                 )
 
@@ -382,8 +388,6 @@ fun HistoryEventRow(historyRecordDto: TandemHistoryRecordDto, resourceHelper: Re
 
         if (showDialog) {
             HistoryEntryDisplay(
-
-
                 title = resourceHelper.gs(R.string.data_pump_history_log_details_title),
                 historyRecordDto = historyRecordDto,
                 onDismiss = { showDialog = false },
@@ -430,5 +434,36 @@ private fun DefaultPreview_History() {
     }
 }
 
+
+@Preview(showBackground = true)
+@Composable
+private fun DefaultPreview_HistoryDark() {
+    TMobiScreensTheme(darkTheme = true) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White,
+        ) {
+            setUpPreviewState(LocalTandemDataStore.current)
+
+            LocalTandemDataStore.current.dataHistory.value!!.add(TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
+                                                                                        name = "Basal Change", sequenceId = 57475847, historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal ))
+            LocalTandemDataStore.current.dataHistory.value!!.add(TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
+                                                                                        name = "Start TBR", sequenceId = 57475847, historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal ))
+            LocalTandemDataStore.current.dataHistory.value!!.add(TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
+                                                                                        name = "Bolus", sequenceId = 57475847, description = "Immediate Bolus: 12 U", historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal ))
+            LocalTandemDataStore.current.dataHistory.value!!.add(TandemHistoryRecordDto(pumpTime = System.currentTimeMillis(),
+                                                                                        name = "Basal Change", sequenceId = 57475847, historyLog = UnknownHistoryLog(), group = PumpHistoryEntryGroup.Basal ))
+            LocalTandemDataStore.current.dataHistoryLoaded.value = true
+            History(
+                innerPadding = PaddingValues(),
+                navigateBack = { },
+                aapsLogger = AAPSLoggerTest(),
+                refreshDatabase = { _,_ ->},
+                resourceHelper = ResourceHelperTest(),
+                refreshMainAppData = {}
+            )
+        }
+    }
+}
 
 

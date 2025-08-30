@@ -54,8 +54,12 @@ import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CGMAlertStatusRequest
 
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.MalfunctionStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CGMAlertStatusResponse
@@ -64,8 +68,6 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ReminderStatusRes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-// TODO Ui:Notifications - translate notifications items
 
 @Composable
 fun Notifications(
@@ -85,39 +87,11 @@ fun Notifications(
     @Suppress("PropertyName")
     val TAG = LTag.PUMPCOMM
 
-    // fun fetchDataStoreFields() {
-    //     sendPumpCommands(notificationsCommands)
-    // }
-
-    // fun waitForLoaded() = refreshScope.launch {
-    //     var sinceLastFetchTime = 0
-    //     while (true) {
-    //         val nullFields = notificationsFields.filter { field -> field.value == null }.toSet()
-    //         if (nullFields.isEmpty()) {
-    //             break
-    //         }
-    //
-    //         aapsLogger.info(TAG, "Notifications loading: remaining ${nullFields.size}: ${notificationsFields.map { it.value }}")
-    //         if (sinceLastFetchTime >= 2500) {
-    //             aapsLogger.info(TAG, "Notifications loading re-fetching with cache")
-    //             fetchDataStoreFields()
-    //             sinceLastFetchTime = 0
-    //         }
-    //
-    //         withContext(Dispatchers.IO) {
-    //             Thread.sleep(250)
-    //         }
-    //         sinceLastFetchTime += 250
-    //     }
-    //     aapsLogger.info(TAG, "Notifications loading done: ${notificationsFields.map { it.value }}")
-    //     refreshing = false
-    // }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "Reloading Notifications")
         refreshing = true
 
-        //notificationsFields.forEach { field -> field.value = null }
         sendPumpCommands(notificationsCommands)
 
         // workaround for indicator not disappearing after
@@ -129,15 +103,8 @@ fun Notifications(
 
     }
 
-    //val state = rememberPullRefreshState(refreshing, ::refresh)
     val pullRefreshState = rememberPullToRefreshState()
 
-    // LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
-    //     refreshScope.cancel()
-    // }) {
-    //     aapsLogger.info(TAG, "reloading Notifications from onStart lifecyclestate")
-    //     fetchDataStoreFields(SendType.STANDARD)
-    // }
 
     LaunchedEffect(intervalOf(60)) {
         aapsLogger.info(TAG, "Reloading Notifications from interval")
@@ -145,16 +112,14 @@ fun Notifications(
         refresh()
     }
 
-    // LaunchedEffect(refreshing) {
-    //     waitForLoaded()
-    // }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pullToRefresh(isRefreshing = refreshing,
-                           state= pullRefreshState,
-                           onRefresh = { refresh() })
+            .pullToRefresh(
+                isRefreshing = refreshing,
+                state = pullRefreshState,
+                onRefresh = { refresh() })
     ) {
         PullToRefreshDefaults.Indicator(
             isRefreshing = refreshing,
@@ -182,7 +147,6 @@ fun Notifications(
                 item {
                     HeaderLineWithBackButton(text=resourceHelper.gs(R.string.data_notifications),
                                              onBackClick=navigateBack,
-                                             backgroundColor = Color.LightGray,
                                              resourceHelper = resourceHelper)
                     HorizontalDivider()
                 }
@@ -199,11 +163,11 @@ fun Notifications(
                                 headlineContent = {
                                     Text(
                                         when (it) {
-                                            is AlertStatusResponse.AlertResponseType -> "Alert: ${it.name}"
-                                            is ReminderStatusResponse.ReminderType -> "Reminder: ${it.name}"
-                                            is AlarmStatusResponse.AlarmResponseType -> "Alarm: ${it.name}"
-                                            is CGMAlertStatusResponse.CGMAlert -> "CGM Alert: ${it.name}"
-                                            is MalfunctionStatusResponse -> "MALFUNCTION: ${it.errorString}"
+                                            is AlertStatusResponse.AlertResponseType -> resourceHelper.gs(R.string.notif_alert) + ": ${it.name}"
+                                            is ReminderStatusResponse.ReminderType -> resourceHelper.gs(R.string.notif_reminder) + ": ${it.name}"
+                                            is AlarmStatusResponse.AlarmResponseType -> resourceHelper.gs(R.string.notif_alarm) + ": ${it.name}"
+                                            is CGMAlertStatusResponse.CGMAlert -> resourceHelper.gs(R.string.notif_cgm_alert) + ": ${it.name}"
+                                            is MalfunctionStatusResponse -> resourceHelper.gs(R.string.notif_malfunction_big) + ": ${it.errorString}"
                                             else -> "$it"
                                         }
                                     )
@@ -216,7 +180,7 @@ fun Notifications(
                                         is AlarmStatusResponse.AlarmResponseType -> Text(
                                             it.description ?: ""
                                         )
-                                        is MalfunctionStatusResponse -> Text("This alert cannot be cleared and DIY app developers cannot assist you with this problem.\nFor further instructions please contact Tandem technical support and reference the above code.")
+                                        is MalfunctionStatusResponse -> Text(resourceHelper.gs(R.string.notif_cant_be_cleared))
                                         else -> {}
                                     }
                                 },
@@ -224,27 +188,27 @@ fun Notifications(
                                     when (it) {
                                         is AlertStatusResponse.AlertResponseType -> Icon(
                                             Icons.Filled.Info,
-                                            contentDescription = "Alert"
+                                            contentDescription = resourceHelper.gs(R.string.notif_alert)
                                         )
 
                                         is ReminderStatusResponse.ReminderType -> Icon(
                                             Icons.Filled.Info,
-                                            contentDescription = "Reminder"
+                                            contentDescription = resourceHelper.gs(R.string.notif_reminder)
                                         )
 
                                         is AlarmStatusResponse.AlarmResponseType -> Icon(
                                             Icons.Filled.Warning,
-                                            contentDescription = "Alarm"
+                                            contentDescription = resourceHelper.gs(R.string.notif_alarm)
                                         )
 
                                         is CGMAlertStatusResponse.CGMAlert -> Icon(
                                             Icons.Filled.Info,
-                                            contentDescription = "CGM Alert"
+                                            contentDescription = resourceHelper.gs(R.string.notif_cgm_alert)
                                         )
 
                                         is MalfunctionStatusResponse -> Icon(
                                             Icons.Filled.Warning,
-                                            contentDescription = "Malfunction"
+                                            contentDescription = resourceHelper.gs(R.string.notif_malfunction)
                                         )
                                     }
                                 },
@@ -314,12 +278,12 @@ fun Notifications(
 
 val notificationsCommands = listOf(
     HomeScreenMirrorRequest(),
-    *NotificationBundle.allRequests().toTypedArray()
-)
+    //*NotificationBundle.allRequests().toTypedArray()
+    AlertStatusRequest(),
+    AlarmStatusRequest(),
+    MalfunctionStatusRequest(),
+    )
 
-// val notificationsFields = listOf(
-//     tandemDataStore.notificationBundle
-// )
 
 @Preview(showBackground = true)
 @Composable

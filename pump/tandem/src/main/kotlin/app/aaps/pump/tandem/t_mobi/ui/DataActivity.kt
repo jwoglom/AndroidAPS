@@ -130,7 +130,7 @@ class DataActivity : DaggerComponentActivity() {
                                             innerPadding = innerPadding,
                                             //navController = navController,
                                             sendPumpCommands = { messages -> sendPumpCommands(messages) },
-                                            refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
+                                            //refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
                                             aapsLogger = aapsLogger,
                                             resourceHelper = resourceHelper,
                                             navigateToPumpHistory = {

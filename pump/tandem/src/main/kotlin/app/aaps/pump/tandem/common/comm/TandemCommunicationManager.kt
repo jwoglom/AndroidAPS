@@ -341,7 +341,6 @@ class TandemCommunicationManager(
     }
 
 
-
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: AbstractCentralChallengeResponse?) {
         aapsLogger.info(TAG, "TandemCommMgr: onWaitingForPairingCode ")
 

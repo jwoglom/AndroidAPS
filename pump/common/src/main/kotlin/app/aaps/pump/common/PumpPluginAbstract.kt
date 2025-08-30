@@ -461,11 +461,19 @@ abstract class PumpPluginAbstract protected constructor(
     protected fun workWithStatusRefresh(
         action: PumpDataRefreshAction,
         statusRefreshType: PumpDataRefreshType?,
-        time: Long?
+        time: Long?,
+        customParameter: Any? = null
     ): HashMap<PumpDataRefreshType?, Long?>? {
         return when (action) {
             PumpDataRefreshAction.Add     -> {
                 statusRefreshMap[statusRefreshType] = time
+                null
+            }
+
+            PumpDataRefreshAction.AddSameAsOther     -> {
+                val statusRefreshType2 = customParameter as PumpDataRefreshType
+                val timeFromType = statusRefreshMap[statusRefreshType2]
+                statusRefreshMap[statusRefreshType] = timeFromType
                 null
             }
 
@@ -521,6 +529,16 @@ abstract class PumpPluginAbstract protected constructor(
             whenToRefresh
         )
     }
+
+    protected fun scheduleNextRefreshAtSameTimeAsOtherType(refreshType: PumpDataRefreshType, refreshTypeToCopy: PumpDataRefreshType) {
+        workWithStatusRefresh(
+            action = PumpDataRefreshAction.Add,
+            statusRefreshType = refreshType,
+            time = null,
+            customParameter = refreshTypeToCopy
+        )
+    }
+
 
 
 

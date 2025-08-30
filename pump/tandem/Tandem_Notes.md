@@ -5,19 +5,12 @@ needed and common where it isn't. Project is now targeting t:mobi device and if 
 Slim will support all required remote commands, that part of project can be resurected and made
 work with current code.
 
-Dev version:  3.3.3.0-dev-a
-Dev Date:     14. Jun 2025
-
-
-Issues with merging of this dev:
-- new settings config:
-     - doesn't work with UI BLE selector (enabled is also missing)
-     - string preference would need enabled flag
-- migration of settings is failing, objectives and nightscout information got lost, as well as
-   some other configurations: selected driver, selected BG source (defaults to BYODA)
+Dev version:  3.3.3.0-dev-b
+Dev Date:     19. Aug 2025
 
 
 # Versioning
+
 v0.5.28.2 - Phase 2
 
 
@@ -62,6 +55,10 @@ Most of work that will be done here, will be precursor for next device (t:Sport 
 
 CHANGE LOG
 ----------
+
+0.6.x - Phase 3
+0.5.x - Phase 2
+
 tandem-0.2.6-SNAPSHOT
 0.2.6 - updated to 3.2.
 0.2.5 - moved and renamed packages
@@ -71,146 +68,64 @@ tandem-0.2.6-SNAPSHOT
 
 ***
 
-
-## Commands
-
-    COMANDS:                             |       2.2        2.5
-    
-    Pairing                                      WIP-2(*)
-    
-    GetFirmware                          |       OK-?
-        PumpVersionResponse              |       OK-?
-    GetHistory                           |
-        ...
-    GetBasalProfile                      |       WIP-2
-        ProfileStatusResponse +          |       WIP-2
-        IDPSettingsResponse +            |       WIP-2
-        IDPSegmentResponse               |       WIP-2
-    GetTime                              |       WIP-2
-        TimeSinceResetResponse           |       WIP-2
-    GetSettings                          |       WIP-2
-        RemindersResponse,               |       NN
-        PumpSettingsResponse,            |       NN
-        PumpGlobalsResponse,             |       NN
-        GlobalMaxBolusSettingsResponse   |       WIP-2
-        ControlIQInfoV1Response (?)      |       WIP-2
-        ControlIQInfoV2Response (?)      |       WIP-2
-    
-    GetBolus                             |        ?
-        CurrentBolusStatusResponse
-        LastBolusStatusV2Response,
-    GetTBR                               |       WIP-2
-        TempRateResponse                 |       WIP-2
-    
-    
-    GetReservoir                         |       WIP-2
-        InsulinStatusResponse            |       WIP-2
-    GetBatteryLevel                      |       WIP-2
-        CurrentBatteryV1Response (?)     |       WIP-2
-        CurrentBatteryV2Response (?)     |       WIP-2
-    
-    GetStatus (is pump running, bolus, tbr running)
-        ???
-        
-    SetBolus                             |        -
-    SetTBR                               |        -
-    SetBasalProfile                      |        -
-    SetTime                              |        -
-
-    - = Not available
-    1 = Implemented
-    2 = Present in driver
-    OK = Integrated
-    NI = Not implemented
-    WIP = Work in Progress
-    WIP-2 = Work in Progress (implemented but not tested)
-    NN = Not needed
-
-    * Pairing is implemented, but dialog will need to be exchanged 
-      for more native one
+## Opened Issues (Mobi)
 
 
 
-***
-
-## ROADMAP
-
-- Pairing (AAPS Configuration) - DONE-WAITING-FOR-TEST (1)
-- Connect to pump: 
-  - Establish communication (connect/disconnect) - WIP-2  [2]
-  - Read Battery Level - WIP-2 [2]
-  - Read Reservoir Level - WIP-2 [2]
-  - Get Time - WIP-2 [2]
-
-- Level 2 commands:
-  - Get TBR [4]
-  - Get Settings [3]
-  - Implement checks based on settings [4]
-  - Change Pump Context based on settings (Max Bolus, Max Basal) [4]
-
-- Level 3 commands:
-  - Get Basal Profile [5]
-  - Get History [4]
-  - Parse History: [3] 
-    - TimeChangeHistoryLog [3]
-    - DateChangeHistoryLog
-    - BolusRequestedMsg1HistoryLog
-    - BolusRequestedMsg2HistoryLog
-    - BolusRequestedMsg3HistoryLog
-    - BolusDeliveryHistoryLog
-    - BolusCompletedHistoryLog
-    - BolexCompletedHistoryLog
-    - ...
-
-- Level 4 commands:
-  - Get TBR Status [6]
-  - Get Bolus Status [6]
-  - Get Pump Status [6]
-
-- Level 5 commands:
-  - Set Bolus [7]
-  - Set TBR [8]
-  - Set Profile [9]
-  - Set Time [10]
-
-- AAPS:
-  - Open Loop mode  
+		- QE:
+			- QualifyingEventHandler - description - phase 3            1 PT (not sure if we need this)
+		    - filter events (configuration = show only AAPS 			3 PT
+		          relevant events from pump) - phas
 
 
+		- Communication:
+			- timeout													1 PT
+		    - prevent connect											2 PT (not sure if this is needed at least on that level)
+		    - 1 minute status task - prevent connect					4 PT
 
-***
 
-HIstory Support
-----------------
+		- Bolus:
+			- Cancel Bolus												5 PT
+			- Bolus Security											5 PT
+			- Bolus Status Reading should be timed						5 PT
 
 
+		- TBR:
+			- TBR security												5 PT
+			- Cancel TBR when Canula actions							5 PT
+
+
+		- UI:
+			- Look into notifications: NotificationBundle.allRequests() 4 PT
+OK			- disable/hide last pump event on main UI [v0.6.12.5]		1 PT
+
+
+		- Site Reminder
+			- UI														10 PT
+			- integrate into notifications								1 PT
+			- integrate into driver										2 PT
+
+
+		- reconnect if error Pump Crictical								15 PT
+
+
+		- Pairing wizard												20 PT
+
+
+		Bugs:
+		- Pump reset connection (reconnect)                             5 PT
+OK		- Buttons disabled [v0.6.12.0]									1 PT
 
 
 
 
 ***
 
-### DO EXISTS?
-GetStatus
-
-***
-
-### CHECKS ON START
-
- - Control IQ NOT Running
- - Basal Profile Set to 0
-
-***
-
-## How to help test
+## How to help test (Outdated)
 
 Project is not ready to be tested yet, but for some prelimiminary testing 
 here are simple instructions.
 
-Prepare X2 Library
-1. Download jwoglom's pumpX2 repository (go into dev branch) - https://github.com/jwoglom/pumpX2
-2. Build sources:  ./gradlew build
-3. Deploy artifacts to local repository: ./gradlew publishToMavenLocal
 
 Prepare Test Phone (if you don't have one)
 1. Get a Phone (Android needs to be higher than 9, recommended that version is also lower than 12)
@@ -231,14 +146,6 @@ Prepare APS
 
 
 
-
-## History reading
-- configurable time to read history 5, 10, 15, 30 minutes
-- reading history in AAPS
-- decoding history (*should be done in pumpX2 project*)
-- write history into database
-
-***
 
 
 

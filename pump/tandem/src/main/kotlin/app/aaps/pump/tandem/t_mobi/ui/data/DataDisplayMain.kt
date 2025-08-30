@@ -43,7 +43,6 @@ import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
-import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
@@ -51,7 +50,9 @@ import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.MalfunctionStatusRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -62,7 +63,7 @@ fun DataDisplayMain(
     innerPadding: PaddingValues = PaddingValues(),
     //navController: NavHostController? = null,
     sendPumpCommands: (List<Message>) -> Boolean,
-    refreshMainAppData: (RefreshData) -> Unit,
+    //refreshMainAppData: (RefreshData) -> Unit,
     aapsLogger: AAPSLogger,
     navigateToPumpHistory: () -> Unit,
     navigateToEvents: () -> Unit,
@@ -79,40 +80,11 @@ fun DataDisplayMain(
     var refreshing by remember { mutableStateOf(true) }
     var notificationsPresent by remember { mutableStateOf(false) }
 
-    fun fetchDataStoreFields() {
-        sendPumpCommands(dataCommands)
-    }
-
-    // fun waitForLoaded() = refreshScope.launch {
-    //     var sinceLastFetchTime = 0
-    //     while (true) {
-    //         val nullFields = actionsFields.filter { field -> field.value == null }.toSet()
-    //         if (nullFields.isEmpty()) {
-    //             break
-    //         }
-    //
-    //         aapsLogger.info(TAG, "Actions loading: remaining ${nullFields.size}: ${actionsFields.map { it.value }}")
-    //         if (sinceLastFetchTime >= 2500) {
-    //             aapsLogger.info(TAG, "Actions loading re-fetching with cache")
-    //             fetchDataStoreFields(SendType.CACHED)
-    //             sinceLastFetchTime = 0
-    //         }
-    //
-    //         withContext(Dispatchers.IO) {
-    //             Thread.sleep(250)
-    //         }
-    //         sinceLastFetchTime += 250
-    //     }
-    //     aapsLogger.info(TAG, "Actions loading done: ${actionsFields.map { it.value }}")
-    //     refreshing = false
-    // }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "Reloading Main Data display")
         refreshing = true
 
-        //actionsFields.forEach { field -> field.value = null }
-        //fetchDataStoreFields(SendType.BUST_CACHE)
         sendPumpCommands(dataCommands)
 
         withContext(Dispatchers.IO) {
@@ -122,25 +94,13 @@ fun DataDisplayMain(
         refreshing = false
     }
 
-    //val state = rememberPullRefreshState(refreshing, ::refresh)
     val pullRefreshState = rememberPullToRefreshState()
 
-    // LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
-    //     refreshScope.cancel()
-    // }) {
-    //     aapsLogger.info(TAG, "reloading Actions from onStart lifecyclestate")
-    //     fetchDataStoreFields(SendType.STANDARD)
-    // }
 
     LaunchedEffect(intervalOf(60)) {
         aapsLogger.info(TAG, "reloading Actions from interval")
-        //fetchDataStoreFields(SendType.STANDARD)
         refresh()
     }
-
-    // LaunchedEffect(refreshing) {
-    //     waitForLoaded()
-    // }
 
 
     ds.notificationsPresent.observe(androidx.lifecycle.compose.LocalLifecycleOwner.current, {
@@ -178,7 +138,6 @@ fun DataDisplayMain(
 
 
                 item {
-                    //val notificationsFound = ds.notificationsPresent.value!!
 
                     Box(
                         modifier = Modifier
@@ -256,15 +215,11 @@ fun DataDisplayMain(
     }
 }
 val dataCommands = listOf(
-    *NotificationBundle.allRequests().toTypedArray()
+    //*NotificationBundle.allRequests().toTypedArray()
+    AlertStatusRequest(),
+    AlarmStatusRequest(),
+    MalfunctionStatusRequest(),
 )
-
-// val actionsFields = listOf(
-// //     tandemDataStore.basalStatus,
-// // //    dataStore.controlIQMode,
-// //     tandemDataStore.tempRateActive,
-// //     tandemDataStore.tempRateDetails,
-// )
 
 @Preview(showBackground = true)
 @Composable
@@ -283,7 +238,7 @@ private fun DataDisplayPreview_NoNotification() {
                 navigateToPumpHistory = {},
                 navigateToEvents = {},
                 resourceHelper = ResourceHelperTest(),
-                refreshMainAppData = {}
+                //refreshMainAppData = {}
             )
         }
     }
@@ -308,7 +263,7 @@ private fun DataDisplayPreview_WithNotification() {
                 navigateToPumpHistory = {},
                 navigateToEvents = {},
                 resourceHelper = ResourceHelperTest(),
-                refreshMainAppData = {}
+                //refreshMainAppData = {}
             )
         }
     }

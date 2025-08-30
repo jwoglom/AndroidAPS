@@ -181,3 +181,8 @@ androidx-compose-navigation = { group = "androidx.navigation", name = "navigatio
 androidx-compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata" }
 #androidx-compose-material3-pullrefresh = { group = "androidx.compose.material3", name = "material3-pullrefresh", version.ref="materialPullRefresh" }
 
+# Tandem
+com-jakewharton-timber = { group = "com.jakewharton.timber", name = "timber", version="5.0.1" }
+com-github-weliem-blessed-android = { group = "com.github.weliem", name = "blessed-android", version="2.4.0" }
+
+
