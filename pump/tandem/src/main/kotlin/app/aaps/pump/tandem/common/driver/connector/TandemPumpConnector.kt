@@ -1,6 +1,7 @@
 package app.aaps.pump.tandem.common.driver.connector
 
 import android.content.Context
+import app.aaps.core.data.model.BS
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.Notification
@@ -350,6 +351,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         // TODO logs
 
 
+        EventOverviewBolusProgress.t = EventOverviewBolusProgress.Treatment(0.0, 0, detailedBolusInfo.bolusType === BS.Type.SMB, detailedBolusInfo.id)
 
         sendBolusEvent(bolusEvent = TandemBolusEvent.Preparing, fullAmount = detailedBolusInfo.insulin)
 
@@ -463,13 +465,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     fun sendBolusEvent(bolusEvent: TandemBolusEvent,
                        amountBolus: Double = 0.0,
                        fullAmount: Double = 0.0) {
-
-        val bolusEventInstance = when(bolusEvent) {
+        val bolusingEvent = EventOverviewBolusProgress
+        when(bolusEvent) {
             TandemBolusEvent.Preparing    -> {
-                val bolusingEvent = EventOverviewBolusProgress
                 bolusingEvent.percent = 1
                 bolusingEvent.status = resourceHelper.gs(Rpc.string.bolus_preparing,fullAmount)
-                bolusingEvent
             }
             TandemBolusEvent.Delivering   -> {
                 var percent = ((amountBolus/fullAmount)*100).toInt()
@@ -485,24 +485,18 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                     amountBolus2 = fullAmount
                 }
 
-                val bolusingEvent = EventOverviewBolusProgress
                 bolusingEvent.percent = percent
                 bolusingEvent.status = resourceHelper.gs(Rpc.string.bolus_delivered_so_far, amountBolus2, fullAmount)
-                bolusingEvent
             }
             TandemBolusEvent.DeliveryDone -> {
-                val bolusingEvent = EventOverviewBolusProgress
                 bolusingEvent.percent = 100
                 bolusingEvent.status = resourceHelper.gs(Rpc.string.bolus_finished_post_bolus)
-                bolusingEvent
             }
         }
 
-        aapsLogger.error(TAG, "Sending Bolus Event: status=${bolusEventInstance.status}, progress=${bolusEventInstance.percent}")
+        aapsLogger.error(TAG, "Sending Bolus Event: status=${bolusingEvent.status}, progress=${bolusingEvent.percent}")
 
-        runOnUiThread {
-            rxBus.send(bolusEventInstance)
-        }
+        rxBus.send(bolusingEvent)
 
     }
 
