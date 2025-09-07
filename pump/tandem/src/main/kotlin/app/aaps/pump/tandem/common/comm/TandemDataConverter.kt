@@ -110,7 +110,7 @@ class TandemDataConverter @Inject constructor(
     fun getBolus(message: LastBolusStatusV2Response): DataCommandResponse<BolusData?> {
 
         var jsonVal = pumpUtil.gson.toJson(message)
-        aapsLogger.info(TAG, "BOLUS: LastBolusStatusV2Response [${jsonVal}]")
+        aapsLogger.debug(TAG, "LastBolusStatusV2Response [${jsonVal}]")
 
         val additionalData = mutableMapOf<String,Any?>()
         additionalData["BolusSource"] = message.bolusSource
@@ -128,7 +128,9 @@ class TandemDataConverter @Inject constructor(
 
         val bolusData = BolusData(
             timestamp = message.timestampInstant.toEpochMilli(),
-            amountImmediate = message.requestedVolume * 0.001,
+            amountImmediateDelivered = message.deliveredVolume * 0.001,
+            amountImmediateRequested = message.requestedVolume * 0.001,
+            fullyDelivered = message.deliveredVolume==message.requestedVolume,
             bolusType = bolusType,   // we can't determine if SMB at this point
             bolusId = message.bolusId.toLong(),
             bolusStatus = bolusStatus,
@@ -144,49 +146,49 @@ class TandemDataConverter @Inject constructor(
     }
 
 
-    fun getBolus(message: CurrentBolusStatusResponse?): DataCommandResponse<BolusData?> {
-
-        var jsonVal = pumpUtil.gson.toJson(message)
-        aapsLogger.info(TAG, "BOLUS: CurrentBolusStatusResponse [${jsonVal}]")
-
-        if (message==null) {
-            return DataCommandResponse(
-                PumpCommandType.GetBolus, false, "Bolus data response from pump could not be read.", null)
-        }
-
-        val additionalData = mutableMapOf<String,Any?>()
-        additionalData["BolusSource"] = message.bolusSource
-        additionalData["BolusSourceId"] = message.bolusSourceId
-
-        val bolusStatus: BolusStatus = when (message.status) {
-            CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> BolusStatus.DELIVERING
-            CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> BolusStatus.REQUESTED
-            else                                                     -> BolusStatus.DONE
-        }
-
-        val bolusTypes = message.bolusTypes
-
-        val bolusType: BolusType = if (bolusTypes.contains(element = BolusDeliveryHistoryLog.BolusType.EXTENDED)) {
-            BolusType.EXTENDED
-        } else {
-            BolusType.NORMAL
-        }
-
-        val bolusData = BolusData(
-            timestamp = message.timestampInstant.toEpochMilli(),
-            amountImmediate = message.requestedVolume * 0.001,
-            bolusType = bolusType,   // we can't determine if SMB at this point
-            bolusId = message.bolusId.toLong(),
-            bolusStatus = bolusStatus,
-            additionalData = additionalData
-        )
-
-        jsonVal = pumpUtil.gson.toJson(message)
-        aapsLogger.info(TAG, "BOLUS: BolusData [${jsonVal}]")
-
-        return DataCommandResponse(
-            PumpCommandType.GetBolus, true, null, bolusData)
-    }
+    // fun getBolus(message: CurrentBolusStatusResponse?): DataCommandResponse<BolusData?> {
+    //
+    //     var jsonVal = pumpUtil.gson.toJson(message)
+    //     aapsLogger.info(TAG, "BOLUS: CurrentBolusStatusResponse [${jsonVal}]")
+    //
+    //     if (message==null) {
+    //         return DataCommandResponse(
+    //             PumpCommandType.GetBolus, false, "Bolus data response from pump could not be read.", null)
+    //     }
+    //
+    //     val additionalData = mutableMapOf<String,Any?>()
+    //     additionalData["BolusSource"] = message.bolusSource
+    //     additionalData["BolusSourceId"] = message.bolusSourceId
+    //
+    //     val bolusStatus: BolusStatus = when (message.status) {
+    //         CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> BolusStatus.DELIVERING
+    //         CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> BolusStatus.REQUESTED
+    //         else                                                     -> BolusStatus.DONE
+    //     }
+    //
+    //     val bolusTypes = message.bolusTypes
+    //
+    //     val bolusType: BolusType = if (bolusTypes.contains(element = BolusDeliveryHistoryLog.BolusType.EXTENDED)) {
+    //         BolusType.EXTENDED
+    //     } else {
+    //         BolusType.NORMAL
+    //     }
+    //
+    //     val bolusData = BolusData(
+    //         timestamp = message.timestampInstant.toEpochMilli(),
+    //         amountImmediateRequested = message.requestedVolume * 0.001,
+    //         bolusType = bolusType,   // we can't determine if SMB at this point
+    //         bolusId = message.bolusId.toLong(),
+    //         bolusStatus = bolusStatus,
+    //         additionalData = additionalData
+    //     )
+    //
+    //     jsonVal = pumpUtil.gson.toJson(message)
+    //     aapsLogger.info(TAG, "BOLUS: BolusData [${jsonVal}]")
+    //
+    //     return DataCommandResponse(
+    //         PumpCommandType.GetBolus, true, null, bolusData)
+    // }
 
 
     fun getTempBasalRate(message: TempRateResponse): DataCommandResponse<TempBasalPair?> {

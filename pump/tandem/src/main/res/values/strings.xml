@@ -131,6 +131,9 @@
     <string name="ca_resume_insulin_deliveries">Resume insulin deliveries</string>
     <string name="ca_stop_insulin_deliveries">Stop insulin deliveries</string>
 
+    <string name="common_warning">Warning</string>
+    <string name="ca_before_stopping_stop_tbr">Before stopping delivery, you need to stop running Temp Basal Rate.</string>
+
     <string name="ca_resume_insulin">Resume insulin</string>
     <string name="ca_resume_all_insulin_deliveries">Resume all insulin deliveries?</string>
     <string name="ca_stop_insulin_small">Stop insulin</string>

@@ -13,6 +13,8 @@ enum class TandemLongNonPreferenceKey(
     StandardBoluses("tandem_std_boluses_delivered", 0),
     FirstPumpUse("tandem_first_pump_use", 0),
     LastGoodPumpCommunicationTime("tandem_lastGoodPumpCommunicationTime", 0L),
+
+    LastTbrId("tandem_last_tbr_id", defaultValue = 0L)
     // LastPumpHistoryEntry("medtronic_pump_history_entry", 0L),
     // LastPrime("medtronic_last_sent_prime", 0L),
     // LastRewind("medtronic_last_sent_rewind", 0L),

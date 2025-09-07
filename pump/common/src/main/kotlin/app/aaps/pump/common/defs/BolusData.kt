@@ -4,8 +4,10 @@ import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDat
 import com.google.gson.annotations.Expose
 
 class BolusData constructor(
-    @Expose var timestamp: Long,
-    @Expose var amountImmediate : Double,
+    @Expose var timestamp: Long = System.currentTimeMillis(),
+    @Expose var amountImmediateRequested : Double? = null,
+    @Expose var amountImmediateDelivered : Double? = null,
+    @Expose var fullyDelivered: Boolean = false,
     @Expose var carbs : Double = 0.0,
     @Expose var durationMinutes : Int? = null,
     @Expose var amountExtended : Double? = null,

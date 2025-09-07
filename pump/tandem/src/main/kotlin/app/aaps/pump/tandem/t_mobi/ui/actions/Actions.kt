@@ -294,45 +294,71 @@ fun Actions(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
 
-                            AlertDialog(
-                                onDismissRequest = {},
-                                title = {
-                                    Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
-                                },
-                                text = {
-                                    Text(resourceHelper.gs(R.string.ca_suspend_all_insulin_deliveries))
-                                },
-                                dismissButton = {
-                                    TextButton(
-                                        onClick = {
-                                            showSuspendInsulinMenu = false
-                                        },
-                                        modifier = Modifier.padding(top = 16.dp)
-                                    ) {
-                                        Text(resourceHelper.gs(Rco.string.cancel))
+                            if (tempRateActive.value==true) {
+                                AlertDialog(
+                                    onDismissRequest = {},
+                                    title = {
+                                        Text(resourceHelper.gs(R.string.common_warning))
+                                    },
+                                    text = {
+                                        Text(resourceHelper.gs(R.string.ca_before_stopping_stop_tbr))
+                                    },
+                                    confirmButton = {
+                                        TextButton(
+                                            onClick = {
+                                                showSuspendInsulinMenu = false
+                                            },
+                                            modifier = Modifier.padding(top = 16.dp)
+                                        ) {
+                                            Text(resourceHelper.gs(Rco.string.close))
+                                        }
                                     }
-                                },
-                                confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            showSuspendInsulinMenu = false
-                                            sendPumpCommands(listOf(SuspendPumpingRequest()))
-                                            refreshScope.launch {
-                                                repeat(5) {
-                                                    if (basalStatus.value == PumpRunningState.Suspended) {
-                                                        return@repeat
-                                                    }
-                                                    Thread.sleep(1000)
-                                                    sendPumpCommands(listOf(HomeScreenMirrorRequest()))
-                                                }
-                                            }
-                                        },
-                                        modifier = Modifier.padding(top = 16.dp)
-                                    ) {
+                                )
+
+                            } else {
+
+                                AlertDialog(
+                                    onDismissRequest = {},
+                                    title = {
                                         Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
+                                    },
+                                    text = {
+                                        Text(resourceHelper.gs(R.string.ca_suspend_all_insulin_deliveries))
+                                    },
+                                    dismissButton = {
+                                        TextButton(
+                                            onClick = {
+                                                showSuspendInsulinMenu = false
+                                            },
+                                            modifier = Modifier.padding(top = 16.dp)
+                                        ) {
+                                            Text(resourceHelper.gs(Rco.string.cancel))
+                                        }
+                                    },
+                                    confirmButton = {
+                                            TextButton(
+                                                onClick = {
+                                                    showSuspendInsulinMenu = false
+                                                    sendPumpCommands(listOf(SuspendPumpingRequest()))
+                                                    refreshScope.launch {
+                                                        repeat(5) {
+                                                            if (basalStatus.value == PumpRunningState.Suspended) {
+                                                                return@repeat
+                                                            }
+                                                            Thread.sleep(1000)
+                                                            sendPumpCommands(listOf(HomeScreenMirrorRequest()))
+                                                        }
+                                                    }
+                                                },
+                                                modifier = Modifier.padding(top = 16.dp)
+                                            ) {
+                                                Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
+                                            }
+
                                     }
-                                }
-                            )
+                                )
+
+                            }
 
                         }
 

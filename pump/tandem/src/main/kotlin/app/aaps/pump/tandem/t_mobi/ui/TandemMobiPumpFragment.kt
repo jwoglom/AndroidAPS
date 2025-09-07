@@ -265,7 +265,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
                 } else {
                     ago = dateUtil.dayAgo(bolus.timestamp, resourceHelper)
                 }
-                binding.pumpLastBolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus.amountImmediate, unit, ago)
+                binding.pumpLastBolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus.amountImmediateDelivered, unit, ago)
             } else {
                 binding.pumpLastBolus.text = "-"
             }

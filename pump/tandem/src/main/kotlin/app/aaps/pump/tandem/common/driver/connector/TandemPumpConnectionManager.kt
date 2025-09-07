@@ -181,7 +181,7 @@ class TandemPumpConnectionManager @Inject constructor(
                 tandemPumpStatus.clearTbr()
             }
             PumpCommandType.SetTemporaryBasal -> {
-                val tbr = responseData.value as TempBasalPair  // TODO fix
+                val tbr = responseData.value as TempBasalPair
                 tandemPumpStatus.currentTempBasal = tbr
             }
             PumpCommandType.GetTemporaryBasal -> {
