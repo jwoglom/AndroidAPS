@@ -40,7 +40,6 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import app.aaps.pump.tandem.t_mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.t_mobi.ui.util.Line
 import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
@@ -48,7 +47,6 @@ import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.shared.tests.AAPSLoggerTest
 import app.aaps.pump.tandem.R
-import app.aaps.core.ui.R as Rco
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
@@ -60,21 +58,12 @@ import kotlinx.coroutines.withContext
 @Composable
 fun CartridgeActions(
     innerPadding: PaddingValues = PaddingValues(),
-    //navController: NavHostController? = null,
     sendPumpCommands: (List<Message>) -> Boolean,
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
-    // _changeCartridgeMenuState: Boolean = false,
-    // _fillTubingMenuState: Boolean = false,
-    // _fillCannulaMenuState: Boolean = false,
     navigateToSiteReminder: () -> Unit,
     navigateBack: () -> Unit
 ) {
-    //val coroutineScope = rememberCoroutineScope()
-
-    //var showChangeCartridgeMenu by remember { mutableStateOf(_changeCartridgeMenuState) }
-    //var showFillTubingMenu by remember { mutableStateOf(_fillTubingMenuState) }
-    //var showFillCannulaMenu by remember { mutableStateOf(_fillCannulaMenuState) }
 
     val ds = LocalTandemDataStore.current
     @Suppress("PropertyName")
@@ -88,16 +77,6 @@ fun CartridgeActions(
         sendPumpCommands(cartridgeActionsCommands)
     }
 
-    // fun waitForLoaded() = refreshScope.launch {
-    //     var sinceLastFetchTime = 0
-    //     while (true) {
-    //         withContext(Dispatchers.IO) {
-    //             Thread.sleep(250)
-    //         }
-    //         sinceLastFetchTime += 250
-    //     }
-    //     refreshing = false
-    // }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "reloading CartridgeActions with force")
@@ -112,25 +91,13 @@ fun CartridgeActions(
         refreshing = false
     }
 
-    //val state = rememberPullRefreshState(refreshing, ::refresh)
     val pullRefreshState = rememberPullToRefreshState()
-
-    // LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
-    //     refreshScope.cancel()
-    // }) {
-    //     Timber.i("reloading CartridgeActions from onStart lifecyclestate")
-    //     fetchDataStoreFields(SendType.STANDARD)
-    // }
 
     LaunchedEffect(intervalOf(60)) {
         aapsLogger.info(TAG,"reloading CartridgeActions from interval")
-        //fetchDataStoreFields(SendType.STANDARD)
         refresh()
     }
 
-    // LaunchedEffect(refreshing) {
-    //     waitForLoaded()
-    // }
 
     Box(
         modifier = Modifier
@@ -248,7 +215,7 @@ private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
             color = Color.White,
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
-            LocalTandemDataStore.current.basalStatus.value = BasalStatus.ON
+            //LocalTandemDataStore.current.basalStatus.value = BasalStatus.ON
             CartridgeActions(
                 sendPumpCommands = { _ -> true},
                 //_changeCartridgeMenuState = true,
@@ -270,7 +237,7 @@ private fun DefaultPreviewChangeCartridge_InsulinStopped() {
             color = Color.White,
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
-            LocalTandemDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
+            //LocalTandemDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
             CartridgeActions(
                 sendPumpCommands = { _ -> true},
                 //_changeCartridgeMenuState = true,

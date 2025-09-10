@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -38,9 +37,11 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
 import app.aaps.pump.tandem.common.data.defs.RefreshData
+import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.di.TandemComposeUiComponent
 import app.aaps.pump.tandem.t_mobi.ui.actions.Actions
@@ -59,13 +60,14 @@ class ActionsActivity : DaggerComponentActivity() {
     @Inject lateinit var tandemPumpStatus: TandemPumpStatus
     @Inject lateinit var tandemPumpUtil: TandemPumpUtil
     @Inject lateinit var context: Context
+    @Inject lateinit var preferences: Preferences
     @Inject lateinit var tandemPumpConnector: TandemPumpConnector
     @Inject lateinit var resourceHelper: ResourceHelper
 
     var sectionState: ActionsLandingSection = ActionsLandingSection.ACTIONS
-    var navController: NavHostController? = null
+
     var TAG = LTag.PUMPCOMM
-    //@Inject
+
     lateinit var tandemUICommunication : TandemUICommunication
 
     val isDarkTheme: Boolean
@@ -85,10 +87,23 @@ class ActionsActivity : DaggerComponentActivity() {
                                                       context = context,
                                                       aapsLogger= aapsLogger)
 
+        // val date = sharedPreferences.getLong("test_reminder_date", -1L)
+        //
+        // aapsLogger.error(TAG, "Loading Reminder Date: $date")
+        //
+        // if (date != -1L) {
+        //     if (date > System.currentTimeMillis()) {
+        //         reminderDate = date
+        //     }
+        // }
+
 
 
         enableEdgeToEdge()
         setContent {
+
+            val ds = LocalTandemDataStore.current
+            ds.reminderDateTime.value = tandemPumpStatus.tandemSiteReminder
 
             var selectedItem by remember { mutableStateOf(sectionState) }
             val scaffoldState = rememberBottomSheetScaffoldState()
@@ -96,6 +111,14 @@ class ActionsActivity : DaggerComponentActivity() {
             DisposableEffect(Unit) {
                 onDispose {
                     aapsLogger.info(LTag.PUMP, "Data Activity was closed. Sending event to refresh.")
+
+                    if (ds.reminderDateTimeUpdated.value == true) {
+                        aapsLogger.error(TAG, "Reminder Date Time: ${ds.reminderDateTime.value}")
+
+                        preferences.put(TandemLongNonPreferenceKey.SiteReminderDateTime, ds.reminderDateTime.value!!)
+                        tandemPumpStatus.tandemSiteReminder = ds.reminderDateTime.value!!
+                    }
+
                     // we might be able to specify more exactly what here happens but for now this is ok, see DataActivity and method refreshMainAppData
                     tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS,
                                                             RefreshData.PUMP_INSULIN_LEVEL))
@@ -120,7 +143,6 @@ class ActionsActivity : DaggerComponentActivity() {
                                     ActionsLandingSection.ACTIONS -> {
                                         Actions(
                                             innerPadding = innerPadding,
-                                            navController = navController,
                                             sendPumpCommands = { messages -> sendPumpCommands(messages) },
                                             aapsLogger = aapsLogger,
                                             resourceHelper = resourceHelper,
@@ -134,7 +156,6 @@ class ActionsActivity : DaggerComponentActivity() {
                                     }
 
 
-
                                     ActionsLandingSection.PUMP_INFO -> {
                                         PumpInfo(
                                             innerPadding = innerPadding,
@@ -145,6 +166,7 @@ class ActionsActivity : DaggerComponentActivity() {
                                             },
                                         )
                                     }
+
 
                                     ActionsLandingSection.CARTRIDGE_ACTIONS -> {
                                         CartridgeActions(
@@ -167,11 +189,13 @@ class ActionsActivity : DaggerComponentActivity() {
                                         SiteReminder(
                                             innerPadding = innerPadding,
                                             resourceHelper = resourceHelper,
+                                            aapsLogger = aapsLogger,
                                             navigateBack = {
                                                 selectedItem = ActionsLandingSection.CARTRIDGE_ACTIONS
                                             },
                                         )
                                     }
+
                                 } // when
                             } // box
                         } //

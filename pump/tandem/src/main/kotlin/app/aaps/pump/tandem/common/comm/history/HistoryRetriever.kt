@@ -59,7 +59,6 @@ import kotlin.collections.mutableListOf
 
 @Singleton
 class HistoryRetriever @Inject constructor(
-    //val communication: TandemUICommunication,
     val pumpStatus: TandemPumpStatus,
     val tandemPumpConnector: TandemPumpConnector,
     val aapsLogger: AAPSLogger,
@@ -100,9 +99,9 @@ class HistoryRetriever @Inject constructor(
 
     fun downloadHistory(): Boolean {
         communication = TandemUICommunication(dataStore = tandemDataStore,
-                                                      pumpStatus = pumpStatus,
-                                                      context = context,
-                                                      aapsLogger= aapsLogger)
+                                              pumpStatus = pumpStatus,
+                                              context = context,
+                                              aapsLogger= aapsLogger)
 
         communication.historyRetriever = this
         this.communication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
@@ -128,7 +127,7 @@ class HistoryRetriever @Inject constructor(
 
         aapsLogger.info(TAG, "Download finished in $diffTime seconds.")
 
-        dbDataHandler.databaseStatistics() // TODO HistoryRetriever::temporary db stats
+        // dbDataHandler.databaseStatistics() // TODOX HistoryRetriever::temporary db stats
 
         return true
     }
@@ -146,7 +145,7 @@ class HistoryRetriever @Inject constructor(
         }
     }
 
-
+    // this is not used at the moment, but might be needed in the future
     fun downloadHistoryRecentItems(): MutableList<HistoryLog> {
 
         communication = TandemUICommunication(dataStore = tandemDataStore,
@@ -606,15 +605,14 @@ class HistoryRetriever @Inject constructor(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun processChunkComplete() {
 
-        // TODO chaneg this to info
-        aapsLogger.error(TAG, "HST: processChunkComplete: ${currentRequest!!.historyLogMap.size}")
+        aapsLogger.debug(TAG, "processChunkComplete: ${currentRequest!!.historyLogMap.size}")
 
         disableLastMessageWatchdog()
 
         if (this.currentRequest!!.chunkHasAllItems()) {
-            aapsLogger.info(TAG, "HST: Chunk Has All Items: ${currentRequest!!.historyLogMap.size}")
+            aapsLogger.info(TAG, "Chunk Has All Items: ${currentRequest!!.historyLogMap.size}")
         } else {
-            aapsLogger.warn(TAG, "HST: Chunk Has MISSING Items: ${currentRequest!!.historyLogMap.size}")
+            aapsLogger.warn(TAG, "Chunk Has MISSING Items: ${currentRequest!!.historyLogMap.size}")
             addMissingItemsInChunk(this.currentRequest!!)
         }
 
@@ -662,7 +660,7 @@ class HistoryRetriever @Inject constructor(
         // if items are missing in chunk, we add them back to activeList and to listOfMissingItemsInChunk
         val historyRangeList: MutableCollection<HistoryRequestInfo> = mutableListOf()
         var startSeq: Long
-        var endSeq: Long = 0
+        var endSeq: Long
 
         var i = currentRequest.startSequence
 
@@ -719,7 +717,7 @@ class HistoryRetriever @Inject constructor(
 
         for (entry in historyRequestInfo.historyLogMap.values) {
             if (historyLog==null) {
-                historyLog = entry;
+                historyLog = entry
             }
             if (entry.pumpTimeSec >= maxDateTimeInSec) {
                 listOfRecords.add(entry)
@@ -774,6 +772,7 @@ class HistoryRetriever @Inject constructor(
         //aapsLogger.error(TAG, "HST: disableLastMessageWatchdog not implemented.")
     }
 
+
     private fun enableLastMessageWatchdog() {
         // TODOX enableLastMessageWatchdog -  - we will try without this for now, if needed it will be added in phase 4
         //    when message is received we note the time and wait in special thread if timeout is reached
@@ -781,10 +780,10 @@ class HistoryRetriever @Inject constructor(
         //aapsLogger.error(TAG, "HST: enableLastMessageWatchdog not implemented.")
     }
 
+
     fun receivedLogResponse(message: HistoryLogResponse) {
         //aapsLogger.error(TAG, "Received LogResponse: $message")
     }
-
 
 }
 

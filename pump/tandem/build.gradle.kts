@@ -55,11 +55,9 @@ dependencies {
     testImplementation(project(":shared:impl"))
 
 
-    //api(libs.androidx.fragment)
     api(libs.androidx.room)
     api(libs.androidx.room.runtime)
     api(libs.androidx.room.rxjava3)
-    //api(libs.commons.codec)
 
     ksp(libs.androidx.room.compiler)
     ksp(libs.com.google.dagger.compiler)
@@ -80,13 +78,13 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.compose.navigation)
     implementation(libs.androidx.compose.runtime.livedata)
-    //implementation(libs.androidx.compose.material3.pullrefresh)
+    implementation(libs.io.github.vanpra.compose.dialogs.datetime)
 
     // pumpX2
     implementation(libs.com.jakewharton.timber)
     implementation(libs.com.github.weliem.blessed.android)
-    implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.6.9")
-
+    //implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.6.9")
+    implementation(libs.com.github.jwoglom.pumpx2.android)
 
 
     // temporarily X2 released under atech-software instead of jwoglom (some problems with linking)

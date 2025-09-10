@@ -4,13 +4,7 @@ import androidx.lifecycle.MutableLiveData
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcCondition
-import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcUnits
-import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalculatorBuilder
-import com.jwoglom.pumpx2.pump.messages.calculator.BolusParameters
-import com.jwoglom.pumpx2.pump.messages.models.PairingCodeType
 import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.InitiateBolusResponse
@@ -21,11 +15,6 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusR
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBGResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusAbstractResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
-// import com.jwoglom.controlx2.presentation.screens.PumpSetupStage
-// import com.jwoglom.controlx2.shared.enums.BasalStatus
-// import com.jwoglom.controlx2.shared.enums.CGMSessionState
-// import com.jwoglom.controlx2.shared.enums.UserMode
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.DetectingCartridgeStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartridgeModeStateStreamResponse
@@ -42,6 +31,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 class TandemUIDataStore {
+
+    // TODO cleanup this class
 
     // Basic Stuff
     var apiVersionResponse = MutableLiveData<ApiVersionResponse>()
@@ -69,7 +60,7 @@ class TandemUIDataStore {
     val fillTubingState = MutableLiveData<FillTubingStateStreamResponse>()
     val exitFillTubingState = MutableLiveData<ExitFillTubingModeStateStreamResponse>()
     val fillCannulaState = MutableLiveData<FillCannulaStateStreamResponse>()
-    val pumpingState = MutableLiveData<PumpingStateStreamResponse>()
+    //val pumpingState = MutableLiveData<PumpingStateStreamResponse>()
 
 
 
@@ -82,12 +73,12 @@ class TandemUIDataStore {
     val pumpLastMessageTimestamp = MutableLiveData<Instant>()
     //val pumpConnectionStatus = MutableLiveData<String>()
 
-    val batteryPercent = MutableLiveData<Int>()
-    val cartridgeRemainingUnits = MutableLiveData<Int>()
-    val cartridgeRemainingEstimate = MutableLiveData<Boolean>()
-    val lastBolusStatus = MutableLiveData<String>()
-    val basalRate = MutableLiveData<String>()
-    var basalStatus = MutableLiveData<BasalStatus>()
+    // val batteryPercent = MutableLiveData<Int>()
+    // val cartridgeRemainingUnits = MutableLiveData<Int>()
+    // val cartridgeRemainingEstimate = MutableLiveData<Boolean>()
+    // val lastBolusStatus = MutableLiveData<String>()
+    // val basalRate = MutableLiveData<String>()
+    // var basalStatus = MutableLiveData<BasalStatus>()
 
 
     val setupDeviceName = MutableLiveData<String>()
@@ -101,9 +92,10 @@ class TandemUIDataStore {
     val dataHistoryLoaded = MutableLiveData<Boolean>(false)
     val dataHistory = MutableLiveData<MutableList<TandemHistoryRecordDto>>(mutableListOf())
 
-    // DATA ----------------------------------
+    // REMINDER ----------------------------------
 
-
+    val reminderDateTime = MutableLiveData<Long?>(null)
+    val reminderDateTimeUpdated = MutableLiveData<Boolean>(false)
 
 
     //val iobUnits = MutableLiveData<Double>()
@@ -111,15 +103,15 @@ class TandemUIDataStore {
 //    val controlIQMode = MutableLiveData<UserMode>()
 
 
-    val bolusCalcDataSnapshot = MutableLiveData<BolusCalcDataSnapshotResponse>()
-    val bolusCalcLastBG = MutableLiveData<LastBGResponse>()
+//    val bolusCalcDataSnapshot = MutableLiveData<BolusCalcDataSnapshotResponse>()
+//    val bolusCalcLastBG = MutableLiveData<LastBGResponse>()
 
-    val bolusPermissionResponse = MutableLiveData<BolusPermissionResponse>()
-    val bolusCarbEntryResponse = MutableLiveData<RemoteCarbEntryResponse>()
-    val bolusInitiateResponse = MutableLiveData<InitiateBolusResponse>()
-    val bolusCancelResponse = MutableLiveData<CancelBolusResponse>()
-    val lastBolusStatusResponse = MutableLiveData<LastBolusStatusAbstractResponse>()
-    val bolusCurrentResponse = MutableLiveData<CurrentBolusStatusResponse>()
+//    val bolusPermissionResponse = MutableLiveData<BolusPermissionResponse>()
+//    val bolusCarbEntryResponse = MutableLiveData<RemoteCarbEntryResponse>()
+//    val bolusInitiateResponse = MutableLiveData<InitiateBolusResponse>()
+//    val bolusCancelResponse = MutableLiveData<CancelBolusResponse>()
+//    val lastBolusStatusResponse = MutableLiveData<LastBolusStatusAbstractResponse>()
+//    val bolusCurrentResponse = MutableLiveData<CurrentBolusStatusResponse>()
 
     val historyLogStatus = MutableLiveData<HistoryLogStatusResponse>()
 

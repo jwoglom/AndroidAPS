@@ -73,10 +73,15 @@ import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
 import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 import app.aaps.pump.tandem.common.data.defs.RefreshData
+import app.aaps.pump.tandem.common.data.defs.SiteReminderPreset
+import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.connector.def.ControlCommandResponse
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
+import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
+import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
+import app.aaps.pump.tandem.common.driver.connector.response.MalfunctionStatusDto
 import app.aaps.pump.tandem.common.events.EventDatabaseAddQEData
 import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.events.EventRefreshPumpData
@@ -172,6 +177,8 @@ class TandemMobiPumpPlugin @Inject constructor(
         PumpHistoryEntryGroup.doTranslation(rh)
         PumpHistoryEntryGroup.filterByGroupConfig(PumpTypeGroupConfig.tMobi)
         PumpHistoryPeriod.doTranslation(rh)
+        SiteReminderPreset.doTranslation(rh)
+        TandemCustomCommand.doTranslation(rh)
 
         super.onStart()
     }
@@ -332,10 +339,21 @@ class TandemMobiPumpPlugin @Inject constructor(
         // check status every minute (if any status needs refresh we send readStatus command)
         startRefreshOfPumpCommands()
 
-        TandemCustomCommand.translateKeywords(rh)
+
 
         //checkInitializationState()
 
+    }
+
+
+    override fun doCustomScheduledActions() {
+        if (pumpStatus.tandemSiteReminder!=null && pumpStatus.tandemSiteReminder!!>0) {
+            if (System.currentTimeMillis() > pumpStatus.tandemSiteReminder!!) {
+                tandemPumpUtil.sendNotification(TandemNotificationType.SiteReminder)
+                pumpStatus.tandemSiteReminder = null
+                preferences.remove(TandemLongNonPreferenceKey.SiteReminderDateTime)
+            }
+        }
     }
 
 
@@ -621,21 +639,6 @@ class TandemMobiPumpPlugin @Inject constructor(
     //     }
     // }
 
-    // override fun disconnect(reason: String) {
-    //     if (!driverInitialized)
-    //         return
-    //
-    //     if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "disconnect (reason=$reason).")
-    //
-    //     val driverStatus = tandemUtil.driverStatus
-    //
-    //     if (driverStatus==PumpDriverState.Connected) {
-    //         pumpConnectionManager.disconnectFromPump()
-    //     } else {
-    //         aapsLogger.debug(LTag.PUMP, "pump was not connected, so disconnect not required.")
-    //     }
-    // }
-
     // override fun stopConnecting() {
     //     if (!driverInitialized)
     //         return
@@ -643,6 +646,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     //         aapsLogger.debug(LTag.PUMP, "stopConnecting [PumpPluginAbstract] - default (empty) implementation.")
     // }
     //
+
     override fun isHandshakeInProgress(): Boolean {
         val status = tandemPumpUtil.driverStatus
         if (displayConnectionMessages)
@@ -923,17 +927,57 @@ class TandemMobiPumpPlugin @Inject constructor(
         aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus")
         pumpConnectionManager.getPumpStatus()
 
-        // TODO do all relevant notifications
-        pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_ALARMS)
-        pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_ALERTS)
-        if (pumpStatus.semaphoreNeedsRefresh) {
-            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
-        }
+        readNotificationsForSemaphore()
 
         if (readHistory) {
             historyRetriever.downloadHistory()
         }
     }
+
+
+    private fun readNotificationsForSemaphore() {
+
+        val commandList = listOf(TandemCustomCommand.GET_ALERTS,
+                                 TandemCustomCommand.GET_ALARMS,
+                                 TandemCustomCommand.GET_MALFUNCTIONS)
+
+        var notificationFound = false
+
+        for (command in commandList) {
+            val customCommandResponse = pumpConnectionManager.executeCustomCommand(command)
+
+            if (customCommandResponse.isSuccess) {
+                val valueOfResponse = customCommandResponse.value
+
+                when(valueOfResponse) {
+                    is AlertStatusDto -> {
+                        if (!valueOfResponse.alerts.isEmpty()) {
+                            notificationFound = true
+                            break;
+                        }
+                    }
+                    is AlarmStatusDto -> {
+                        if (!valueOfResponse.alarms.isEmpty()) {
+                            notificationFound = true
+                            break;
+                        }
+                    }
+                    is MalfunctionStatusDto -> {
+                        if (valueOfResponse.hasMalfunction()) {
+                            notificationFound = true
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        pumpStatus.semaphoreNeedsRefresh = true
+        pumpStatus.semaphoreNotifications = notificationFound
+        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
+
+    }
+
 
     private fun setRefreshButtonEnabled(enabled: Boolean) {
         rxBus.send(EventRefreshButtonState(enabled))
@@ -966,7 +1010,9 @@ class TandemMobiPumpPlugin @Inject constructor(
         scheduleNextRefresh(PumpDataRefreshType.BatteryStatus, 2)
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Battery))
 
-        //testModeCode();
+        // site reminder
+        val reminder = preferences.get(TandemLongNonPreferenceKey.SiteReminderDateTime)
+        this.pumpStatus.tandemSiteReminder = if (reminder>0) null else reminder
 
         // configuration (once and then if history shows config changes)
         pumpConnectionManager.getConfiguration()
@@ -1083,6 +1129,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     private fun checkThatSettingsAreEnforced() {
+
+        // TODO notifications if any pump setting was changed
 
         if (pumpStatus.settings!=null) {
 

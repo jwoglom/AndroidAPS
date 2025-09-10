@@ -143,7 +143,10 @@ open class Notification {
         const val AAPS_DIR_NOT_SELECTED = 92
         const val EQUIL_ALARM = 93
         const val EQUIL_ALARM_INSULIN = 94
+
         const val TANDEM_BASAL_PROFILE_ERROR = 95
+        const val TANDEM_SITE_REMINDER = 96
+        const val TANDEM_PUMP_SETTINGS_UPDATED = 97
 
 
         const val USER_MESSAGE = 1000

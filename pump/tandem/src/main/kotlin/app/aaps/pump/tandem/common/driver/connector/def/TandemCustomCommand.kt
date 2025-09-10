@@ -14,7 +14,8 @@ enum class TandemCustomCommand(@StringRes var resourceId: Int) : CustomCommandTy
     GET_ALERTS(R.string.tandem_custom_command_get_alerts),
     GET_ALARMS(R.string.tandem_custom_command_get_alarms),
     DISMISS_ALERT(R.string.tandem_custom_command_dismiss_alert),
-    SET_QUICK_BOLUS(R.string.tandem_custom_command_set_quick_bolus)
+    SET_QUICK_BOLUS(R.string.tandem_custom_command_set_quick_bolus),
+    GET_MALFUNCTIONS(R.string.tandem_custom_command_get_malfunctions)
     ;
 
     var descriptionInternal : String? = null
@@ -25,7 +26,7 @@ enum class TandemCustomCommand(@StringRes var resourceId: Int) : CustomCommandTy
     companion object {
 
         @JvmStatic
-        fun translateKeywords(rh: ResourceHelper) {
+        fun doTranslation(rh: ResourceHelper) {
             for (entry in entries) {
                 entry.descriptionInternal = rh.gs(entry.resourceId)
             }

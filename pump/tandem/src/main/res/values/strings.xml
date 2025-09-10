@@ -195,10 +195,28 @@
     <!-- UI Cartridge Actions:Site Reminder -->
     <string name="sr_title">Site Reminder</string>
     <string name="sr_coming_soon">Coming soon</string>
+    <string name="sr_reminder_description">This "Site Reminder" stores data in AAPS, instead of the Pump.</string>
+
+    <string name="reminder_in_1_5_days">Reminder in 1.5 Days</string>
+    <string name="reminder_in_2_days">Reminder in 2 Days</string>
+    <string name="reminder_in_2_5_days">Reminder in 2.5 Days</string>
+    <string name="reminder_in_3_days">Reminder in 3 Days</string>
+    <string name="reminder_in_4_days">Reminder in 4 Days</string>
+    <string name="reminder_in_5_days">Reminder in 5 Days</string>
+    <string name="reminder_in_6_days">Reminder in 6 Days</string>
+    <string name="reminder_in_7_days">Reminder in 7 Days</string>
+    <string name="reminder_in_8_days">Reminder in 8 Days</string>
+
+    <string name="sr_site_change_presets">Site Change Presets</string>
+    <string name="sr_apply_preset">Apply Preset</string>
+    <string name="sr_adjust_time">Adjust Time</string>
+    <string name="sr_adjust_date">Adjust Date</string>
+    <string name="sr_save">Save</string>
+    <string name="reminder_in_3_day3s">Reminder in 3 Days</string>
+    <string name="reminder_in_3_d4ays">Reminder in 3 Days</string>
 
 
-
-
+    "Site Change Presets"
 
     <!-- Command Errors -->
 
@@ -235,6 +253,7 @@
     <string name="tandem_custom_command_get_alerts">Get Alerts</string>
     <string name="tandem_custom_command_dismiss_alert">Dismiss Alert</string>
     <string name="tandem_custom_command_set_quick_bolus">Set Quick Bolus</string>
+    <string name="tandem_custom_command_get_malfunctions">Get Malfunctions</string>
 
 
 
@@ -304,6 +323,7 @@
 
     <!-- Notifications -->
     <string name="tandem_notification_wrong_pairing_code">Your Pairing Code is no longer valid. Please reconfigure your Tandem Pump.</string>
+    <string name="tandem_notification_site_reminder">Tandem - Site Reminder. You need to change your site/cannula.</string>
 
 
     <!-- Pump Common MOVE THERE -->

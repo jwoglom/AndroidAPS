@@ -46,6 +46,7 @@ import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
+import app.aaps.pump.tandem.common.driver.connector.response.MalfunctionStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
@@ -83,6 +84,7 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.IDPSegmentRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.IDPSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LastBolusStatusV2Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.MalfunctionStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ProfileStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpFeaturesV1Request
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpFeaturesV2Request
@@ -118,6 +120,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusV2Response
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ProfileStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
@@ -351,9 +354,13 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         // TODO logs
 
 
-        EventOverviewBolusProgress.t = EventOverviewBolusProgress.Treatment(0.0, 0, detailedBolusInfo.bolusType === BS.Type.SMB, detailedBolusInfo.id)
+        EventOverviewBolusProgress.t = EventOverviewBolusProgress.Treatment(insulin = 0.0,
+                                                                            carbs = 0,
+                                                                            isSMB = detailedBolusInfo.bolusType === BS.Type.SMB,
+                                                                            id = detailedBolusInfo.id)
 
-        sendBolusEvent(bolusEvent = TandemBolusEvent.Preparing, fullAmount = detailedBolusInfo.insulin)
+        sendBolusEvent(bolusEvent = TandemBolusEvent.Preparing,
+                       fullAmount = detailedBolusInfo.insulin)
 
         val permissionResponseMessage: BolusPermissionResponse? = getCommunicationManager().sendCommand(
             BolusPermissionRequest()
@@ -1127,6 +1134,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             GET_ALARMS         -> return getAlarms()
             DISMISS_ALERT      -> return dismissNotificationAlert(data as Long)
             SET_QUICK_BOLUS    -> return setQuickBolus(data as QuickBolusType)
+            GET_MALFUNCTIONS   -> return getMalfunctions();
             // else                              -> {
             //     aapsLogger.error(TAG, "Unhandled Custom Command: ${commandType.name}")
             // }
@@ -1222,6 +1230,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         }
     }
 
+
     private fun getAlerts(): DataCommandResponse<AdditionalResponseDataInterface?> {
 
         aapsLogger.info(LTag.PUMPCOMM, "getAlerts")
@@ -1270,6 +1279,33 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             return DataCommandResponse(
                 PumpCommandType.CustomCommand, false,
                 "Error getting response from sending AlarmStatusRequest: null",
+                null
+            )
+        }
+    }
+
+
+    private fun getMalfunctions(): DataCommandResponse<AdditionalResponseDataInterface?> {
+
+        aapsLogger.info(LTag.PUMPCOMM, "getMalfunctions")
+
+        val responseMessage: MalfunctionStatusResponse? = getCommunicationManager()
+            .sendCommand(MalfunctionStatusRequest()) as MalfunctionStatusResponse?
+
+        if (responseMessage!=null) {
+
+            val malfunctionStatusDto = MalfunctionStatusDto()
+            malfunctionStatusDto.parse(responseMessage.cargo)
+
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, true,
+                null,
+                malfunctionStatusDto
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending MalfunctionStatusRequest: null",
                 null
             )
         }
