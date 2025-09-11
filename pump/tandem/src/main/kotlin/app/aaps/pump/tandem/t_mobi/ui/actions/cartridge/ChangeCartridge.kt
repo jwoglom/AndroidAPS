@@ -28,10 +28,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.EnterChangeCartridgeModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ExitChangeCartridgeModeRequest
@@ -86,7 +86,7 @@ fun ChangeCartridge(innerPadding: PaddingValues,
             onDismissRequest = {  },
             modifier = Modifier.fillMaxWidth().fillMaxHeight(),
         ) {
-            val basalStatus = ds.basalStatus.observeAsState()
+            val pumpRunningState = ds.pumpRunningState.observeAsState()
             val inChangeCartridgeMode = ds.inChangeCartridgeMode.observeAsState()
             val enterChangeCartridgeState = ds.enterChangeCartridgeState.observeAsState()
             val detectingCartridgeState = ds.detectingCartridgeState.observeAsState()
@@ -134,7 +134,7 @@ fun ChangeCartridge(innerPadding: PaddingValues,
                                     Text(text = resourceHelper.gs(R.string.cc_preparing_cc))
                                     Text("\n")
                                 }
-                            } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
+                            } else if (pumpRunningState.value == PumpRunningState.Suspended) {
                                 item {
                                     Text(text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site,
                                                                   resourceHelper.gs(R.string.cc_btn_begin)))
@@ -196,7 +196,7 @@ fun ChangeCartridge(innerPadding: PaddingValues,
                                     sendPumpCommand(EnterChangeCartridgeModeRequest())
                                 }
                             },
-                            enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
+                            enabled = pumpRunningState.value == PumpRunningState.Suspended,
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
                             Text(text = resourceHelper.gs(R.string.cc_btn_begin))

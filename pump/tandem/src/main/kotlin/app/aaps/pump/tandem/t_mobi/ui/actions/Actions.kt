@@ -40,8 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-// import androidx.compose.ui.platform.LocalContext
-//import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -53,7 +51,6 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
@@ -80,7 +77,7 @@ import java.time.Instant
 @Composable
 fun Actions(
     innerPadding: PaddingValues = PaddingValues(),
-    navController: NavHostController? = null,
+    //navController: NavHostController? = null,
     sendPumpCommands: (List<Message>) -> Boolean,
     _resumeInsulinMenuState: Boolean = false,
     _suspendInsulinMenuState: Boolean = false,
@@ -90,21 +87,18 @@ fun Actions(
     navigateToCartridgeActions: () -> Unit,
     navigateToPumpInfo: () -> Unit
 ) {
-    //val coroutineScope = rememberCoroutineScope()
 
     var showResumeInsulinMenu by remember { mutableStateOf(_resumeInsulinMenuState) }
     var showSuspendInsulinMenu by remember { mutableStateOf(_suspendInsulinMenuState) }
     var showStopTempRateMenu by remember { mutableStateOf(_stopTempRateMenuState) }
 
-    //val context = LocalContext.current
     val ds = LocalTandemDataStore.current
-    //val deviceName = ds.setupDeviceName.observeAsState()
     @Suppress("LocalVariable")
     val TAG = LTag.PUMPCOMM
 
     val tempRateActive = ds.tempRateActive.observeAsState()
     val tempRateDetails = ds.tempRateDetails.observeAsState()
-    val basalStatus = ds.pumpRunningState.observeAsState()
+    val pumpRunningState = ds.pumpRunningState.observeAsState()
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -200,14 +194,14 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                when (basalStatus.value) {
+                                when (pumpRunningState.value) {
                                     PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_start_insulin)
                                     PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_start_insulin)
                                     else                       -> resourceHelper.gs(R.string.ca_stop_insulin)
                                 }
                             )},
                             supportingContent = { Text(
-                                when (basalStatus.value) {
+                                when (pumpRunningState.value) {
                                     PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_resume_insulin_deliveries)
                                     PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_resume_insulin_deliveries)
                                     else                       -> resourceHelper.gs(R.string.ca_stop_insulin_deliveries)
@@ -215,7 +209,7 @@ fun Actions(
                             ) },
                             leadingContent = {
                                 Icon(
-                                    when (basalStatus.value) {
+                                    when (pumpRunningState.value) {
                                         PumpRunningState.Unknown, null  -> Icons.Filled.Close
                                         PumpRunningState.Suspended -> Icons.Filled.PlayArrow
                                         else                       -> Icons.Filled.Close
@@ -224,14 +218,14 @@ fun Actions(
                                 )
                             },
                             colors = ListItemDefaults.colors(
-                                containerColor = when (basalStatus.value) {
+                                containerColor = when (pumpRunningState.value) {
                                     PumpRunningState.Unknown, null  -> ListItemDefaults.containerColor
                                     PumpRunningState.Suspended -> Color.Green.copy(alpha = 0.5F)
                                     else                       -> Color.Red.copy(alpha = 0.5F)
                                 }
                             ),
                             modifier = Modifier.clickable {
-                                when (basalStatus.value) {
+                                when (pumpRunningState.value) {
                                     PumpRunningState.Unknown, null  -> {}
                                     PumpRunningState.Suspended -> {showResumeInsulinMenu = true}
                                     else                       -> {showSuspendInsulinMenu = true}
@@ -269,7 +263,7 @@ fun Actions(
                                             sendPumpCommands(listOf(ResumePumpingRequest()))
                                             refreshScope.launch {
                                                 repeat(5) {
-                                                    if (basalStatus.value == PumpRunningState.Running) {
+                                                    if (pumpRunningState.value == PumpRunningState.Running) {
                                                         return@repeat
                                                     }
                                                     Thread.sleep(1000)
@@ -294,45 +288,71 @@ fun Actions(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
 
-                            AlertDialog(
-                                onDismissRequest = {},
-                                title = {
-                                    Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
-                                },
-                                text = {
-                                    Text(resourceHelper.gs(R.string.ca_suspend_all_insulin_deliveries))
-                                },
-                                dismissButton = {
-                                    TextButton(
-                                        onClick = {
-                                            showSuspendInsulinMenu = false
-                                        },
-                                        modifier = Modifier.padding(top = 16.dp)
-                                    ) {
-                                        Text(resourceHelper.gs(Rco.string.cancel))
+                            if (tempRateActive.value==true) {
+                                AlertDialog(
+                                    onDismissRequest = {},
+                                    title = {
+                                        Text(resourceHelper.gs(R.string.common_warning))
+                                    },
+                                    text = {
+                                        Text(resourceHelper.gs(R.string.ca_before_stopping_stop_tbr))
+                                    },
+                                    confirmButton = {
+                                        TextButton(
+                                            onClick = {
+                                                showSuspendInsulinMenu = false
+                                            },
+                                            modifier = Modifier.padding(top = 16.dp)
+                                        ) {
+                                            Text(resourceHelper.gs(Rco.string.close))
+                                        }
                                     }
-                                },
-                                confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            showSuspendInsulinMenu = false
-                                            sendPumpCommands(listOf(SuspendPumpingRequest()))
-                                            refreshScope.launch {
-                                                repeat(5) {
-                                                    if (basalStatus.value == PumpRunningState.Suspended) {
-                                                        return@repeat
-                                                    }
-                                                    Thread.sleep(1000)
-                                                    sendPumpCommands(listOf(HomeScreenMirrorRequest()))
-                                                }
-                                            }
-                                        },
-                                        modifier = Modifier.padding(top = 16.dp)
-                                    ) {
+                                )
+
+                            } else {
+
+                                AlertDialog(
+                                    onDismissRequest = {},
+                                    title = {
                                         Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
+                                    },
+                                    text = {
+                                        Text(resourceHelper.gs(R.string.ca_suspend_all_insulin_deliveries))
+                                    },
+                                    dismissButton = {
+                                        TextButton(
+                                            onClick = {
+                                                showSuspendInsulinMenu = false
+                                            },
+                                            modifier = Modifier.padding(top = 16.dp)
+                                        ) {
+                                            Text(resourceHelper.gs(Rco.string.cancel))
+                                        }
+                                    },
+                                    confirmButton = {
+                                            TextButton(
+                                                onClick = {
+                                                    showSuspendInsulinMenu = false
+                                                    sendPumpCommands(listOf(SuspendPumpingRequest()))
+                                                    refreshScope.launch {
+                                                        repeat(5) {
+                                                            if (pumpRunningState.value == PumpRunningState.Suspended) {
+                                                                return@repeat
+                                                            }
+                                                            Thread.sleep(1000)
+                                                            sendPumpCommands(listOf(HomeScreenMirrorRequest()))
+                                                        }
+                                                    }
+                                                },
+                                                modifier = Modifier.padding(top = 16.dp)
+                                            ) {
+                                                Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
+                                            }
+
                                     }
-                                }
-                            )
+                                )
+
+                            }
 
                         }
 
@@ -498,7 +518,7 @@ val actionsCommands = listOf(
 )
 
 val actionsFields = listOf(
-    tandemDataStore.basalStatus,
+    tandemDataStore.pumpRunningState,
     tandemDataStore.tempRateActive,
     tandemDataStore.tempRateDetails,
 )
@@ -553,7 +573,7 @@ private fun PreviewInsulinSuspended() {
             color = Color.White,
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
-            LocalTandemDataStore.current.basalStatus.value = BasalStatus.PUMP_SUSPENDED
+            LocalTandemDataStore.current.pumpRunningState.value = PumpRunningState.Suspended
             Actions(
                 sendPumpCommands = { _ -> true},
                 aapsLogger = AAPSLoggerTest(),

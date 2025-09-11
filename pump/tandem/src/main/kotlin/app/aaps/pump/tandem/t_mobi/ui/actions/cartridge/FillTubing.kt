@@ -28,10 +28,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.EnterFillTubingModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ExitFillTubingModeRequest
@@ -81,7 +81,6 @@ fun FillTubing(innerPadding: PaddingValues,
             onDismissRequest = {  },
             modifier = Modifier.fillMaxWidth().fillMaxHeight(),
         ) {
-            val basalStatus = ds.basalStatus.observeAsState()
             val pumpRunningState = ds.pumpRunningState.observeAsState()
             val inFillTubingMode = ds.inFillTubingMode.observeAsState()
             val fillTubingState = ds.fillTubingState.observeAsState()
@@ -135,7 +134,7 @@ fun FillTubing(innerPadding: PaddingValues,
                                         Text(text = resourceHelper.gs(R.string.ft_stopped_fill_2))
                                     }
                                 }
-                            } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
+                            } else if (pumpRunningState.value == PumpRunningState.Suspended) {
                                 item {
                                     Text(text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site,
                                                                   resourceHelper.gs(R.string.ft_btn_begin)))
@@ -152,7 +151,8 @@ fun FillTubing(innerPadding: PaddingValues,
                     )
                 },
                 dismissButton = {
-                    if (inFillTubingMode.value == true) {
+                    if (inFillTubingMode.value == true ||
+                        exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
                     } else {
                         TextButton(
                             onClick = {
@@ -171,7 +171,7 @@ fun FillTubing(innerPadding: PaddingValues,
                                 onClick = {
                                     showFillTubingMenu = false
                                 },
-                                enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
+                                enabled = pumpRunningState.value == PumpRunningState.Suspended,
                                 modifier = Modifier.padding(top = 16.dp)
                             ) {
                                 Text(text = resourceHelper.gs(R.string.common_done))
@@ -185,7 +185,7 @@ fun FillTubing(innerPadding: PaddingValues,
                                         sendPumpCommands(listOf(ExitFillTubingModeRequest()))
                                     }
                                 },
-                                enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
+                                enabled = pumpRunningState.value == PumpRunningState.Suspended,
                                 modifier = Modifier.padding(top = 16.dp)
                             ) {
                                 Text(text = resourceHelper.gs(R.string.ft_btn_complete))
@@ -198,7 +198,7 @@ fun FillTubing(innerPadding: PaddingValues,
                                     sendPumpCommands(listOf(EnterFillTubingModeRequest()))
                                 }
                             },
-                            enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
+                            enabled = pumpRunningState.value == PumpRunningState.Suspended,
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
                             Text(text = resourceHelper.gs(R.string.ft_btn_begin))

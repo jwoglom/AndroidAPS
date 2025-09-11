@@ -30,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 import app.aaps.pump.tandem.t_mobi.ui.util.DecimalOutlinedText
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
@@ -86,7 +86,8 @@ fun FillCannula(innerPadding: PaddingValues,
             onDismissRequest = {  },
             modifier = Modifier.fillMaxWidth().fillMaxHeight(),
         ) {
-            val basalStatus = ds.basalStatus.observeAsState()
+            //val basalStatus = ds.basalStatus.observeAsState()
+            val pumpRunningState = ds.pumpRunningState.observeAsState()
             val fillCannulaState = ds.fillCannulaState.observeAsState()
             var cannulaFillAmountStr by remember { mutableStateOf<String?>(null) }
             var cannulaFillAmount by remember { mutableStateOf<Double?>(null) }
@@ -123,7 +124,7 @@ fun FillCannula(innerPadding: PaddingValues,
                                     }
                                 }
 
-                            } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
+                            } else if (pumpRunningState.value == PumpRunningState.Suspended) {
                                 item {
                                     Text(text = resourceHelper.gs(R.string.fc_cannula_fill_amount))
                                     Text("\n\n")
@@ -185,7 +186,7 @@ fun FillCannula(innerPadding: PaddingValues,
                                 Text(text = resourceHelper.gs(R.string.common_done))
                             }
                         }
-                    } else if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) {
+                    } else if (pumpRunningState.value == PumpRunningState.Suspended) {
                         TextButton(
                             onClick = {
                                 refreshScope.launch {
@@ -196,7 +197,7 @@ fun FillCannula(innerPadding: PaddingValues,
                                     }
                                 }
                             },
-                            enabled = basalStatus.value == BasalStatus.PUMP_SUSPENDED && cannulaFillAmount != null && allowedCannulaFillAmount(cannulaFillAmount),
+                            enabled = pumpRunningState.value == PumpRunningState.Suspended && cannulaFillAmount != null && allowedCannulaFillAmount(cannulaFillAmount),
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
                             if (allowedCannulaFillAmount(cannulaFillAmount)) {

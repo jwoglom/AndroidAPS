@@ -450,6 +450,7 @@ abstract class PumpPluginAbstract protected constructor(
                             commandQueue.readStatus("Scheduled Status Refresh", null)
                         }
                     }
+                    doCustomScheduledActions()
                 }
             } while (serviceRunning)
         }.start()
@@ -488,7 +489,14 @@ abstract class PumpPluginAbstract protected constructor(
         }
     }
 
+
+    protected open fun doCustomScheduledActions() {
+
+    }
+
+
     protected fun doWeHaveAnyStatusNeededRefereshing(statusRefresh: Map<PumpDataRefreshType?, Long?>?): Boolean {
+        // aapsLogger.error(LTag.PUMP, "Do we have status needed to refresh: $statusRefresh, currentTime=${System.currentTimeMillis()}")
         for ((_, value) in statusRefresh!!) {
             if (value!! > 0 && System.currentTimeMillis() > value) {
                 return true
@@ -538,8 +546,6 @@ abstract class PumpPluginAbstract protected constructor(
             customParameter = refreshTypeToCopy
         )
     }
-
-
 
 
     // this method needs to be overwriten in your driver and implement PumpDataRefreshCapable

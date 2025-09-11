@@ -58,6 +58,7 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     var tandemAlerts : Set<AlertStatusResponse.AlertResponseType>? = null
     var tandemAlarms : Set<AlarmStatusResponse.AlarmResponseType>? = null
     var tandemLastBolus: BolusData? = null
+    var tandemSiteReminder: Long? = null
 
     var semaphoreNotifications = false
     var semaphoreEvents = false

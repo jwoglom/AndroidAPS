@@ -7,7 +7,10 @@
     <string name="common_resultok">OK</string>
 
     <string name="pump_serial_number">Pump Serial Number</string>
+    <string name="bolus_preparing">Preparing for %1$.2f U bolus</string>
     <string name="bolus_delivered_so_far">%1$.2f U / %2$.2f U delivered</string>
+    <string name="bolus_finished_post_bolus">Bolus finished, performing post-bolus checks</string>
+
 
     <!-- PumpCommon - Overview fragment -->
     <string name="pump_base_basal_rate_with_profile">(%1s) %2$.2f U/h</string>

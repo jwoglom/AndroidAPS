@@ -13,7 +13,9 @@ enum class TandemNotificationType(override var notificationType: Int,
                                   override @StringRes val resourceId: Int,
                                   override val notificationUrgency: Int) : NotificationTypeInterface {
 
+    // TODO TandemNotificationType - InvalidPairingCodeReconfigure this might be removed
     InvalidPairingCodeReconfigure(R.string.tandem_notification_wrong_pairing_code, Notification.URGENT),
+    SiteReminder(Notification.TANDEM_SITE_REMINDER, R.string.tandem_notification_site_reminder, Notification.NORMAL)
 
     //PumpIncorrectBasalProfileSelected(R.string.pump_settings_error_incorrect_basal_profile_selected, Notification.URGENT),  //
     //PumpWrongMaxBolusSet(R.string.pump_settings_error_wrong_max_bolus_set, Notification.NORMAL),  //

@@ -9,21 +9,16 @@ import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
-import app.aaps.pump.tandem.t_mobi.ui.actions.other.BasalStatus
 
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.models.StatusMessage
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
-import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
-import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.DismissNotificationResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.EnterChangeCartridgeModeResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.EnterFillTubingModeResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.ExitChangeCartridgeModeResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.ExitFillTubingModeResponse
-import com.jwoglom.pumpx2.pump.messages.response.control.InitiateBolusResponse
-import com.jwoglom.pumpx2.pump.messages.response.control.RemoteCarbEntryResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.ResumePumpingResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.DetectingCartridgeStateStreamResponse
@@ -31,9 +26,8 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartri
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingModeStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateStreamResponse
-import com.jwoglom.pumpx2.pump.messages.response.controlStream.PumpingStateStreamResponse
+// import com.jwoglom.pumpx2.pump.messages.response.controlStream.PumpingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
@@ -41,7 +35,6 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.UnknownMobiOpcode20Response
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
-import timber.log.Timber
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -127,17 +120,17 @@ class TandemUICommunication @Inject constructor (
                 aapsLogger.info(TAG, "DismissNotificationResponse received: success=${message.isStatusOK}")
             }
             is HomeScreenMirrorResponse -> {
-                dataStore.basalStatus.value = when (message.basalStatusIcon) {
-                    HomeScreenMirrorResponse.BasalStatusIcon.BASAL -> BasalStatus.ON
-                    HomeScreenMirrorResponse.BasalStatusIcon.ZERO_BASAL -> BasalStatus.ZERO
-                    HomeScreenMirrorResponse.BasalStatusIcon.TEMP_RATE -> BasalStatus.TEMP_RATE
-                    HomeScreenMirrorResponse.BasalStatusIcon.ZERO_TEMP_RATE -> BasalStatus.ZERO_TEMP_RATE
-                    HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND -> BasalStatus.PUMP_SUSPENDED
-                    HomeScreenMirrorResponse.BasalStatusIcon.HYPO_SUSPEND_BASAL_IQ -> BasalStatus.BASALIQ_SUSPENDED
-                    HomeScreenMirrorResponse.BasalStatusIcon.INCREASE_BASAL -> BasalStatus.CONTROLIQ_INCREASED
-                    HomeScreenMirrorResponse.BasalStatusIcon.ATTENUATED_BASAL -> BasalStatus.CONTROLIQ_REDUCED
-                    else -> BasalStatus.UNKNOWN
-                }
+                // dataStore.basalStatus.value = when (message.basalStatusIcon) {
+                //     HomeScreenMirrorResponse.BasalStatusIcon.BASAL -> BasalStatus.ON
+                //     HomeScreenMirrorResponse.BasalStatusIcon.ZERO_BASAL -> BasalStatus.ZERO
+                //     HomeScreenMirrorResponse.BasalStatusIcon.TEMP_RATE -> BasalStatus.TEMP_RATE
+                //     HomeScreenMirrorResponse.BasalStatusIcon.ZERO_TEMP_RATE -> BasalStatus.ZERO_TEMP_RATE
+                //     HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND -> BasalStatus.PUMP_SUSPENDED
+                //     HomeScreenMirrorResponse.BasalStatusIcon.HYPO_SUSPEND_BASAL_IQ -> BasalStatus.BASALIQ_SUSPENDED
+                //     HomeScreenMirrorResponse.BasalStatusIcon.INCREASE_BASAL -> BasalStatus.CONTROLIQ_INCREASED
+                //     HomeScreenMirrorResponse.BasalStatusIcon.ATTENUATED_BASAL -> BasalStatus.CONTROLIQ_REDUCED
+                //     else -> BasalStatus.UNKNOWN
+                // }
                 dataStore.pumpRunningState.value = if (message.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) PumpRunningState.Suspended else PumpRunningState.Running
 
                 pumpStatus.pumpStatusMirror = HomeScreenMirrorDto()
@@ -158,25 +151,25 @@ class TandemUICommunication @Inject constructor (
 // //                    }
 //             }
 
-            is BolusPermissionResponse -> {
-                dataStore.bolusPermissionResponse.value = message
-            }
-            is RemoteCarbEntryResponse -> {
-                dataStore.bolusCarbEntryResponse.value = message
-            }
-            is InitiateBolusResponse -> {
-                dataStore.bolusInitiateResponse.value = message
-            }
-            is CancelBolusResponse -> {
-                if (dataStore.bolusCancelResponse.value == null || message.wasCancelled()) {
-                    dataStore.bolusCancelResponse.value = message
-                } else {
-                    Timber.w("skipping population of bolusCancelResponse: $message because a successful cancellation already existed in the state: ${dataStore.bolusCancelResponse.value}");
-                }
-            }
-            is CurrentBolusStatusResponse -> {
-                dataStore.bolusCurrentResponse.value = message
-            }
+            // is BolusPermissionResponse -> {
+            //     dataStore.bolusPermissionResponse.value = message
+            // }
+            // is RemoteCarbEntryResponse -> {
+            //     dataStore.bolusCarbEntryResponse.value = message
+            // }
+            // is InitiateBolusResponse -> {
+            //     dataStore.bolusInitiateResponse.value = message
+            // }
+            // is CancelBolusResponse -> {
+            //     if (dataStore.bolusCancelResponse.value == null || message.wasCancelled()) {
+            //         dataStore.bolusCancelResponse.value = message
+            //     } else {
+            //         Timber.w("skipping population of bolusCancelResponse: $message because a successful cancellation already existed in the state: ${dataStore.bolusCancelResponse.value}");
+            //     }
+            // }
+            // is CurrentBolusStatusResponse -> {
+            //     dataStore.bolusCurrentResponse.value = message
+            // }
             is TimeSinceResetResponse -> {
                 dataStore.timeSinceResetResponse.value = message
             }
@@ -195,9 +188,9 @@ class TandemUICommunication @Inject constructor (
             is FillCannulaStateStreamResponse -> {
                 dataStore.fillCannulaState.value = message
             }
-            is PumpingStateStreamResponse -> {
-                dataStore.pumpingState.value = message
-            }
+            // is PumpingStateStreamResponse -> {
+            //     dataStore.pumpingState.value = message
+            // }
             is EnterChangeCartridgeModeResponse -> {
                 if (!message.isStatusOK) {
                     unsuccessfulAlert(message.messageName())
@@ -257,7 +250,7 @@ class TandemUICommunication @Inject constructor (
             is ResumePumpingResponse    -> {
                 aapsLogger.error(TAG, "ResumePumpingResponse received with status=${message.isStatusOK}")
                 if (message.isStatusOK) {
-                    dataStore.basalStatus.value = BasalStatus.ON
+                    //dataStore.basalStatus.value = BasalStatus.ON
                     dataStore.pumpRunningState.value = PumpRunningState.Running
                 } else {
                     unsuccessfulAlert(message.messageName())

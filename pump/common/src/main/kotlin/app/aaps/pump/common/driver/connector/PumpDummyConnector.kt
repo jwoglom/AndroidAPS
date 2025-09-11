@@ -68,7 +68,7 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         //return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBolus)
 
         return DataCommandResponse(
-            PumpCommandType.SetBolus, true, null, BolusData(amountImmediate = 1.0,
+            PumpCommandType.SetBolus, true, null, BolusData(amountImmediateDelivered = 1.0,
                                                             timestamp = System.currentTimeMillis())
         )
     }
@@ -77,7 +77,7 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         pumpUtil.sleepSeconds(10)
 
         return DataCommandResponse(
-            PumpCommandType.GetBolus, true, null, BolusData(amountImmediate = 1.0,
+            PumpCommandType.GetBolus, true, null, BolusData(amountImmediateDelivered = 1.0,
                                                             timestamp = System.currentTimeMillis())
         )
     }

@@ -8,14 +8,13 @@ enum class TandemLongNonPreferenceKey(
     override val exportable: Boolean = true
 ) : LongNonPreferenceKey {
 
-    TbrsSet("tandem_tbrs_set", 0),
-    SmbBoluses("tandem_smb_boluses_delivered", 0),
-    StandardBoluses("tandem_std_boluses_delivered", 0),
-    FirstPumpUse("tandem_first_pump_use", 0),
-    LastGoodPumpCommunicationTime("tandem_lastGoodPumpCommunicationTime", 0L),
-    // LastPumpHistoryEntry("medtronic_pump_history_entry", 0L),
-    // LastPrime("medtronic_last_sent_prime", 0L),
-    // LastRewind("medtronic_last_sent_rewind", 0L),
-    // LastBatteryChange("medtronic_last_sent_battery_change", 0L),
+    TbrsSet(key = "tandem_tbrs_set", defaultValue = 0),
+    SmbBoluses(key = "tandem_smb_boluses_delivered", defaultValue = 0),
+    StandardBoluses(key = "tandem_std_boluses_delivered", defaultValue = 0),
+    FirstPumpUse(key = "tandem_first_pump_use", defaultValue = 0),
+    LastGoodPumpCommunicationTime(key = "tandem_lastGoodPumpCommunicationTime", defaultValue = 0L),
+
+    LastTbrId("tandem_last_tbr_id", defaultValue = 0L),
+    SiteReminderDateTime(key = "tandem_site_reminder_datetime", defaultValue = 0L)
 
 }

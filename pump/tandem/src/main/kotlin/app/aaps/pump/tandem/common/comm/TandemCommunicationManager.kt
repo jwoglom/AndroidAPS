@@ -173,8 +173,11 @@ class TandemCommunicationManager(
      * Sends command to the pump, if driver is in preventConnect mode any messages will be ignored,
      * unless we specify forceSend. Force send should be used only for ChangeFillManager
      */
+    @Synchronized
     fun sendCommand(request: Message, forceSend: Boolean = false): Message? {
         var times = 0
+
+        aapsLogger.error(TAG, "sendCommand: ${request.javaClass.simpleName}")  // TODO
 
         operationMode = OperationMode.StandardOperation
 
