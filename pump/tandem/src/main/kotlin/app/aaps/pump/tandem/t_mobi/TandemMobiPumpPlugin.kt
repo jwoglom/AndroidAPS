@@ -197,14 +197,24 @@ class TandemMobiPumpPlugin @Inject constructor(
             pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
             aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump serial changed (this means bonding/unbonding is happening)")
         } else if (pref.key == TandemStringPreferenceKey.SharedConnectionData.key) {
-            val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.SharedConnectionData, null)
-                //sp.getStringOrNull(R.string.key_tandem_shared_connection_data, null)
-            aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that connection data changed. Reconnecting to pump")
-            if (value!=null && value.isNotEmpty()) {
-                if (tandemService!!.validateParameters() && !tandemService!!.isConnected()) {
-                    tandemService!!.connectToPump()
-                }
+            aapsLogger.error(TAG, "TANDEMDBG: updatePreferenceSummary for SharedConnectionData returned. ")
+            if (tandemService!!.hasConfigurationChanged()) {
+                // TODO rework this, if data changed we check if connected if yes disconnect, then validate
+                //   paramteres and if ok, connect to the pump
+                // if (tandemService!!.validateParameters() && !tandemService!!.isConnected()) {
+                //     tandemService!!.connectToPump()
+                // }
             }
+
+
+            // val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.SharedConnectionData, null)
+            //     //sp.getStringOrNull(R.string.key_tandem_shared_connection_data, null)
+            // aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that connection data changed. Reconnecting to pump")
+            // if (value!=null && value.isNotEmpty()) {
+            //     if (tandemService!!.validateParameters() && !tandemService!!.isConnected()) {
+            //         tandemService!!.connectToPump()
+            //     }
+            // }
         } else if (pref.key == TandemStringPreferenceKey.QuickBolusTypePref.key) {
             val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.QuickBolusTypePref, null)
             aapsLogger.error(LTag.PUMP, "Quick Bolus Setting changed: $value")
@@ -761,8 +771,8 @@ class TandemMobiPumpPlugin @Inject constructor(
         aapsLogger.error("RefreshCheck: $statusRefresh  (currentTime=$currentTimeMillis)")
 
         for ((key, value) in statusRefresh) {
-            //aapsLogger.error("RefreshCheck: $key = $value  (currentTime=$currentTimeMillis)")
-            if (value!! > 0 && currentTimeMillis > value) {
+            aapsLogger.error("RefreshCheck: $key = $value  (currentTime=$currentTimeMillis)")
+            if (value!=null && value > 0 && currentTimeMillis > value) {
                 var resetTime = false
                 when (key) {
                     // PumpDataRefreshType.PumpHistory      -> {
@@ -810,6 +820,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                         aapsLogger.error(LTag.PUMP, "Refresh_Custom_2 - Set QuickBolus settings on pump")
                         pumpConnectionManager.executeCustomCommand(command = TandemCustomCommand.SET_QUICK_BOLUS,
                                                                    data = this.newQuickBolusType)
+                        resetTime = true
                     }
 
                     PumpDataRefreshType.RemainingInsulin -> {
@@ -972,9 +983,11 @@ class TandemMobiPumpPlugin @Inject constructor(
             }
         }
 
-        pumpStatus.semaphoreNeedsRefresh = true
-        pumpStatus.semaphoreNotifications = notificationFound
-        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
+        if (pumpStatus.semaphoreNotifications != notificationFound) {
+            pumpStatus.semaphoreNeedsRefresh = false
+            pumpStatus.semaphoreNotifications = notificationFound
+            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
+        }
 
     }
 
@@ -1694,14 +1707,14 @@ class TandemMobiPumpPlugin @Inject constructor(
             //
 
             // TODO enabled false doesn't work/exist
-            addPreference(
-                AdaptiveStringPreference(
-                    ctx = context,
-                    stringKey = TandemStringPreferenceKey.PumpSerial,
-                    title = R.string.pump_serial_number
-                )
-                // singleLine="false", selectAllOnFocus="true"
-            )
+            // addPreference(
+            //     AdaptiveStringPreference(
+            //         ctx = context,
+            //         stringKey = TandemStringPreferenceKey.PumpSerial,
+            //         title = R.string.pump_serial_number
+            //     )
+            //     // singleLine="false", selectAllOnFocus="true"
+            // )
 
             addPreference(
                 AdaptiveSwitchPreference(

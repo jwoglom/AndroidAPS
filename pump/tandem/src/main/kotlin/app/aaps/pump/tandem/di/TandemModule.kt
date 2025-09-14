@@ -4,6 +4,7 @@ import app.aaps.core.interfaces.ui.compose.ComposeUiFactory
 import app.aaps.implementation.ui.ComposeUiModule
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
+import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.database.data.TandemHistoryConverter
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
@@ -56,11 +57,13 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributesHistoryRetriever(): HistoryRetriever
 
 
+
     // T-Mobi Package - Activites and Fragments
     @ContributesAndroidInjector abstract fun contributeAAPSTimber(): PumpX2L
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpFragment(): TandemMobiPumpFragment
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpDriverConfiguration(): TandemMobiPumpDriverConfiguration
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpPlugin(): TandemMobiPumpPlugin
+    @ContributesAndroidInjector abstract fun contributesTandemConnectionFixer(): TandemConnectionFixer
 
 
 

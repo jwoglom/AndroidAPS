@@ -496,8 +496,12 @@ abstract class PumpPluginAbstract protected constructor(
 
 
     protected fun doWeHaveAnyStatusNeededRefereshing(statusRefresh: Map<PumpDataRefreshType?, Long?>?): Boolean {
-        // aapsLogger.error(LTag.PUMP, "Do we have status needed to refresh: $statusRefresh, currentTime=${System.currentTimeMillis()}")
-        for ((_, value) in statusRefresh!!) {
+        aapsLogger.error(LTag.PUMP, "Do we have status needed to refresh: $statusRefresh, currentTime=${System.currentTimeMillis()}")
+        for ((key, value) in statusRefresh!!) {
+            if (value==null) {
+                aapsLogger.error(LTag.PUMP, "We got key ($key}) with value null.")
+                continue
+            }
             if (value!! > 0 && System.currentTimeMillis() > value) {
                 return true
             }
@@ -540,7 +544,7 @@ abstract class PumpPluginAbstract protected constructor(
 
     protected fun scheduleNextRefreshAtSameTimeAsOtherType(refreshType: PumpDataRefreshType, refreshTypeToCopy: PumpDataRefreshType) {
         workWithStatusRefresh(
-            action = PumpDataRefreshAction.Add,
+            action = PumpDataRefreshAction.AddSameAsOther,
             statusRefreshType = refreshType,
             time = null,
             customParameter = refreshTypeToCopy

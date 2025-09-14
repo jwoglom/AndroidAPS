@@ -118,7 +118,6 @@ class TandemPumpConnectionManager @Inject constructor(
         if (tandemPumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
             tandemPumpStatus.tandemPumpFirmware = TandemPumpApiVersion.VERSION_3_5_MOBI;
         }
-        // TODO Tandem
     }
 
 

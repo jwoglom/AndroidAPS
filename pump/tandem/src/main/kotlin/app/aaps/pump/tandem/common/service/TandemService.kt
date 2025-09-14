@@ -62,6 +62,7 @@ class TandemService : DaggerService() {
     var isInitialized = connected && configurationValid
 
 
+
     override fun onCreate() {
         super.onCreate()
         aapsLogger.debug(LTag.PUMPCOMM, "Tandem Service newly created")
@@ -75,6 +76,16 @@ class TandemService : DaggerService() {
                                                                Manifest.permission.BLUETOOTH_SCAN)
             //return permission == PackageManager.PERMISSION_GRANTED;
         }
+    }
+
+
+    fun hasConfigurationChanged(): Boolean {
+        // TODO if parameters haven't changed we don't
+        return false;
+    }
+
+    fun reconnectWithDifferentConnectionData() {
+        // TODO
     }
 
 

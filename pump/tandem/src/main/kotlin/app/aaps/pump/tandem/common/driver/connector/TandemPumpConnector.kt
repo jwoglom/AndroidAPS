@@ -33,6 +33,7 @@ import app.aaps.pump.tandem.R
 import app.aaps.pump.common.R as Rpc
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
+import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
 import app.aaps.pump.tandem.common.data.IDPSegmentDto
 import app.aaps.pump.tandem.common.data.PumpProfileDto
 import app.aaps.pump.tandem.common.data.defs.QuickBolusType
@@ -149,6 +150,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                               var resourceHelper: ResourceHelper,
                                               var preferences: Preferences,
                                               var sp: SP,
+                                              var tandemConnectionFixer: TandemConnectionFixer,
                                               aapsLogger: AAPSLogger,
                                               val pumpX2L: PumpX2L,
                                               private var tandemDataConverter: TandemDataConverter
@@ -200,7 +202,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 rxBus = rxBus,
                 preferences = preferences,
                 resourceHelper = resourceHelper,
-                timberTree = pumpX2L
+                timberTree = pumpX2L,
+                tandemConnectionFixer = tandemConnectionFixer
             )
             this.btAddressUsed = newBtAddress
         }
@@ -451,12 +454,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         }
 
-        // val lastBolusStatus = getCommunicationManager()
-        //     .sendCommand(LastBolusStatusV2Request()) as LastBolusStatusV2Response?
-
         // it seems that when CurrentBolusStatusResponse comes back as delivered, we don't have
         // any bolus details, so we just read bolus again...
-
         val bolusDataCommandResponse = getBolus()
 
         if (bolusDataCommandResponse.isSuccess) {
@@ -521,39 +520,25 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     override fun cancelBolus(bolusData: BolusData?): DataCommandResponse<AdditionalResponseDataInterface?> {
-        // TODO V1 Connector: cancelBolus N-7
-        ///var responseMessage: Message? = getCommunicationManager().sendCommand(CancelBolusRequest()) as CancelBolusResponse
-
         if (bolusId==0) {
-            aapsLogger.info(TAG, "cancelBolus noBolusId found, exiting")
+            aapsLogger.info(TAG, "cancelBolus: no BolusId found, exiting")
             return DataCommandResponse(
                 PumpCommandType.CancelBolus, false, "No Bolus Id found, bouls might not be running anymore.",
                 null
             )
         } else {
-            aapsLogger.info(TAG, "cancelBolus (bolusId=$bolusId")
+            aapsLogger.info(TAG, "cancelBolus (bolusId=$bolusId)")
         }
-
-
 
         val responseMessage: Message? = getCommunicationManager().sendCommand(CancelBolusRequest(bolusId))
             as CancelBolusResponse
 
-        aapsLogger.error(TAG, "ResponseMessgae: $responseMessage ")
-
-        // val responseData: DataCommandResponse<BolusData?> = sendAndReceivePumpData(
-        //     PumpCommandType.CancelBolus,
-        //     CancelBolusRequest())
-        // {  rawContent -> tandemDataConverter.getBolus(rawContent as CurrentBolusStatusResponse) }
-
-//        aapsLogger.info(TAG, "getBolus result: ${responseData.value}")
+        aapsLogger.debug(TAG, "ResponseMessgae: $responseMessage ")
 
         return DataCommandResponse(
             PumpCommandType.CancelBolus, true, null,
             null
         )
-
-        //return super.cancelBolus(bolusData)
     }
 
 
@@ -732,7 +717,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         return pumpProfileDto
     }
-
 
 
     private fun checkResponse(responseMessage: Message?, description: String): String? {
@@ -1337,6 +1321,15 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     private fun setQuickBolus(quickBolusType: QuickBolusType): DataCommandResponse<AdditionalResponseDataInterface?> {
         aapsLogger.info(LTag.PUMPCOMM, "set QuickBolus [quickBolus=$quickBolusType]")
+
+        // TODO there seems to be some bug in pumpX2 when setting QuickBolus, temporary we return success
+
+        // return DataCommandResponse(
+        //     PumpCommandType.CustomCommand, true,
+        //     "",
+        //     null
+        // )
+
 
         val quickBolusIncrement = SetQuickBolusSettingsRequest.QuickBolusIncrement.valueOf(quickBolusType.name)
 

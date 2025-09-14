@@ -199,6 +199,9 @@ class TandemMobiPumpFragment : DaggerFragment() {
 
         //val pumpState = pumpSync.expectedPumpState()
 
+        // NOTE: Custom_2 is used for updating 3 indicators;
+        //       Custom_1 is used for updating Last Pump Event (used for debug purposes only, labels are disabled programaticaly)
+
         currentTextColor = binding.pumpBaseBasalRate.currentTextColor // we need color from item, in case we are not running in dark mode
 
         // last connection

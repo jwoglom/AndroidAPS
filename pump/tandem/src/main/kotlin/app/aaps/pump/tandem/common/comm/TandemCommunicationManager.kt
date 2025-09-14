@@ -14,6 +14,7 @@ import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
+import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
@@ -53,7 +54,8 @@ class TandemCommunicationManager(
     var pumpUtil: TandemPumpUtil,
     var pumpStatus: TandemPumpStatus,
     var pumpConfig: TandemConfig,
-    var timberTree: PumpX2L
+    var timberTree: PumpX2L,
+    var tandemConnectionFixer: TandemConnectionFixer
 ) : TandemPump(context, pumpConfig) {
 
     lateinit var peripheral: BluetoothPeripheral
@@ -379,6 +381,8 @@ class TandemCommunicationManager(
         if (reason!=null && reason == TandemError.BT_CONNECTION_FAILED) {
             // TODO
         }
+
+        tandemConnectionFixer.startConnectionFix(this)
 
         super.onPumpCriticalError(peripheral, reason)
     }
