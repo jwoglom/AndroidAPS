@@ -470,6 +470,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                         }
                     } else {
                         aapsLogger.error(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
+                        deliveryStartTime = System.currentTimeMillis()
                     }
                 }
             }
