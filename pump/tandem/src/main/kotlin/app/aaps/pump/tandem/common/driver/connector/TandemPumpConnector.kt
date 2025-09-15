@@ -369,12 +369,24 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             BolusPermissionRequest()
         ) as BolusPermissionResponse?
 
+        aapsLogger.error(TAG, "BolusPermissionResponse: $permissionResponseMessage")
+
         if (permissionResponseMessage==null) {
             aapsLogger.error(TAG, "BolusPermissionResponse was not received." )
 
             return DataCommandResponse(
                 PumpCommandType.SetBolus, false,
                 "Error getting response from sending BolusPermissionResponse: null",
+                null
+            )
+        }
+
+        if (!permissionResponseMessage.isStatusOK) {
+            aapsLogger.error(TAG, "BolusPermissionResponse status is not ok, with reason: ${permissionResponseMessage.nackReason.name}." )
+
+            return DataCommandResponse(
+                PumpCommandType.SetBolus, false,
+                "BolusPermissionResponse status is not ok, with reason: ${permissionResponseMessage.nackReason.name}.",
                 null
             )
         }
@@ -404,6 +416,16 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         }
 
         aapsLogger.error(TAG, "BolusRequest: $bolusRequest and response: $bolusRequestResponse")
+
+        if (!bolusRequestResponse.isStatusOK) {
+            aapsLogger.error(TAG, "InitiateBolusResponse status was not ok, bolus was not started: status: ${bolusRequestResponse.statusType.name}." )
+
+            return DataCommandResponse(
+                PumpCommandType.SetBolus, false,
+                "InitiateBolusResponse status was not ok, bolus was not started: status: ${bolusRequestResponse.statusType.name}.",
+                null
+            )
+        }
 
         var finished = false
         var bolusStatusResponse: CurrentBolusStatusResponse? = null
