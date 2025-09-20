@@ -428,9 +428,11 @@ class TandemMobiPumpFragment : DaggerFragment() {
         val status = commandQueue.spannedStatus()
         if (status.toString() == "") {
             binding.pumpQueue.visibility = View.GONE
+            setButtonState(enabled = true)
         } else {
             binding.pumpQueue.visibility = View.VISIBLE
             binding.pumpQueue.text = status
+            setButtonState(enabled = false)
         }
     }
 
