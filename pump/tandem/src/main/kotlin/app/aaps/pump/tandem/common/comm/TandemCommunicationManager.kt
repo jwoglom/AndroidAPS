@@ -39,8 +39,6 @@ import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.welie.blessed.BluetoothPeripheral
 import org.joda.time.DateTime
 
-import javax.inject.Inject
-
 /**
  * This is low-level driver that does all communication with pump, with exception of pairing.
  */
@@ -79,9 +77,14 @@ class TandemCommunicationManager(
 
     var bluetoothHandler: TandemBluetoothHandler? = null
 
-    var TAG = LTag.PUMPBTCOMM
+
 
     var operationMode: OperationMode = OperationMode.None
+
+    companion object {
+        val TAG = LTag.PUMPBTCOMM
+        val COMMAND_TIMEOUT = 30 * 1000  // 30s (in ms) timeout
+    }
 
 
     fun connect(): Boolean {
@@ -177,26 +180,15 @@ class TandemCommunicationManager(
      */
     @Synchronized
     fun sendCommand(request: Message, forceSend: Boolean = false): Message? {
-        var times = 0
 
         aapsLogger.error(TAG, "sendCommand: ${request.javaClass.simpleName}")  // TODO
 
         operationMode = OperationMode.StandardOperation
 
-        if (pumpUtil.preventConnect) {
-            // TODO handle pumpUtil.preventConnect mode
-        }
-
-        while (!::peripheral.isInitialized && times < 10) {
-            aapsLogger.warn(LTag.PUMPCOMM, "Waiting for peripheral for sendCommand with ${request.opCode()} - ${request.javaClass.name}")
-            pumpUtil.sleep(1000)
-            times++
-        }
-
-        if (!::peripheral.isInitialized) {
-            aapsLogger.warn(LTag.PUMPCOMM, "Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
+        if (!initializePump(request)) {
             return null
         }
+
         this.commandRequestModeRunning = true
         this.commandRequest = request
         this.commandResponse = null
@@ -205,7 +197,8 @@ class TandemCommunicationManager(
 
         sendCommand(peripheral, request)
 
-        // TODO add timeout
+        val timeoutTime = System.currentTimeMillis() + COMMAND_TIMEOUT;
+
         while(commandRequestModeRunning) {
 
             if (commandResponse!=null) {
@@ -214,35 +207,48 @@ class TandemCommunicationManager(
             }
 
             pumpUtil.sleep(1000)
+
+            if (System.currentTimeMillis()>timeoutTime) {
+                aapsLogger.error(TAG, "Timeout for command ${request.javaClass.name} returning with null.")
+                return null
+            }
         }
 
         return null
     }
 
 
-    fun sendCommandWithListener(request: Message): Message? {
-        var times = 0
-
-        operationMode = OperationMode.ExternalListenerOperation
-
-        aapsLogger.warn(LTag.PUMPCOMM, "STM: sendCommandWithListener sendCommand with [request_code=${request.opCode()},request_class=${request.javaClass.simpleName},connected=$connected]")
-
+    private fun initializePump(request: Message): Boolean {
+        var times = 0;
         while (!::peripheral.isInitialized && times < 10) {
-            aapsLogger.warn(LTag.PUMPCOMM, "STM: Waiting for peripheral for sendCommand with ${request.opCode()} - ${request.javaClass.name}")
+            aapsLogger.warn(LTag.PUMPCOMM, "Waiting for peripheral for sendCommand with ${request.opCode()} - ${request.javaClass.name}")
             pumpUtil.sleep(1000)
             times++
         }
 
         if (!::peripheral.isInitialized) {
-            aapsLogger.warn(LTag.PUMPCOMM, "STM: Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
-            return null
+            aapsLogger.warn(LTag.PUMPCOMM, "Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
+            return false
+        }
+        return true;
+    }
+
+
+    fun sendCommandWithListener(request: Message): Boolean {
+
+        operationMode = OperationMode.ExternalListenerOperation
+
+        aapsLogger.warn(LTag.PUMPCOMM, "STM: sendCommandWithListener sendCommand with [request_code=${request.opCode()},request_class=${request.javaClass.simpleName},connected=$connected]")
+
+        if (!initializePump(request)) {
+            return false
         }
 
         aapsLogger.info(LTag.PUMPCOMM, "STM: Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
 
         sendCommand(peripheral, request)
 
-        return null
+        return true
     }
 
 
@@ -275,6 +281,7 @@ class TandemCommunicationManager(
             aapsLogger.info(LTag.PUMPCOMM, "Api Version: ${apiVersionResponse.majorVersion}.${apiVersionResponse.minorVersion} : ${apiVersion.name} ")
 
             pumpStatus.tandemPumpFirmware = apiVersion
+            pumpStatus.apiVersionResponse = message
 
             //sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
             preferences.put(TandemStringPreferenceKey.PumpApiVersion, apiVersion.name)

@@ -85,7 +85,23 @@ class TandemService : DaggerService() {
     }
 
     fun reconnectWithDifferentConnectionData() {
-        // TODO
+        // TODO reconnectWithDifferentConnectionData - implement
+        //  rework this, if data changed we check if connected if yes disconnect, then validate
+        //   paramteres and if ok, connect to the pump
+        // if (tandemService!!.validateParameters() && !tandemService!!.isConnected()) {
+        //     tandemService!!.connectToPump()
+        // }
+
+
+        // val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.SharedConnectionData, null)
+        //     //sp.getStringOrNull(R.string.key_tandem_shared_connection_data, null)
+        // aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that connection data changed. Reconnecting to pump")
+        // if (value!=null && value.isNotEmpty()) {
+        //     if (tandemService!!.validateParameters() && !tandemService!!.isConnected()) {
+        //         tandemService!!.connectToPump()
+        //     }
+        // }
+
     }
 
 

@@ -1453,13 +1453,14 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             TandemPumpApiVersion.VERSION_3_4,
             TandemPumpApiVersion.VERSION_3_5_MOBI,
             TandemPumpApiVersion.VERSION_3_6_MOBI,
+            TandemPumpApiVersion.VERSION_3_8_MOBI,
             TandemPumpApiVersion.VERSION_4_x -> {
                 when(command) {
                     TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
                     TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
                 }
             }
-            else                                                                                                                                                                                    -> throw Exception()
+            else -> throw Exception("Unidentified version: ${this.tandemPumpStatus.tandemPumpFirmware} - ${tandemPumpStatus.apiVersionResponse?.apiVersion}")
         }
     }
 

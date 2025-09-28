@@ -20,6 +20,7 @@ import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
 import java.util.*
@@ -59,6 +60,7 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     var tandemAlarms : Set<AlarmStatusResponse.AlarmResponseType>? = null
     var tandemLastBolus: BolusData? = null
     var tandemSiteReminder: Long? = null
+    var apiVersionResponse: ApiVersionResponse? = null
 
     var semaphoreNotifications = false
     var semaphoreEvents = false

@@ -8,7 +8,6 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
-import androidx.room.util.joinIntoString
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.PumpType
@@ -92,7 +91,7 @@ import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
 import io.reactivex.rxjava3.kotlin.plusAssign
-import org.mockito.kotlin.reset
+
 
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -199,22 +198,8 @@ class TandemMobiPumpPlugin @Inject constructor(
         } else if (pref.key == TandemStringPreferenceKey.SharedConnectionData.key) {
             aapsLogger.error(TAG, "TANDEMDBG: updatePreferenceSummary for SharedConnectionData returned. ")
             if (tandemService!!.hasConfigurationChanged()) {
-                // TODO rework this, if data changed we check if connected if yes disconnect, then validate
-                //   paramteres and if ok, connect to the pump
-                // if (tandemService!!.validateParameters() && !tandemService!!.isConnected()) {
-                //     tandemService!!.connectToPump()
-                // }
+                tandemService!!.reconnectWithDifferentConnectionData()
             }
-
-
-            // val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.SharedConnectionData, null)
-            //     //sp.getStringOrNull(R.string.key_tandem_shared_connection_data, null)
-            // aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that connection data changed. Reconnecting to pump")
-            // if (value!=null && value.isNotEmpty()) {
-            //     if (tandemService!!.validateParameters() && !tandemService!!.isConnected()) {
-            //         tandemService!!.connectToPump()
-            //     }
-            // }
         } else if (pref.key == TandemStringPreferenceKey.QuickBolusTypePref.key) {
             val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.QuickBolusTypePref, null)
             aapsLogger.error(LTag.PUMP, "Quick Bolus Setting changed: $value")
@@ -244,8 +229,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         // TODO pumpDescription.maxTempAbsolute = (pumpStatus.maxBasal != null) ? pumpStatus.maxBasal : 35.0d;
         aapsLogger.debug(LTag.PUMP, "pumpDescription: " + this.pumpDescription)
 
-        //this.pumpDescription;
-
         pumpStatus.pumpDescription = this.pumpDescription
 
         // set first Tandem Pump Start
@@ -264,20 +247,6 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun onStartScheduledPumpActions() {
-
-        // Enable logging in jwoglom's X2 library
-        //Timber.plant(aapsTimberTree)
-
-        // disposable.add(rxBus
-        //                    .toObservable(EventPreferenceChange::class.java)
-        //                    .observeOn(aapsSchedulers.io)
-        //                    .subscribe({ event: EventPreferenceChange ->
-        //                                   if (event.isChanged(TandemPumpConst.Prefs.PumpSerial, rh)) {
-        //                                       resetStatusState()
-        //                                       checkInitializationState() // TODO not sure about this
-        //                                   }
-        //                               }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
-
 
         disposable += rxBus
            .toObservable(EventPumpConnectionParametersChanged::class.java)
@@ -309,49 +278,8 @@ class TandemMobiPumpPlugin @Inject constructor(
             .subscribe({ dbDataHandler.addQualifyingEventRecords(it.eventEntities) } ,
                        { fabricPrivacy.logException(it) })
 
-
-
-        // TODO fix me repetable start with RxJava
-//        Observable c = Observable.fromCallable(() -> {
-//            //calls.getAndIncrement();
-//            int o = 33;
-//            return o;
-//        })
-//                .subscribeOn(aapsSchedulers.getIo())
-//                .repeatWhen(z -> z.delay(1, TimeUnit.MINUTES))
-//                .doOnError(it -> aapsLogger.error(it.getMessage(), it));
-
-        //disposable += c;
-
-//        disposable += rxBus
-//                .toObservable(EventPumpStatusChanged::class.java)
-//
-//            .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe({ updateGUI(UpdateGui.Status) }, { fabricPrivacy.logException(it) })
-
-        //this.disposable += c;
-
-//        this.disposable = this.disposable + Completable.fromCallable({
-//        if (this.isInitialized) {
-//
-//        }
-//        }
-//        .subscribeOn(schedulerProvider.io)
-//                .repeatWhen {
-//            it.delay(1, TimeUnit.MINUTES)
-//        }
-//.subscribeBy(
-//                onComplete = {/* ignore, will not be called */},
-//                onError = aapsLogger::e
-//        )
-//;;
-
         // check status every minute (if any status needs refresh we send readStatus command)
         startRefreshOfPumpCommands()
-
-
-
-        //checkInitializationState()
 
     }
 
