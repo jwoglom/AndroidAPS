@@ -30,6 +30,4 @@ wear/pumpcontrol/*
 .kotlin/*
 /*.log
 *.preferences_pb
-
-# This is temporary ignore. This file will for now contain pin of Tandem Pump and should be never checked in
-pump/tandem/src/main/kotlin/app/aaps/pump/tandem/common/driver/config/TandemPumpConfig.kt
+/buildSrc/.kotlin

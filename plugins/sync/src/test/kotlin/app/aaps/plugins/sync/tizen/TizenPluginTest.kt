@@ -6,7 +6,7 @@ import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.SourceSensor
 import app.aaps.core.data.model.TB
 import app.aaps.core.interfaces.aps.AutosensDataStore
-import app.aaps.core.interfaces.aps.GlucoseStatus
+import app.aaps.core.interfaces.aps.GlucoseStatusSMB
 import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.aps.RT
@@ -52,11 +52,11 @@ internal class TizenPluginTest : TestBaseWithProfile() {
         Mockito.`when`(processedDeviceStatusData.uploaderStatus).thenReturn("100%")
         Mockito.`when`(loop.lastRun).thenReturn(Loop.LastRun().also {
             it.lastTBREnact = 1000
-            it.tbrSetByPump = instantiator.providePumpEnactResult().success(true).enacted(true)
+            it.tbrSetByPump = pumpEnactResultProvider.get().success(true).enacted(true)
         }
         )
         Mockito.`when`(activePlugin.activePump).thenReturn(testPumpPlugin)
-        Mockito.`when`(glucoseStatusProvider.glucoseStatusData).thenReturn(GlucoseStatus(100.0))
+        Mockito.`when`(glucoseStatusProvider.glucoseStatusData).thenReturn(GlucoseStatusSMB(100.0))
         Mockito.`when`(processedDeviceStatusData.openAPSData).thenReturn(ProcessedDeviceStatusData.OpenAPSData().also {
             it.clockSuggested = 1000L
             it.suggested = RT(runningDynamicIsf = false)

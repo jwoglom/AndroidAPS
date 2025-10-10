@@ -17,7 +17,6 @@ import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.Notification
-import app.aaps.core.interfaces.objects.Instantiator
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
@@ -94,6 +93,7 @@ import io.reactivex.rxjava3.kotlin.plusAssign
 
 
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 
 /**
@@ -123,7 +123,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     decimalFormatter: DecimalFormatter,
     val dbDataHandler: DbDataHandler,
     val historyRetriever: HistoryRetriever,
-    instantiator: Instantiator
+    pumpEnactResultProvider: Provider<PumpEnactResult>
 ) : PumpPluginAbstract(
     pluginDescription = PluginDescription() //
         .mainType(PluginType.PUMP) //
@@ -148,7 +148,8 @@ class TandemMobiPumpPlugin @Inject constructor(
     pumpSyncStorage = pumpSyncStorage,
     pumpDriverConfigurationInternal = tandemPumpDriverConfiguration,
     decimalFormatter = decimalFormatter,
-    instantiator = instantiator,
+    //instantiator = instantiator,
+    pumpEnactResultProvider = pumpEnactResultProvider,
     ownPreferences = listOf(
         TandemLongNonPreferenceKey::class.java,
         TandemStringPreferenceKey::class.java,
@@ -1295,7 +1296,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 if (tandemPumpUtil.isSame(tbrCurrent.insulinRate, percent)) {
                     aapsLogger.info(LTag.PUMP, "enforceNEW = false, same = true")
                     aapsLogger.info(LTag.PUMP, logPrefix + "TBR setTempBasalPercent - No enforceNew and same rate. Exiting.")
-                    return instantiator.providePumpEnactResult().success(true).enacted(false)
+                    return pumpEnactResultProvider.get().success(true).enacted(false)
                 }
                 // if not the same rate, we continue to next step
             }
@@ -1306,7 +1307,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                 if (!sendCancelTbrToPump()) {
                     aapsLogger.error(logPrefix + "setTempBasalPercent - Cancel TBR failed.")
-                    return instantiator.providePumpEnactResult().success(false).enacted(false)
+                    return pumpEnactResultProvider.get().success(false).enacted(false)
                         .comment(rh.gs(Rc.string.pump_cmd_err_cant_cancel_tbr_stop_op))
                 }
             }
@@ -1337,10 +1338,10 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                 incrementStatistics(statsKey = TandemLongNonPreferenceKey.TbrsSet)
 
-                instantiator.providePumpEnactResult().success(true).enacted(true) //
+                pumpEnactResultProvider.get().success(true).enacted(true) //
                     .percent(percent).duration(durationInMinutes)
             } else {
-                instantiator.providePumpEnactResult().success(false).enacted(false) //
+                pumpEnactResultProvider.get().success(false).enacted(false) //
                     .comment(rh.gs(Rc.string.pump_cmd_err_tbr_could_not_be_delivered))
             }
         } finally {
@@ -1407,7 +1408,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             if (tbrCurrent==null) {
                 aapsLogger.info(TAG, "cancelTempBasal - TBR is not running exiting.")
                 pumpStatus.clearTbr()
-                return instantiator.providePumpEnactResult().success(true).enacted(false)
+                return pumpEnactResultProvider.get().success(true).enacted(false)
             }
 
             //val commandResponseCancel = pumpConnectionManager.cancelTemporaryBasal()
@@ -1430,11 +1431,11 @@ class TandemMobiPumpPlugin @Inject constructor(
                 //
                 // pumpStatus.currentTempBasalInternal = null
 
-                instantiator.providePumpEnactResult().success(true).enacted(true) //
+                pumpEnactResultProvider.get().success(true).enacted(true) //
                     .isTempCancel(true)
             } else {
                 aapsLogger.info(TAG, "cancelTempBasal - Cancel TBR failed.")
-                instantiator.providePumpEnactResult().success(false).enacted(false) //
+                pumpEnactResultProvider.get().success(false).enacted(false) //
                     .comment(rh.gs(Rc.string.pump_cmd_err_cant_cancel_tbr))
             }
         } finally {
@@ -1506,10 +1507,10 @@ class TandemMobiPumpPlugin @Inject constructor(
 
             if (resultCommandResponse.isSuccess) {
                 pumpStatus.basalsByHour = ProfileUtil.getArrayOfHourlyBasals(profile)
-                instantiator.providePumpEnactResult()
+                pumpEnactResultProvider.get()
                     .success(true).enacted(true)
             } else {
-                instantiator.providePumpEnactResult()
+                pumpEnactResultProvider.get()
                     .success(false).enacted(false)
                     .comment(rh.gs(Rc.string.pump_cmd_err_basal_profile_could_not_be_set))
             }

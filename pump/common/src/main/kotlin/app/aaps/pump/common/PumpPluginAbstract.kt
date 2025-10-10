@@ -13,7 +13,6 @@ import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.objects.Instantiator
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
@@ -53,8 +52,7 @@ import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import org.json.JSONException
 import org.json.JSONObject
-import java.util.HashMap
-
+import javax.inject.Provider
 
 /**
  * Created by andy on 23.04.18.
@@ -70,7 +68,6 @@ abstract class PumpPluginAbstract protected constructor(
     commandQueue: CommandQueue,
     var rxBus: RxBus,
     var activePlugin: ActivePlugin,
-    //var sp: SP,
     var context: Context,
     var fabricPrivacy: FabricPrivacy,
     var dateUtil: DateUtil,
@@ -79,7 +76,7 @@ abstract class PumpPluginAbstract protected constructor(
     var pumpSyncStorage: PumpSyncStorage,
     val pumpDriverConfigurationInternal: PumpDriverConfiguration,
     var decimalFormatter: DecimalFormatter,
-    protected var instantiator: Instantiator
+    protected val pumpEnactResultProvider: Provider<PumpEnactResult>
 ) : PumpPluginBase(pluginDescription = pluginDescription,
                    ownPreferences = ownPreferences,
                    aapsLogger = aapsLogger,
@@ -381,7 +378,8 @@ abstract class PumpPluginAbstract protected constructor(
                 bolusingEvent.percent = 100
                 rxBus.send(bolusingEvent)
                 aapsLogger.debug(LTag.PUMP, "deliverTreatment: Carb only treatment.")
-                PumpEnactResultObject(rh).success(true).enacted(true).bolusDelivered(0.0).comment(R.string.common_resultok)
+                PumpEnactResultObject(rh).success(true).enacted(true).bolusDelivered(0.0)
+                    .comment(R.string.common_resultok)
             }
         } finally {
             triggerUIChange()
@@ -392,7 +390,7 @@ abstract class PumpPluginAbstract protected constructor(
         rxBus.send(EventCustomActionsChanged())
     }
 
-    override fun manufacturer(): ManufacturerType = pumpType.manufacturer() ?: ManufacturerType.AAPS
+    override fun manufacturer(): ManufacturerType = pumpType.manufacturer()
     override fun model(): PumpType = pumpType
     override fun canHandleDST(): Boolean = pumpDriverConfigurationInternal.canHandleDST
 
@@ -401,7 +399,7 @@ abstract class PumpPluginAbstract protected constructor(
     protected abstract fun triggerUIChange()
 
     private fun getOperationNotSupportedWithCustomText(resourceId: Int): PumpEnactResult =
-        instantiator.providePumpEnactResult().success(false).enacted(false).comment(resourceId)
+        pumpEnactResultProvider.get().success(false).enacted(false).comment(resourceId)
 
     init {
         pumpDescription.fillFor(pumpType)

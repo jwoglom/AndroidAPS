@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.debugImplementation
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -83,7 +84,6 @@ fun allCommitted(): Boolean {
 android {
 
     namespace = "app.aaps"
-    ndkVersion = Versions.ndkVersion
 
     defaultConfig {
         minSdk = Versions.minSdk
@@ -203,6 +203,8 @@ dependencies {
     androidTestImplementation(project(":shared:tests"))
     androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(libs.org.skyscreamer.jsonassert)
+
+    debugImplementation(libs.com.squareup.leakcanary.android)
 
 
     kspAndroidTest(libs.com.google.dagger.android.processor)

@@ -1,8 +1,8 @@
 package app.aaps.di
 
 import app.aaps.MainApp
-import app.aaps.core.interfaces.ui.compose.ComposeUiFactory
 import app.aaps.core.interfaces.ui.compose.ComposeUi
+import app.aaps.core.interfaces.ui.compose.ComposeUiFactory
 import app.aaps.core.objects.di.CoreModule
 import app.aaps.core.validators.di.ValidatorsModule
 import app.aaps.database.di.DatabaseModule
@@ -41,9 +41,9 @@ import dagger.Component
 import dagger.android.AndroidInjectionModule
 import dagger.android.AndroidInjector
 import app.aaps.pump.common.di.RileyLinkModule
+import app.aaps.pump.tandem.di.TandemModule
 import info.nightscout.pump.combov2.di.ComboV2Module
 import javax.inject.Singleton
-import app.aaps.pump.tandem.di.TandemModule
 
 @Singleton
 @Component(

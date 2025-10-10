@@ -48,8 +48,13 @@ Hints
 * Speak with other developers to minimize merge conflicts. Find out who worked, working or plan to work on specific issue or part of app
 
 
-New Jetpack Compose UI
-========================
+
+New Jetpack Compose UI + Dagger
+=================================
+
+NOTE: I have added live example on how this work into virtualpump (disabled by default, but you can enable it,
+    which will create additional button in Fragment).
+
 
 Integrating with Dagger
 ------------------------
@@ -172,3 +177,27 @@ Others:
     implementation(libs.androidx.compose.runtime.livedata)
 
     implementation(libs.androidx.compose.navigation)  // if you use navigation models
+
+
+Live Example
+-------------
+
+You will be able to see full implementation in Tandem pump module, but for now I have added simple
+code into Virtual Pump.
+
+Everything (except Dagger stuff is in pump.virtual.composeui). We have one TestActivity
+(which needs to be registered in AndroidManifest.xml and in VirtualPumpComposeUiComponent) and one
+HelloWorld screen.
+
+If we had several screens there, they would need to be defined in TestActivity (like now TEST_1 is)
+and you can then create simple navigation from there. You then call Composable from there... Composables
+can be seperate files, but they don't need to be, so theroeticaly you could create 10 different screens
+and define all of them in single file. From practical point of view, I would recomend each screen be its
+own file, and if you have "utility" composables, those can be grouped together in single file...
+
+To enable compose demo, you will need to set composeTestEnabled to true in VirtualPumpFragment.
+
+At the moment we don't have project wide theme defined, so we have this "replacement" theme
+that needs to be defined in each project, this is what is in folder composeui/theme. At some point
+we would need to create app-wide theme, to use instead of that.
+
