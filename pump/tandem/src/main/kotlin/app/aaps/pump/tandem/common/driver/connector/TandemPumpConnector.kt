@@ -370,7 +370,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             BolusPermissionRequest()
         ) as BolusPermissionResponse?
 
-        aapsLogger.error(TAG, "BolusPermissionResponse: $permissionResponseMessage")
+        aapsLogger.debug(TAG, "BolusPermissionResponse: $permissionResponseMessage")
 
         if (permissionResponseMessage==null) {
             aapsLogger.error(TAG, "BolusPermissionResponse was not received." )
@@ -416,7 +416,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             )
         }
 
-        aapsLogger.error(TAG, "BolusRequest: $bolusRequest and response: $bolusRequestResponse")
+        aapsLogger.debug(TAG, "BolusRequest: $bolusRequest and response: $bolusRequestResponse")
 
         if (!bolusRequestResponse.isStatusOK) {
             aapsLogger.error(TAG, "InitiateBolusResponse status was not ok, bolus was not started: status: ${bolusRequestResponse.statusType.name}." )
@@ -1352,15 +1352,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     private fun setQuickBolus(quickBolusType: QuickBolusType): DataCommandResponse<AdditionalResponseDataInterface?> {
         aapsLogger.info(LTag.PUMPCOMM, "set QuickBolus [quickBolus=$quickBolusType]")
-
-        // TODO there seems to be some bug in pumpX2 when setting QuickBolus, temporary we return success
-
-        // return DataCommandResponse(
-        //     PumpCommandType.CustomCommand, true,
-        //     "",
-        //     null
-        // )
-
 
         val quickBolusIncrement = SetQuickBolusSettingsRequest.QuickBolusIncrement.valueOf(quickBolusType.name)
 
