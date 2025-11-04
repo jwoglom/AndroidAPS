@@ -18,6 +18,8 @@ import app.aaps.pump.common.utils.PumpUtil
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.events.EventRefreshPumpData
+import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatusResponse
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -106,6 +108,24 @@ class TandemPumpUtil @Inject constructor(
             rxBus.send(EventPumpDriverStateChanged(if (status==null) PumpDriverState.Connected
                                                    else PumpDriverState.ExecutingCommand))
         }
+
+
+    val malfunctionFilterSet: HashSet<String> = hashSetOf(
+        "17-0x2032"  // LOW INSULIN ALERT2
+    )
+
+    fun isNotificationNotFiltered(message: Message): Boolean {
+        if (message is MalfunctionStatusResponse) {
+            return isMalfunctionNotFiltered(message)
+        } else
+            return true;
+    }
+
+    fun isMalfunctionNotFiltered(malfunction: MalfunctionStatusResponse): Boolean {
+        return !(malfunctionFilterSet.contains(malfunction.errorString))
+    }
+
+
 
 
 

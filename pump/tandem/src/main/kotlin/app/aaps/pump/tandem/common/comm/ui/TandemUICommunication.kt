@@ -9,6 +9,7 @@ import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
+import app.aaps.pump.tandem.common.util.TandemPumpUtil
 
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
@@ -31,6 +32,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.UnknownMobiOpcode20Response
@@ -45,7 +47,8 @@ class TandemUICommunication @Inject constructor (
     var dataStore: TandemUIDataStore,
     var pumpStatus: TandemPumpStatus,
     var context: Context,
-    var aapsLogger: AAPSLogger
+    var aapsLogger: AAPSLogger,
+    var pumpUtil: TandemPumpUtil
 ): CommunicationListener {
 
     var TAG = LTag.PUMPCOMM
@@ -109,7 +112,11 @@ class TandemUICommunication @Inject constructor (
             if (dataStore.notificationBundle.value == null) {
                 dataStore.notificationBundle.value = NotificationBundle()
             }
-            dataStore.notificationBundle.value = dataStore.notificationBundle.value?.add(message)
+
+            if (pumpUtil.isNotificationNotFiltered(message)) {
+                dataStore.notificationBundle.value = dataStore.notificationBundle.value?.add(message)
+            }
+
             return
         }
 
@@ -267,6 +274,17 @@ class TandemUICommunication @Inject constructor (
 
     }
 
+    // val malfunctionFilterSet: HashSet<String> = hashSetOf(
+    //     "17-0x2032"  // LOW INSULIN ALERT2
+    // )
+    //
+    // private fun isNotFiltered(message: Message): Boolean {
+    //     if (message is MalfunctionStatusResponse) {
+    //         val malfunction : MalfunctionStatusResponse  = message as MalfunctionStatusResponse
+    //         return !(malfunctionFilterSet.contains(malfunction.errorString))
+    //     } else
+    //         return true;
+    // }
 
     private fun unsuccessfulAlert(req: String) {
 

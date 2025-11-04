@@ -37,6 +37,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionRespon
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.welie.blessed.BluetoothPeripheral
+import com.welie.blessed.HciStatus
 import org.joda.time.DateTime
 
 /**
@@ -110,7 +111,7 @@ class TandemCommunicationManager(
         }
 
         runOnUiThread  {
-            tandemDataStore.pumpConnected.value = true
+            tandemDataStore.pumpConnected.value = connected
         }
 
 
@@ -378,7 +379,7 @@ class TandemCommunicationManager(
     }
 
     override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
-        aapsLogger.error(TAG, "Pump Critical Error: ${reason}")
+        aapsLogger.error(TAG, "CF: Pump Critical Error: ${reason}")
 
         pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_pump_critical_error,
                                                         if (reason==null) "Unknown" else reason.message)
@@ -392,6 +393,11 @@ class TandemCommunicationManager(
         tandemConnectionFixer.startConnectionFix(this)
 
         super.onPumpCriticalError(peripheral, reason)
+    }
+
+    override fun onPumpDisconnected(peripheral: BluetoothPeripheral?, status: HciStatus?): Boolean {
+        aapsLogger.error(TAG, "Pump Disconnected: $status")
+        return super.onPumpDisconnected(peripheral, status)
     }
 
 

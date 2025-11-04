@@ -77,8 +77,10 @@ open class PumpUtil constructor(
 
     var driverStatus: PumpDriverState
         get() {
-            var stat = workWithStatusAndCommand(StatusChange.GetStatus, null, null) as PumpDriverState
-            aapsLogger.debug(LTag.PUMP, "Get driver status: " + stat.name)
+            val stat = workWithStatusAndCommand(StatusChange.GetStatus, null, null) as PumpDriverState
+            if (stat!=PumpDriverState.Connected) {
+                aapsLogger.debug(LTag.PUMP, "Get driver status: " + stat.name)
+            }
             return stat
         }
         set(status) {

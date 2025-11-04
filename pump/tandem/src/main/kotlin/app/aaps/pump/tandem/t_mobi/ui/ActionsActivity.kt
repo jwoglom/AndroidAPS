@@ -64,6 +64,7 @@ class ActionsActivity : DaggerComponentActivity() {
     @Inject lateinit var tandemPumpConnector: TandemPumpConnector
     @Inject lateinit var resourceHelper: ResourceHelper
 
+
     var sectionState: ActionsLandingSection = ActionsLandingSection.ACTIONS
 
     var TAG = LTag.PUMPCOMM
@@ -85,6 +86,7 @@ class ActionsActivity : DaggerComponentActivity() {
         tandemUICommunication = TandemUICommunication(dataStore = tandemDataStore,
                                                       pumpStatus = tandemPumpStatus,
                                                       context = context,
+                                                      pumpUtil = tandemPumpUtil,
                                                       aapsLogger= aapsLogger)
 
         // val date = sharedPreferences.getLong("test_reminder_date", -1L)

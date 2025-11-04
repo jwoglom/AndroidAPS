@@ -61,6 +61,7 @@
     <string name="time_last_4_days">Last 4 days</string>
     <string name="time_last_week">Last week</string>
     <string name="time_last_month">Last month</string>
+    <string name="time_over_month_ago">over Month ago</string>
     <string name="time_now">Now</string>
 
     <!-- BLE Config -->

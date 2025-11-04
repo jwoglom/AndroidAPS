@@ -95,6 +95,7 @@ class DataActivity : DaggerComponentActivity() {
         tandemUICommunication = TandemUICommunication(dataStore = tandemDataStore,
                                                       pumpStatus = tandemPumpStatus,
                                                       context = context,
+                                                      pumpUtil = tandemPumpUtil,
                                                       aapsLogger= aapsLogger)
 
         enableEdgeToEdge()

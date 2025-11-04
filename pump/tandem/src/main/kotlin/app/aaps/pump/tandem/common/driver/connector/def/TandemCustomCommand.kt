@@ -13,6 +13,7 @@ enum class TandemCustomCommand(@StringRes var resourceId: Int) : CustomCommandTy
     GET_PUMP_INFO(R.string.tandem_custom_command_get_pump_info),
     GET_ALERTS(R.string.tandem_custom_command_get_alerts),
     GET_ALARMS(R.string.tandem_custom_command_get_alarms),
+    //GET_QUICK_BOLUS(R.string.tandem_custom_command_get_quick_bolus),
     DISMISS_ALERT(R.string.tandem_custom_command_dismiss_alert),
     SET_QUICK_BOLUS(R.string.tandem_custom_command_set_quick_bolus),
     GET_MALFUNCTIONS(R.string.tandem_custom_command_get_malfunctions)

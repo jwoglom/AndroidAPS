@@ -90,6 +90,7 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.MalfunctionStatusR
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ProfileStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpFeaturesV1Request
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpFeaturesV2Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpGlobalsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpVersionRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
@@ -126,6 +127,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatus
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ProfileStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
@@ -243,6 +245,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             addToSettings(TandemPumpSettingType.CONTROL_IQ_ENABLED, map, getCommunicationManager().sendCommand(getCorrectRequest(TandemCommandType.ControlIQInfo)))
             addToSettings(TandemPumpSettingType.BASAL_LIMIT, map, getCommunicationManager().sendCommand(BasalLimitSettingsRequest()))
             addToSettings(TandemPumpSettingType.MAX_BOLUS, map, getCommunicationManager().sendCommand(GlobalMaxBolusSettingsRequest()))
+            addToSettings(TandemPumpSettingType.QUICK_BOLUS, map, getCommunicationManager().sendCommand(PumpGlobalsRequest()))
 
             if (this.tandemPumpStatus.tandemPumpFirmware.isSameVersion(TandemPumpApiVersion.VERSION_2_1_to_2_4)) {
                 if (tandemPumpStatus.featuresV1==null) {
@@ -276,6 +279,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             is BasalLimitSettingsResponse -> {  settingsMap.put(settingType, message.basalLimit)  }
             is GlobalMaxBolusSettingsResponse -> {  settingsMap.put(settingType, message.maxBolus) }
             is BasalIQStatusResponse  -> {  settingsMap.put(settingType, message.basalIQStatusState)  }
+            is PumpGlobalsResponse    -> {  settingsMap.put(settingType, message.quickBolusEntryType) }  // TODO Pump Globals Response
             is PumpFeaturesV2Response -> {
                 settingsMap.put(settingType, pumpUtil.gson.toJson(message))
                 tandemPumpStatus.featuresV2 = message
@@ -1108,10 +1112,10 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         val responseMessage: HomeScreenMirrorResponse? = getCommunicationManager()
             .sendCommand(HomeScreenMirrorRequest()) as HomeScreenMirrorResponse?
 
-        val gsonData = getJsonStringFromObject(responseMessage as Any)
-        aapsLogger.debug(LTag.PUMPCOMM, " MirrorResponse: $gsonData")
-
         if (responseMessage!=null) {
+
+            val gsonData = getJsonStringFromObject(responseMessage)
+            aapsLogger.debug(LTag.PUMPCOMM, " MirrorResponse: $gsonData")
 
             val homeScreenMirrorDto = HomeScreenMirrorDto()
             homeScreenMirrorDto.parse(responseMessage.cargo)
@@ -1325,6 +1329,40 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             )
         }
     }
+
+
+    private fun getQuickBolus(): DataCommandResponse<AdditionalResponseDataInterface?> {
+
+        aapsLogger.error(LTag.PUMPCOMM, "getQuickBolus Not implemented")
+
+        return DataCommandResponse(
+            PumpCommandType.CustomCommand, false,
+            "getQuickBolus Not implemented",
+            null)
+
+
+        val responseMessage: AlertStatusResponse? = getCommunicationManager()
+            .sendCommand((AlertStatusRequest())) as AlertStatusResponse?
+
+        if (responseMessage!=null) {
+
+            val alertStatusDto = AlertStatusDto()
+            alertStatusDto.parse(responseMessage.cargo)
+
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, true,
+                null,
+                alertStatusDto
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending AlertStatusRequest: null",
+                null
+            )
+        }
+    }
+
 
 
     private fun setMaxBasal(basalAmount: Int): DataCommandResponse<AdditionalResponseDataInterface?> {

@@ -110,7 +110,7 @@
 
 
     <!-- UI Configuration::Actions -->
-    <string name="ui_a_title">Settings / Actions</string>
+    <string name="ui_a_title">Settings</string>
     <string name="ui_a_min_ago">%1$d min left</string>
 
 
@@ -120,7 +120,7 @@
     <string name="ca_title3232445">Settings / Actions</string>
 
     <!-- UI Actions::Cartridge Actions -->
-    <string name="ca_label">Cartridge Actions</string>
+    <string name="ca_label">Cartridge Setup</string>
     <string name="ca_disconnect_pump_from_site">Disconnect your pump from your body/site and press \'%1$s\' button below.</string>
     <string name="ca_before_stop_delivery">Before %1$s, stop delivery of insulin.</string>
 
@@ -166,20 +166,20 @@
     <string name="ft_complete">Successfully filled tubing. Press button \'Done\' to exit.</string>
     <string name="ft_hold_pump_button">Hold down the pump button to fill insulin through the tubing.</string>
     <string name="ft_no_filled_insulin">You haven\'t filled any insulin through the tubing yet.</string>
-    <string name="ft_filling">FILLING... continue to hold down button until you see insulin drops at the cannula.</string>
-    <string name="ft_stopped_fill_1">STOPPED FILLING... do you see insulin drops at the cannula?</string>
+    <string name="ft_filling">FILLING… continue to hold down button until you see insulin drops at the cannula.</string>
+    <string name="ft_stopped_fill_1">STOPPED FILLING… do you see insulin drops at the cannula?</string>
     <string name="ft_stopped_fill_2">"If not press pump button to continue filling, else if you are done, press \'Complete Fill\' button below."</string>
     <string name="ft_btn_begin">Begin Fill Tubing</string>
     <string name="ft_action">filling your tubing</string>
     <string name="ft_btn_complete">Complete Fill</string>
-    <string name="ft_finalizing_wait">Please wait, finalizing tubing fill...</string>
+    <string name="ft_finalizing_wait">Please wait, finalizing tubing fill…</string>
     <string name="ft_finalizing_status_NOT_COMPLETE">NOT COMPLETE</string>
 
     <!-- UI Cartridge Actions:Fill Cannula -->
     <string name="fc_title">Fill Cannula</string>
     <string name="fc_complete">Cannula filled.</string>
     <string name="fc_action">filling your cannula</string>
-    <string name="fc_filling_with">"Filling cannula with %1$d unit...</string>
+    <string name="fc_filling_with">Filling cannula with %1$d unit…</string>
     <string name="fc_filling_state">State: %1$d</string>
     <string name="fc_cannula_fill_amount">Enter the cannula fill amount (U):</string>
     <string name="fc_fill_amount">Fill amount</string>
@@ -215,9 +215,6 @@
     <string name="reminder_in_3_day3s">Reminder in 3 Days</string>
     <string name="reminder_in_3_d4ays">Reminder in 3 Days</string>
 
-
-    "Site Change Presets"
-
     <!-- Command Errors -->
 
     <!-- Tandem Config -->
@@ -252,6 +249,7 @@
     <string name="tandem_custom_command_get_alarms">Get Alarms</string>
     <string name="tandem_custom_command_get_alerts">Get Alerts</string>
     <string name="tandem_custom_command_dismiss_alert">Dismiss Alert</string>
+    <string name="tandem_custom_command_get_quick_bolus">Get Quick Bolus</string>
     <string name="tandem_custom_command_set_quick_bolus">Set Quick Bolus</string>
     <string name="tandem_custom_command_get_malfunctions">Get Malfunctions</string>
 
@@ -324,6 +322,7 @@
     <!-- Notifications -->
     <string name="tandem_notification_wrong_pairing_code">Your Pairing Code is no longer valid. Please reconfigure your Tandem Pump.</string>
     <string name="tandem_notification_site_reminder">Tandem - Site Reminder. You need to change your site/cannula.</string>
+    <string name="tandem_notification_pump_settings_changed">Changed following settings on the pump: %s</string>
 
 
     <!-- Pump Common MOVE THERE -->

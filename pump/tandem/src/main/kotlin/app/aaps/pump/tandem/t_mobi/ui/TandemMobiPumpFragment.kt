@@ -9,7 +9,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.core.view.isVisible
 import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -265,8 +264,10 @@ class TandemMobiPumpFragment : DaggerFragment() {
                     ago = dateUtil.minAgo(resourceHelper, bolus.timestamp)
                 } else if (bolusMinAgo < (60*24)) {
                     ago = dateUtil.hourAgo(bolus.timestamp, resourceHelper)
-                } else {
+                } else if (bolusMinAgo < (60*24*30)) {
                     ago = dateUtil.dayAgo(bolus.timestamp, resourceHelper)
+                } else {
+                    ago = resourceHelper.gs(Rc.string.time_over_month_ago)
                 }
                 binding.pumpLastBolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus.amountImmediateDelivered, unit, ago)
             } else {
@@ -485,7 +486,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
             }
 
             else                                       -> {
-                binding.currentActivity.text = " " + resourceHelper.gs(pumpDriverState!!.resourceId)
+                binding.currentActivity.text = " ${resourceHelper.gs(pumpDriverState!!.resourceId)}"
             }
         }
 

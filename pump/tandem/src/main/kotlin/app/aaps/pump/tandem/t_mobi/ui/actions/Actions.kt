@@ -183,7 +183,7 @@ fun Actions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine(resourceHelper.gs(R.string.ca_label))
+                    HeaderLine(resourceHelper.gs(R.string.ui_a_title))
                 }
                 item {
 

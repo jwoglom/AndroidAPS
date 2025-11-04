@@ -8,6 +8,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
+import androidx.room.util.joinIntoString
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.PumpType
@@ -171,8 +172,8 @@ class TandemMobiPumpPlugin @Inject constructor(
     private val TAG = LTag.PUMP
 
     override fun onStart() {
-        aapsLogger.debug(LTag.PUMP, model().model + " started (t:mobi) - $version")
-        dbDataHandler.databaseStatistics() // TODO remove in future
+        aapsLogger.debug(LTag.PUMP, model().model + " started (t:mobi) - $version - dev version: ${versionInternal.devVersion}")
+        // dbDataHandler.databaseStatistics() // this is just in case we want to debug database
 
         PumpHistoryEntryGroup.doTranslation(rh)
         PumpHistoryEntryGroup.filterByGroupConfig(PumpTypeGroupConfig.tMobi)
@@ -547,7 +548,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         val status = tandemPumpUtil.driverStatus
         val error = tandemPumpUtil.errorType
 
-        aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
+        //aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
 
         val unreachable = (error!=null && error==PumpErrorType.PumpUnreachable)
 
@@ -697,10 +698,10 @@ class TandemMobiPumpPlugin @Inject constructor(
         // execute
         val currentTimeMillis = System.currentTimeMillis()
 
-        aapsLogger.error("RefreshCheck: $statusRefresh  (currentTime=$currentTimeMillis)")
+        aapsLogger.debug("RefreshCheck: $statusRefresh  (currentTime=$currentTimeMillis)")
 
         for ((key, value) in statusRefresh) {
-            aapsLogger.error("RefreshCheck: $key = $value  (currentTime=$currentTimeMillis)")
+            //aapsLogger.error("RefreshCheck: $key = $value  (currentTime=$currentTimeMillis)")
             if (value!=null && value > 0 && currentTimeMillis > value) {
                 var resetTime = false
                 when (key) {
@@ -749,6 +750,16 @@ class TandemMobiPumpPlugin @Inject constructor(
                         aapsLogger.error(LTag.PUMP, "Refresh_Custom_2 - Set QuickBolus settings on pump")
                         pumpConnectionManager.executeCustomCommand(command = TandemCustomCommand.SET_QUICK_BOLUS,
                                                                    data = this.newQuickBolusType)
+
+                        val stringQuickBolus = rh.gs(this.newQuickBolusType!!.friendlyName)
+
+                        val notification = Notification(id = Notification.TANDEM_PUMP_SETTINGS_UPDATED,
+                                                        text = rh.gs(R.string.tandem_notification_pump_settings_changed, "Quick Bolus (" + stringQuickBolus + ")"),
+                                                        level = Notification.NORMAL,
+                                                        validMinutes = 60)
+                        rxBus.send(EventNewNotification(notification))
+
+
                         resetTime = true
                     }
 
@@ -1072,9 +1083,9 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     private fun checkThatSettingsAreEnforced() {
 
-        // TODO notifications if any pump setting was changed
-
         if (pumpStatus.settings!=null) {
+
+            val changedItems = mutableListOf<String>()
 
             var maxBolus = (pumpStatus.settings!![TandemPumpSettingType.MAX_BOLUS]) as Int
             val maxBolusRequired = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBolus)
@@ -1085,6 +1096,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
             if (maxBolus != maxBolusRequired) {
                 pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BOLUS, maxBolusRequired)
+                changedItems.add("Max Bolus")
             }
 
             val maxBasal = (pumpStatus.settings!![TandemPumpSettingType.BASAL_LIMIT]) as Long
@@ -1097,15 +1109,26 @@ class TandemMobiPumpPlugin @Inject constructor(
 
             if (maxBasalInt != maxBasalRequired) {
                 pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BASAL, maxBasalRequired)
+                changedItems.add("Max Basal")
             }
 
             val controlIQEnabled = (pumpStatus.settings!![TandemPumpSettingType.CONTROL_IQ_ENABLED]) as Boolean
 
             if (controlIQEnabled) {
                 pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_CONTROL_IQ, false)
+                changedItems.add("Control IQ")
+            }
+
+            if (changedItems.isNotEmpty()) {
+                val changedItemsString = changedItems.joinToString { ", " }
+
+                val notification = Notification(id = Notification.TANDEM_PUMP_SETTINGS_UPDATED,
+                                                text = rh.gs(R.string.tandem_notification_pump_settings_changed, changedItemsString),
+                                                level = Notification.NORMAL,
+                                                validMinutes = 60)
+                rxBus.send(EventNewNotification(notification))
             }
         }
-
     }
 
 
@@ -1529,7 +1552,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     init {
-        displayConnectionMessages = true // TODO can be removed in future
+        displayConnectionMessages = false // TODO can be removed in future
     }
 
 
@@ -1569,7 +1592,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     companion object {
-        val qeFilterValues = arrayOf<CharSequence>(QualifyingEventsFilter.ALL.name, QualifyingEventsFilter.AAPS_RELEVANT.name)
+        val qeFilterValues = arrayOf<CharSequence>(QualifyingEventsFilter.ALL.name,
+                                                   QualifyingEventsFilter.AAPS_RELEVANT.name)
         val qeRangeValues = arrayOf<CharSequence>(QualifyingEventsRange.LAST_15_ITEMS.name,
                                                   QualifyingEventsRange.LAST_3_HOURS.name,
                                                   QualifyingEventsRange.LAST_6_HOURS.name,
