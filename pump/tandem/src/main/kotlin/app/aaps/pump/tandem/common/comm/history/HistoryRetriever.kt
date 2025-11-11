@@ -21,6 +21,7 @@ import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.keys.TandemStringNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import app.aaps.pump.tandem.t_mobi.TandemMobiPluginVersion
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest
@@ -98,6 +99,12 @@ class HistoryRetriever @Inject constructor(
 
 
     fun downloadHistory(): Boolean {
+
+        if (!TandemMobiPluginVersion.downloadHistory) {
+            aapsLogger.info(TAG, "History download disabled (by flag)")
+            return false
+        }
+
         communication = TandemUICommunication(dataStore = tandemDataStore,
                                               pumpStatus = pumpStatus,
                                               context = context,
@@ -109,13 +116,23 @@ class HistoryRetriever @Inject constructor(
 
         this.silentDownload = false
         val startTime = System.currentTimeMillis()
+        val timeoutTime = startTime + ( 60 * 60 * 1000 )
         resetProgress(1000)
         downloadRunning = true
         startDataRetrieval()
 
-        while(downloadRunning) {
+        while (downloadRunning) {
             aapsLogger.debug("HST: download running")
             pumpUtil.sleepSeconds(5)
+
+            if (timeoutTime < System.currentTimeMillis()) {
+                if (communication.messageCount==0) {
+                    aapsLogger.error(TAG, "Timeout reached while trying to read history, with no messages read.")
+                    return false
+                } else {
+                    aapsLogger.error(TAG, "Timeout reached while trying to read history, with ${communication.messageCount} messages read.")
+                }
+            }
         }
 
         this.communication.tandemCommunicationManager = null

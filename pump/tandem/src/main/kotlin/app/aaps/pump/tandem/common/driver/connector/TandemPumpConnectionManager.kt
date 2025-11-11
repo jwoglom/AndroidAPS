@@ -6,7 +6,6 @@ import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import app.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.PumpConnectorInterface
-import app.aaps.pump.common.driver.connector.PumpDummyConnector
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -32,7 +31,6 @@ import app.aaps.pump.tandem.common.driver.connector.response.MalfunctionStatusDt
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
-import app.aaps.pump.tandem.common.util.TandemPumpConst
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import javax.inject.Inject

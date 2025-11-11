@@ -5,7 +5,6 @@ import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.defs.BasalProfileStatus
@@ -15,6 +14,7 @@ import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
+import app.aaps.pump.tandem.common.comm.data.DisconnectDataDto
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
@@ -67,13 +67,15 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     var semaphoreHistory = false
     var semaphoreNeedsRefresh = false
 
+    var disconnectData: DisconnectDataDto? = null
+
 
     fun initSettings() {
         activeProfileName = "A"
         reservoirRemainingUnits = 75.0
         reservoirFullUnits = 200
         batteryRemaining = 75
-        lastConnection = sp.getLong(TandemPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
+        lastConnection = 0L //sp.getLong(TandemPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         lastDataTime = lastConnection
     }
 

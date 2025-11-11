@@ -362,13 +362,14 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         // TODO logs
         rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = false))
 
-        EventOverviewBolusProgress.t = EventOverviewBolusProgress.Treatment(insulin = 0.0,
-                                                                            carbs = 0,
-                                                                            isSMB = detailedBolusInfo.bolusType === BS.Type.SMB,
-                                                                            id = detailedBolusInfo.id)
+        // EventOverviewBolusProgress.t = EventOverviewBolusProgress.Treatment(insulin = 0.0,
+        //                                                                     carbs = 0,
+        //                                                                     isSMB = detailedBolusInfo.bolusType === BS.Type.SMB,
+        //                                                                     id = detailedBolusInfo.id)
 
         sendBolusEvent(bolusEvent = TandemBolusEvent.Preparing,
-                       fullAmount = detailedBolusInfo.insulin)
+                       fullAmount = detailedBolusInfo.insulin,
+                       id = detailedBolusInfo.id)
 
         val permissionResponseMessage: BolusPermissionResponse? = getCommunicationManager().sendCommand(
             BolusPermissionRequest()
@@ -505,15 +506,19 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     fun sendBolusEvent(bolusEvent: TandemBolusEvent,
                        amountBolus: Double = 0.0,
-                       fullAmount: Double = 0.0) {
-        val bolusingEvent = EventOverviewBolusProgress
+                       fullAmount: Double = 0.0,
+                       id : Long? = null) {
+        //var bolusingEvent : EventOverviewBolusProgress? = null
+        var percent = 0
+        var status = ""
+
         when(bolusEvent) {
             TandemBolusEvent.Preparing    -> {
-                bolusingEvent.percent = 1
-                bolusingEvent.status = resourceHelper.gs(Rpc.string.bolus_preparing,fullAmount)
+                percent = 1
+                status = resourceHelper.gs(Rpc.string.bolus_preparing,fullAmount)
             }
             TandemBolusEvent.Delivering   -> {
-                var percent = ((amountBolus/fullAmount)*100).toInt()
+                percent = ((amountBolus/fullAmount)*100).toInt()
                 if (percent>=100) {
                     percent = 99
                 } else if (percent<1) {
@@ -526,18 +531,17 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                     amountBolus2 = fullAmount
                 }
 
-                bolusingEvent.percent = percent
-                bolusingEvent.status = resourceHelper.gs(Rpc.string.bolus_delivered_so_far, amountBolus2, fullAmount)
+                status = resourceHelper.gs(Rpc.string.bolus_delivered_so_far, amountBolus2, fullAmount)
             }
             TandemBolusEvent.DeliveryDone -> {
-                bolusingEvent.percent = 100
-                bolusingEvent.status = resourceHelper.gs(Rpc.string.bolus_finished_post_bolus)
+                percent = 100
+                status = resourceHelper.gs(Rpc.string.bolus_finished_post_bolus)
             }
         }
 
-        aapsLogger.error(TAG, "Sending Bolus Event: status=${bolusingEvent.status}, progress=${bolusingEvent.percent}")
+        aapsLogger.error(TAG, "Sending Bolus Event: status=${status}, progress=${percent}")
 
-        rxBus.send(bolusingEvent)
+        rxBus.send(EventOverviewBolusProgress(status = status, percent = percent, id = id))
 
     }
 

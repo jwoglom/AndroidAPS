@@ -47,6 +47,7 @@ import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
+import app.aaps.pump.tandem.t_mobi.TandemMobiPluginVersion
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
 import com.google.gson.Gson
 
@@ -401,8 +402,15 @@ class TandemMobiPumpFragment : DaggerFragment() {
             binding.pumpErrorsView.visibility = View.VISIBLE
             binding.pumpErrorsDelimiter.visibility = View.VISIBLE
         } else {
-            binding.pumpErrorsView.visibility = View.GONE
-            binding.pumpErrorsDelimiter.visibility = View.GONE
+            if (pumpStatus.disconnectData!=null && TandemMobiPluginVersion.connectionFixerEnabled) {
+                // REC
+                binding.pumpErrors.text = "Lost Connection to Pump."
+                binding.pumpErrorsView.visibility = View.VISIBLE
+                binding.pumpErrorsDelimiter.visibility = View.VISIBLE
+            } else {
+                binding.pumpErrorsView.visibility = View.GONE
+                binding.pumpErrorsDelimiter.visibility = View.GONE
+            }
         }
     }
 

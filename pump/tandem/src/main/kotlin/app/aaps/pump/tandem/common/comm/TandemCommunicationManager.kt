@@ -13,7 +13,8 @@ import app.aaps.pump.common.defs.PumpErrorType
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
+import app.aaps.pump.tandem.common.comm.data.CommunicationListener
+import app.aaps.pump.tandem.common.comm.data.DisconnectDataDto
 import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
@@ -110,6 +111,8 @@ class TandemCommunicationManager(
             }
         }
 
+        this.pumpStatus.disconnectData = null
+
         runOnUiThread  {
             tandemDataStore.pumpConnected.value = connected
         }
@@ -190,6 +193,15 @@ class TandemCommunicationManager(
             return null
         }
 
+        if (!isPumpStillConnected()) {
+            aapsLogger.error(TAG, "It seems Pump is no longer connected.")
+            if (!tryToReconnectToPump()) {
+                aapsLogger.error(TAG, "Couldn't re-connect to the Pump.")
+                this.operationMode = OperationMode.None;
+                return null
+            }
+        }
+
         this.commandRequestModeRunning = true
         this.commandRequest = request
         this.commandResponse = null
@@ -216,6 +228,19 @@ class TandemCommunicationManager(
         }
 
         return null
+    }
+
+
+    private fun isPumpStillConnected(): Boolean {
+        // TODO isPumpStillConnected
+        //   use flag to disable reconnect
+        return true;
+    }
+
+
+    private fun tryToReconnectToPump(): Boolean {
+        // TODO tryToReconnectToPump
+        return true;
     }
 
 
@@ -341,7 +366,6 @@ class TandemCommunicationManager(
                 } else {
                     aapsLogger.info(TAG, "Discarding Message [code=${message.opCode()},class=${message.javaClass.simpleName}]")
                 }
-
             }
         }
 
@@ -386,18 +410,35 @@ class TandemCommunicationManager(
         pumpUtil.errorType = PumpErrorType.PumpUnreachable
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
 
+        // we currently look only for BT_CONNECTION_FAILED, might need to extend it
         if (reason!=null && reason == TandemError.BT_CONNECTION_FAILED) {
-            // TODO
+            forceDisconnect(onDisconnect = false,
+                            tandemError = reason)
         }
 
-        tandemConnectionFixer.startConnectionFix(this)
+        //tandemConnectionFixer.startConnectionFix(this)
 
         super.onPumpCriticalError(peripheral, reason)
     }
 
     override fun onPumpDisconnected(peripheral: BluetoothPeripheral?, status: HciStatus?): Boolean {
         aapsLogger.error(TAG, "Pump Disconnected: $status")
+        forceDisconnect(onDisconnect = true,
+                        hciStatus = status)
         return super.onPumpDisconnected(peripheral, status)
+    }
+
+    fun forceDisconnect(onDisconnect: Boolean, hciStatus: HciStatus? = null,  tandemError: TandemError? = null) {
+        aapsLogger.error(TAG, "forceDisconnect: onDisconnect=${onDisconnect}" +
+            ", hciStatus=${hciStatus}, tandemError=${tandemError}")
+        this.pumpStatus.disconnectData = DisconnectDataDto(onDisconnect = onDisconnect,
+                                                           hciStatus = hciStatus,
+                                                           tandemError = tandemError)
+        if (onDisconnect) {
+            // TODO
+        } else {
+
+        }
     }
 
 

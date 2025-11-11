@@ -17,13 +17,12 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.common.comm.defs.PumpStateX2
+import app.aaps.pump.tandem.common.comm.data.PumpStateX2
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
-import app.aaps.pump.tandem.common.util.TandemPumpConst
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
 import com.jwoglom.pumpx2.pump.PumpState

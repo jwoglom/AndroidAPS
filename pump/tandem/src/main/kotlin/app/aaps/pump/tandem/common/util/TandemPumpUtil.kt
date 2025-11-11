@@ -111,7 +111,9 @@ class TandemPumpUtil @Inject constructor(
 
 
     val malfunctionFilterSet: HashSet<String> = hashSetOf(
-        "17-0x2032"  // LOW INSULIN ALERT2
+        "17-0x2032",  // LOW INSULIN ALERT2
+        "0-0x2032",  // LOW INSULIN ALERT
+        "2-0x2082",  // LOW_POWER_ALERTS
     )
 
     fun isNotificationNotFiltered(message: Message): Boolean {

@@ -5,7 +5,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
-import app.aaps.pump.tandem.common.comm.defs.CommunicationListener
+import app.aaps.pump.tandem.common.comm.data.CommunicationListener
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
@@ -32,7 +32,6 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.UnknownMobiOpcode20Response
@@ -65,6 +64,8 @@ class TandemUICommunication @Inject constructor (
 
     lateinit var historyRetriever: HistoryRetriever
 
+    var messageCount = 0
+
 
     fun sendCommand(request: Message): Boolean {
 
@@ -94,6 +95,8 @@ class TandemUICommunication @Inject constructor (
     override fun onReceiveMessage(message: Message) {
 
         //aapsLogger.error(TAG, "onReceiveMessageListener: $message")
+
+        messageCount++
 
         if (message is ApiVersionResponse) {
             aapsLogger.debug(TAG, "Got ApiVersionRequest: $message")

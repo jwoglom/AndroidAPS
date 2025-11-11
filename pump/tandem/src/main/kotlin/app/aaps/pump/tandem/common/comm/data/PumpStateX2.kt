@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.common.comm.defs
+package app.aaps.pump.tandem.common.comm.data
 
 class PumpStateX2(val pairingCode: String,
                   val jpakeDerivedSecret: String,
