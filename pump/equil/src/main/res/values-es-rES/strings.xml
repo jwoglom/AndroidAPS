@@ -3,7 +3,6 @@
     <string name="equil_pump_description">Integración de bomba parche Equil 5.3 o superior</string>
     <!--  start  -->
     <string name="equil_basal_speed">Basal base</string>
-    <string name="equil_bolus_delivered">%1$.3f U / %2$.3f U Entregado</string>
     <string name="equil_btn_cancel">Cancelar</string>
     <string name="equil_btn_need">Necesitas</string>
     <string name="equil_btn_skip">Saltar</string>
@@ -122,11 +121,6 @@
     <string name="equil_history_item16">Batería vacía!</string>
     <string name="equil_history_item17">Restablecimiento de encendido</string>
     <string name="equil_history_item18">Infusión anormal detenida</string>
-    <string name="equil_common_short_status_last_connection">Última conexión hace : %1$d min</string>
-    <string name="equil_common_short_status_last_bolus">Último bolo: %1$s @ %2$s</string>
-    <string name="equil_common_short_status_temp_basal">Basal temporal: %1$s</string>
-    <string name="equil_common_short_status_extended_bolus">Extendido: %1$s</string>
-    <string name="equil_common_short_status_reservoir">Reservorio: %1$sU</string>
     <string name="equil_common_overview_button_suspend_delivery">Suspender</string>
     <string name="equil_common_overview_button_resume_delivery">Reanudar la entrega</string>
     <string name="equil_common_overview_temp_basal_value">%1$.2fU/h @%2$s (%3$d/%4$d min)</string>

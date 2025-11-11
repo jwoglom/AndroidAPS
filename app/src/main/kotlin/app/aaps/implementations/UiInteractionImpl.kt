@@ -34,6 +34,7 @@ import app.aaps.ui.dialogs.InsulinDialog
 import app.aaps.ui.dialogs.LoopDialog
 import app.aaps.ui.dialogs.ProfileSwitchDialog
 import app.aaps.ui.dialogs.ProfileViewerDialog
+import app.aaps.ui.dialogs.SiteRotationDialog
 import app.aaps.ui.dialogs.TempBasalDialog
 import app.aaps.ui.dialogs.TempTargetDialog
 import app.aaps.ui.dialogs.TreatmentDialog
@@ -137,8 +138,13 @@ class UiInteractionImpl @Inject constructor(
     }
 
     override fun runFillDialog(fragmentManager: FragmentManager) {
-        FillDialog()
+        FillDialog(fragmentManager)
             .show(fragmentManager, "FillDialog")
+    }
+
+    override fun runSiteRotationDialog(fragmentManager: FragmentManager) {
+        SiteRotationDialog()
+            .show(fragmentManager, "SiteRotationDialog")
     }
 
     override fun runProfileViewerDialog(fragmentManager: FragmentManager, time: Long, mode: UiInteraction.Mode, customProfile: String?, customProfileName: String?, customProfile2: String?) {
@@ -156,7 +162,7 @@ class UiInteractionImpl @Inject constructor(
     }
 
     override fun runCareDialog(fragmentManager: FragmentManager, options: UiInteraction.EventType, @StringRes event: Int) {
-        CareDialog()
+        CareDialog(fragmentManager)
             .also {
                 it.arguments = Bundle().also { bundle ->
                     bundle.putInt("event", event)
@@ -166,14 +172,10 @@ class UiInteractionImpl @Inject constructor(
             .show(fragmentManager, "CareDialog")
     }
 
-    override fun runBolusProgressDialog(fragmentManager: FragmentManager, insulin: Double, id: Long) {
+    override fun runBolusProgressDialog(fragmentManager: FragmentManager) {
         // Activity may be destroyed before Dialog pop up so try/catch
         try {
-            BolusProgressDialog().also {
-                it.setInsulin(insulin)
-                it.setId(id)
-                it.show(fragmentManager, "BolusProgress")
-            }
+            BolusProgressDialog().show(fragmentManager, "BolusProgress")
         } catch (_: Exception) {
             // do nothing
         }

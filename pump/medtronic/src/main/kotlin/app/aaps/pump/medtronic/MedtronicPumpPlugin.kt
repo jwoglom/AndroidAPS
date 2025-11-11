@@ -18,7 +18,6 @@ import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.Notification
-import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
@@ -54,7 +53,6 @@ import app.aaps.pump.common.PumpPluginAbstract
 import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.dialog.RileyLinkBLEConfigActivity
-import app.aaps.pump.common.driver.PumpDriverDummyConfiguration
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshAction
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshType
 import app.aaps.pump.common.events.EventRileyLinkDeviceStatusChange
@@ -91,7 +89,6 @@ import app.aaps.pump.medtronic.defs.MedtronicCommandType.Companion.getSettings
 import app.aaps.pump.medtronic.defs.MedtronicCustomActionType
 import app.aaps.pump.medtronic.defs.MedtronicDeviceType
 import app.aaps.pump.medtronic.defs.MedtronicNotificationType
-import app.aaps.pump.medtronic.defs.MedtronicStatusRefreshType
 import app.aaps.pump.medtronic.defs.MedtronicUIResponseType
 import app.aaps.pump.medtronic.driver.MedtronicPumpStatus
 import app.aaps.pump.medtronic.events.EventMedtronicPumpConfigurationChanged
@@ -103,7 +100,6 @@ import app.aaps.pump.medtronic.keys.MedtronicStringPreferenceKey
 import app.aaps.pump.medtronic.service.RileyLinkMedtronicService
 import app.aaps.pump.medtronic.util.MedtronicUtil
 import app.aaps.pump.medtronic.util.MedtronicUtil.Companion.isSame
-import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpDriverConfiguration
 import org.joda.time.LocalDateTime
 import java.util.Calendar
@@ -122,14 +118,12 @@ import kotlin.math.floor
  */
 @Singleton
 class MedtronicPumpPlugin @Inject constructor(
-    private val injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
     rh: ResourceHelper,
     preferences: Preferences,
     commandQueue: CommandQueue,
     rxBus: RxBus,
     context: Context,
-    activePlugin: ActivePlugin,
     fabricPrivacy: FabricPrivacy,
     private val medtronicUtil: MedtronicUtil,
     private val medtronicPumpStatus: MedtronicPumpStatus,
@@ -142,7 +136,9 @@ class MedtronicPumpPlugin @Inject constructor(
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,
     decimalFormatter: DecimalFormatter,
-    pumpEnactResultProvider: Provider<PumpEnactResult>
+    pumpEnactResultProvider: Provider<PumpEnactResult>,
+    private val wakeAndTuneTaskProvider: Provider<WakeAndTuneTask>,
+    private val resetRileyLinkConfigurationTaskProvider: Provider<ResetRileyLinkConfigurationTask>
 ) : PumpPluginAbstract(
     pluginDescription = PluginDescription()
         .mainType(PluginType.PUMP)
@@ -164,7 +160,7 @@ class MedtronicPumpPlugin @Inject constructor(
     preferences = preferences,
     commandQueue = commandQueue,
     rxBus = rxBus,
-    activePlugin = activePlugin,
+    //activePlugin = activePlugin,
     context = context,
     fabricPrivacy = fabricPrivacy,
     dateUtil = dateUtil,
@@ -561,7 +557,7 @@ class MedtronicPumpPlugin @Inject constructor(
         if (errorCount >= 5) {
             aapsLogger.error("Number of error counts was 5 or more. Starting tuning.")
             setRefreshButtonEnabled(true)
-            serviceTaskExecutor.startTask(WakeAndTuneTask(injector))
+            serviceTaskExecutor.startTask(wakeAndTuneTaskProvider.get())
             return true
         }
         medtronicPumpStatus.setLastCommunicationToNow()
@@ -627,7 +623,7 @@ class MedtronicPumpPlugin @Inject constructor(
         return !invalid
     }
 
-    override fun lastDataTime(): Long {
+    fun lastDataTime(): Long {
         return if (medtronicPumpStatus.lastConnection > 0) {
             medtronicPumpStatus.lastConnection
         } else System.currentTimeMillis()
@@ -807,7 +803,7 @@ class MedtronicPumpPlugin @Inject constructor(
                 .comment(R.string.medtronic_pump_status_pump_unreachable)
         }
         medtronicUtil.dismissNotification(MedtronicNotificationType.PumpUnreachable, rxBus)
-        aapsLogger.info(LTag.PUMP, "setTempBasalAbsolute: rate: " + absoluteRate + ", duration=" + durationInMinutes)
+        aapsLogger.info(LTag.PUMP, "setTempBasalAbsolute: rate: ${absoluteRate}, duration= $durationInMinutes")
 
         // read current TBR
         val tbrCurrent = readTBR()
@@ -1297,7 +1293,7 @@ class MedtronicPumpPlugin @Inject constructor(
         when (customActionType as? MedtronicCustomActionType) {
             MedtronicCustomActionType.WakeUpAndTune               -> {
                 if (rileyLinkMedtronicService?.verifyConfiguration() == true) {
-                    serviceTaskExecutor.startTask(WakeAndTuneTask(injector))
+                    serviceTaskExecutor.startTask(wakeAndTuneTaskProvider.get())
                 } else {
                     uiInteraction.runAlarm(rh.gs(R.string.medtronic_error_operation_not_possible_no_configuration), rh.gs(R.string.medtronic_warning), app.aaps.core.ui.R.raw.boluserror)
                 }
@@ -1310,7 +1306,7 @@ class MedtronicPumpPlugin @Inject constructor(
             }
 
             MedtronicCustomActionType.ResetRileyLinkConfiguration -> {
-                serviceTaskExecutor.startTask(ResetRileyLinkConfigurationTask(injector))
+                serviceTaskExecutor.startTask(resetRileyLinkConfigurationTaskProvider.get())
             }
 
             null                                                  -> { // do nothing

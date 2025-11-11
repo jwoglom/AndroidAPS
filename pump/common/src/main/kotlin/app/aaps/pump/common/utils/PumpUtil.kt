@@ -75,12 +75,17 @@ open class PumpUtil constructor(
         workWithStatusAndCommand(StatusChange.SetStatus, PumpDriverState.Ready, null)
     }
 
+    var previousState = PumpDriverState.NotInitialized
+
     var driverStatus: PumpDriverState
         get() {
             val stat = workWithStatusAndCommand(StatusChange.GetStatus, null, null) as PumpDriverState
-            if (stat!=PumpDriverState.Connected) {
+
+            if (previousState!=stat) {
                 aapsLogger.debug(LTag.PUMP, "Get driver status: " + stat.name)
+                previousState = stat
             }
+
             return stat
         }
         set(status) {

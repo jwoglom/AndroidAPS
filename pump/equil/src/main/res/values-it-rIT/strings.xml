@@ -3,7 +3,6 @@
     <string name="equil_pump_description">Pompa Patch Equil 5.3 o più recente </string>
     <!--  start  -->
     <string name="equil_basal_speed">Basale originale</string>
-    <string name="equil_bolus_delivered">%1$.3f U / %2$.3f U erogate</string>
     <string name="equil_btn_cancel">Annulla</string>
     <string name="equil_btn_need">Bisogno</string>
     <string name="equil_btn_skip">Salta</string>
@@ -122,11 +121,6 @@
     <string name="equil_history_item16">Batteria esaurita!</string>
     <string name="equil_history_item17">Reset Power-on</string>
     <string name="equil_history_item18">Infusione Anomala Fermata</string>
-    <string name="equil_common_short_status_last_connection">Ultima conn: %1$d min fa</string>
-    <string name="equil_common_short_status_last_bolus">Ultimo bolo: %1$s @ %2$s</string>
-    <string name="equil_common_short_status_temp_basal">Temp: %1$s</string>
-    <string name="equil_common_short_status_extended_bolus">Esteso: %1$s</string>
-    <string name="equil_common_short_status_reservoir">Serbatoio: %1$sU</string>
     <string name="equil_common_overview_button_suspend_delivery">Sospendi</string>
     <string name="equil_common_overview_button_resume_delivery">Riprendi erogazione</string>
     <string name="equil_common_overview_temp_basal_value">%1$.2fU/h @%2$s (%3$d/%4$d min)</string>

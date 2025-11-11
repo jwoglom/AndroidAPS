@@ -42,6 +42,7 @@ import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.pump.PumpStatusProvider
 import app.aaps.core.interfaces.pump.defs.determineCorrectBolusStepSize
 import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.queue.CommandQueue
@@ -78,7 +79,6 @@ import app.aaps.core.objects.wizard.QuickWizard
 import app.aaps.core.objects.wizard.QuickWizardEntry
 import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.plugins.sync.R
-import dagger.android.HasAndroidInjector
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import java.text.DateFormat
@@ -89,6 +89,7 @@ import java.util.LinkedList
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -97,7 +98,6 @@ import kotlin.math.min
 @Singleton
 class DataHandlerMobile @Inject constructor(
     aapsSchedulers: AapsSchedulers,
-    private val injector: HasAndroidInjector,
     private val context: Context,
     private val rxBus: RxBus,
     private val aapsLogger: AAPSLogger,
@@ -123,7 +123,9 @@ class DataHandlerMobile @Inject constructor(
     private val uiInteraction: UiInteraction,
     private val persistenceLayer: PersistenceLayer,
     private val importExportPrefs: ImportExportPrefs,
-    private val decimalFormatter: DecimalFormatter
+    private val decimalFormatter: DecimalFormatter,
+    private val bolusWizardProvider: Provider<BolusWizard>,
+    private val pumpStatusProvider: PumpStatusProvider
 ) {
 
     @Inject lateinit var automation: Automation
@@ -173,7 +175,7 @@ class DataHandlerMobile @Inject constructor(
                                EventMobileToWear(
                                    EventData.ConfirmAction(
                                        rh.gs(R.string.pump_status).uppercase(),
-                                       activePlugin.activePump.shortStatus(false),
+                                       pumpStatusProvider.shortStatus(false),
                                        returnCommand = null
                                    )
                                )
@@ -490,7 +492,7 @@ class DataHandlerMobile @Inject constructor(
         }
         val tempTarget = persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now())
 
-        val bolusWizard = BolusWizard(injector).doCalc(
+        val bolusWizard = bolusWizardProvider.get().doCalc(
             profile = profile,
             profileName = profileName,
             tempTarget = tempTarget,
@@ -931,6 +933,7 @@ class DataHandlerMobile @Inject constructor(
                 RM.Mode.DISCONNECTED_PUMP -> AvailableLoopState(AvailableLoopState.LoopState.PUMP_DISCONNECT, disconnectDurs)
                 RM.Mode.SUSPENDED_BY_PUMP -> null
                 RM.Mode.SUSPENDED_BY_USER -> AvailableLoopState(AvailableLoopState.LoopState.LOOP_USER_SUSPEND, listOf(1, 2, 3, 10).map { it * 60 })
+                RM.Mode.SUSPENDED_BY_DST  -> null
                 RM.Mode.RESUME            -> AvailableLoopState(AvailableLoopState.LoopState.LOOP_RESUME)
             }
 
@@ -980,28 +983,28 @@ class DataHandlerMobile @Inject constructor(
         val nDuration = action.duration ?: 0
         val durationValid = action.duration != null && action.duration!! > 0
         when (newState.state) {
-            AvailableLoopState.LoopState.LOOP_CLOSED                                              ->
+            AvailableLoopState.LoopState.LOOP_CLOSED                                                                                           ->
                 loop.handleRunningModeChange(newRM = RM.Mode.CLOSED_LOOP, action = Action.CLOSED_LOOP_MODE, source = Sources.Wear, profile = profile)
 
-            AvailableLoopState.LoopState.LOOP_LGS                                                 ->
+            AvailableLoopState.LoopState.LOOP_LGS                                                                                              ->
                 loop.handleRunningModeChange(newRM = RM.Mode.CLOSED_LOOP_LGS, action = Action.LGS_LOOP_MODE, source = Sources.Wear, profile = profile)
 
-            AvailableLoopState.LoopState.LOOP_OPEN                                                ->
+            AvailableLoopState.LoopState.LOOP_OPEN                                                                                             ->
                 loop.handleRunningModeChange(newRM = RM.Mode.OPEN_LOOP, action = Action.OPEN_LOOP_MODE, source = Sources.Wear, profile = profile)
 
-            AvailableLoopState.LoopState.LOOP_DISABLE                                             ->
+            AvailableLoopState.LoopState.LOOP_DISABLE                                                                                          ->
                 loop.handleRunningModeChange(newRM = RM.Mode.DISABLED_LOOP, action = Action.LOOP_DISABLED, source = Sources.Wear, profile = profile)
 
-            AvailableLoopState.LoopState.LOOP_RESUME                                              -> {
+            AvailableLoopState.LoopState.LOOP_RESUME                                                                                           -> {
                 loop.handleRunningModeChange(newRM = RM.Mode.RESUME, action = Action.LOOP_RESUME, source = Sources.Wear, profile = profile)
             }
 
-            AvailableLoopState.LoopState.LOOP_USER_SUSPEND                                        -> {
+            AvailableLoopState.LoopState.LOOP_USER_SUSPEND                                                                                     -> {
                 if (!durationValid) return sendError(rh.gs(R.string.wear_action_loop_state_invalid))
                 loop.handleRunningModeChange(newRM = RM.Mode.SUSPENDED_BY_USER, durationInMinutes = nDuration, action = Action.SUSPEND, source = Sources.Wear, profile = profile)
             }
 
-            AvailableLoopState.LoopState.PUMP_DISCONNECT                                          -> {
+            AvailableLoopState.LoopState.PUMP_DISCONNECT                                                                                       -> {
                 if (!durationValid) return sendError(rh.gs(R.string.wear_action_loop_state_invalid))
                 loop.handleRunningModeChange(
                     newRM = RM.Mode.DISCONNECTED_PUMP,
@@ -1013,7 +1016,7 @@ class DataHandlerMobile @Inject constructor(
                 )
             }
 
-            AvailableLoopState.LoopState.LOOP_UNKNOWN, AvailableLoopState.LoopState.SUPERBOLUS, AvailableLoopState.LoopState.LOOP_PUMP_SUSPEND    -> {
+            AvailableLoopState.LoopState.LOOP_UNKNOWN, AvailableLoopState.LoopState.SUPERBOLUS, AvailableLoopState.LoopState.LOOP_PUMP_SUSPEND -> {
                 return sendError(rh.gs(R.string.wear_action_loop_state_invalid))
             }
         }

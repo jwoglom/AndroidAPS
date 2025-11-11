@@ -3,7 +3,6 @@
     <string name="equil_pump_description">Equil 5.3 veya daha yeni Patch Pompa </string>
     <!--  start  -->
     <string name="equil_basal_speed">Temel Bazal</string>
-    <string name="equil_bolus_delivered">%1$.3f Ü / %2$.3f Ü Gönderildi</string>
     <string name="equil_btn_cancel">İptal</string>
     <string name="equil_btn_need">İhtiyaç</string>
     <string name="equil_btn_skip">Atla</string>
@@ -121,11 +120,6 @@
     <string name="equil_history_item16">Pil bitti!</string>
     <string name="equil_history_item17">Açılışta sıfırlama</string>
     <string name="equil_history_item18">Anormal İnfüzyon Durduruldu</string>
-    <string name="equil_common_short_status_last_connection">Son bağl: %1$d dak. önce</string>
-    <string name="equil_common_short_status_last_bolus">SonBolus: %1$s @ %2$s</string>
-    <string name="equil_common_short_status_temp_basal">Geçici: %1$s</string>
-    <string name="equil_common_short_status_extended_bolus">Yayma: %1$s</string>
-    <string name="equil_common_short_status_reservoir">Rezervuar: %1$sÜ</string>
     <string name="equil_common_overview_button_suspend_delivery">Askıya al</string>
     <string name="equil_common_overview_button_resume_delivery">İletime devam et</string>
     <string name="equil_common_overview_temp_basal_value">%1$.2fÜ/s @%2$s (%3$d/%4$d dakika)</string>

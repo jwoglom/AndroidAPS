@@ -2,7 +2,6 @@ package app.aaps.pump.equil.manager
 
 import android.os.SystemClock
 import android.text.TextUtils
-import app.aaps.core.data.model.BS
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -20,7 +19,6 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.equil.EquilConst
 import app.aaps.pump.equil.R
 import app.aaps.pump.equil.ble.EquilBLE
-import app.aaps.pump.equil.data.AlarmMode
 import app.aaps.pump.equil.data.BolusProfile
 import app.aaps.pump.equil.data.RunMode
 import app.aaps.pump.equil.database.BolusType
@@ -70,6 +68,7 @@ import java.util.Optional
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
+import kotlin.math.min
 
 @Singleton
 class EquilManager @Inject constructor(
@@ -92,7 +91,7 @@ class EquilManager @Inject constructor(
         loadPodState()
         initEquilError()
         equilBLE.init(this)
-        equilBLE.checkEquilStatus()
+        equilBLE.checkEquilStatus("EquilManager::init")
     }
 
     var listEvent: MutableList<PumpEvent> = ArrayList<PumpEvent>()
@@ -134,7 +133,7 @@ class EquilManager @Inject constructor(
     fun readStatus(): PumpEnactResult {
         val result = pumpEnactResultProvider.get()
         try {
-            equilBLE.checkEquilStatus()
+            equilBLE.checkEquilStatus("EquilManager::readStatus")
         } catch (ex: Exception) {
             result.success(false).enacted(false).comment(ex.message ?: "Exception")
         }
@@ -254,8 +253,6 @@ class EquilManager @Inject constructor(
     }
 
     fun bolus(detailedBolusInfo: DetailedBolusInfo, bolusProfile: BolusProfile): PumpEnactResult {
-        val progressUpdateEvent = EventOverviewBolusProgress
-        progressUpdateEvent.t = EventOverviewBolusProgress.Treatment(0.0, 0, detailedBolusInfo.bolusType == BS.Type.SMB, detailedBolusInfo.id)
         val result = pumpEnactResultProvider.get()
         try {
             val command = CmdLargeBasalSet(detailedBolusInfo.insulin, aapsLogger, preferences, this)
@@ -265,8 +262,7 @@ class EquilManager @Inject constructor(
                 (command as Object).wait(command.timeOut.toLong())
             }
             bolusProfile.stop = false
-            var sleep = command.stepTime / 20 * 200
-            sleep = 2000
+            val sleep = 2000
             val percent1 = (5f / detailedBolusInfo.insulin).toFloat()
             aapsLogger.debug(LTag.PUMPCOMM, "sleep===" + detailedBolusInfo.insulin + "===" + percent1)
             var percent = 0f
@@ -274,17 +270,13 @@ class EquilManager @Inject constructor(
                 result.success = true
                 result.enacted(true)
                 while (!bolusProfile.stop && percent < 100) {
-                    progressUpdateEvent.percent = percent.toInt()
-                    progressUpdateEvent.status = this.rh.gs(
-                        R.string.equil_bolus_delivered,
-                        percent / 100.0 * detailedBolusInfo.insulin,
-                        detailedBolusInfo.insulin
-                    )
-                    rxBus.send(progressUpdateEvent)
+                    rxBus.send(EventOverviewBolusProgress(rh, percent / 100.0 * detailedBolusInfo.insulin, id = detailedBolusInfo.id))
                     SystemClock.sleep(sleep.toLong())
                     percent = percent + percent1
                     aapsLogger.debug(LTag.PUMPCOMM, "isCmdStatus===" + percent + "====" + bolusProfile.stop)
                 }
+                // constraint percent.
+                percent = min(percent, 100.0f)
                 result.comment = rh.gs(app.aaps.core.ui.R.string.virtualpump_resultok)
             } else {
                 result.success = false
@@ -674,14 +666,12 @@ class EquilManager @Inject constructor(
         var firmwareVersion: String? = null
 
         var lastDataTime: Long = 0
-        var devicesTime: Long = 0
         var currentInsulin = 0
         var startInsulin = 0
         var battery = 0
         var tempBasal: EquilTempBasalRecord? = null
         var bolusRecord: EquilBolusRecord? = null
         var runMode: RunMode? = null
-        var alarmMode = AlarmMode.TONE_AND_SHAKE
         var rate = 0f
         var historyIndex = 0
 

@@ -3,7 +3,6 @@
     <string name="equil_pump_description">Pompa Equil 5.3 lub nowsza </string>
     <!--  start  -->
     <string name="equil_basal_speed">Baza podstawowa</string>
-    <string name="equil_bolus_delivered">Podano %1$.3f U / %2$.3f U</string>
     <string name="equil_btn_cancel">Anuluj</string>
     <string name="equil_btn_need">Potrzeba</string>
     <string name="equil_btn_skip">Pomiń</string>
@@ -121,11 +120,6 @@
     <string name="equil_history_item16">Bateria rozładowana!</string>
     <string name="equil_history_item17">Reset przy włączeniu</string>
     <string name="equil_history_item18">Nieprawidłowa infuzja zatrzymana</string>
-    <string name="equil_common_short_status_last_connection">Ost.Poł.: %1$d m. temu</string>
-    <string name="equil_common_short_status_last_bolus">Ost.Bolus: %1$s @ %2$s</string>
-    <string name="equil_common_short_status_temp_basal">Tymcz.: %1$s</string>
-    <string name="equil_common_short_status_extended_bolus">Rozsz.: %1$s</string>
-    <string name="equil_common_short_status_reservoir">Zbiornik: %1$sU</string>
     <string name="equil_common_overview_button_suspend_delivery">Zawieś</string>
     <string name="equil_common_overview_button_resume_delivery">Wznów podawanie</string>
     <string name="equil_common_overview_temp_basal_value">%1$.2fU/h @%2$s (%3$d/%4$d min)</string>

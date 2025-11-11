@@ -109,7 +109,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     context: Context,
     preferences: Preferences,
     rh: ResourceHelper,
-    activePlugin: ActivePlugin,
+    //activePlugin: ActivePlugin,
     commandQueue: CommandQueue,
     fabricPrivacy: FabricPrivacy,
     val tandemPumpUtil: TandemPumpUtil,
@@ -139,7 +139,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     aapsLogger = aapsLogger,
     commandQueue = commandQueue,
     rxBus = rxBus,
-    activePlugin = activePlugin,
+    //activePlugin = activePlugin,
     preferences = preferences,
     context = context,
     fabricPrivacy = fabricPrivacy,
@@ -1034,7 +1034,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun lastDataTime(): Long {
+    fun lastDataTime(): Long {
         return if (pumpStatus.lastConnection != 0L) {
             pumpStatus.lastConnection
         } else System.currentTimeMillis()

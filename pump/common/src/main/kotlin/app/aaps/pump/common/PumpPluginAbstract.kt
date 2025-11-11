@@ -6,6 +6,7 @@ import android.content.ServiceConnection
 import android.os.SystemClock
 import android.text.format.DateFormat
 import app.aaps.core.data.model.BS
+import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
@@ -13,7 +14,6 @@ import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
@@ -30,7 +30,6 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventAppExit
 import app.aaps.core.interfaces.rx.events.EventCustomActionsChanged
 import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
-import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.interfaces.LongNonPreferenceKey
@@ -67,15 +66,14 @@ abstract class PumpPluginAbstract protected constructor(
     preferences: Preferences,
     commandQueue: CommandQueue,
     var rxBus: RxBus,
-    var activePlugin: ActivePlugin,
     var context: Context,
     var fabricPrivacy: FabricPrivacy,
-    var dateUtil: DateUtil,
     var aapsSchedulers: AapsSchedulers,
     var pumpSync: PumpSync,
     var pumpSyncStorage: PumpSyncStorage,
     val pumpDriverConfigurationInternal: PumpDriverConfiguration,
     var decimalFormatter: DecimalFormatter,
+    var dateUtil: DateUtil,
     protected val pumpEnactResultProvider: Provider<PumpEnactResult>
 ) : PumpPluginBase(pluginDescription = pluginDescription,
                    ownPreferences = ownPreferences,
@@ -206,10 +204,13 @@ abstract class PumpPluginAbstract protected constructor(
         return true
     }
 
-    override fun lastDataTime(): Long {
-        aapsLogger.debug(LTag.PUMP, "lastDataTime [PumpPluginAbstract].")
-        return pumpStatusData.lastConnection
-    }
+    override val lastDataTime: Long get() = pumpStatusData.lastConnection
+
+    override val lastBolusAmount: Double?
+        get() = pumpStatusData.lastBolusAmount
+
+    override val lastBolusTime: Long?
+        get() = if (pumpStatusData.lastBolusTime==null) null else pumpStatusData.lastBolusTime!!.time
 
     // base basal rate, not temp basal
     override val baseBasalRate: Double
@@ -270,7 +271,7 @@ abstract class PumpPluginAbstract protected constructor(
         return getOperationNotSupportedWithCustomText(R.string.pump_operation_not_supported_by_pump_driver)
     }
 
-    override fun getJSONStatus(profile: Profile, profileName: String, version: String): JSONObject {
+    fun getJSONStatus(profile: Profile, profileName: String, version: String): JSONObject {
         if (pumpStatusData.lastConnection + 60 * 60 * 1000L < System.currentTimeMillis()) {
             return JSONObject()
         }
@@ -312,7 +313,7 @@ abstract class PumpPluginAbstract protected constructor(
     }
 
     // FIXME i18n, null checks: iob, TDD
-    override fun shortStatus(veryShort: Boolean): String {
+    fun shortStatus(veryShort: Boolean): String {
         var ret = ""
 
         ret += if (pumpStatusData.lastConnection == 0L) {
@@ -373,9 +374,10 @@ abstract class PumpPluginAbstract protected constructor(
                 // no bolus required, carb only treatment
                 pumpSyncStorage.addCarbs(PumpDbEntryCarbs(detailedBolusInfo, this))
 
-                val bolusingEvent = EventOverviewBolusProgress
-                bolusingEvent.t = EventOverviewBolusProgress.Treatment(0.0, detailedBolusInfo.carbs.toInt(), detailedBolusInfo.bolusType === BS.Type.SMB, detailedBolusInfo.id)
-                bolusingEvent.percent = 100
+                val bolusingEvent = EventOverviewBolusProgress(
+                                    rh = rh, id = detailedBolusInfo.id, percent = 100 )
+                // bolusingEvent.t = EventOverviewBolusProgress.Treatment(0.0, detailedBolusInfo.carbs.toInt(), detailedBolusInfo.bolusType === BS.Type.SMB, detailedBolusInfo.id)
+                // bolusingEvent.percent = 100
                 rxBus.send(bolusingEvent)
                 aapsLogger.debug(LTag.PUMP, "deliverTreatment: Carb only treatment.")
                 PumpEnactResultObject(rh).success(true).enacted(true).bolusDelivered(0.0)
