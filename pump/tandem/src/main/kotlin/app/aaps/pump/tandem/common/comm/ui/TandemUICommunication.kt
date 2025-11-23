@@ -277,6 +277,7 @@ class TandemUICommunication @Inject constructor (
 
     }
 
+    // TODO(jwoglom): if uncommented, sync with MalfunctionStatusResponse#hasMalfunction()
     // val malfunctionFilterSet: HashSet<String> = hashSetOf(
     //     "17-0x2032"  // LOW INSULIN ALERT2
     // )

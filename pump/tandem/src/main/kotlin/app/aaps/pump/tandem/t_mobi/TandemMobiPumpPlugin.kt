@@ -90,6 +90,7 @@ import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
+import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import io.reactivex.rxjava3.kotlin.plusAssign
 
 
@@ -411,6 +412,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
             val percent = (maxBasalBySettings / baseBasalRate)
 
+            // TODO(jwoglom): use pumpx2 const
             if (percent > 250) {
                 percentRate.set(
                     250,
@@ -425,6 +427,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 )
             }
         } else {
+            // TODO(jwoglom): use pumpx2 const
             if (percentRate.value() > 250) {
                 percentRate.set(
                     250,
@@ -614,6 +617,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     override fun canHandleDST(): Boolean {
+        // TODO(jwoglom): pretty sure it can't (requires manual time update)
         return true
     }
 
@@ -1099,11 +1103,14 @@ class TandemMobiPumpPlugin @Inject constructor(
                 changedItems.add("Max Bolus")
             }
 
+            // note: TandemPumpSettingType stores as milliunits (long)
             val maxBasal = (pumpStatus.settings!![TandemPumpSettingType.BASAL_LIMIT]) as Long
+            // convert milliunits (1000) -> units (1), truncate to int
+            val maxBasalInt = InsulinUnit.from1000To1(maxBasal / 1000).toInt()
 
+            // note: TandemIntPreferenceKey stores as units (int)
             val maxBasalRequired = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBasal)
 
-            val maxBasalInt = (maxBasal / 1000).toInt()
 
             aapsLogger.debug(TAG, "Current Max Basal: ${maxBasalInt}, Required: $maxBasalRequired")
 
@@ -1542,6 +1549,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
     }
 
+    // TODO(jwoglom): we will need this to call changetimedate
     // override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
     //     aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed. ")
     //     hasTimeDateOrTimeZoneChanged = true
@@ -1563,10 +1571,12 @@ class TandemMobiPumpPlugin @Inject constructor(
                 PumpDataRefreshType.RemainingInsulin -> {
                     val remaining = pumpStatus.reservoirRemainingUnits
 
+                    // TODO(jwoglom): why?
                     if (remaining > 50) 60 else if (remaining > 20) 30 else 15
                 }
                 PumpDataRefreshType.BatteryStatus    -> {
                     val power = pumpStatus.batteryRemaining
+                    // TODO(jwoglom): why?
                     if (power > 30) 55 else if (power > 20) 30 else 15
                 }
                 PumpDataRefreshType.PumpTime         -> 300
