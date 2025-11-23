@@ -33,6 +33,7 @@ import javax.inject.Singleton
 class TandemUIDataStore {
 
     // TODO cleanup this class
+    // this is essentially the equivalent of ControlX2's "DataStore" god object
 
     // Basic Stuff
     var apiVersionResponse = MutableLiveData<ApiVersionResponse>()

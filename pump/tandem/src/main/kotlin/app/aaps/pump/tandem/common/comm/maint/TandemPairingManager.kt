@@ -59,6 +59,7 @@ import java.util.*
 //  Create Wizard with 2 steps:
 //     1 - Eneter pin number
 //     2 - Show status of bonding (in case of error show error)
+// TODO(jwoglom): rename to TandemPumpPairingManager for consistency with parent class
 class TandemPairingManager constructor(
     context: Context,
     var aapsLogger: AAPSLogger,

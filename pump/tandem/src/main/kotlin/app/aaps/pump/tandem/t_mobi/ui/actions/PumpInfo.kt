@@ -120,48 +120,7 @@ private fun DefaultPreview_PumpInfo() {
             color = Color.White,
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
-            var pumpVersion = PumpVersionResponse()
-            pumpVersion.parse(
-                byteArrayOf(-107,-28,-126,-4,0,0,0,0,0,0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    12,
-                    -100,
-                    20,
-                    0,
-                    22,
-                    122,
-                    15,
-                    0,
-                    48,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    -52,
-                    -109,
-                    105,
-                    14,
-                    48,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    -32,
-                    81,
-                    15,
-                    0
-                ))
+            var pumpVersion = PumpVersionResponse(3628697757L, 0L, 0L, 0L, 1226976L, 1013045L, "0", 232700077L, "0", 1004000L)
             System.out.println(pumpVersion.cargo[24])
             LocalTandemDataStore.current.pumpVersionResponse.value = pumpVersion
             PumpInfo(

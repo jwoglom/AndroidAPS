@@ -56,6 +56,7 @@ import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.TandemConfig
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.models.PairingCodeType
 import com.jwoglom.pumpx2.pump.messages.models.StatusMessage
 import com.jwoglom.pumpx2.pump.messages.request.control.BolusPermissionRequest
@@ -190,10 +191,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         if (!newBtAddress.isNullOrEmpty()) {
 
+            // TODO(jwoglom): AAPS should conditionally set this to allow for safer pump simulation
             PumpState.enableActionsAffectingInsulinDelivery()
 
             val cfg = TandemConfig()
                 .withFilterToBluetoothMac(newBtAddress)
+                // TODO(jwoglom): this should be configurable to allow for old firmware tslim x2 pump simulation
                 .withPairingCodeType(PairingCodeType.SHORT_6CHAR)
 
             this.tandemCommunicationManager = TandemCommunicationManager(
@@ -438,6 +441,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         var deliveryStartTime: Long = System.currentTimeMillis()
         var startedSending = false
 
+        // TODO(jwoglom): ??
         val maxBolus = detailedBolusInfo.insulin - 0.01
 
         while (!finished) {
@@ -560,6 +564,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun cancelBolus(bolusData: BolusData?): DataCommandResponse<AdditionalResponseDataInterface?> {
         if (bolusId==0) {
+            // TODO(jwoglom): since this is a safety critical path, we need to handle bolusId being null
+            // and fall back on requesting active bolus ID and then canceling it. and also do the same
+            // if we get a rejection (status!=0) on CancelBolusResponse.
             aapsLogger.info(TAG, "cancelBolus: no BolusId found, exiting")
             return DataCommandResponse(
                 PumpCommandType.CancelBolus, false, "No Bolus Id found, bouls might not be running anymore.",
@@ -829,6 +836,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                  IDPSegmentStatus.TARGET_BG,
                                                  IDPSegmentStatus.CORRECTION_FACTOR)
 
+    // TODO(jwoglom): use IDPManager which handles some of these complexities
     override fun sendBasalProfile(profile: Profile): DataCommandResponse<Boolean?> {
 
         aapsLogger.info(LTag.PUMPCOMM, "sendBasalProfile")
@@ -850,6 +858,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         val idpSegments = tandemDataConverter.getIDPSegmentsFromProfile(profile)
 
+        // TODO(jwoglom): make and use PumpX2 const
         if (idpSegments.size>16) {
             aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile - You have more than 16 basal segments. Profile must be adjusted to have only 16 segments. Last valid segment (16) will be extended over remaining time.")
 
@@ -1236,7 +1245,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(LTag.PUMPCOMM, "setMaxBolus [bolusAmount=$bolusAmount]")
 
         val responseMessage: SetMaxBolusLimitResponse? = getCommunicationManager()
-            .sendCommand(SetMaxBolusLimitRequest(bolusAmount*1000)) as SetMaxBolusLimitResponse?
+            .sendCommand(SetMaxBolusLimitRequest(InsulinUnit.from1To1000(bolusAmount))) as SetMaxBolusLimitResponse?
 
         if (responseMessage!=null) {
             return DataCommandResponse(
@@ -1339,6 +1348,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         aapsLogger.error(LTag.PUMPCOMM, "getQuickBolus Not implemented")
 
+        // TODO: IMPLEMENT
         return DataCommandResponse(
             PumpCommandType.CustomCommand, false,
             "getQuickBolus Not implemented",
@@ -1472,6 +1482,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     private fun getCorrectRequest(command: TandemCommandType): Message {
         return when(this.tandemPumpStatus.tandemPumpFirmware) {
 
+            // TODO(jwoglom): we can use builder methods in PumpX2 given the api version
             TandemPumpApiVersion.VERSION_2_1_to_2_4,
             -> {
                 when(command) {

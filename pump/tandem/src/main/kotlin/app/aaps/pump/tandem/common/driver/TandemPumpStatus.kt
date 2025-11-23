@@ -70,6 +70,7 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     var disconnectData: DisconnectDataDto? = null
 
 
+    // TODO: this shouldn't be initialized with fake data
     fun initSettings() {
         activeProfileName = "A"
         reservoirRemainingUnits = 75.0

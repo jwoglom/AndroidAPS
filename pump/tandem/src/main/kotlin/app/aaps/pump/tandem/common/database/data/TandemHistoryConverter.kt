@@ -127,6 +127,7 @@ class TandemHistoryConverter @Inject constructor(
     }
 
 
+    // TODO(jwoglom): separate bolusID and tempRateId columns? and consistent "Id"/"ID" capitalization
     private fun getEntitySubId(historyLog: HistoryLog?): Int? {
 
         return when(historyLog) {

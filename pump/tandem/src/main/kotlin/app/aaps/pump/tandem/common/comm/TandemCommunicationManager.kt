@@ -44,6 +44,7 @@ import org.joda.time.DateTime
 /**
  * This is low-level driver that does all communication with pump, with exception of pairing.
  */
+// TODO(jwoglom): rename to TandemPumpCommunicationManager for name consistency with superclass
 class TandemCommunicationManager(
     context: Context,
     var resourceHelper: ResourceHelper,

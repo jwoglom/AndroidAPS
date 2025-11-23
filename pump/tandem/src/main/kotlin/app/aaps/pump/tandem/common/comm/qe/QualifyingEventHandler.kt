@@ -134,6 +134,8 @@ class QualifyingEventHandler @Inject constructor(
                 true
             }
 
+            // TODO(jwoglom): AAPS may want to track controliq being inadvertently enabled on the pump
+            // here as an indicator to stop diy looping
             QualifyingEvent.CGM_ALERT,
             QualifyingEvent.BASAL_IQ_STATUS,
             QualifyingEvent.IOB_CHANGE,
