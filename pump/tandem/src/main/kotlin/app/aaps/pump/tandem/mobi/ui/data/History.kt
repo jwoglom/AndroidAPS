@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package app.aaps.pump.tandem.t_mobi.ui.data
+package app.aaps.pump.tandem.mobi.ui.data
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,10 +55,10 @@ import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.actions.setUpPreviewState
-import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
-import app.aaps.pump.tandem.t_mobi.ui.util.DateTimeInTwoLines
-import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
+import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
+import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+import app.aaps.pump.tandem.mobi.ui.util.DateTimeInTwoLines
+import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import kotlinx.coroutines.Dispatchers

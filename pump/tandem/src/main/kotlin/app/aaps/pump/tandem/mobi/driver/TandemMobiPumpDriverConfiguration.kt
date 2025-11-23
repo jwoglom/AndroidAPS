@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.driver
+package app.aaps.pump.tandem.mobi.driver
 
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.pump.tandem.common.driver.config.TandemBLESelector

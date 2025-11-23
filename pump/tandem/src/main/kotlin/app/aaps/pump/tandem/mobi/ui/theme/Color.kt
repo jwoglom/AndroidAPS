@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.ui.theme
+package app.aaps.pump.tandem.mobi.ui.theme
 
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color

@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.ui.util
+package app.aaps.pump.tandem.mobi.ui.util
 
 import android.os.Handler
 import android.os.Looper

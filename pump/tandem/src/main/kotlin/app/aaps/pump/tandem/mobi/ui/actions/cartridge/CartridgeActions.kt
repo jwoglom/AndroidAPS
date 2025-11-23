@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package app.aaps.pump.tandem.t_mobi.ui.actions.cartridge
+package app.aaps.pump.tandem.mobi.ui.actions.cartridge
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,11 +40,11 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.actions.setUpPreviewState
-import app.aaps.pump.tandem.t_mobi.ui.util.Line
-import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
-import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
-import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
+import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
+import app.aaps.pump.tandem.mobi.ui.util.Line
+import app.aaps.pump.tandem.mobi.ui.util.intervalOf
+import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.shared.tests.AAPSLoggerTest
 import app.aaps.pump.tandem.R
 import com.jwoglom.pumpx2.pump.messages.Message

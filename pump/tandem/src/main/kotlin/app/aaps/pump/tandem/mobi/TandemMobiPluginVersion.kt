@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi
+package app.aaps.pump.tandem.mobi
 
 import com.jwoglom.pumpx2.BuildConfig
 

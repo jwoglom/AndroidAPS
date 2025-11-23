@@ -19,7 +19,7 @@ pump/tandem/
 │   │   ├── queue/                  # Command queue extensions
 │   │   ├── service/                # Android service for pump connection
 │   │   └── ui/                     # Shared UI components
-│   ├── t_mobi/                     # Tandem Mobi specific implementation
+│   ├── mobi/                       # Tandem Mobi specific implementation
 │   │   ├── driver/                 # Tandem Mobi driver configuration
 │   │   └── ui/                     # Jetpack Compose UI
 │   └── t_slim/                     # t:slim X2 implementation (on hold)
@@ -32,7 +32,7 @@ pump/tandem/
 
 The driver integrates with AndroidAPS through the plugin system:
 
-**Class:** `TandemMobiPumpPlugin` (pump/tandem/src/main/kotlin/app/aaps/pump/tandem/t_mobi/TandemMobiPumpPlugin.kt:106)
+**Class:** `TandemMobiPumpPlugin` (pump/tandem/src/main/kotlin/app/aaps/pump/tandem/mobi/TandemMobiPumpPlugin.kt:106)
 
 **Interfaces Implemented:**
 - `PumpPluginAbstract` - Base class for all pump plugins
@@ -450,7 +450,7 @@ implementation(libs.androidx.compose.ui)                // Jetpack Compose
 
 ### Driver Configuration
 
-**TandemMobiPumpDriverConfiguration** (pump/tandem/src/main/kotlin/app/aaps/pump/tandem/t_mobi/driver/TandemMobiPumpDriverConfiguration.kt)
+**TandemMobiPumpDriverConfiguration** (pump/tandem/src/main/kotlin/app/aaps/pump/tandem/mobi/driver/TandemMobiPumpDriverConfiguration.kt)
 
 Provides:
 - Pump type definition
@@ -565,7 +565,7 @@ Provides:
 
 | Component | File Path | Key Methods/Lines |
 |-----------|-----------|-------------------|
-| Main Plugin | `t_mobi/TandemMobiPumpPlugin.kt` | :106 (class), :1187 (bolus), :1303 (TBR) |
+| Main Plugin | `mobi/TandemMobiPumpPlugin.kt` | :106 (class), :1187 (bolus), :1303 (TBR) |
 | Service | `common/service/TandemService.kt` | :107 (validate), :229 (connect) |
 | Connection Manager | `common/driver/connector/TandemPumpConnectionManager.kt` | :80 (connect), :148 (getConnector) |
 | Connector | `common/driver/connector/TandemPumpConnector.kt` | :227-1148 (commands) |

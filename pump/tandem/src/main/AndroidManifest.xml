@@ -17,11 +17,11 @@
             </intent-filter>
         </activity>
 
-<!--        <activity android:name="app.aaps.pump.tandem.t_mobi.ui.TandemMobiSettingsActivity" />-->
+<!--        <activity android:name="app.aaps.pump.tandem.mobi.ui.TandemMobiSettingsActivity" />-->
 <!--        <activity android:name="app.aaps.pump.tandem.common.ui.DebugActionsActivity" />-->
 
-        <activity android:name="app.aaps.pump.tandem.t_mobi.ui.ActionsActivity" />
-        <activity android:name="app.aaps.pump.tandem.t_mobi.ui.DataActivity" />
+        <activity android:name="app.aaps.pump.tandem.mobi.ui.ActionsActivity" />
+        <activity android:name="app.aaps.pump.tandem.mobi.ui.DataActivity" />
 
 
         <service

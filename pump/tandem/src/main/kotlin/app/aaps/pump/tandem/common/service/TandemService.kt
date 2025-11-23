@@ -24,7 +24,7 @@ import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
+import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
 import com.jwoglom.pumpx2.pump.PumpState
 import dagger.android.DaggerService
 import javax.inject.Inject

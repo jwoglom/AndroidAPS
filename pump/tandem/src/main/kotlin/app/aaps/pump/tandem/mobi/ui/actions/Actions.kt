@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package app.aaps.pump.tandem.t_mobi.ui.actions
+package app.aaps.pump.tandem.mobi.ui.actions
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,13 +53,13 @@ import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
-import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLine
-import app.aaps.pump.tandem.t_mobi.ui.util.LifecycleStateObserver
-import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
-import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
+import app.aaps.pump.tandem.mobi.ui.util.HeaderLine
+import app.aaps.pump.tandem.mobi.ui.util.LifecycleStateObserver
+import app.aaps.pump.tandem.mobi.ui.util.intervalOf
+import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.tandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.util.compactTBRDisplay
+import app.aaps.pump.tandem.mobi.ui.util.compactTBRDisplay
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.ResumePumpingRequest

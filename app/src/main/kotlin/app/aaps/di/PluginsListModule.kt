@@ -66,7 +66,7 @@ import app.aaps.pump.medtronic.MedtronicPumpPlugin
 import app.aaps.pump.medtrum.MedtrumPlugin
 import app.aaps.pump.omnipod.dash.OmnipodDashPumpPlugin
 import app.aaps.pump.omnipod.eros.OmnipodErosPumpPlugin
-import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
+import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
 import app.aaps.pump.virtual.VirtualPumpPlugin
 import dagger.Binds
 import dagger.Module

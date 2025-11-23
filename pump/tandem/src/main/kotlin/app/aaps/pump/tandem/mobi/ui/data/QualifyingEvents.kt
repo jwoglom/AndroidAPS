@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package app.aaps.pump.tandem.t_mobi.ui.data
+package app.aaps.pump.tandem.mobi.ui.data
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,10 +46,10 @@ import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
-import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
-import app.aaps.pump.tandem.t_mobi.ui.util.DateTimeInTwoLines
-import app.aaps.pump.tandem.t_mobi.ui.util.intervalOf
+import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
+import app.aaps.pump.tandem.mobi.ui.util.DateTimeInTwoLines
+import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import kotlinx.coroutines.Dispatchers
@@ -204,7 +204,7 @@ private fun DefaultPreview_QualifyingEvents() {
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
         ) {
-            app.aaps.pump.tandem.t_mobi.ui.actions.setUpPreviewState(LocalTandemDataStore.current)
+            app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState(LocalTandemDataStore.current)
 
             LocalTandemDataStore.current.dataQE.value!!.add(TandemQualifyingEventDto(dateTime = LocalDateTime.now()
                 , name = QualifyingEvent.BASAL_CHANGE, description = "" ))

@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi
+package app.aaps.pump.tandem.mobi
 
 import android.content.ComponentName
 import android.content.Context
@@ -64,7 +64,7 @@ import app.aaps.pump.common.driver.refresh.PumpDataRefreshType
 import app.aaps.pump.common.events.EventPumpDataRefresh
 import app.aaps.pump.common.events.EventPumpForceDisconnect
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
+import app.aaps.pump.tandem.mobi.driver.TandemMobiPumpDriverConfiguration
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
@@ -89,7 +89,7 @@ import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
-import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
+import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import io.reactivex.rxjava3.kotlin.plusAssign
 

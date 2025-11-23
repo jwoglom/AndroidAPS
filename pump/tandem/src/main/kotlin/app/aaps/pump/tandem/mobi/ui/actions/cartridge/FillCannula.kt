@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.ui.actions.cartridge
+package app.aaps.pump.tandem.mobi.ui.actions.cartridge
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,7 +32,7 @@ import app.aaps.core.ui.R as Rco
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.t_mobi.ui.util.DecimalOutlinedText
+import app.aaps.pump.tandem.mobi.ui.util.DecimalOutlinedText
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.FillCannulaRequest

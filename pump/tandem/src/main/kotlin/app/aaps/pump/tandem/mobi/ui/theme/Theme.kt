@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.ui.theme
+package app.aaps.pump.tandem.mobi.ui.theme
 
 import android.app.Activity
 import android.os.Build
