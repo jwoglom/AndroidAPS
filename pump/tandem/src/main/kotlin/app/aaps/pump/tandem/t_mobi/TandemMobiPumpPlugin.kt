@@ -135,7 +135,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         .shortName(R.string.tandem_name_mobi_short) //
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
         .description(R.string.description_pump_tandem_mobi),  //
-    pumpType = PumpType.TANDEM_T_MOBI_BT,
+    pumpType = PumpType.TANDEM_MOBI_BT,
     rh = rh,
     aapsLogger = aapsLogger,
     commandQueue = commandQueue,
@@ -173,7 +173,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     private val TAG = LTag.PUMP
 
     override fun onStart() {
-        aapsLogger.debug(LTag.PUMP, model().model + " started (t:mobi) - $version - dev version: ${versionInternal.devVersion}")
+        aapsLogger.debug(LTag.PUMP, model().model + " started (Tandem Mobi) - $version - dev version: ${versionInternal.devVersion}")
         // dbDataHandler.databaseStatistics() // this is just in case we want to debug database
 
         PumpHistoryEntryGroup.doTranslation(rh)
@@ -226,7 +226,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
         aapsLogger.debug(TAG, "initPumpStatusData: " + pumpStatus)
 
-        pumpType = PumpType.TANDEM_T_MOBI_BT
+        pumpType = PumpType.TANDEM_MOBI_BT
 
         // this is only thing that can change, by being configured
         // TODO pumpDescription.maxTempAbsolute = (pumpStatus.maxBasal != null) ? pumpStatus.maxBasal : 35.0d;
@@ -245,7 +245,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             }
         }
 
-        pumpStatus.pumpType = PumpType.TANDEM_T_MOBI_BT
+        pumpStatus.pumpType = PumpType.TANDEM_MOBI_BT
         pumpStatus.pumpDriverMode = this.wantedDriverMode
     }
 
@@ -841,7 +841,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                     pumpSync.syncStopTemporaryBasalWithPumpId(
                         timestamp = System.currentTimeMillis(),
                         pumpSerial = serialNumber(),
-                        pumpType = PumpType.TANDEM_T_MOBI_BT,
+                        pumpType = PumpType.TANDEM_MOBI_BT,
                         endPumpId = getPrefixedIdForDb(pumpEventId = tbrId, isBolus = false)
                     )
 
@@ -1023,7 +1023,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             aapsLogger.debug(TAG, "  Pump Profile:     null, returning false")
             return false
         } else {
-            val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArrayV2(profile, PumpType.TANDEM_T_MOBI_BT)
+            val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArrayV2(profile, PumpType.TANDEM_MOBI_BT)
             val profileDriver = ProfileUtil.getProfilesByHourToString(pumpStatus.basalsByHour)
 
             aapsLogger.debug(TAG, "AAPS Profile:     $profileAsString")
@@ -1359,7 +1359,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                     timestamp = controlCommandResponse.start!!,
                     isAbsolute = false,
                     pumpSerial = serialNumber(),
-                    pumpType = PumpType.TANDEM_T_MOBI_BT,
+                    pumpType = PumpType.TANDEM_MOBI_BT,
                     type = tbrType,
                     duration = (controlCommandResponse.durationMinutes * 60 * 1000).toLong(),
                     rate = percent.toDouble(),
@@ -1455,7 +1455,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 // pumpSync.syncStopTemporaryBasalWithPumpId(
                 //     timestamp = System.currentTimeMillis(),
                 //     pumpSerial = serialNumber(),
-                //     pumpType = PumpType.TANDEM_T_MOBI_BT,
+                //     pumpType = PumpType.TANDEM_MOBI_BT,
                 //     endPumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus =false)
                 // )
                 //
@@ -1488,7 +1488,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             pumpSync.syncStopTemporaryBasalWithPumpId(
                 timestamp = System.currentTimeMillis(),
                 pumpSerial = serialNumber(),
-                pumpType = PumpType.TANDEM_T_MOBI_BT,
+                pumpType = PumpType.TANDEM_MOBI_BT,
                 endPumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus = false)
             )
 
