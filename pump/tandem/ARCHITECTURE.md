@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Tandem module provides an insulin pump driver for Tandem t:slim X2 and t:mobi devices, enabling AndroidAPS to communicate with these pumps via Bluetooth Low Energy (BLE) for closed-loop insulin delivery.
+The Tandem module provides an insulin pump driver for Tandem t:slim X2 and Tandem Mobi devices, enabling AndroidAPS to communicate with these pumps via Bluetooth Low Energy (BLE) for closed-loop insulin delivery.
 
 ## Module Structure
 
@@ -19,8 +19,8 @@ pump/tandem/
 │   │   ├── queue/                  # Command queue extensions
 │   │   ├── service/                # Android service for pump connection
 │   │   └── ui/                     # Shared UI components
-│   ├── t_mobi/                     # t:mobi specific implementation
-│   │   ├── driver/                 # t:mobi driver configuration
+│   ├── t_mobi/                     # Tandem Mobi specific implementation
+│   │   ├── driver/                 # Tandem Mobi driver configuration
 │   │   └── ui/                     # Jetpack Compose UI
 │   └── t_slim/                     # t:slim X2 implementation (on hold)
 └── build.gradle.kts                # Dependencies including pumpX2 library
@@ -48,7 +48,7 @@ class TandemMobiPumpPlugin @Inject constructor(...)
       pluginDescription = PluginDescription()
         .mainType(PluginType.PUMP)
         .fragmentClass(TandemMobiPumpFragment::class.java.name),
-      pumpType = PumpType.TANDEM_T_MOBI_BT,
+      pumpType = PumpType.TANDEM_MOBI_BT,
       ...
   ), Pump, PluginConstraints, PumpDataRefreshCapable
 ```
@@ -199,7 +199,7 @@ The driver delegates protocol implementation to the pumpX2 library:
 Different firmware versions support different API versions (TandemPumpApiVersion.kt):
 - VERSION_2_1_to_2_4 - t:slim X2 with Basal IQ
 - VERSION_2_5_OR_HIGHER - t:slim X2 with Control IQ
-- VERSION_3_5_MOBI, VERSION_3_6_MOBI, VERSION_3_8_MOBI - t:mobi variants
+- VERSION_3_5_MOBI, VERSION_3_6_MOBI, VERSION_3_8_MOBI - Tandem Mobi variants
 
 The connector selects appropriate request/response classes based on detected API version.
 
@@ -536,7 +536,7 @@ Provides:
 ## Limitations
 
 **Current Implementation:**
-- t:mobi fully supported for closed-loop
+- Tandem Mobi fully supported for closed-loop
 - t:slim X2 implementation on hold
 - Control IQ must be disabled for closed-loop operation
 - Requires initial pairing via t:connect mobile app (recommended)
@@ -642,7 +642,7 @@ Provides:
                            ↓
                     ┌──────────────┐
                     │ Tandem Pump  │
-                    │   (t:mobi)   │
+                    │ Tandem Mobi │
                     └──────────────┘
 
               Supporting Components:

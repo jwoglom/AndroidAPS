@@ -84,7 +84,7 @@ class ProfileUtilTest : TestBase() {
         var profile = ProfileSealed.Pure(pureProfileFromJson(JSONObject(okProfile), dateUtil!!)!!, activePlugin)
 
 
-        val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(profile, PumpType.TANDEM_T_MOBI_BT)
+        val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(profile, PumpType.TANDEM_MOBI_BT)
 
         System.out.println("Profile: $profileAsString")
 
@@ -98,7 +98,7 @@ class ProfileUtilTest : TestBase() {
         var profile = ProfileSealed.Pure(pureProfileFromJson(JSONObject(okProfile), dateUtil!!)!!, activePlugin)
 
 
-        val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArrayV2(profile, PumpType.TANDEM_T_MOBI_BT)
+        val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArrayV2(profile, PumpType.TANDEM_MOBI_BT)
 
         System.out.println("Profile: $profileAsString")
 

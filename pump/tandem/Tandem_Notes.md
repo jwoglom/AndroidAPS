@@ -1,7 +1,7 @@
 # Tandem
 At the moment it seems that t:slim X2 won't have capabilities to support closed loop, so that part
 of the project is put on hold now. I refactored code, so that Mobi code Slim code are separate where
-needed and common where it isn't. Project is now targeting t:mobi device and if at some point
+needed and common where it isn't. Project is now targeting Tandem Mobi device and if at some point
 Slim will support all required remote commands, that part of project can be resurected and made
 work with current code.
 

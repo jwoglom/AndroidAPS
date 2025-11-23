@@ -33,7 +33,7 @@ var LocalTandemDataStore = compositionLocalOf { tandemDataStore }
 @Singleton
 class TandemPumpStatus @Inject constructor(val sp: SP,
                                            val rxBus: RxBus
-) : PumpStatus(PumpType.TANDEM_T_MOBI_BT) {
+) : PumpStatus(PumpType.TANDEM_MOBI_BT) {
 
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
