@@ -1245,7 +1245,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(LTag.PUMPCOMM, "setMaxBolus [bolusAmount=$bolusAmount]")
 
         val responseMessage: SetMaxBolusLimitResponse? = getCommunicationManager()
-            .sendCommand(SetMaxBolusLimitRequest(InsulinUnit.from1To1000(bolusAmount))) as SetMaxBolusLimitResponse?
+            .sendCommand(SetMaxBolusLimitRequest(
+                InsulinUnit.from1To1000(bolusAmount.toDouble()).toInt()
+            )) as SetMaxBolusLimitResponse?
 
         if (responseMessage!=null) {
             return DataCommandResponse(
