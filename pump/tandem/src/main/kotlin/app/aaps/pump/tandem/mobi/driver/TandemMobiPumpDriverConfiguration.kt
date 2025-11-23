@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.driver
+package app.aaps.pump.tandem.mobi.driver
 
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.pump.tandem.common.driver.config.TandemBLESelector
@@ -10,7 +10,7 @@ import javax.inject.Inject
 class TandemMobiPumpDriverConfiguration @Inject constructor(
                                         pumpBLESelector: TandemBLESelector,
 
-) : TandemPumpDriverConfiguration(pumpBLESelector,PumpType.TANDEM_T_MOBI_BT) {
+) : TandemPumpDriverConfiguration(pumpBLESelector,PumpType.TANDEM_MOBI_BT) {
 
     override var logPrefix: String = "TandemMobiPumpPlugin::"
 

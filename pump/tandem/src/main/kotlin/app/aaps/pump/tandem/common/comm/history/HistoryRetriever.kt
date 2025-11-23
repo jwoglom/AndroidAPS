@@ -21,7 +21,7 @@ import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.keys.TandemStringNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.t_mobi.TandemMobiPluginVersion
+import app.aaps.pump.tandem.mobi.TandemMobiPluginVersion
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package app.aaps.pump.tandem.t_mobi.ui
+package app.aaps.pump.tandem.mobi.ui
 
 import android.content.Context
 import android.content.res.Configuration
@@ -12,10 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BackupTable
 import androidx.compose.material.icons.filled.Create
-import androidx.compose.material.icons.filled.EventAvailable
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -31,58 +28,52 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.ui.compose.ComposeUiProvider
 import app.aaps.core.interfaces.ui.compose.DaggerComponentActivity
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
 import app.aaps.pump.tandem.common.data.defs.RefreshData
-import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
-import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
-import app.aaps.pump.tandem.common.database.data.DbDataHandler
-import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
+import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.di.TandemComposeUiComponent
-import app.aaps.pump.tandem.t_mobi.ui.actions.Actions
-import app.aaps.pump.tandem.t_mobi.ui.data.DataDisplayMain
-import app.aaps.pump.tandem.t_mobi.ui.data.History
-import app.aaps.pump.tandem.t_mobi.ui.data.Notifications
-import app.aaps.pump.tandem.t_mobi.ui.data.QualifyingEvents
-import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
+import app.aaps.pump.tandem.mobi.ui.actions.Actions
+import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
+import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
+import app.aaps.pump.tandem.mobi.ui.actions.cartridge.SiteReminder
+import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
-import java.time.LocalDateTime
-import java.time.ZoneId
 import javax.inject.Inject
 
 
-class DataActivity : DaggerComponentActivity() {
+class ActionsActivity : DaggerComponentActivity() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var tandemPumpStatus: TandemPumpStatus
     @Inject lateinit var tandemPumpUtil: TandemPumpUtil
     @Inject lateinit var context: Context
+    @Inject lateinit var preferences: Preferences
     @Inject lateinit var tandemPumpConnector: TandemPumpConnector
     @Inject lateinit var resourceHelper: ResourceHelper
-    @Inject lateinit var dbDataHandler: DbDataHandler
 
 
-    var sectionState: DataLandingSection = DataLandingSection.DATA
-    var navController: NavHostController? = null
+    var sectionState: ActionsLandingSection = ActionsLandingSection.ACTIONS
+
     var TAG = LTag.PUMPCOMM
+
+    lateinit var tandemUICommunication : TandemUICommunication
 
     val isDarkTheme: Boolean
         get() = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
             Configuration.UI_MODE_NIGHT_YES
-
-    lateinit var tandemUICommunication : TandemUICommunication
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,8 +89,23 @@ class DataActivity : DaggerComponentActivity() {
                                                       pumpUtil = tandemPumpUtil,
                                                       aapsLogger= aapsLogger)
 
+        // val date = sharedPreferences.getLong("test_reminder_date", -1L)
+        //
+        // aapsLogger.error(TAG, "Loading Reminder Date: $date")
+        //
+        // if (date != -1L) {
+        //     if (date > System.currentTimeMillis()) {
+        //         reminderDate = date
+        //     }
+        // }
+
+
+
         enableEdgeToEdge()
         setContent {
+
+            val ds = LocalTandemDataStore.current
+            ds.reminderDateTime.value = tandemPumpStatus.tandemSiteReminder
 
             var selectedItem by remember { mutableStateOf(sectionState) }
             val scaffoldState = rememberBottomSheetScaffoldState()
@@ -107,10 +113,19 @@ class DataActivity : DaggerComponentActivity() {
             DisposableEffect(Unit) {
                 onDispose {
                     aapsLogger.info(LTag.PUMP, "Data Activity was closed. Sending event to refresh.")
-                    tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.SEMAPHORE_EVENTS))
+
+                    if (ds.reminderDateTimeUpdated.value == true) {
+                        aapsLogger.error(TAG, "Reminder Date Time: ${ds.reminderDateTime.value}")
+
+                        preferences.put(TandemLongNonPreferenceKey.SiteReminderDateTime, ds.reminderDateTime.value!!)
+                        tandemPumpStatus.tandemSiteReminder = ds.reminderDateTime.value!!
+                    }
+
+                    // we might be able to specify more exactly what here happens but for now this is ok, see DataActivity and method refreshMainAppData
+                    tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS,
+                                                            RefreshData.PUMP_INSULIN_LEVEL))
                 }
             }
-
 
             TMobiScreensTheme(darkTheme = tandemPumpUtil.isAAPSDarkTheme(isSystemDarkTheme = isDarkTheme)) {
                 Scaffold(
@@ -126,63 +141,60 @@ class DataActivity : DaggerComponentActivity() {
                             Box(Modifier.fillMaxHeight()) {
                                 when (selectedItem) {
 
-                                    DataLandingSection.DATA -> {
-                                        DataDisplayMain(
+
+                                    ActionsLandingSection.ACTIONS -> {
+                                        Actions(
                                             innerPadding = innerPadding,
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
+                                            aapsLogger = aapsLogger,
+                                            resourceHelper = resourceHelper,
+                                            navigateToPumpInfo = {
+                                                selectedItem = ActionsLandingSection.PUMP_INFO
+                                            },
+                                            navigateToCartridgeActions = {
+                                                selectedItem = ActionsLandingSection.CARTRIDGE_ACTIONS
+                                            }
+                                        )
+                                    }
+
+
+                                    ActionsLandingSection.PUMP_INFO -> {
+                                        PumpInfo(
+                                            innerPadding = innerPadding,
+                                            resourceHelper = resourceHelper,
+                                            tandemPumpStatus = tandemPumpStatus,
+                                            navigateBack = {
+                                                selectedItem = ActionsLandingSection.ACTIONS
+                                            },
+                                        )
+                                    }
+
+
+                                    ActionsLandingSection.CARTRIDGE_ACTIONS -> {
+                                        CartridgeActions(
+                                            innerPadding = innerPadding,
+                                            aapsLogger = aapsLogger,
                                             //navController = navController,
                                             sendPumpCommands = { messages -> sendPumpCommands(messages) },
-                                            //refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
-                                            aapsLogger = aapsLogger,
                                             resourceHelper = resourceHelper,
-                                            navigateToPumpHistory = {
-                                                selectedItem = DataLandingSection.DATA_HISTORY
+                                            navigateToSiteReminder = {
+                                                selectedItem = ActionsLandingSection.SITE_REMINDER
                                             },
-                                            navigateToEvents = {
-                                                selectedItem = DataLandingSection.DATA_EVENTS
-                                            },
-                                            navigateToNotifications = {
-                                                selectedItem = DataLandingSection.DATA_NOTIFICATIONS
-                                            },
-                                        )
-                                    }
-
-                                    DataLandingSection.DATA_HISTORY -> {
-                                        History(
-                                            innerPadding = innerPadding,
-                                            refreshDatabase = { target, queryParameters -> refreshDatabase(target, queryParameters) },
-                                            refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
-                                            aapsLogger = aapsLogger,
-                                            resourceHelper = resourceHelper,
                                             navigateBack = {
-                                                selectedItem = DataLandingSection.DATA
-                                            },
-                                        )
-                                    }
-
-                                    DataLandingSection.DATA_EVENTS -> {
-                                        QualifyingEvents (
-                                            innerPadding = innerPadding,
-                                            aapsLogger = aapsLogger,
-                                            resourceHelper = resourceHelper,
-                                            refreshDatabase = { target, queryParameters -> refreshDatabase(target, queryParameters) },
-                                            refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
-                                            navigateBack = {
-                                                selectedItem = DataLandingSection.DATA
+                                                selectedItem = ActionsLandingSection.ACTIONS
                                             },
                                         )
                                     }
 
 
-                                    DataLandingSection.DATA_NOTIFICATIONS -> {
-                                        Notifications(
+                                    ActionsLandingSection.SITE_REMINDER -> {
+                                        SiteReminder(
                                             innerPadding = innerPadding,
                                             resourceHelper = resourceHelper,
                                             aapsLogger = aapsLogger,
-                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
-                                            refreshMainAppData = { refreshData -> refreshMainAppData(refreshData = refreshData)},
                                             navigateBack = {
-                                                selectedItem = DataLandingSection.DATA
-                                            }
+                                                selectedItem = ActionsLandingSection.CARTRIDGE_ACTIONS
+                                            },
                                         )
                                     }
 
@@ -196,11 +208,13 @@ class DataActivity : DaggerComponentActivity() {
         }
     }
 
+
     override fun onResume() {
         super.onResume()
         this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
         this.tandemPumpUtil.preventConnect = true
     }
+
 
 
     override fun onStop() {
@@ -223,9 +237,9 @@ class DataActivity : DaggerComponentActivity() {
             sb.append(", ${msg.javaClass.name}")
         }
 
-        val listText = sb.substring(2);
+        val listText = sb.substring(2)
 
-        aapsLogger.debug(TAG, "PumpCommands to Send [commands=${listText}]")
+        aapsLogger.warn(TAG, "PumpCommands to Send [commands=${listText}]")
 
         for (msg in msgs) {
             tandemUICommunication.sendCommand(msg)
@@ -235,94 +249,19 @@ class DataActivity : DaggerComponentActivity() {
 
     }
 
-    val ds = tandemDataStore
-    var count = 1
 
-
-    private fun refreshMainAppData(refreshData: RefreshData) {
-        when(refreshData) {
-            RefreshData.SEMAPHORE_HISTORY       -> {
-                tandemPumpStatus.semaphoreHistory = false
-                tandemPumpStatus.semaphoreNeedsRefresh = true
-            }
-            RefreshData.SEMAPHORE_EVENTS        -> {
-                tandemPumpStatus.semaphoreEvents = false
-                tandemPumpStatus.semaphoreNeedsRefresh = true
-            }
-            RefreshData.SEMAPHORE_NOTIFICATIONS -> {
-                tandemPumpStatus.semaphoreNotifications = false
-                tandemPumpStatus.semaphoreNeedsRefresh = true
-            }
-            else -> {}
-        }
-    }
-
-
-    private fun refreshDatabase(databaseTarget: DatabaseTarget, queryParameters: DatabaseQueryParameters) {
-        val jsonParamVal = tandemPumpUtil.gson.toJson(queryParameters)
-
-        aapsLogger.debug(TAG, "refreshDatabase: called with target=${databaseTarget.name} and parameters=$jsonParamVal")
-
-        when(databaseTarget) {
-            DatabaseTarget.QUALIFYING_EVENTS -> {
-
-                val currentQEItemsBlocking = dbDataHandler.getCurrentQEItemsBlocking();
-
-                val list: MutableList<TandemQualifyingEventDto> = mutableListOf()
-
-                for (entity in currentQEItemsBlocking) {
-                    val instantTime = java.time.Instant.ofEpochMilli(entity.dateTime)
-
-                    aapsLogger.error("QE: " + instantTime)
-
-                    val eventDto = TandemQualifyingEventDto(
-                        dateTime = LocalDateTime.ofInstant(instantTime, ZoneId.systemDefault()),
-                        name = QualifyingEvent.valueOf(entity.name),
-                        description = if (entity.description==null) "" else  entity.description!!
-                    )
-
-                    list.add(eventDto)
-                }
-
-
-                val list2 = ds.dataQE.value!!
-
-                list2.clear()
-                list2.addAll(list)
-
-                ds.dataQELoaded.value = true
-
-                aapsLogger.error(TAG, "QE Items ${list2.size}")
-
-            }
-            DatabaseTarget.PUMP_HISTORY      -> {
-
-                val list = dbDataHandler.getHistoryRecords(queryParameters)
-
-                val list2 = ds.dataHistory.value!!
-
-                list2.clear()
-                list2.addAll(list)
-
-                aapsLogger.error(TAG, "History Items ${list2.size}")
-
-                ds.dataHistoryLoaded.value = true
-            }
-        }
-
-    }
 
 
 }
 
 // HACK: subpages should have the same label as an item appearing in the nav
 // so that item appears as selected when it is navigated to within the app
-enum class DataLandingSection(val label: String, val icon: ImageVector) {
+enum class ActionsLandingSection(val label: String, val icon: ImageVector) {
 
-    DATA("Data", Icons.Filled.Create),
-    DATA_HISTORY("History", Icons.Filled.BackupTable),
-    DATA_EVENTS("Events", Icons.Filled.EventAvailable),
-    DATA_NOTIFICATIONS("Notifications", Icons.Filled.Notifications),
+    ACTIONS("Actions", Icons.Filled.Create),
+    CARTRIDGE_ACTIONS("Actions", Icons.Filled.Create),
+    PUMP_INFO("Pump Info", Icons.Filled.Create),
+    SITE_REMINDER("Site Reminder", Icons.Filled.Create)
     ;
 }
 
@@ -330,7 +269,7 @@ enum class DataLandingSection(val label: String, val icon: ImageVector) {
 
 @Preview(showBackground = true)
 @Composable
-fun DataActivity_Preview() {
+fun ActionsActivity_Preview() {
     TMobiScreensTheme {
         TMobiScreensTheme {
             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->

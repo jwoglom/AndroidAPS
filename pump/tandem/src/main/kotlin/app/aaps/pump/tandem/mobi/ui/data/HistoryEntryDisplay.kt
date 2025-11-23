@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.ui.data
+package app.aaps.pump.tandem.mobi.ui.data
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,9 +21,9 @@ import androidx.compose.ui.unit.dp
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
-import app.aaps.pump.tandem.t_mobi.ui.util.DottedDivider
-import app.aaps.pump.tandem.t_mobi.ui.util.dateTimeFormatter24h
-import app.aaps.pump.tandem.t_mobi.ui.util.timeInMillisToLocalDateTime
+import app.aaps.pump.tandem.mobi.ui.util.DottedDivider
+import app.aaps.pump.tandem.mobi.ui.util.dateTimeFormatter24h
+import app.aaps.pump.tandem.mobi.ui.util.timeInMillisToLocalDateTime
 
 @Composable
 fun HistoryEntryDisplay(

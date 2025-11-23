@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.ui.actions
+package app.aaps.pump.tandem.mobi.ui.actions
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,9 +23,9 @@ import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.tandem.t_mobi.ui.theme.TMobiScreensTheme
-import app.aaps.pump.tandem.t_mobi.ui.util.DottedDivider
-import app.aaps.pump.tandem.t_mobi.ui.util.HeaderLineWithBackButton
+import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+import app.aaps.pump.tandem.mobi.ui.util.DottedDivider
+import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 
 @Composable

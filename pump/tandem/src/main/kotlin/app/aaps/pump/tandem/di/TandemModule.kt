@@ -14,13 +14,13 @@ import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.t_mobi.ui.TandemMobiPumpFragment
-import app.aaps.pump.tandem.t_mobi.driver.TandemMobiPumpDriverConfiguration
+import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
+import app.aaps.pump.tandem.mobi.driver.TandemMobiPumpDriverConfiguration
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity
 import app.aaps.pump.tandem.common.util.PumpX2L
-import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
+import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
 import dagger.Binds
 import dagger.multibindings.IntoMap
 

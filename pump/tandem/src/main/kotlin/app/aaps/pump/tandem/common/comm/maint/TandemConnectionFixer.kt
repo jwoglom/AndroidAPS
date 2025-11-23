@@ -4,7 +4,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
-import app.aaps.pump.tandem.t_mobi.TandemMobiPluginVersion
+import app.aaps.pump.tandem.mobi.TandemMobiPluginVersion
 import javax.inject.Inject
 import javax.inject.Singleton
 

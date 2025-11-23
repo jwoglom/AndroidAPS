@@ -1,4 +1,4 @@
-package app.aaps.pump.tandem.t_mobi.ui
+package app.aaps.pump.tandem.mobi.ui
 
 import android.content.Intent
 import android.graphics.Color
@@ -47,8 +47,8 @@ import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
-import app.aaps.pump.tandem.t_mobi.TandemMobiPluginVersion
-import app.aaps.pump.tandem.t_mobi.TandemMobiPumpPlugin
+import app.aaps.pump.tandem.mobi.TandemMobiPluginVersion
+import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
 import com.google.gson.Gson
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
