@@ -15,6 +15,7 @@ import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
+import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import app.aaps.pump.tandem.mobi.driver.TandemMobiPumpDriverConfiguration
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
@@ -64,6 +65,7 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpDriverConfiguration(): TandemMobiPumpDriverConfiguration
     @ContributesAndroidInjector abstract fun contributesTandemMobiPumpPlugin(): TandemMobiPumpPlugin
     @ContributesAndroidInjector abstract fun contributesTandemConnectionFixer(): TandemConnectionFixer
+    @ContributesAndroidInjector abstract fun contributesTandemMobiConnectionWizardActivity(): TandemMobiConnectionWizardActivity
 
 
 

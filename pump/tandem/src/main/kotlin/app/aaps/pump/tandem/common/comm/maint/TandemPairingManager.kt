@@ -51,6 +51,8 @@ import com.jwoglom.pumpx2.util.timber.LConfigurator
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import java.util.*
+import app.aaps.pump.tandem.common.events.EventTandemPairingStatus
+import app.aaps.pump.tandem.common.events.PairingError
 
 /**
  * This is low-level driver that does pairing with pump
@@ -82,6 +84,9 @@ class TandemPairingManager constructor(
     var bluetoothHandler: TandemBluetoothHandler? = null
     var finishActivity = false
 
+    private var pairingCodeToUse: String? = null
+    private var pairingStartTime: Long = 0
+
     //private var disposable: CompositeDisposable = CompositeDisposable()
 
     fun startPairing() {
@@ -94,6 +99,19 @@ class TandemPairingManager constructor(
         showToast( "Staring pairing with Tandem, this can take some time, please don't press anything until its done.") // TODO TandemPairingManager N-5
 
         bluetoothHandler!!.startScan()
+    }
+
+    /**
+     * Start pairing with a specific pairing code provided by the user
+     * This is the recommended entry point for wizard-based pairing
+     */
+    fun startPairingWithCode(pairingCode: String) {
+        aapsLogger.info(TAG, "start Pairing with code")
+        this.pairingCodeToUse = pairingCode
+        this.pairingStartTime = System.currentTimeMillis()
+
+        rxBus.send(EventTandemPairingStatus.PairingStarted)
+        startPairing()
     }
 
     fun shutdownPairingManager() {
@@ -166,6 +184,7 @@ class TandemPairingManager constructor(
             preferences.put(TandemIntPreferenceKey.PumpPairStatus, 90)
             val timeSinceResponse = message
             aapsLogger.info(TAG, "TimeSinceResetResponse: ${timeSinceResponse}")
+
         } else if (message is PumpVersionResponse) {
             aapsLogger.info(TAG, "TANDEM-PAIR-DBG: got PumpVersionResponse")
 
@@ -179,13 +198,20 @@ class TandemPairingManager constructor(
             //sp.putString(TandemPumpConst.Prefs.PumpVersionResponse, pumpUtil.gson.toJson(message))
             preferences.put(TandemStringPreferenceKey.PumpVersionResponse, tandemPumpUtil.gson.toJson(message))
 
-            pumpStatus.serialNumber = pumpVersionResponse.serialNum
+            pumpStatus.serialNumber = pumpVersionResponse.serialNum.toLong()
 
             pumpSync.connectNewPump()
 
             finalPairingStatus()
 
             rxBus.send(EventPumpConnectionParametersChanged())
+
+            // Send pairing success event with pump details
+            val pumpName = preferences.get(TandemStringPreferenceKey.PumpName)
+            rxBus.send(EventTandemPairingStatus.PairingSuccess(
+                pumpSerial = pumpVersionResponse.serialNum.toString(),
+                pumpName = pumpName
+            ))
 
             showToast("Pairing with Tandem was SUCCESS.") // TODO TandemPairingManager N-5
 
@@ -204,12 +230,19 @@ class TandemPairingManager constructor(
 
         aapsLogger.info(TAG, "TANDEM-PAIR-DBG: onWaitingForPairingCode:")
 
-        preferences.put(TandemStringPreferenceKey.PumpPairCode, TandemPumpConfig.pumpPin)
-        //sp.putString(TandemPumpConst.Prefs.PumpPairCode, TandemPumpConfig.pumpPin)
-        // TODO this will need to be read from dialog when we have it
+        rxBus.send(EventTandemPairingStatus.WaitingForCode)
 
-        // TODO pairingCode needs to be read from user interface
-        pair(peripheral, centralChallenge, TandemPumpConfig.pumpPin)
+        // Use the pairing code provided via startPairingWithCode, or fall back to empty string
+        val code = pairingCodeToUse ?: TandemPumpConfig.pumpPin
+
+        preferences.put(TandemStringPreferenceKey.PumpPairCode, code)
+        preferences.put(TandemIntPreferenceKey.PumpPairStatus, 40)
+
+        aapsLogger.info(TAG, "Using pairing code for pump pairing")
+
+        pair(peripheral, centralChallenge, code)
+        preferences.put(TandemIntPreferenceKey.PumpPairStatus, 50)
+        rxBus.send(EventTandemPairingStatus.Connecting)
     }
 
     // private fun hasPairingCode(peripheral: BluetoothPeripheral?, btAddress: String, challenge: AbstractCentralChallengeResponse?, pairingCode: String) {
@@ -401,6 +434,65 @@ class TandemPairingManager constructor(
     fun getStringPreference(key: TandemStringPreferenceKey, defaultValue: String?): String {
         return tandemPumpUtil
             .getStringPreferenceOrDefault(key, defaultValue)
+    }
+
+    /**
+     * Check if pairing has timed out and send appropriate error event
+     * Returns true if timeout occurred
+     */
+    fun checkPairingTimeout(): Boolean {
+        val elapsed = System.currentTimeMillis() - pairingStartTime
+        val status = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1)
+
+        if (elapsed > 30000 && status < 100) { // 30 second timeout
+            aapsLogger.error(TAG, "Pairing timeout: status=$status, elapsed=${elapsed}ms")
+
+            val error = when (status) {
+                40, 50 -> PairingError.IncorrectPIN  // Stuck at waiting/entered code
+                70 -> PairingError.ConnectionTimeout  // Connected but no response
+                else -> PairingError.BluetoothError
+            }
+
+            rxBus.send(EventTandemPairingStatus.PairingFailed(error))
+            stopBluetoothHandler()
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Clear all pairing data to allow re-pairing with a pump
+     */
+    fun clearPairingData() {
+        aapsLogger.info(TAG, "Clearing pairing data for re-pairing")
+
+        // Clear preferences
+        preferences.put(TandemIntPreferenceKey.PumpPairStatus, -1)
+        preferences.put(TandemStringPreferenceKey.PumpAddress, "")
+        preferences.put(TandemStringPreferenceKey.PumpPairCode, "")
+        preferences.put(TandemStringPreferenceKey.PumpSerial, "")
+        preferences.put(TandemStringPreferenceKey.PumpName, "")
+        preferences.put(TandemStringPreferenceKey.PumpVersionResponse, "")
+        preferences.put(TandemStringPreferenceKey.PumpApiVersion, "")
+
+        // Clear PumpX2 library state
+        try {
+            //PumpState.clearState(context)
+            aapsLogger.info(TAG, "PumpState cleared successfully")
+        } catch (e: Exception) {
+            aapsLogger.error(TAG, "Error clearing PumpState", e)
+        }
+
+        // Reset pump status
+        pumpStatus.serialNumber = 0L
+        pumpStatus.errorDescription = ""
+
+        // Reset instance variables
+        pairingCodeToUse = null
+        pairingStartTime = 0
+
+        // Notify UI
+        rxBus.send(EventPumpConnectionParametersChanged())
     }
 
 

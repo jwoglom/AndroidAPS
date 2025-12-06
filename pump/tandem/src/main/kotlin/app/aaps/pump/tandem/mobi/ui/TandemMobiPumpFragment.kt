@@ -30,6 +30,7 @@ import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.R as Rc
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import dagger.android.support.DaggerFragment
 
 import app.aaps.pump.common.defs.PumpDriverState
@@ -46,6 +47,7 @@ import app.aaps.pump.tandem.databinding.TandemMobiFragmentBinding
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.mobi.TandemMobiPluginVersion
 import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
@@ -115,16 +117,28 @@ class TandemMobiPumpFragment : DaggerFragment() {
         }
 
         binding.pumpHistory.setOnClickListener {
-            startActivity(Intent(context, DataActivity::class.java))
+            //startActivity(Intent(context, DataActivity::class.java))
         }
 
         binding.pumpConfig.setOnClickListener {
-            startActivity(Intent(context, ActionsActivity::class.java))
+            //startActivity(Intent(context, ActionsActivity::class.java))
+        }
+
+        binding.pumpPairButton.setOnClickListener {
+            val isPaired = pumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1) == 100
+            val intent = Intent(context, TandemMobiConnectionWizardActivity::class.java).apply {
+                if (isPaired) {
+                    putExtra(TandemMobiConnectionWizardActivity.EXTRA_IS_RE_PAIRING, true)
+                }
+            }
+            startActivity(intent)
         }
 
         setVisibilityOfDriverVersion()
 
         disableLastPumpEvent()
+
+        updatePairButtonText()
 
     }
 
@@ -137,6 +151,16 @@ class TandemMobiPumpFragment : DaggerFragment() {
         binding.pumpRefreshMobi.isEnabled = enabled
         binding.pumpHistory.isEnabled = enabled
         binding.pumpConfig.isEnabled = enabled
+        binding.pumpPairButton.isEnabled = enabled
+    }
+
+    private fun updatePairButtonText() {
+        val isPaired = pumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1) == 100
+        binding.pumpPairButton.text = if (isPaired) {
+            resourceHelper.gs(R.string.tandem_repair_pump)
+        } else {
+            resourceHelper.gs(R.string.tandem_pair_pump)
+        }
     }
 
 
@@ -176,6 +200,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
         //this.gson = TandemPumpUtil
 
         updateGUI(PumpUpdateFragmentType.Full)
+        updatePairButtonText()
     }
 
     @Synchronized

@@ -334,7 +334,56 @@
     <string name="common_off">Off</string>
     <string name="common_close">Close</string>
 
+    <!-- Connection Wizard -->
+    <string name="tandem_pair_pump">Pair Pump</string>
+    <string name="tandem_repair_pump">Re-pair Pump</string>
+    <string name="tandem_wizard_title">Tandem Mobi Connection Wizard</string>
 
+    <!-- Introduction Screen -->
+    <string name="tandem_wizard_intro_title">Pair Your Tandem Mobi Pump</string>
+    <string name="tandem_wizard_repair_title">Re-pair Your Tandem Mobi Pump</string>
+    <string name="tandem_wizard_intro_description">This wizard will guide you through pairing your Tandem Mobi pump with your phone via Bluetooth.</string>
+    <string name="tandem_wizard_intro_prerequisites">Prerequisites:\n• Pump is nearby and powered on\n• Bluetooth is enabled on your phone\n• You have the 6-digit PIN from the pump</string>
+    <string name="tandem_wizard_begin_pairing">Begin Pairing</string>
+
+    <!-- Device Selection -->
+    <string name="tandem_wizard_waiting_device_selection">Please select your pump from the device list...</string>
+
+    <!-- PIN Entry Screen -->
+    <string name="tandem_wizard_enter_pin_title">Enter Pairing PIN</string>
+    <string name="tandem_wizard_selected_device">Selected: %1$s\n%2$s</string>
+    <string name="tandem_wizard_enter_pin_description">Enter the 6-digit PIN displayed on the pump.</string>
+    <string name="tandem_wizard_pin_label">6-Digit PIN</string>
+    <string name="tandem_wizard_connect">Connect</string>
+    <string name="tandem_wizard_back_to_scan">Back to Scan</string>
+
+    <!-- Pairing Screen -->
+    <string name="tandem_wizard_pairing_title">Connecting to Pump</string>
+    <string name="tandem_wizard_pairing_in_progress">Please wait...</string>
+    <string name="tandem_wizard_pairing_starting">Starting pairing process...</string>
+    <string name="tandem_wizard_pairing_waiting_code">Waiting for pairing code...</string>
+    <string name="tandem_wizard_pairing_connecting">Connecting to pump...</string>
+    <string name="tandem_wizard_pairing_connected">Connected</string>
+    <string name="tandem_wizard_pairing_getting_info">Getting pump information...</string>
+    <string name="tandem_wizard_pairing_finalizing">Finalizing connection...</string>
+
+    <!-- Error Screen -->
+    <string name="tandem_wizard_error_title">Pairing Failed</string>
+    <string name="tandem_wizard_error_incorrect_pin">The PIN you entered was incorrect. Please verify the 6-digit PIN displayed on the pump.</string>
+    <string name="tandem_wizard_error_timeout">Could not connect to the pump. Make sure the pump is nearby and Bluetooth is enabled.</string>
+    <string name="tandem_wizard_error_bluetooth">A Bluetooth error occurred. Try turning Bluetooth off and on, then retry.</string>
+    <string name="tandem_wizard_error_unknown">An unknown error occurred during pairing. Please try again.</string>
+    <string name="tandem_wizard_retry_count">Attempt %1$d</string>
+    <string name="tandem_wizard_edit_pin">Edit PIN</string>
+    <string name="tandem_wizard_retry">Retry</string>
+    <string name="tandem_wizard_cancel_rescan">Cancel and Rescan</string>
+
+    <!-- Success Screen -->
+    <string name="tandem_wizard_success_title">Successfully Connected!</string>
+    <string name="tandem_wizard_success_description">Your Tandem Mobi pump has been paired successfully.</string>
+    <string name="tandem_wizard_pump_name_label">Pump Name</string>
+    <string name="tandem_wizard_pump_serial_label">Serial Number</string>
+    <string name="tandem_wizard_finish">Finish</string>
 
 
 

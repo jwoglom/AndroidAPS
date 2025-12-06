@@ -70,12 +70,14 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     var disconnectData: DisconnectDataDto? = null
 
 
-    // TODO: this shouldn't be initialized with fake data
     fun initSettings() {
-        activeProfileName = "A"
-        reservoirRemainingUnits = 75.0
-        reservoirFullUnits = 200
-        batteryRemaining = 75
+        activeProfileName = ""
+        reservoirRemainingUnits = 0.0
+        reservoirFullUnits = when {
+            pumpType == PumpType.TANDEM_MOBI_BT -> 200
+            else -> 300
+        }
+        batteryRemaining = -1
         lastConnection = 0L //sp.getLong(TandemPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         lastDataTime = lastConnection
     }

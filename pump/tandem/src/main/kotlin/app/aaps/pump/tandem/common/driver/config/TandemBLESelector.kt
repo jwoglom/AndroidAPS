@@ -27,6 +27,7 @@ import app.aaps.pump.common.ui.PumpBLEConfigActivity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
+import app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity
 import app.aaps.pump.tandem.common.util.PumpX2L
 
 import javax.inject.Inject
@@ -105,12 +106,23 @@ class TandemBLESelector @Inject constructor(
 
         aapsLogger.debug(TAG, "TANDEMDBG: onDeviceSelected: ${bleAddress} ")
 
+        val selectionOnly = activity.intent?.getBooleanExtra(TandemPumpBLEConfigActivity.EXTRA_SELECTION_ONLY, false) ?: false
+
         //var addressChanged = false
 
         // set pump address
         //if (setSystemParameterForBT(TandemPumpConst.Prefs.PumpAddress, bleAddress)) {
             //addressChanged = true
             cleanSP()
+
+            val sanitizedName = bluetoothDevice.name ?: getUnknownPumpName()
+            preferences.put(TandemStringPreferenceKey.PumpAddress, bleAddress)
+            preferences.put(TandemStringPreferenceKey.PumpName, sanitizedName)
+
+            if (selectionOnly) {
+                aapsLogger.debug(TAG, "TANDEMDBG: Selection-only mode, deferring pairing until wizard requests it")
+                return
+            }
 
             //rxBus.send(EventPumpConnectionParametersChanged())
 

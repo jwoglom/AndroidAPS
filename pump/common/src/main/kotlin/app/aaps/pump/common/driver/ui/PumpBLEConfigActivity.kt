@@ -2,6 +2,7 @@ package app.aaps.pump.common.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -122,6 +123,7 @@ open class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
                 aapsLogger.debug(TAG, "Device FOUND in deviceMap: $bleAddress")
                 val bluetoothDevice = devicesMap[bleAddress]
                 bleSelector.onDeviceSelected(bluetoothDevice!!, bleAddress, deviceName, this)
+                setResult(Activity.RESULT_OK)
 
                 if (bleSelector.onDeviceSelectedClosesActivity()) {
                     finish()

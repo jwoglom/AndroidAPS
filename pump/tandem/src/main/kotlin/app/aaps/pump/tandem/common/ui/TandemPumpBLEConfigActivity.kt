@@ -112,4 +112,7 @@ class TandemPumpBLEConfigActivity : PumpBLEConfigActivity() {
 
 
 
+    companion object {
+        const val EXTRA_SELECTION_ONLY = "tandem_selection_only"
+    }
 }

@@ -22,6 +22,10 @@
 
         <activity android:name="app.aaps.pump.tandem.mobi.ui.ActionsActivity" />
         <activity android:name="app.aaps.pump.tandem.mobi.ui.DataActivity" />
+        <activity
+            android:name="app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity"
+            android:theme="@style/AppTheme"
+            android:exported="false" />
 
 
         <service
