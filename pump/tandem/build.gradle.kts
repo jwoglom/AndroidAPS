@@ -8,13 +8,6 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
-// buildscript {
-//     ext {
-//         jwoglom_pumpx2_version = 'v1.2.9'
-//         compose_version = '1.3.1'
-//     }
-// }
-
 android {
 
     namespace = "app.aaps.pump.tandem"
@@ -83,18 +76,6 @@ dependencies {
     // pumpX2
     implementation(libs.com.jakewharton.timber)
     implementation(libs.com.github.weliem.blessed.android)
-    //implementation("com.github.jwoglom.pumpX2:pumpx2-android:v1.6.9")
     implementation(libs.com.github.jwoglom.pumpx2.android)
-
-
-    // temporarily X2 released under atech-software instead of jwoglom (some problems with linking)
-    // implementation("com.atech-software.pumpX2:pumpx2-android:v1.4.4.0")
-    // implementation("com.atech-software.pumpX2:pumpx2-messages:v1.4.4.0")
-    // implementation("com.atech-software.pumpX2:pumpx2-shared:v1.4.4.0")
-
-
-//    implementation("com.github.jwoglom.pumpX2:pumpx2-messages:v1.5.10")
-//    implementation("com.github.jwoglom.pumpX2:pumpx2-shared:v1.5.10")
-
 
 }
