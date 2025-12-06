@@ -3,6 +3,8 @@ package app.aaps.pump.tandem.common.comm.ui
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.Notification
+import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
 import app.aaps.pump.tandem.common.comm.data.CommunicationListener
@@ -63,6 +65,8 @@ class TandemUICommunication @Inject constructor (
         }
 
     lateinit var historyRetriever: HistoryRetriever
+
+    @Inject lateinit var uiInteraction: UiInteraction
 
     var messageCount = 0
 
@@ -294,6 +298,12 @@ class TandemUICommunication @Inject constructor (
 
         aapsLogger.error(TAG,"$req was not successful. The pump returned an error fulfilling the request." )
 
+
+        uiInteraction.addNotification(
+            Notification.TANDEM_PUMP_MESSAGE_ERROR,
+            text = "$req was not successful. The pump returned an error fulfilling the request." ,
+            level = Notification.URGENT
+        )
 
 //        val show = AlertDialog.Builder(context)
 //            .setTitle("Failed Pump Request")

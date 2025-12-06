@@ -116,12 +116,16 @@ class TandemMobiPumpFragment : DaggerFragment() {
             })
         }
 
+        binding.pumpDataStatusNotification.setOnClickListener {
+            startActivity(Intent(context, DataActivity::class.java).putExtra("section", DataLandingSection.DATA_NOTIFICATIONS.name))
+        }
+
         binding.pumpHistory.setOnClickListener {
-            //startActivity(Intent(context, DataActivity::class.java))
+            startActivity(Intent(context, DataActivity::class.java))
         }
 
         binding.pumpConfig.setOnClickListener {
-            //startActivity(Intent(context, ActionsActivity::class.java))
+            startActivity(Intent(context, ActionsActivity::class.java))
         }
 
         binding.pumpPairButton.setOnClickListener {

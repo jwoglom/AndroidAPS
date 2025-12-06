@@ -91,6 +91,7 @@ import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
+import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import io.reactivex.rxjava3.kotlin.plusAssign
 
 
@@ -412,10 +413,9 @@ class TandemMobiPumpPlugin @Inject constructor(
 
             val percent = (maxBasalBySettings / baseBasalRate)
 
-            // TODO(jwoglom): use pumpx2 const
-            if (percent > 250) {
+            if (percent > SetTempRateRequest.MAX_PERCENT) {
                 percentRate.set(
-                    250,
+                    SetTempRateRequest.MAX_PERCENT,
                     rh.gs(R.string.tandem_constraint_basal_rate_percent, percentRate.value()),
                     this
                 )
@@ -427,10 +427,9 @@ class TandemMobiPumpPlugin @Inject constructor(
                 )
             }
         } else {
-            // TODO(jwoglom): use pumpx2 const
-            if (percentRate.value() > 250) {
+            if (percentRate.value() > SetTempRateRequest.MAX_PERCENT) {
                 percentRate.set(
-                    250,
+                    SetTempRateRequest.MAX_PERCENT,
                     rh.gs(R.string.tandem_constraint_basal_rate_percent, percentRate.value()),
                     this
                 )

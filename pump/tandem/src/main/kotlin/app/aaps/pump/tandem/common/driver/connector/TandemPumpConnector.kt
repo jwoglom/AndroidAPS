@@ -190,6 +190,14 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         }
 
         if (!newBtAddress.isNullOrEmpty()) {
+            // Disconnect any existing connection before creating a new manager
+            // This ensures we start fresh, especially important after pairing
+            if (tandemCommunicationManager != null) {
+                aapsLogger.info(TAG, "Disconnecting existing connection before creating new manager for $newBtAddress")
+                tandemCommunicationManager!!.disconnect()
+                tandemCommunicationManager = null
+                btAddressUsed = null
+            }
 
             // TODO(jwoglom): AAPS should conditionally set this to allow for safer pump simulation
             PumpState.enableActionsAffectingInsulinDelivery()

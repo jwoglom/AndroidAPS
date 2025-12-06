@@ -91,6 +91,12 @@ class DataActivity : DaggerComponentActivity() {
             .getComposeUiModule("tandem") as TandemComposeUiComponent
 
         composeUiComponent.inject(this)
+        
+        if (savedInstanceState != null && savedInstanceState.getString("section") != null) {
+            sectionState = DataLandingSection.entries.find {
+                o -> o.name == savedInstanceState.getString("section")
+            } ?: DataLandingSection.DATA
+        }
 
         tandemUICommunication = TandemUICommunication(dataStore = tandemDataStore,
                                                       pumpStatus = tandemPumpStatus,
