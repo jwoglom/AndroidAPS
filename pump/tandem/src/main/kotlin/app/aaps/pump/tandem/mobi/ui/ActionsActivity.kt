@@ -63,6 +63,7 @@ class ActionsActivity : DaggerComponentActivity() {
     @Inject lateinit var preferences: Preferences
     @Inject lateinit var tandemPumpConnector: TandemPumpConnector
     @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction
 
 
     var sectionState: ActionsLandingSection = ActionsLandingSection.ACTIONS
@@ -87,8 +88,14 @@ class ActionsActivity : DaggerComponentActivity() {
                                                       pumpStatus = tandemPumpStatus,
                                                       context = context,
                                                       pumpUtil = tandemPumpUtil,
-                                                      aapsLogger= aapsLogger)
+                                                      aapsLogger= aapsLogger,
+                                                      uiInteraction = uiInteraction)
 
+        if (intent != null && intent.extras != null && intent.getStringExtra("section") != null) {
+            sectionState = ActionsLandingSection.entries.find {
+                    o -> o.name == intent.getStringExtra("section")
+            } ?: ActionsLandingSection.ACTIONS
+        }
         // val date = sharedPreferences.getLong("test_reminder_date", -1L)
         //
         // aapsLogger.error(TAG, "Loading Reminder Date: $date")

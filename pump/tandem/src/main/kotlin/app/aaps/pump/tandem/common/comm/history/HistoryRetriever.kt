@@ -6,6 +6,7 @@ import androidx.annotation.VisibleForTesting
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
@@ -67,7 +68,8 @@ class HistoryRetriever @Inject constructor(
     val preferences: Preferences,
     val rxBus: RxBus,
     var context: Context,
-    val dbDataHandler: DbDataHandler
+    val dbDataHandler: DbDataHandler,
+    val uiInteraction: UiInteraction
 
 ) {
 
@@ -76,7 +78,7 @@ class HistoryRetriever @Inject constructor(
         const val CHUNK_SIZE = 200 // how many records on each call
         const val HISTORY_LIMIT_IN_DAYS = 44 // how many day of history we are getting
         const val SHORT_RECORDS_RETRIEVAL_AMOUNT = 20 // for short readings we get last x entries only
-        val TAG = LTag.PUMPCOMM
+        val TAG = LTag.PUMPHISTORY
     }
 
     private var maxDateTimeInSec: Int = 0
@@ -109,7 +111,8 @@ class HistoryRetriever @Inject constructor(
                                               pumpStatus = pumpStatus,
                                               context = context,
                                               pumpUtil = pumpUtil,
-                                              aapsLogger= aapsLogger)
+                                              aapsLogger= aapsLogger,
+                                              uiInteraction = uiInteraction)
 
         communication.historyRetriever = this
         this.communication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
@@ -170,7 +173,8 @@ class HistoryRetriever @Inject constructor(
                                               pumpStatus = pumpStatus,
                                               context = context,
                                               pumpUtil = pumpUtil,
-                                              aapsLogger= aapsLogger)
+                                              aapsLogger= aapsLogger,
+                                              uiInteraction = uiInteraction)
 
         communication.historyRetriever = this
         this.communication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()

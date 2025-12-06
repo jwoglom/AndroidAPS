@@ -118,52 +118,54 @@ class TandemService : DaggerService() {
 
             val sharedConnectionString = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.SharedConnectionData, null)
                 //sp.getStringOrNull(TandemPumpConst.Prefs.SharedConnectionData, null)
-            var notFound = false
 
             aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection: ${sharedConnectionString}")
 
             if (sharedConnectionString.isNullOrEmpty()) {
-                notFound = true
-                aapsLogger.error(LTag.PUMP, "PumpConfig: Shared Connection Use: Data empty")
+                aapsLogger.warn(LTag.PUMP, "PumpConfig: Shared Connection Use: Data empty - falling back to regular pairing data")
+                // Don't set notFound = true here - allow fallback to regular pairing data below
             } else {
 
                 //aapsLogger.debug("Shared Connection String")
 
-                val sharedConnectionData : PumpStateX2 = tandemPumpUtil.gson.fromJson(sharedConnectionString, PumpStateX2::class.java)
+                try {
+                    val sharedConnectionData : PumpStateX2 = tandemPumpUtil.gson.fromJson(sharedConnectionString, PumpStateX2::class.java)
 
-                if (sharedConnectionData.jpakeDerivedSecret.isEmpty()) {
-                    notFound = true
-                    aapsLogger.error(LTag.PUMP, "PumpConfig: Shared Connection Use: Data NOT Valid")
-                } else {
-
-                    if (isSharedConfigurationAlreadyApplied(sharedConnectionData)) {
-                        aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection looks like it is the same. No setting of this information.")
+                    if (sharedConnectionData.jpakeDerivedSecret.isEmpty()) {
+                        aapsLogger.warn(LTag.PUMP, "PumpConfig: Shared Connection Use: Data NOT Valid - falling back to regular pairing data")
+                        // Don't set notFound = true here - allow fallback to regular pairing data below
                     } else {
-                        aapsLogger.info(LTag.PUMP, "PumpConfig: Setting Shared Connection Data. NEW")
 
-                        preferences.put(TandemIntPreferenceKey.PumpPairStatus, 100)
-                        //sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 100)
-                        //sp.putString(TandemPumpConst.Prefs.PumpAddress, sharedConnectionData.savedBluetoothMAC)
-                        preferences.put(TandemStringPreferenceKey.PumpAddress, sharedConnectionData.savedBluetoothMAC)
-                        //sp.getString(TandemPumpConst.Prefs.PumpPairCode, sharedConnectionData.pairingCode)
-                        preferences.put(TandemStringPreferenceKey.PumpPairCode, sharedConnectionData.pairingCode)
+                        if (isSharedConfigurationAlreadyApplied(sharedConnectionData)) {
+                            aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection looks like it is the same. No setting of this information.")
+                        } else {
+                            aapsLogger.info(LTag.PUMP, "PumpConfig: Setting Shared Connection Data. NEW")
 
-                        if (!sharedConnectionData.pumpSerialNum.isNullOrEmpty()) {
-                            preferences.put(TandemStringPreferenceKey.PumpSerial, "" + sharedConnectionData.pumpSerialNum)
-                            //sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + sharedConnectionData.pumpSerialNum)
-                            pumpStatus.serialNumber = (sharedConnectionData.pumpSerialNum.toLong())
+                            preferences.put(TandemIntPreferenceKey.PumpPairStatus, 100)
+                            //sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 100)
+                            //sp.putString(TandemPumpConst.Prefs.PumpAddress, sharedConnectionData.savedBluetoothMAC)
+                            preferences.put(TandemStringPreferenceKey.PumpAddress, sharedConnectionData.savedBluetoothMAC)
+                            //sp.getString(TandemPumpConst.Prefs.PumpPairCode, sharedConnectionData.pairingCode)
+                            preferences.put(TandemStringPreferenceKey.PumpPairCode, sharedConnectionData.pairingCode)
+
+                            if (!sharedConnectionData.pumpSerialNum.isNullOrEmpty()) {
+                                preferences.put(TandemStringPreferenceKey.PumpSerial, "" + sharedConnectionData.pumpSerialNum)
+                                //sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + sharedConnectionData.pumpSerialNum)
+                                pumpStatus.serialNumber = (sharedConnectionData.pumpSerialNum.toLong())
+                            }
+
+                            PumpState.importState(context, sharedConnectionString)
                         }
-
-                        PumpState.importState(context, sharedConnectionString)
                     }
+                } catch (e: Exception) {
+                    aapsLogger.error(LTag.PUMP, "PumpConfig: Failed to parse Shared Connection Data: ${e.message} - falling back to regular pairing data", e)
+                    // Don't set notFound = true here - allow fallback to regular pairing data below
                 }
             } // else
 
-            if (notFound) {
-                pumpStatus.errorDescription = rh.gs(R.string.tandem_error_not_bonded)
-                rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
-                return false
-            }
+            // Only return false if we explicitly require shared connection AND it's not found
+            // Otherwise, fall through to check regular pairing data
+            // Note: Removed the early return here to allow fallback to regular pairing
         }
 
 

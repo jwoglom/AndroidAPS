@@ -72,6 +72,7 @@ class DataActivity : DaggerComponentActivity() {
     @Inject lateinit var tandemPumpConnector: TandemPumpConnector
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var dbDataHandler: DbDataHandler
+    @Inject lateinit var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction
 
 
     var sectionState: DataLandingSection = DataLandingSection.DATA
@@ -92,9 +93,9 @@ class DataActivity : DaggerComponentActivity() {
 
         composeUiComponent.inject(this)
         
-        if (savedInstanceState != null && savedInstanceState.getString("section") != null) {
+        if (intent != null && intent.extras != null && intent.getStringExtra("section") != null) {
             sectionState = DataLandingSection.entries.find {
-                o -> o.name == savedInstanceState.getString("section")
+                o -> o.name == intent.getStringExtra("section")
             } ?: DataLandingSection.DATA
         }
 
@@ -102,7 +103,8 @@ class DataActivity : DaggerComponentActivity() {
                                                       pumpStatus = tandemPumpStatus,
                                                       context = context,
                                                       pumpUtil = tandemPumpUtil,
-                                                      aapsLogger= aapsLogger)
+                                                      aapsLogger= aapsLogger,
+                                                      uiInteraction = uiInteraction)
 
         enableEdgeToEdge()
         setContent {

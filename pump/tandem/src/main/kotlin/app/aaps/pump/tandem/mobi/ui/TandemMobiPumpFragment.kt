@@ -120,6 +120,14 @@ class TandemMobiPumpFragment : DaggerFragment() {
             startActivity(Intent(context, DataActivity::class.java).putExtra("section", DataLandingSection.DATA_NOTIFICATIONS.name))
         }
 
+        binding.pumpDataStatusEvents.setOnClickListener {
+            startActivity(Intent(context, DataActivity::class.java).putExtra("section", DataLandingSection.DATA_EVENTS.name))
+        }
+
+        binding.pumpDataStatusHistory.setOnClickListener {
+            startActivity(Intent(context, DataActivity::class.java).putExtra("section", DataLandingSection.DATA_HISTORY.name))
+        }
+
         binding.pumpHistory.setOnClickListener {
             startActivity(Intent(context, DataActivity::class.java))
         }
@@ -155,7 +163,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
         binding.pumpRefreshMobi.isEnabled = enabled
         binding.pumpHistory.isEnabled = enabled
         binding.pumpConfig.isEnabled = enabled
-        binding.pumpPairButton.isEnabled = enabled
+        binding.pumpPairButton.isEnabled = enabled or (tandemPumpPlugin.pumpStatus.lastConnection == 0L)
     }
 
     private fun updatePairButtonText() {

@@ -49,7 +49,8 @@ class TandemUICommunication @Inject constructor (
     var pumpStatus: TandemPumpStatus,
     var context: Context,
     var aapsLogger: AAPSLogger,
-    var pumpUtil: TandemPumpUtil
+    var pumpUtil: TandemPumpUtil,
+    var uiInteraction: UiInteraction
 ): CommunicationListener {
 
     var TAG = LTag.PUMPCOMM
@@ -65,8 +66,6 @@ class TandemUICommunication @Inject constructor (
         }
 
     lateinit var historyRetriever: HistoryRetriever
-
-    @Inject lateinit var uiInteraction: UiInteraction
 
     var messageCount = 0
 
