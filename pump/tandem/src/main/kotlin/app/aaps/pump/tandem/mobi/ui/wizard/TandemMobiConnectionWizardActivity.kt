@@ -154,12 +154,11 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
             aapsSchedulers = aapsSchedulers
         ).also { manager ->
             viewModel.setPairingManager(manager)
+            // Always clear pairing data at the start of pairing to ensure clean state
+            manager.clearPairingData()
         }
 
-        if (needsPairingReset) {
-            pairingManager?.clearPairingData()
-            needsPairingReset = false
-        }
+        needsPairingReset = false
 
         return pairingManager
     }

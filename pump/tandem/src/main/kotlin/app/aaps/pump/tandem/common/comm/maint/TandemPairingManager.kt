@@ -477,7 +477,7 @@ class TandemPairingManager constructor(
 
         // Clear PumpX2 library state
         try {
-            //PumpState.clearState(context)
+            PumpState.resetState(context)
             aapsLogger.info(TAG, "PumpState cleared successfully")
         } catch (e: Exception) {
             aapsLogger.error(TAG, "Error clearing PumpState", e)

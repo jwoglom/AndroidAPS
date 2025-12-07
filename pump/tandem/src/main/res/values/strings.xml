@@ -164,12 +164,15 @@
     <!-- UI Cartridge Actions:Fill Tubing -->
     <string name="ft_title">Fill Tubing</string>
     <string name="ft_complete">Successfully filled tubing. Press button \'Done\' to exit.</string>
+    <string name="ft_restart_text">Restarting tubing fill...</string>
     <string name="ft_hold_pump_button">Hold down the pump button to fill insulin through the tubing.</string>
     <string name="ft_no_filled_insulin">You haven\'t filled any insulin through the tubing yet.</string>
     <string name="ft_filling">FILLING… continue to hold down button until you see insulin drops at the cannula.</string>
     <string name="ft_stopped_fill_1">STOPPED FILLING… do you see insulin drops at the cannula?</string>
-    <string name="ft_stopped_fill_2">"If not press pump button to continue filling, else if you are done, press \'Complete Fill\' button below."</string>
+    <string name="ft_continue_filling">"If not, hold down the pump button to continue filling the tubing."</string>
+    <string name="ft_continue_filling_2">"If holding down the pump button does not move the motor, press the \'Restart Fill\' button below to continue filling the tubing."</string>
     <string name="ft_btn_begin">Begin Fill Tubing</string>
+    <string name="ft_btn_restart">Restart Fill</string>
     <string name="ft_action">filling your tubing</string>
     <string name="ft_btn_complete">Complete Fill</string>
     <string name="ft_finalizing_wait">Please wait, finalizing tubing fill…</string>

@@ -49,6 +49,7 @@ fun FillTubing(innerPadding: PaddingValues,
 ) {
 
     var showFillTubingMenu by remember { mutableStateOf(_fillTubingMenuState) }
+    var willRestartFill by remember { mutableStateOf<Boolean>(false) }
     val ds = LocalTandemDataStore.current
 
     Box(
@@ -106,12 +107,24 @@ fun FillTubing(innerPadding: PaddingValues,
                         content = {
                             if (exitFillTubingState.value != null) {
                                 if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
-                                    item {
-                                        Text(text = resourceHelper.gs(R.string.ft_complete))
+                                    if (willRestartFill) {
+                                        item {
+                                            Text(text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site,
+                                                                          resourceHelper.gs(R.string.ft_btn_restart)))
+                                            Text("\n")
+                                        }
+                                    } else {
+                                        item {
+                                            Text(text = resourceHelper.gs(R.string.ft_complete))
+                                        }
                                     }
                                 } else {
                                     item {
-                                        Text(text = resourceHelper.gs(R.string.ft_finalizing_wait))
+                                        if (willRestartFill) {
+                                            Text(text = resourceHelper.gs(R.string.ft_restart_text))
+                                        } else {
+                                            Text(text = resourceHelper.gs(R.string.ft_finalizing_wait))
+                                        }
                                         Text(text = "\n\n")
                                         Text(text = resourceHelper.gs(R.string.ft_finalizing_status_NOT_COMPLETE))
                                     }
@@ -131,7 +144,9 @@ fun FillTubing(innerPadding: PaddingValues,
                                     item {
                                         Text(text = resourceHelper.gs(R.string.ft_stopped_fill_1))
                                         Text(text = "\n\n")
-                                        Text(text = resourceHelper.gs(R.string.ft_stopped_fill_2))
+                                        Text(text = resourceHelper.gs(R.string.ft_continue_filling))
+                                        Text(text = "\n\n")
+                                        Text(text = resourceHelper.gs(R.string.ft_continue_filling_2))
                                     }
                                 }
                             } else if (pumpRunningState.value == PumpRunningState.Suspended) {
@@ -167,18 +182,45 @@ fun FillTubing(innerPadding: PaddingValues,
                 confirmButton = {
                     if (exitFillTubingState.value != null) {
                         if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
-                            TextButton(
-                                onClick = {
-                                    showFillTubingMenu = false
-                                },
-                                enabled = pumpRunningState.value == PumpRunningState.Suspended,
-                                modifier = Modifier.padding(top = 16.dp)
-                            ) {
-                                Text(text = resourceHelper.gs(R.string.common_done))
+                            if (willRestartFill) {
+                                TextButton(
+                                    onClick = {
+                                        ds.exitFillTubingState.value = null
+                                        willRestartFill = false
+                                        sendPumpCommands(listOf(EnterFillTubingModeRequest()))
+                                    },
+                                    enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                                    modifier = Modifier.padding(top = 16.dp)
+                                ) {
+                                    Text(text = resourceHelper.gs(R.string.ft_btn_restart))
+                                }
+
+                            } else {
+                                TextButton(
+                                    onClick = {
+                                        showFillTubingMenu = false
+                                    },
+                                    enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                                    modifier = Modifier.padding(top = 16.dp)
+                                ) {
+                                    Text(text = resourceHelper.gs(R.string.common_done))
+                                }
                             }
                         }
                     } else if (inFillTubingMode.value == true) {
                         if (fillTubingState.value?.buttonDown == false) {
+                            TextButton(
+                                onClick = {
+                                    refreshScope.launch {
+                                        sendPumpCommands(listOf(ExitFillTubingModeRequest()))
+                                        willRestartFill = true
+                                    }
+                                },
+                                enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                                modifier = Modifier.padding(top = 16.dp)
+                            ) {
+                                Text(text = resourceHelper.gs(R.string.ft_btn_restart))
+                            }
                             TextButton(
                                 onClick = {
                                     refreshScope.launch {

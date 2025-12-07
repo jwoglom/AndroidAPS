@@ -124,7 +124,7 @@ class TandemPumpUtil @Inject constructor(
     }
 
     fun isMalfunctionNotFiltered(malfunction: MalfunctionStatusResponse): Boolean {
-        return !(malfunctionFilterSet.contains(malfunction.errorString))
+        return !(malfunctionFilterSet.contains(malfunction.errorString)) && !malfunction.hasMalfunction()
     }
 
 
