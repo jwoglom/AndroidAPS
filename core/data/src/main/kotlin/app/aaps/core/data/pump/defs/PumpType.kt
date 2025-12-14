@@ -333,7 +333,7 @@ enum class PumpType(
     TANDEM_T_SLIM_X2_BT(
         description = "Tandem t:slim X2",
         manufacturer = ManufacturerType.Tandem,
-        model = "t:slim",
+        model = "t:slim X2",
         bolusSize = 0.01,
         specialBolusSize = null,
         extendedBolusSettings = DoseSettings(0.01, 15, 8 * 60, 0.4),
@@ -351,7 +351,7 @@ enum class PumpType(
     TANDEM_MOBI_BT(
         description = "Tandem Mobi",
         manufacturer = ManufacturerType.Tandem,
-        model = "Tandem Mobi",
+        model = "Mobi",
         bolusSize = 0.01,
         specialBolusSize = null,
         extendedBolusSettings = DoseSettings(0.01, 15, 8 * 60, 0.4),
