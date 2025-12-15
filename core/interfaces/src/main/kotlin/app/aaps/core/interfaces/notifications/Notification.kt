@@ -148,6 +148,8 @@ open class Notification {
         const val TANDEM_SITE_REMINDER = 96
         const val TANDEM_PUMP_SETTINGS_UPDATED = 97
 
+        const val TANDEM_PUMP_MESSAGE_ERROR = 98
+
 
         const val USER_MESSAGE = 1000
 

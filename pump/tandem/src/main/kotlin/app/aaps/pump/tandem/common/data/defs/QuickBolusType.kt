@@ -3,6 +3,7 @@ package app.aaps.pump.tandem.common.data.defs
 import androidx.annotation.StringRes
 import app.aaps.pump.tandem.R
 
+// TODO(jwoglom): replace with https://github.com/jwoglom/pumpX2/blob/main/messages/src/main/java/com/jwoglom/pumpx2/pump/messages/request/control/SetQuickBolusSettingsRequest.java#L84
 enum class QuickBolusType(@StringRes val friendlyName: Int)  {
 
     DISABLED(R.string.pump_quick_bolus_disabled),

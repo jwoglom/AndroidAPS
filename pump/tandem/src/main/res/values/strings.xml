@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Tandem - t:Mobi Base -->
-    <string name="tandem_name_mobi" translatable="false">t:mobi</string>
-    <string name="tandem_name_mobi_short" translatable="false">t:mobi</string>
-    <string name="description_pump_tandem_mobi">Pump integration for Tandem t:mobi</string>
+    <string name="tandem_name_mobi" translatable="false">Tandem Mobi</string>
+    <string name="tandem_name_mobi_short" translatable="false">Tandem Mobi</string>
+    <string name="description_pump_tandem_mobi">Pump integration for Tandem Mobi</string>
 
     <!-- Tandem - t:slim Base -->
     <string name="tandem_name_slim" translatable="false">t:slim X2</string>
@@ -38,7 +38,7 @@
     <string name="tandem_error_problem_with_request">Pump reset connection, wrong/invalid command was sent</string>
     <string name="tandem_error_pump_critical_error">Pump Critical Error: %s</string>
     <string name="tandem_error_no_shared_conn_data">Missing Shared Connection Data (connection sharing enabled)</string>
-    <string name="tandem_error_profile_only_16_segments">t:mobi supports only 16 basal segments, adjust your profile accordingly.</string>
+    <string name="tandem_error_profile_only_16_segments">Tandem Mobi supports only 16 basal segments, adjust your profile accordingly.</string>
 
 
     <!-- UI Common -->
@@ -164,12 +164,15 @@
     <!-- UI Cartridge Actions:Fill Tubing -->
     <string name="ft_title">Fill Tubing</string>
     <string name="ft_complete">Successfully filled tubing. Press button \'Done\' to exit.</string>
+    <string name="ft_restart_text">Restarting tubing fill...</string>
     <string name="ft_hold_pump_button">Hold down the pump button to fill insulin through the tubing.</string>
     <string name="ft_no_filled_insulin">You haven\'t filled any insulin through the tubing yet.</string>
     <string name="ft_filling">FILLING… continue to hold down button until you see insulin drops at the cannula.</string>
     <string name="ft_stopped_fill_1">STOPPED FILLING… do you see insulin drops at the cannula?</string>
-    <string name="ft_stopped_fill_2">"If not press pump button to continue filling, else if you are done, press \'Complete Fill\' button below."</string>
+    <string name="ft_continue_filling">"If not, hold down the pump button to continue filling the tubing."</string>
+    <string name="ft_continue_filling_2">"If holding down the pump button does not move the motor, press the \'Restart Fill\' button below to continue filling the tubing."</string>
     <string name="ft_btn_begin">Begin Fill Tubing</string>
+    <string name="ft_btn_restart">Restart Fill</string>
     <string name="ft_action">filling your tubing</string>
     <string name="ft_btn_complete">Complete Fill</string>
     <string name="ft_finalizing_wait">Please wait, finalizing tubing fill…</string>
@@ -274,7 +277,7 @@
 
 
     <!-- Tandem Mobi Management  DEP -->
-<!--    <string name="tandem_mobi_management">t:mobi Management</string>-->
+<!--    <string name="tandem_mobi_management">Tandem Mobi Management</string>-->
 <!--    <string name="tandem_sett_delivery_limits">Delivery Limits</string>-->
 <!--    <string name="tandem_sett_load_cartridge">Load Cartridge</string>-->
 <!--    <string name="tandem_sett_pump_info">Pump info</string>-->
@@ -334,7 +337,56 @@
     <string name="common_off">Off</string>
     <string name="common_close">Close</string>
 
+    <!-- Connection Wizard -->
+    <string name="tandem_pair_pump">Pair Pump</string>
+    <string name="tandem_repair_pump">Re-pair Pump</string>
+    <string name="tandem_wizard_title">Tandem Mobi Connection Wizard</string>
 
+    <!-- Introduction Screen -->
+    <string name="tandem_wizard_intro_title">Pair Your Tandem Mobi Pump</string>
+    <string name="tandem_wizard_repair_title">Re-pair Your Tandem Mobi Pump</string>
+    <string name="tandem_wizard_intro_description">This wizard will guide you through pairing your Tandem Mobi pump with your phone via Bluetooth.</string>
+    <string name="tandem_wizard_intro_prerequisites">Prerequisites:\n• Pump is nearby and powered on\n• Bluetooth is enabled on your phone\n• You have the 6-digit PIN from the pump</string>
+    <string name="tandem_wizard_begin_pairing">Begin Pairing</string>
+
+    <!-- Device Selection -->
+    <string name="tandem_wizard_waiting_device_selection">Please select your pump from the device list...</string>
+
+    <!-- PIN Entry Screen -->
+    <string name="tandem_wizard_enter_pin_title">Enter Pairing PIN</string>
+    <string name="tandem_wizard_selected_device">Selected: %1$s\n%2$s</string>
+    <string name="tandem_wizard_enter_pin_description">Enter the 6-digit PIN displayed on the pump.</string>
+    <string name="tandem_wizard_pin_label">6-Digit PIN</string>
+    <string name="tandem_wizard_connect">Connect</string>
+    <string name="tandem_wizard_back_to_scan">Back to Scan</string>
+
+    <!-- Pairing Screen -->
+    <string name="tandem_wizard_pairing_title">Connecting to Pump</string>
+    <string name="tandem_wizard_pairing_in_progress">Please wait...</string>
+    <string name="tandem_wizard_pairing_starting">Starting pairing process...</string>
+    <string name="tandem_wizard_pairing_waiting_code">Waiting for pairing code...</string>
+    <string name="tandem_wizard_pairing_connecting">Connecting to pump...</string>
+    <string name="tandem_wizard_pairing_connected">Connected</string>
+    <string name="tandem_wizard_pairing_getting_info">Getting pump information...</string>
+    <string name="tandem_wizard_pairing_finalizing">Finalizing connection...</string>
+
+    <!-- Error Screen -->
+    <string name="tandem_wizard_error_title">Pairing Failed</string>
+    <string name="tandem_wizard_error_incorrect_pin">The PIN you entered was incorrect. Please verify the 6-digit PIN displayed on the pump.</string>
+    <string name="tandem_wizard_error_timeout">Could not connect to the pump. Make sure the pump is nearby and Bluetooth is enabled.</string>
+    <string name="tandem_wizard_error_bluetooth">A Bluetooth error occurred. Try turning Bluetooth off and on, then retry.</string>
+    <string name="tandem_wizard_error_unknown">An unknown error occurred during pairing. Please try again.</string>
+    <string name="tandem_wizard_retry_count">Attempt %1$d</string>
+    <string name="tandem_wizard_edit_pin">Edit PIN</string>
+    <string name="tandem_wizard_retry">Retry</string>
+    <string name="tandem_wizard_cancel_rescan">Cancel and Rescan</string>
+
+    <!-- Success Screen -->
+    <string name="tandem_wizard_success_title">Successfully Connected!</string>
+    <string name="tandem_wizard_success_description">Your Tandem Mobi pump has been paired successfully.</string>
+    <string name="tandem_wizard_pump_name_label">Pump Name</string>
+    <string name="tandem_wizard_pump_serial_label">Serial Number</string>
+    <string name="tandem_wizard_finish">Finish</string>
 
 
 

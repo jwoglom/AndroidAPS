@@ -328,12 +328,12 @@ enum class PumpType(
     TANDEM_T_FLEX(description = "Tandem t:flex", model = "t:flex", parent = TANDEM_T_SLIM),
     TANDEM_T_SLIM_G4(description = "Tandem t:slim G4", model = "t:slim G4", parent = TANDEM_T_SLIM),
     TANDEM_T_SLIM_X2(description = "Tandem t:slim X2", model = "t:slim X2", parent = TANDEM_T_SLIM),
-    TANDEM_T_MOBI(description = "Tandem t:mobi", model = "t:mobi", parent = TANDEM_T_SLIM),
+    TANDEM_MOBI(description = "Tandem Mobi", model = "Tandem Mobi", parent = TANDEM_T_SLIM),
 
     TANDEM_T_SLIM_X2_BT(
         description = "Tandem t:slim X2",
         manufacturer = ManufacturerType.Tandem,
-        model = "t:slim",
+        model = "t:slim X2",
         bolusSize = 0.01,
         specialBolusSize = null,
         extendedBolusSettings = DoseSettings(0.01, 15, 8 * 60, 0.4),
@@ -348,10 +348,10 @@ enum class PumpType(
         source = Source.Tandem
     ),
 
-    TANDEM_T_MOBI_BT(
-        description = "Tandem t:mobi",
+    TANDEM_MOBI_BT(
+        description = "Tandem Mobi",
         manufacturer = ManufacturerType.Tandem,
-        model = "t:mobi",
+        model = "Mobi",
         bolusSize = 0.01,
         specialBolusSize = null,
         extendedBolusSettings = DoseSettings(0.01, 15, 8 * 60, 0.4),

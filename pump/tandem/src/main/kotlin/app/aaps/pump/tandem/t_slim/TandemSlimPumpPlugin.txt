@@ -256,7 +256,7 @@ class TandemSlimPumpPlugin constructor(
     override val pumpStatusData: PumpStatus
         get() = pumpStatus
 
-    // TODO: At the moment X2 doesn't support Closed Loop, future pump (t:mobi and t:slim X3) will support it and
+    // TODO: At the moment X2 doesn't support Closed Loop, future pump (Tandem Mobi and t:slim X3) will support it and
     //  maybe also X2 at later time
     // Constraints interface
     override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {

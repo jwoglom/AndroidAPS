@@ -33,7 +33,7 @@ var LocalTandemDataStore = compositionLocalOf { tandemDataStore }
 @Singleton
 class TandemPumpStatus @Inject constructor(val sp: SP,
                                            val rxBus: RxBus
-) : PumpStatus(PumpType.TANDEM_T_MOBI_BT) {
+) : PumpStatus(PumpType.TANDEM_MOBI_BT) {
 
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
@@ -71,10 +71,13 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
 
 
     fun initSettings() {
-        activeProfileName = "A"
-        reservoirRemainingUnits = 75.0
-        reservoirFullUnits = 200
-        batteryRemaining = 75
+        activeProfileName = "UNKNOWN"
+        reservoirRemainingUnits = 0.0
+        reservoirFullUnits = when {
+            pumpType == PumpType.TANDEM_MOBI_BT -> 200
+            else -> 300
+        }
+        batteryRemaining = 50
         lastConnection = 0L //sp.getLong(TandemPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         lastDataTime = lastConnection
     }

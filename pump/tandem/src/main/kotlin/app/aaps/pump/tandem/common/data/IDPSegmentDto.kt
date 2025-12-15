@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions
 import com.jwoglom.pumpx2.pump.messages.helpers.Bytes
 import kotlin.math.pow
 
+// TODO(jwoglom): merge with https://github.com/jwoglom/pumpX2/blob/main/messages/src/main/java/com/jwoglom/pumpx2/pump/messages/response/currentStatus/IDPSegmentResponse.java
 class IDPSegmentDto {
 
     var idpId = 0

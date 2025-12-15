@@ -32,6 +32,7 @@ abstract class TandemPumpDriverConfiguration constructor(
         return PumpDriverDummyDatabaseOperation()
     }
 
+    // TODO(jwoglom): name consistency
     override var logPrefix: String = "TandemMobiPlugin::"
     override var canHandleDST: Boolean = true
     override var hasService: Boolean = true

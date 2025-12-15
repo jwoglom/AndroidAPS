@@ -7,6 +7,7 @@ import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import app.aaps.core.data.plugin.PluginType
+import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.interfaces.androidPermissions.AndroidPermission
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.Objectives
@@ -383,7 +384,7 @@ class SWDefinition @Inject constructor(
     private fun isPumpInitialized(): Boolean {
         val activePump = activePlugin.activePump
 
-        // For Omnipod and Medtrum, activating a Pod/Patch can be done after setup through the pump fragment
+        // For Omnipod and Medtrum, activating a Pod/Patch/Pump can be done after setup through the pump fragment
         // For the Eros, consider the pump initialized when a RL has been configured successfully
         // For all others, consider the pump setup without any extra conditions
         return activePump.isInitialized()
