@@ -359,12 +359,6 @@ class TandemCommunicationManager(
                 if (message is ApiVersionResponse) {
                     this.apiVersionResponseReceived = true
                     aapsLogger.error(LTag.PUMPCOMM, "Received ApiVersionResponse - problem with communication.")
-                } else if (message is TimeSinceResetResponse) {
-                    if (this.apiVersionResponseReceived) {
-                        this.apiVersionResponseReceived = false
-                        pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_problem_with_request)
-                        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
-                    }
                 } else {
                     aapsLogger.info(TAG, "Discarding Message [code=${message.opCode()},class=${message.javaClass.simpleName}]")
                 }
@@ -407,15 +401,32 @@ class TandemCommunicationManager(
     override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
         aapsLogger.error(TAG, "CF: Pump Critical Error: ${reason}")
 
-        pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_pump_critical_error,
-                                                        if (reason==null) "Unknown" else reason.message)
-        pumpUtil.errorType = PumpErrorType.PumpUnreachable
-        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+        // When a status response message has code non-zero
+        // This can occur just because a precondition isn't met
+        // (e.g., trying to fill tubing when haven't stopped insulin delivery)
+        if (reason == TandemError.ERROR_RESPONSE) {
+            pumpStatus.errorDescription = resourceHelper.gs(
+                R.string.tandem_error_pump_error_response,
+                reason.extra
+            )
+            pumpUtil.errorType = PumpErrorType.PumpUnreachable
+            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+        } else {
 
-        // we currently look only for BT_CONNECTION_FAILED, might need to extend it
-        if (reason!=null && reason == TandemError.BT_CONNECTION_FAILED) {
-            forceDisconnect(onDisconnect = false,
-                            tandemError = reason)
+            pumpStatus.errorDescription = resourceHelper.gs(
+                R.string.tandem_error_pump_critical_error,
+                if (reason == null) "Unknown" else reason.message
+            )
+            pumpUtil.errorType = PumpErrorType.PumpUnreachable
+            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+
+            // we currently look only for BT_CONNECTION_FAILED, might need to extend it
+            if (reason != null && reason == TandemError.BT_CONNECTION_FAILED) {
+                forceDisconnect(
+                    onDisconnect = false,
+                    tandemError = reason
+                )
+            }
         }
 
         //tandemConnectionFixer.startConnectionFix(this)
