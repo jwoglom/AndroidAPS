@@ -742,17 +742,6 @@
             android:layout_alignParentBottom="true"
             android:orientation="vertical">
 
-            <app.aaps.core.ui.elements.SingleClickButton
-                android:id="@+id/pump_pair_button"
-                style="@style/ButtonSmallFontStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="8dp"
-                android:drawableTop="@drawable/ic_bluetooth_white_48dp"
-                android:text="@string/tandem_pair_pump" />
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

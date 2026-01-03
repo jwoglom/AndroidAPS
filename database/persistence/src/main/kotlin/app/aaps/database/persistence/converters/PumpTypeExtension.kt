@@ -33,6 +33,7 @@ fun InterfaceIDs.PumpType.fromDb(): PumpType =
         InterfaceIDs.PumpType.TANDEM_T_FLEX               -> PumpType.TANDEM_T_FLEX
         InterfaceIDs.PumpType.TANDEM_MOBI                 -> PumpType.TANDEM_MOBI
         InterfaceIDs.PumpType.TANDEM_MOBI_BT              -> PumpType.TANDEM_MOBI_BT
+        InterfaceIDs.PumpType.TANDEM_T_MOBI_BT            -> PumpType.TANDEM_MOBI_BT
         InterfaceIDs.PumpType.TANDEM_T_SLIM_X2            -> PumpType.TANDEM_T_SLIM_X2
         InterfaceIDs.PumpType.TANDEM_T_SLIM_X2_BT         -> PumpType.TANDEM_T_SLIM_X2_BT
         InterfaceIDs.PumpType.YPSOPUMP                    -> PumpType.YPSOPUMP

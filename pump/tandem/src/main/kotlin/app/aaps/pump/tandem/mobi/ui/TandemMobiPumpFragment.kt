@@ -136,15 +136,15 @@ class TandemMobiPumpFragment : DaggerFragment() {
             startActivity(Intent(context, ActionsActivity::class.java))
         }
 
-        binding.pumpPairButton.setOnClickListener {
-            val isPaired = pumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1) == 100
-            val intent = Intent(context, TandemMobiConnectionWizardActivity::class.java).apply {
-                if (isPaired) {
-                    putExtra(TandemMobiConnectionWizardActivity.EXTRA_IS_RE_PAIRING, true)
-                }
-            }
-            startActivity(intent)
-        }
+        // binding.pumpPairButton.setOnClickListener {
+        //     val isPaired = pumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1) == 100
+        //     val intent = Intent(context, TandemMobiConnectionWizardActivity::class.java).apply {
+        //         if (isPaired) {
+        //             putExtra(TandemMobiConnectionWizardActivity.EXTRA_IS_RE_PAIRING, true)
+        //         }
+        //     }
+        //     startActivity(intent)
+        // }
 
         setVisibilityOfDriverVersion()
 
@@ -163,16 +163,16 @@ class TandemMobiPumpFragment : DaggerFragment() {
         binding.pumpRefreshMobi.isEnabled = enabled
         binding.pumpHistory.isEnabled = enabled
         binding.pumpConfig.isEnabled = enabled
-        binding.pumpPairButton.isEnabled = enabled or (tandemPumpPlugin.pumpStatus.lastConnection == 0L)
+        //binding.pumpPairButton.isEnabled = enabled or (tandemPumpPlugin.pumpStatus.lastConnection == 0L)
     }
 
     private fun updatePairButtonText() {
-        val isPaired = pumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1) == 100
-        binding.pumpPairButton.text = if (isPaired) {
-            resourceHelper.gs(R.string.tandem_repair_pump)
-        } else {
-            resourceHelper.gs(R.string.tandem_pair_pump)
-        }
+        // val isPaired = pumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1) == 100
+        // binding.pumpPairButton.text = if (isPaired) {
+        //     resourceHelper.gs(R.string.tandem_repair_pump)
+        // } else {
+        //     resourceHelper.gs(R.string.tandem_pair_pump)
+        // }
     }
 
 

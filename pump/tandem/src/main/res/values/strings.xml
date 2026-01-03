@@ -2,7 +2,7 @@
 <resources>
     <!-- Tandem - t:Mobi Base -->
     <string name="tandem_name_mobi" translatable="false">Tandem Mobi</string>
-    <string name="tandem_name_mobi_short" translatable="false">Tandem Mobi</string>
+    <string name="tandem_name_mobi_short" translatable="false">Mobi</string>
     <string name="description_pump_tandem_mobi">Pump integration for Tandem Mobi</string>
 
     <!-- Tandem - t:slim Base -->
