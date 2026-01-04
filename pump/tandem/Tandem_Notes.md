@@ -5,12 +5,13 @@ needed and common where it isn't. Project is now targeting Tandem Mobi device an
 Slim will support all required remote commands, that part of project can be resurected and made
 work with current code.
 
-Dev version:  3.3.3.0-dev-b
-Dev Date:     19. Aug 2025
-
+Dev version:  3.4.0.0-dev
+Dev Date:     04. Jan 2026
 
 # Versioning
 
+v0.7.x - Phase 4 (beta at some point)
+v0.6.x - Phase 3
 v0.5.28.2 - Phase 2
 
 

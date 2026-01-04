@@ -62,7 +62,7 @@ class PumpStatusProviderImpl @Inject constructor(
                 lines += rh.gs(R.string.short_status_temp_basal, extendedBolus.toStringFull(dateUtil, rh))
             }
 
-            if (pump.batteryLevel != 0) lines += rh.gs(R.string.short_status_battery, pump.batteryLevel)
+            if (pump.batteryLevel != null && pump.batteryLevel != 0) lines += rh.gs(R.string.short_status_battery, pump.batteryLevel)
             val additionalStatus = pump.pumpSpecificShortStatus(veryShort)
             if (additionalStatus.isNotEmpty()) lines += additionalStatus
         }
@@ -86,7 +86,7 @@ class PumpStatusProviderImpl @Inject constructor(
         val pumpJson = JSONObject()
             .put("reservoir", pump.reservoirLevel.toInt())
             .put("clock", dateUtil.toISOString(now))
-        val battery = JSONObject().put("percent", pump.batteryLevel)
+        val battery = JSONObject().putIfThereIsValue("percent", pump.batteryLevel)
         val status = JSONObject()
             .put("status", translator.translate(runningMode.mode))
             .put("timestamp", dateUtil.toISOString(pump.lastDataTime))

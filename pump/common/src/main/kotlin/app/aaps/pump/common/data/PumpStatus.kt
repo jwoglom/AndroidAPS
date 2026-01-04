@@ -24,7 +24,7 @@ abstract class PumpStatus(var pumpType: PumpType) {
     // other pump settings
     var reservoirRemainingUnits = 0.0
     var reservoirFullUnits = 0
-    var batteryRemaining = 0 // percent, so 0-100
+    var batteryRemaining : Int? = null // percent, so 0-100
     var batteryVoltage: Double? = null
     var units: String? = null // Constants.MGDL or Constants.MMOL
 

@@ -1061,7 +1061,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         get() = pumpStatus.reservoirRemainingUnits
 
 
-    override val batteryLevel: Int
+    override val batteryLevel: Int?
         get() = pumpStatus.batteryRemaining
 
 
@@ -1574,7 +1574,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                     if (remaining > 50) 60 else if (remaining > 20) 30 else 15
                 }
                 PumpDataRefreshType.BatteryStatus    -> {
-                    val power = pumpStatus.batteryRemaining
+                    val power = pumpStatus.batteryRemaining ?: 0
                     // TODO(jwoglom): why?
                     if (power > 30) 55 else if (power > 20) 30 else 15
                 }

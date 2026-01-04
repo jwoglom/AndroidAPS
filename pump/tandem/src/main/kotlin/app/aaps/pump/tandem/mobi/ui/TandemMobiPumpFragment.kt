@@ -459,8 +459,9 @@ class TandemMobiPumpFragment : DaggerFragment() {
 
     private fun updateBattery() {
         // battery
-        binding.pumpBattery.text = "{fa-battery-" + pumpStatus.batteryRemaining / 25 + "}  " + pumpStatus.batteryRemaining + "%"
-        warnColors.setColorInverse(binding.pumpBattery, pumpStatus.batteryRemaining.toDouble(), 30, 20)
+        val batRemain = pumpStatus.batteryRemaining  ?: 0
+        binding.pumpBattery.text = "{fa-battery-" + batRemain / 25 + "}  " + batRemain + "%"
+        warnColors.setColorInverse(binding.pumpBattery, batRemain.toDouble(), 30, 20)
     }
 
     private fun setVisibilityOfDriverVersion() {

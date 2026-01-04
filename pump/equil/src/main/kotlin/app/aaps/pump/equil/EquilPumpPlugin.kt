@@ -54,9 +54,9 @@ import app.aaps.pump.equil.manager.command.BaseCmd
 import app.aaps.pump.equil.manager.command.CmdAlarmSet
 import app.aaps.pump.equil.manager.command.CmdBasalSet
 import app.aaps.pump.equil.manager.command.CmdSettingSet
-import app.aaps.pump.equil.manager.command.CmdStatusGet
 import app.aaps.pump.equil.manager.command.CmdTimeSet
 import app.aaps.pump.equil.manager.command.PumpEvent
+import app.aaps.pump.equil.manager.customCommands.CmdModeAndHistoryGet
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import org.joda.time.DateTime
@@ -100,12 +100,10 @@ class EquilPumpPlugin @Inject constructor(
     private val bolusProfile: BolusProfile = BolusProfile()
 
     private val disposable = CompositeDisposable()
-    private var statusChecker: Runnable
 
     override fun onStart() {
         super.onStart()
         equilManager.init()
-        handler?.postDelayed(statusChecker, STATUS_CHECK_INTERVAL_MILLIS)
         disposable += rxBus
             .toObservable(EventEquilDataChanged::class.java)
             .observeOn(aapsSchedulers.io)
@@ -165,24 +163,6 @@ class EquilPumpPlugin @Inject constructor(
 
     init {
         pumpDescription = PumpDescription().fillFor(pumpType)
-        statusChecker = Runnable {
-            val cmd = commandQueue.performing()
-
-            if (commandQueue.size() == 0 && cmd == null) {
-                if (indexEquilReadStatus >= 5) {
-                    if (equilManager.isActivationCompleted()) commandQueue.customCommand(
-                        CmdStatusGet(),
-                        null
-                    )
-                    indexEquilReadStatus = 0
-                } else {
-                    equilManager.readStatus()
-                    indexEquilReadStatus++
-                }
-
-            } else aapsLogger.debug(LTag.PUMPCOMM, "Skipping Pod status check because command queue is not empty")
-            handler?.postDelayed(statusChecker, STATUS_CHECK_INTERVAL_MILLIS)
-        }
         PumpEvent.init(rh)
     }
 
@@ -198,7 +178,9 @@ class EquilPumpPlugin @Inject constructor(
     override fun isBusy(): Boolean = false
 
     override fun isHandshakeInProgress(): Boolean = false
-    override fun connect(reason: String) {}
+    override fun connect(reason: String) {
+        equilManager.connect()
+    }
 
     override fun isSuspended(): Boolean {
         val runMode = equilManager.equilState?.runMode
@@ -207,7 +189,10 @@ class EquilPumpPlugin @Inject constructor(
         } else true
     }
 
-    override fun getPumpStatus(reason: String) {}
+    override fun getPumpStatus(reason: String) {
+        if (equilManager.isActivationCompleted()) commandQueue.customCommand(CmdModeAndHistoryGet(), null)
+    }
+
     override fun setNewBasalProfile(profile: Profile): PumpEnactResult {
         aapsLogger.debug(LTag.PUMPCOMM, "setNewBasalProfile")
         val mode = equilManager.equilState?.runMode
@@ -234,7 +219,7 @@ class EquilPumpPlugin @Inject constructor(
 
     override val baseBasalRate: Double get() = if (isSuspended()) 0.0 else equilManager.equilState?.basalSchedule?.rateAt(toDuration(DateTime.now())) ?: 0.0
     override val reservoirLevel: Double get() = equilManager.equilState?.currentInsulin?.toDouble() ?: 0.0
-    override val batteryLevel: Int get() = equilManager.equilState?.battery ?: 0
+    override val batteryLevel: Int? get() = equilManager.equilState?.battery
 
     override fun deliverTreatment(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
         if (detailedBolusInfo.insulin == 0.0) {
@@ -316,7 +301,7 @@ class EquilPumpPlugin @Inject constructor(
         var pumpEnactResult: PumpEnactResult? = null
 
         if (customCommand is BaseCmd) pumpEnactResult = equilManager.executeCmd(customCommand)
-        else if (customCommand is CmdStatusGet) pumpEnactResult = equilManager.readEquilStatus()
+        else if (customCommand is CmdModeAndHistoryGet) pumpEnactResult = equilManager.readModeAndHistory()
         return pumpEnactResult
     }
 
@@ -391,7 +376,7 @@ class EquilPumpPlugin @Inject constructor(
     fun clearData() {
         resetData()
         equilManager.clearPodState()
-        preferences.put(EquilStringKey.Devices, "")
+        preferences.put(EquilStringKey.Device, "")
         preferences.put(EquilStringKey.Password, "")
     }
 
@@ -468,7 +453,6 @@ class EquilPumpPlugin @Inject constructor(
 
     companion object {
 
-        private const val STATUS_CHECK_INTERVAL_MILLIS = 10000L
         private val BASAL_STEP_DURATION: Duration = Duration.standardMinutes(30)
         fun toDuration(dateTime: DateTime): Duration = Duration(dateTime.toLocalTime().millisOfDay.toLong())
     }

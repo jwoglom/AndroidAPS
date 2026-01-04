@@ -77,6 +77,17 @@ sealed class EventData : Event() {
     data class ActionLoopStatus(val timeStamp: Long) : EventData()
 
     @Serializable
+    data class ActionLoopStatusDetailed(
+        val timeStamp: Long
+    ) : EventData()
+
+    @Serializable
+    data class LoopStatusResponse(
+        val timeStamp: Long,
+        val data: LoopStatusData
+    ) : EventData()
+
+    @Serializable
     data class ActionTddStatus(val timeStamp: Long) : EventData()
 
     @Serializable
@@ -102,6 +113,26 @@ sealed class EventData : Event() {
 
     @Serializable
     data class ActionQuickWizardPreCheck(val guid: String) : EventData()
+
+    @Serializable
+    data class ActionWizardResult(
+        val timestamp: Long,
+        val totalInsulin: Double,
+        val carbs: Int,
+        val ic: Double,
+        val sens: Double,
+        val insulinFromCarbs: Double,
+        val insulinFromBG: Double?,
+        val insulinFromCOB: Double?,
+        val insulinFromBolusIOB: Double?,
+        val insulinFromBasalIOB: Double?,
+        val insulinFromTrend: Double?,
+        val insulinFromSuperBolus: Double?,
+        val tempTarget: String?,
+        val percentageCorrection: Int?,
+        val totalBeforePercentage: Double?,
+        val cob: Double
+    ) : EventData()
 
     @Serializable
     data class ActionUserActionPreCheck(val id: Int, val title: String) : EventData()

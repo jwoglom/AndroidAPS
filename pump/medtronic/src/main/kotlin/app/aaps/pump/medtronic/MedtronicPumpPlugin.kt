@@ -18,6 +18,7 @@ import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.Notification
+import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
@@ -89,6 +90,7 @@ import app.aaps.pump.medtronic.defs.MedtronicCommandType.Companion.getSettings
 import app.aaps.pump.medtronic.defs.MedtronicCustomActionType
 import app.aaps.pump.medtronic.defs.MedtronicDeviceType
 import app.aaps.pump.medtronic.defs.MedtronicNotificationType
+import app.aaps.pump.medtronic.defs.MedtronicStatusRefreshType
 import app.aaps.pump.medtronic.defs.MedtronicUIResponseType
 import app.aaps.pump.medtronic.driver.MedtronicPumpStatus
 import app.aaps.pump.medtronic.events.EventMedtronicPumpConfigurationChanged
@@ -124,6 +126,7 @@ class MedtronicPumpPlugin @Inject constructor(
     commandQueue: CommandQueue,
     rxBus: RxBus,
     context: Context,
+    activePlugin: ActivePlugin,
     fabricPrivacy: FabricPrivacy,
     private val medtronicUtil: MedtronicUtil,
     private val medtronicPumpStatus: MedtronicPumpStatus,
@@ -635,7 +638,8 @@ class MedtronicPumpPlugin @Inject constructor(
     override val reservoirLevel: Double
         get() = medtronicPumpStatus.reservoirRemainingUnits
 
-    override val batteryLevel: Int
+    //private var _batteryLevel: Int? = medtronicPumpStatus.batteryRemaining
+    override val batteryLevel: Int?
         get() = medtronicPumpStatus.batteryRemaining
 
     override fun triggerUIChange() {

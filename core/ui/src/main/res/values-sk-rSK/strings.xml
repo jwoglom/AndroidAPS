@@ -416,6 +416,9 @@
     <string name="uel_loop_change">UZAVRETÝ OKRUH ZMENENÝ</string>
     <string name="uel_loop_removed">UZAVRETÝ OKRUH ODSTRÁNENÝ</string>
     <string name="uel_other">INÉ</string>
+    <string name="uel_running_mode">REŽIM UZAVRETÉHO OKRUHU</string>
+    <string name="uel_running_mode_removed">REŽIM UZAVRETÉHO OKRUHU ODSTRÁNENÝ</string>
+    <string name="uel_running_mode_updarted">REŽIM UZAVRETÉHO OKRUHU AKTUALIZOVANÝ</string>
     <!-- HardLimits -->
     <string name="profile_low_target">Dolný cieľ profilu</string>
     <string name="profile_high_target">Horný cieľ profilu</string>
@@ -645,4 +648,6 @@
     <string name="rate_percent_duration">Hodnota: %1$.2f JI/h (%2$.2f%%) Trvanie: %3$d min</string>
     <string name="percent_rate_duration_formatted"><![CDATA[<b>Hodnota</b>: %1$.2f%% (%2$.2f JI/h)<br><b>Trvanie</b>: %3$d min<br>]]></string>
     <string name="rate_percent_duration_formatted"><![CDATA[<b>Hodnota</b>: %1$.2f JI/h (%2$.2f%%) <br><b>Trvanie</b>: %3$d min<br>]]></string>
+    <!--    Playback-->
+    <string name="audio_playback_attribution">"AAPS prehráva zvuk"</string>
 </resources>
