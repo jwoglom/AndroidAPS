@@ -1105,7 +1105,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             // note: TandemPumpSettingType stores as milliunits (long)
             val maxBasal = (pumpStatus.settings!![TandemPumpSettingType.BASAL_LIMIT]) as Long
             // convert milliunits (1000) -> units (1), truncate to int
-            val maxBasalInt = InsulinUnit.from1000To1(maxBasal / 1000).toInt()
+            val maxBasalInt = InsulinUnit.from1000To1(maxBasal).toInt()
 
             // note: TandemIntPreferenceKey stores as units (int)
             val maxBasalRequired = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBasal)
@@ -1344,10 +1344,10 @@ class TandemMobiPumpPlugin @Inject constructor(
             // now start new TBR
             val commandResponse  = pumpConnectionManager.setTemporaryBasal(percent, durationInMinutes)
 
-            val controlCommandResponse: TempBasalPair = commandResponse.value as TempBasalPair
-
             aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent - setTBR. Response: " + commandResponse)
             if (commandResponse.isSuccess) {
+
+                val controlCommandResponse: TempBasalPair = commandResponse.value as TempBasalPair
 
                 pumpStatus.currentTempBasalInternal = controlCommandResponse
 
