@@ -144,8 +144,10 @@ class TandemPairingManager constructor(
     fun stopBluetoothHandler() {
         aapsLogger.info(TAG, "TANDEM-PAIR-DBG: stopBluetoothHandler pairing")
 
-        bluetoothHandler!!.stop()
-        bluetoothHandler = null
+        if (bluetoothHandler != null) {
+            bluetoothHandler!!.stop()
+            bluetoothHandler = null
+        }
         //return getBluetoothHandler()
     }
 

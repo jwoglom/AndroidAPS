@@ -1126,7 +1126,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             }
 
             if (changedItems.isNotEmpty()) {
-                val changedItemsString = changedItems.joinToString { ", " }
+                val changedItemsString = changedItems.joinToString(", ")
 
                 val notification = Notification(id = Notification.TANDEM_PUMP_SETTINGS_UPDATED,
                                                 text = rh.gs(R.string.tandem_notification_pump_settings_changed, changedItemsString),

@@ -37,6 +37,7 @@
     <string name="tandem_error_not_bonded">Pump not configured or fully bonded</string>
     <string name="tandem_error_problem_with_request">Pump reset connection, wrong/invalid command was sent</string>
     <string name="tandem_error_pump_critical_error">Pump Critical Error: %s</string>
+    <string name="tandem_error_pump_error_response">Sending %s command failed. Check Tandem Mobi pump notifications.</string>
     <string name="tandem_error_no_shared_conn_data">Missing Shared Connection Data (connection sharing enabled)</string>
     <string name="tandem_error_profile_only_16_segments">Tandem Mobi supports only 16 basal segments, adjust your profile accordingly.</string>
 
@@ -346,11 +347,11 @@
     <string name="tandem_wizard_intro_title">Pair Your Tandem Mobi Pump</string>
     <string name="tandem_wizard_repair_title">Re-pair Your Tandem Mobi Pump</string>
     <string name="tandem_wizard_intro_description">This wizard will guide you through pairing your Tandem Mobi pump with your phone via Bluetooth.</string>
-    <string name="tandem_wizard_intro_prerequisites">Prerequisites:\n• Pump is nearby and powered on\n• Bluetooth is enabled on your phone\n• You have the 6-digit PIN from the pump</string>
+    <string name="tandem_wizard_intro_prerequisites">Prerequisites:\n&#8226; Pump is powered on\n&#8226; Pump wireless charger is available and plugged in\n&#8226; You have the 6-digit PIN from the pump</string>
     <string name="tandem_wizard_begin_pairing">Begin Pairing</string>
 
     <!-- Device Selection -->
-    <string name="tandem_wizard_waiting_device_selection">Please select your pump from the device list...</string>
+    <string name="tandem_wizard_waiting_device_selection">Please select your pump from the device list.\n\nIf the Mobi does not show up:\n&#8226; Place it on the wireless charger\n&#8226; Wait for the white lights to appear on the pump\'s LED\n&#8226; Pick it up from the wireless charger and wait 3 seconds\n&#8226; Press the pump button twice, about one second apart\n&#8226; The pump should beep twice when you have completed the steps correctly.</string>
 
     <!-- PIN Entry Screen -->
     <string name="tandem_wizard_enter_pin_title">Enter Pairing PIN</string>

@@ -62,12 +62,11 @@ class TandemCommunicationManager(
     lateinit var peripheral: BluetoothPeripheral
     var connected = false
     var errorConnecting = false
-    var commandRequestModeRunning = false
+    var commandRequestModeRunning: Boolean = false
+        get() { return inFlightRequests.isNotEmpty() }
 
     var dataStore: TandemUIDataStore = tandemDataStore
 
-    var commandRequest: Message? = null
-    var commandResponse: Message? = null
     var communicationListener : CommunicationListener? = null
         set(value) {  if (value==null)
             operationMode=OperationMode.StandardOperation
@@ -86,7 +85,7 @@ class TandemCommunicationManager(
 
     companion object {
         val TAG = LTag.PUMPBTCOMM
-        val COMMAND_TIMEOUT = 30 * 1000  // 30s (in ms) timeout
+        val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout
     }
 
 
@@ -178,6 +177,8 @@ class TandemCommunicationManager(
     }
 
 
+    val inFlightRequests = mutableSetOf<Message>()
+    val inFlightResponses = mutableSetOf<Message>()
 
     /**
      * Sends command to the pump, if driver is in preventConnect mode any messages will be ignored,
@@ -186,7 +187,7 @@ class TandemCommunicationManager(
     @Synchronized
     fun sendCommand(request: Message, forceSend: Boolean = false): Message? {
 
-        aapsLogger.error(TAG, "sendCommand: ${request.javaClass.simpleName}")  // TODO
+        aapsLogger.info(TAG, "sendCommand: ${request.javaClass.simpleName}")  // TODO
 
         operationMode = OperationMode.StandardOperation
 
@@ -203,31 +204,32 @@ class TandemCommunicationManager(
             }
         }
 
-        this.commandRequestModeRunning = true
-        this.commandRequest = request
-        this.commandResponse = null
-
+        synchronized(inFlightRequests) {
+            this.inFlightRequests.add(request)
+            sendCommand(peripheral, request)
+        }
         aapsLogger.info(LTag.PUMPCOMM, "Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
-
-        sendCommand(peripheral, request)
 
         val timeoutTime = System.currentTimeMillis() + COMMAND_TIMEOUT;
 
-        while(commandRequestModeRunning) {
+        while (commandRequestModeRunning) {
 
-            if (commandResponse!=null) {
-                this.commandRequestModeRunning = false
+            val commandResponse = this.inFlightResponses.find { it.opCode() == request.responseOpCode }
+            if (commandResponse != null) {
+                this.inFlightRequests.remove(request)
+                this.inFlightResponses.remove(commandResponse)
                 return commandResponse
             }
 
-            pumpUtil.sleep(1000)
+            pumpUtil.sleep(100)
 
-            if (System.currentTimeMillis()>timeoutTime) {
+            if (System.currentTimeMillis()>=timeoutTime) {
                 aapsLogger.error(TAG, "Timeout for command ${request.javaClass.name} returning with null.")
-                return null
+                break
             }
         }
 
+        this.inFlightRequests.remove(request)
         return null
     }
 
@@ -346,24 +348,17 @@ class TandemCommunicationManager(
     }
 
     fun receiveMessageInStandardMode(message: Message) {
-        if (this.commandRequest==null) {
+        if (!this.commandRequestModeRunning) {
             aapsLogger.error(LTag.PUMPCOMM, "No Command Requested, but received message [code=${message.opCode()}]")
         } else {
-            aapsLogger.info(LTag.PUMPCOMM, "ReceivedMessage [code=${message.opCode()},expected=${commandRequest!!.getResponseOpCode()},class=${message::class.simpleName}]")
-
-            if (message.opCode() == commandRequest!!.getResponseOpCode()) {
+            val matchingRequest = inFlightRequests.find { it.responseOpCode == message.opCode() }
+            if (matchingRequest != null) {
                 aapsLogger.info(LTag.PUMPCOMM, "Response received [code=${message.opCode()},class=${message::class.simpleName}]")
-                this.commandResponse = message
+                this.inFlightResponses.add(message)
             } else {
                 if (message is ApiVersionResponse) {
                     this.apiVersionResponseReceived = true
                     aapsLogger.error(LTag.PUMPCOMM, "Received ApiVersionResponse - problem with communication.")
-                } else if (message is TimeSinceResetResponse) {
-                    if (this.apiVersionResponseReceived) {
-                        this.apiVersionResponseReceived = false
-                        pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_problem_with_request)
-                        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
-                    }
                 } else {
                     aapsLogger.info(TAG, "Discarding Message [code=${message.opCode()},class=${message.javaClass.simpleName}]")
                 }
@@ -406,15 +401,32 @@ class TandemCommunicationManager(
     override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
         aapsLogger.error(TAG, "CF: Pump Critical Error: ${reason}")
 
-        pumpStatus.errorDescription = resourceHelper.gs(R.string.tandem_error_pump_critical_error,
-                                                        if (reason==null) "Unknown" else reason.message)
-        pumpUtil.errorType = PumpErrorType.PumpUnreachable
-        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+        // When a status response message has code non-zero
+        // This can occur just because a precondition isn't met
+        // (e.g., trying to fill tubing when haven't stopped insulin delivery)
+        if (reason == TandemError.ERROR_RESPONSE) {
+            pumpStatus.errorDescription = resourceHelper.gs(
+                R.string.tandem_error_pump_error_response,
+                reason.extra
+            )
+            pumpUtil.errorType = PumpErrorType.PumpUnreachable
+            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+        } else {
 
-        // we currently look only for BT_CONNECTION_FAILED, might need to extend it
-        if (reason!=null && reason == TandemError.BT_CONNECTION_FAILED) {
-            forceDisconnect(onDisconnect = false,
-                            tandemError = reason)
+            pumpStatus.errorDescription = resourceHelper.gs(
+                R.string.tandem_error_pump_critical_error,
+                if (reason == null) "Unknown" else reason.message
+            )
+            pumpUtil.errorType = PumpErrorType.PumpUnreachable
+            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+
+            // we currently look only for BT_CONNECTION_FAILED, might need to extend it
+            if (reason != null && reason == TandemError.BT_CONNECTION_FAILED) {
+                forceDisconnect(
+                    onDisconnect = false,
+                    tandemError = reason
+                )
+            }
         }
 
         //tandemConnectionFixer.startConnectionFix(this)
