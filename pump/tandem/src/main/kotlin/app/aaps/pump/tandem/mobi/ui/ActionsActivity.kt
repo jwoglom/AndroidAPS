@@ -3,6 +3,7 @@
 package app.aaps.pump.tandem.mobi.ui
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -41,6 +42,7 @@ import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.di.TandemComposeUiComponent
@@ -49,6 +51,7 @@ import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.SiteReminder
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import javax.inject.Inject
@@ -160,6 +163,9 @@ class ActionsActivity : DaggerComponentActivity() {
                                             },
                                             navigateToCartridgeActions = {
                                                 selectedItem = ActionsLandingSection.CARTRIDGE_ACTIONS
+                                            },
+                                            openPumpConnectionWizard = {
+                                                openPumpConnectionWizard()
                                             }
                                         )
                                     }
@@ -255,6 +261,16 @@ class ActionsActivity : DaggerComponentActivity() {
         return true
 
     }
+    
+    private fun openPumpConnectionWizard() {
+        val isPaired = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1) == 100
+        val intent = Intent(context, TandemMobiConnectionWizardActivity::class.java).apply {
+            if (isPaired) {
+                putExtra(TandemMobiConnectionWizardActivity.EXTRA_IS_RE_PAIRING, true)
+            }
+        }
+        startActivity(intent)
+    }
 
 
 
@@ -287,6 +303,7 @@ fun ActionsActivity_Preview() {
                     aapsLogger = AAPSLoggerTest(),
                     resourceHelper = ResourceHelperTest(),
                     sendPumpCommands = { _ -> true},
+                    openPumpConnectionWizard = { }
                 )
             }
         }

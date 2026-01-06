@@ -349,6 +349,7 @@ fun DataActivity_Preview() {
                     aapsLogger = AAPSLoggerTest(),
                     resourceHelper = ResourceHelperTest(),
                     sendPumpCommands = { _ -> true},
+                    openPumpConnectionWizard = { },
                 )
             }
         }

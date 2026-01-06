@@ -85,7 +85,8 @@ fun Actions(
     aapsLogger: AAPSLogger,
     resourceHelper: ResourceHelper,
     navigateToCartridgeActions: () -> Unit,
-    navigateToPumpInfo: () -> Unit
+    navigateToPumpInfo: () -> Unit,
+    openPumpConnectionWizard: () -> Unit,
 ) {
 
     var showResumeInsulinMenu by remember { mutableStateOf(_resumeInsulinMenuState) }
@@ -485,6 +486,28 @@ fun Actions(
                     }
                 }
 
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.TopStart)
+                    ) {
+                        ListItem(
+                            headlineContent = { Text(
+                                resourceHelper.gs(R.string.tandem_wizard_repair_title)
+                            )},
+                            supportingContent = {
+                            },
+                            leadingContent = {
+                                Icon(Icons.Filled.Settings, contentDescription = null)
+                            },
+                            modifier = Modifier.clickable {
+                                openPumpConnectionWizard()
+                            }
+                        )
+                    }
+                }
+
 
                 item {
                     Box(
@@ -537,7 +560,8 @@ private fun PreviewInsulinActive() {
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 resourceHelper = ResourceHelperTest(),
-                navigateToPumpInfo = {}
+                navigateToPumpInfo = {},
+                openPumpConnectionWizard = {}
             )
         }
     }
@@ -558,7 +582,8 @@ private fun PreviewInsulinActive_StopMenuOpen() {
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = ResourceHelperTest(),
+                openPumpConnectionWizard = {},
             )
         }
     }
@@ -579,7 +604,8 @@ private fun PreviewInsulinSuspended() {
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = ResourceHelperTest(),
+                openPumpConnectionWizard = {},
             )
         }
     }
@@ -602,7 +628,8 @@ private fun PreviewInsulinSuspended_ResumeMenuOpen() {
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = ResourceHelperTest(),
+                openPumpConnectionWizard = {},
             )
         }
     }
