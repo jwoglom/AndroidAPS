@@ -15,5 +15,6 @@ enum class TandemIntentPreferenceKey(
     override val exportable: Boolean = false
 ) : IntentPreferenceKey {
 
-    PumpAddressSelector("pref_tandem_device_selector")
+    PumpPairing(key = "pref_tandem_device_selector",
+                negativeDependency = TandemBooleanPreferenceKey.UseSharedConnection)
 }

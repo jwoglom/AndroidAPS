@@ -2,6 +2,7 @@ package app.aaps.pump.tandem.mobi
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import androidx.preference.Preference
@@ -37,6 +38,7 @@ import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.validators.preferences.AdaptiveIntPreference
+import app.aaps.core.validators.preferences.AdaptiveIntentPreference
 import app.aaps.core.validators.preferences.AdaptiveListPreference
 import app.aaps.core.validators.preferences.AdaptiveStringPreference
 import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
@@ -86,10 +88,12 @@ import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.events.EventRefreshPumpData
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemIntentPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
+import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import io.reactivex.rxjava3.kotlin.plusAssign
@@ -1682,6 +1686,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 AdaptiveSwitchPreference(
                     ctx = context,
                     booleanKey = TandemBooleanPreferenceKey.UseSharedConnection,
+
                     title = R.string.tandem_cfg_use_shared_connection,
                     summary = R.string.tandem_cfg_use_shared_connection_summary
                 )
@@ -1691,21 +1696,22 @@ class TandemMobiPumpPlugin @Inject constructor(
                 AdaptiveStringPreference(
                     ctx = context,
                     stringKey = TandemStringPreferenceKey.SharedConnectionData,
+
                     title = R.string.tandem_cfg_shared_connection_data,
                     summary = R.string.tandem_cfg_shared_connection_data_summary
                 )
                 // singleLine="false", selectAllOnFocus="true"
             )
 
-            // TODO Intent selector doesn't work
-            // addPreference(
-            //     AdaptiveIntentPreference(
-            //         ctx = context,
-            //         intentKey = TandemIntentPreferenceKey.PumpAddressSelector,
-            //         title = R.string.tandem_pump_configuration,
-            //         intent = Intent(context, TandemPumpBLEConfigActivity::class.java)
-            //     )
-            // )
+            // TODO Intent selector doesn't work - trying again
+            addPreference(
+                AdaptiveIntentPreference(
+                    ctx = context,
+                    intentKey = TandemIntentPreferenceKey.PumpPairing,
+                    title = R.string.tandem_pump_configuration,
+                    intent = Intent(context, TandemMobiConnectionWizardActivity::class.java)
+                )
+            )
 
             //
             // <Preference
