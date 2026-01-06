@@ -58,6 +58,7 @@ import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.TandemConfig
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
+import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.models.PairingCodeType
 import com.jwoglom.pumpx2.pump.messages.models.StatusMessage
 import com.jwoglom.pumpx2.pump.messages.request.control.BolusPermissionRequest
@@ -1365,7 +1366,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     private fun getMalfunctions(): DataCommandResponse<AdditionalResponseDataInterface?> {
-
+        // NOTE: MalfunctionStatusResponse returns data which is not always necessarily
+        // reflective of an actual malfunction. If the codeA matches an active alarm or alert,
+        // we ignore the malfunction in favor of notifying for that specific alert code.
+        // As a result, we will actually re-fetch the current alarm and alert state here
+        // to then use pumpx2's NotificationBundle filtering logic to prevent errant notifications.
         aapsLogger.info(LTag.PUMPCOMM, "getMalfunctions")
 
         val responseMessage: MalfunctionStatusResponse? = getCommunicationManager()
@@ -1373,8 +1378,27 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         if (responseMessage!=null) {
 
-            val malfunctionStatusDto = MalfunctionStatusDto()
+            val bundle = NotificationBundle()
+            val alertResponse: AlertStatusResponse? = getCommunicationManager()
+                ?.sendCommand(AlertStatusRequest()) as AlertStatusResponse?
+            if (alertResponse != null) {
+                bundle.add(alertResponse)
+            }
+
+            val alarmResponse: AlarmStatusResponse? = getCommunicationManager()
+                ?.sendCommand(AlarmStatusRequest()) as AlarmStatusResponse?
+            if (alarmResponse != null) {
+                bundle.add(alarmResponse)
+            }
+
+            // if after adding the malfunction response to the bundle
+            // it is automatically excluded, then ignore it
+            bundle.add(responseMessage)
+            val malfunctionMatchesActiveAlertOrAlarm = bundle.get().none { it is MalfunctionStatusResponse }
+
+            val malfunctionStatusDto = MalfunctionStatusDto(malfunctionMatchesActiveAlertOrAlarm)
             malfunctionStatusDto.parse(responseMessage.cargo)
+
 
             return DataCommandResponse(
                 PumpCommandType.CustomCommand, true,

@@ -917,7 +917,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                         }
                     }
                     is MalfunctionStatusDto -> {
-                        if (valueOfResponse.hasMalfunction()) {
+                        if (valueOfResponse.hasMalfunction() && !valueOfResponse.malfunctionMatchesActiveAlertOrAlarm) {
                             notificationFound = true
                             break;
                         }
