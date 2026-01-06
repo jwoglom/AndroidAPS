@@ -35,8 +35,8 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
              resourceHelper: ResourceHelper
              ) {
 
-    val pumpInfo = LocalTandemDataStore.current.pumpVersionResponse.value!!
-    val apiVersion = LocalTandemDataStore.current.apiVersionResponse.value!!
+    val pumpInfo = LocalTandemDataStore.current.pumpVersionResponse.value
+    val apiVersion = LocalTandemDataStore.current.apiVersionResponse.value
     val isMobi = if (tandemPumpStatus==null) true else tandemPumpStatus.tandemPumpFirmware.isMobi()
 
 
@@ -55,35 +55,35 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
             }
 
             item {
-                PumpInfoRow(label= resourceHelper.gs(R.string.pump_serial_number), "${pumpInfo.serialNum}")
+                PumpInfoRow(label= resourceHelper.gs(R.string.pump_serial_number), "${pumpInfo?.serialNum}")
             }
 
             item {
-                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_sw), value="${apiVersion.majorVersion}.${apiVersion.minorVersion}"    /*pumpInfo.pumpRev*/)
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_sw), value="${apiVersion?.majorVersion}.${apiVersion?.minorVersion}"    /*pumpInfo.pumpRev*/)
             }
 
             item {
-                PumpInfoRow(label="ARM S/W " + resourceHelper.gs(R.string.pi_version), value="${pumpInfo.armSwVer}")
+                PumpInfoRow(label="ARM S/W " + resourceHelper.gs(R.string.pi_version), value="${pumpInfo?.armSwVer}")
             }
 
             item {
-                PumpInfoRow(label=resourceHelper.gs(R.string.pi_sw_part_num), value="${pumpInfo.partNum}")
+                PumpInfoRow(label=resourceHelper.gs(R.string.pi_sw_part_num), value="${pumpInfo?.partNum}")
             }
 
             item {
-                PumpInfoRow("ConfigA Bits", value="0x%08X".format(pumpInfo.configABits))
+                PumpInfoRow("ConfigA Bits", value="0x%08X".format(pumpInfo?.configABits))
             }
 
             item {
-                PumpInfoRow("ConfigB Bits", value="0x%08X".format(pumpInfo.configBBits))
+                PumpInfoRow("ConfigB Bits", value="0x%08X".format(pumpInfo?.configBBits))
             }
 
             item {
-                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_model), value=if (isMobi) "t:Mobi (${pumpInfo.modelNum})" else "t:Slim X2 (${pumpInfo.modelNum})")
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_model), value=if (isMobi) "t:Mobi (${pumpInfo?.modelNum})" else "t:Slim X2 (${pumpInfo?.modelNum})")
             }
 
             item {
-                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pcba_serial), value="${pumpInfo.pcbaSN}")
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pcba_serial), value="${pumpInfo?.pcbaSN}")
             }
 
 
@@ -121,7 +121,6 @@ private fun DefaultPreview_PumpInfo() {
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
             var pumpVersion = PumpVersionResponse(3628697757L, 0L, 0L, 0L, 1226976L, 1013045L, "0", 232700077L, "0", 1004000L)
-            System.out.println(pumpVersion.cargo[24])
             LocalTandemDataStore.current.pumpVersionResponse.value = pumpVersion
             PumpInfo(
                 innerPadding = PaddingValues(),
