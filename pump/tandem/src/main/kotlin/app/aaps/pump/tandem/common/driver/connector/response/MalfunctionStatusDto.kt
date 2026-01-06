@@ -10,6 +10,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusRespon
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatusResponse
 
 @MessageProps(opCode = 121, size = 11, type = MessageType.RESPONSE, characteristic = Characteristic.CURRENT_STATUS, request = MalfunctionStatusRequest::class)
-class MalfunctionStatusDto: MalfunctionStatusResponse(), AdditionalResponseDataInterface {
-
+class MalfunctionStatusDto(
+    val malfunctionMatchesActiveAlertOrAlarm: Boolean = false
+): MalfunctionStatusResponse(), AdditionalResponseDataInterface {
 }
