@@ -119,9 +119,7 @@ class TandemUICommunication @Inject constructor (
                 dataStore.notificationBundle.value = NotificationBundle()
             }
 
-            if (pumpUtil.isNotificationNotFiltered(message)) {
-                dataStore.notificationBundle.value = dataStore.notificationBundle.value?.add(message)
-            }
+            dataStore.notificationBundle.value = dataStore.notificationBundle.value?.add(message)
 
             return
         }
