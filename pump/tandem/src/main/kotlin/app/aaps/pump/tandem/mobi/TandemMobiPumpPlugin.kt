@@ -381,6 +381,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     override fun applyBasalConstraints(absoluteRate: Constraint<Double>, profile: Profile): Constraint<Double> {
+        // 1. Check if above 250% of profile rate
         val maxBasalBySettings = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBasal)
 
         val allowedAmount = baseBasalRate * 2.5 // 250% is max allowed
@@ -397,6 +398,16 @@ class TandemMobiPumpPlugin @Inject constructor(
                                  rh.gs(R.string.tandem_constraint_basal_rate_on_pump, maxBasalBySettings),
                                  this)
             }
+        }
+
+        // 2. Check if below minimum allowed basal rate
+        // Effective basal rate can be 0.0u/hr, 0.1u/hr, or greater, but not between 0.0-0.1u
+        // (e.g., 0.05u/hr is not allowed as an effective basal rate)
+        if (absoluteRate.value() > 0 && absoluteRate.value() < 0.1) {
+            absoluteRate.set(0.0,
+                             rh.gs(R.string.tandem_constraint_basal_rate_min_0_1u, absoluteRate.value()),
+                             this)
+
         }
 
         return absoluteRate

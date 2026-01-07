@@ -262,6 +262,7 @@
 
     <!-- Tandem specific constraints -->
     <string name="tandem_constraint_basal_rate_max_250">Max allowed Basal Rate is 250%% which is %1$.2f, with Base Basal Rate of %2$.2f.</string>
+    <string name="tandem_constraint_basal_rate_min_0_1u">Requested effective basal rate is %.2f U/h, which is below the minimum pump allowed non-zero basal rate of 0.1 U/h, so lowering basal rate to 0 U/h.</string>
     <string name="tandem_constraint_basal_rate_on_pump">Max configured Basal Rate on pump is %.2f U/h.</string>
     <string name="tandem_constraint_basal_rate_percent">Requested TBR was %d %%, which is more than pump allows (250%%), so limiting to 250%%.</string>
     <string name="tandem_constraint_basal_rate_percent_max_pump">Requested TBR %% was bigger than max configured basal on pump %d.</string>
