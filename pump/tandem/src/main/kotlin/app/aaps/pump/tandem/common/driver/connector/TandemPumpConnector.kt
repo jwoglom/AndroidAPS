@@ -1,7 +1,6 @@
 package app.aaps.pump.tandem.common.driver.connector
 
 import android.content.Context
-import app.aaps.core.data.model.BS
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.Notification
@@ -14,7 +13,6 @@ import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.rx.events.EventOverviewBolusStopDeliveryEnabled
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.BolusData
@@ -74,7 +72,6 @@ import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBolusLimitRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
-import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BasalLimitSettingsRequest
@@ -110,7 +107,6 @@ import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBolusLimitRespons
 import com.jwoglom.pumpx2.pump.messages.response.control.SetQuickBolusSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.StopTempRateResponse
-import com.jwoglom.pumpx2.pump.messages.response.control.SuspendPumpingResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalIQStatusResponse
@@ -391,7 +387,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         //                                                                     isSMB = detailedBolusInfo.bolusType === BS.Type.SMB,
         //                                                                     id = detailedBolusInfo.id)
 
-        sendBolusEvent(bolusEvent = TandemBolusEvent.Preparing,
+        sendBolusEvent(bolusEvent = TandemBolusEvent.Initiating,
                        fullAmount = detailedBolusInfo.insulin,
                        id = detailedBolusInfo.id)
 
@@ -447,7 +443,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         aapsLogger.debug(TAG, "BolusRequest: $bolusRequest and response: $bolusRequestResponse")
 
-        if (!bolusRequestResponse.isStatusOK) {
+        sendBolusEvent(bolusEvent = TandemBolusEvent.Preparing,
+                       fullAmount = detailedBolusInfo.insulin,
+                       id = detailedBolusInfo.id)
+
+
+        if (!bolusRequestResponse.wasBolusInitiated()) {
             aapsLogger.error(TAG, "InitiateBolusResponse status was not ok, bolus was not started: status: ${bolusRequestResponse.statusType.name}." )
 
             return DataCommandResponse(
@@ -459,42 +460,69 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         var finished = false
         var bolusStatusResponse: CurrentBolusStatusResponse? = null
-        var deliveryStartTime: Long = System.currentTimeMillis()
-        var startedSending = false
+        var initiateStartTime: Long = System.currentTimeMillis()
+        var deliveryStartTime: Long? = null
+        var startedRequesting = false
+        var startedDelivering = false
 
         val maxBolus = detailedBolusInfo.insulin - 0.01
 
         while (!finished) {
 
-            Thread.sleep(1000)
+            Thread.sleep(500)
 
             bolusStatusResponse = getCommunicationManager()
                 ?.sendCommand(CurrentBolusStatusRequest()) as CurrentBolusStatusResponse?
 
             if (bolusStatusResponse==null) {
                 aapsLogger.warn(TAG, "No response for CurrentBolusStatusResponse")
+                val elapsedSeconds = (System.currentTimeMillis() - initiateStartTime) / 1000
+                if (elapsedSeconds >= 30) {
+                    return DataCommandResponse(
+                        PumpCommandType.SetBolus, false,
+                        "Never received BolusStatusResponse",
+                        null
+                    )
+                }
             } else {
                 if (bolusStatusResponse.status== CurrentBolusStatusResponse.CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID) {
-                    aapsLogger.error(TAG, "Bolus delivered: " + getJsonStringFromObject(bolusStatusResponse))
-                    finished = true
-                    val bolusTimeSec = ((System.currentTimeMillis() - deliveryStartTime!!)/1000).toInt()
-                    aapsLogger.error(TAG, "Bolus: amount=${detailedBolusInfo.insulin}, bolusId=$bolusId, timeSeconds=${bolusTimeSec}")
-                    bolusId = 0
-                    sendBolusEvent(bolusEvent = TandemBolusEvent.DeliveryDone)
+                    if (startedDelivering) {
+                        aapsLogger.error(TAG, "Bolus delivered: " + getJsonStringFromObject(bolusStatusResponse))
+                        finished = true
+                        val bolusTimeSec = ((System.currentTimeMillis() - initiateStartTime) / 1000).toInt()
+                        aapsLogger.error(TAG, "Bolus: amount=${detailedBolusInfo.insulin}, bolusId=$bolusId, timeSeconds=${bolusTimeSec}")
+                        bolusId = 0
+                        sendBolusEvent(bolusEvent = TandemBolusEvent.DeliveryDone)
+                    } else {
+                        val elapsedSeconds = (System.currentTimeMillis() - initiateStartTime) / 1000
+                        if (elapsedSeconds >= 30) {
+                            return DataCommandResponse(
+                                PumpCommandType.SetBolus, false,
+                                "Never received BolusStatusResponse",
+                                null
+                            )
+                        }
+                    }
                 } else {
                     //aapsLogger.error(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
-                    if (bolusStatusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING) {
-
-                        if (!startedSending) {
-                            rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = true))
-                            startedSending = true
+                    if (bolusStatusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING) {
+                        if (!startedRequesting) {
+                            startedRequesting = true
+                            sendBolusEvent(bolusEvent = TandemBolusEvent.Requesting)
                         }
 
-                        if (deliveryStartTime==null) {
-                            deliveryStartTime = System.currentTimeMillis()
+                    } else if (bolusStatusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING) {
+
+                        if (!startedDelivering) {
+                            rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = true))
+                            startedDelivering = true
+                        }
+
+                        if (initiateStartTime==null) {
+                            initiateStartTime = System.currentTimeMillis()
                             aapsLogger.error(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
                         } else {
-                            val bolusTimeSec = ((System.currentTimeMillis() - deliveryStartTime)/1000).toInt()
+                            val bolusTimeSec = ((System.currentTimeMillis() - initiateStartTime)/1000).toInt()
                             val bolusAmount = 0.035714286 * bolusTimeSec
 
                             if (bolusAmount > maxBolus) {
@@ -507,15 +535,15 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                         }
                     } else {
                         aapsLogger.error(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
-                        deliveryStartTime = System.currentTimeMillis()
+                        initiateStartTime = System.currentTimeMillis()
                     }
                 }
             }
 
         }
 
-        // it seems that when CurrentBolusStatusResponse comes back as delivered, we don't have
-        // any bolus details, so we just read bolus again...
+        // when CurrentBolusStatusResponse comes back as delivered, we don't have
+        // any bolus details, so we just read the latest bolus which just occurred
         val bolusDataCommandResponse = getBolus()
 
         if (bolusDataCommandResponse.isSuccess) {
@@ -537,16 +565,24 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         var status = ""
 
         when(bolusEvent) {
+            TandemBolusEvent.Initiating -> {
+                percent = 0
+                status = resourceHelper.gs(Rpc.string.bolus_preparing, fullAmount)
+            }
             TandemBolusEvent.Preparing    -> {
-                percent = 1
+                percent = 5
                 status = resourceHelper.gs(Rpc.string.bolus_preparing,fullAmount)
             }
+            TandemBolusEvent.Requesting -> {
+                percent = 10
+                status = resourceHelper.gs(Rpc.string.bolus_preparing, fullAmount)
+            }
             TandemBolusEvent.Delivering   -> {
-                percent = ((amountBolus/fullAmount)*100).toInt()
-                if (percent>=100) {
-                    percent = 99
+                percent = 10 + ((amountBolus/fullAmount)*90).toInt()
+                if (percent>=95) {
+                    percent = 95
                 } else if (percent<1) {
-                    percent = 1
+                    percent = 0
                 }
 
                 var amountBolus2 = amountBolus
@@ -563,7 +599,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             }
         }
 
-        aapsLogger.error(TAG, "Sending Bolus Event: status=${status}, progress=${percent}")
+        aapsLogger.info(TAG, "Sending Bolus Event: status=${status}, progress=${percent}")
 
         rxBus.send(EventOverviewBolusProgress(status = status, percent = percent, id = id))
 
@@ -571,8 +607,29 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     enum class TandemBolusEvent {
+        /**
+         * Initiating: calling BolusPermissionRequest and InitiateBolusRequest commands
+         */
+        Initiating,
+
+        /**
+         * Preparing: between call to InitiateBolusRequest and when we receive data on CurrentBolusStatusRequest
+         */
         Preparing,
+
+        /**
+         * Requesting: CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING (pump preparing piston)
+         */
+        Requesting,
+
+        /**
+         * Delivering: CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING (pump delivering insulin)
+         */
         Delivering,
+
+        /**
+         * DeliveryDone: insulin delivered and pump bolus operation complete
+         */
         DeliveryDone
     }
 
