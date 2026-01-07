@@ -627,7 +627,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     override fun canHandleDST(): Boolean {
-        // TODO(jwoglom): pretty sure it can't (requires manual time update)
+        // TODO(AndyRozman): check DST transitions
         return true
     }
 
