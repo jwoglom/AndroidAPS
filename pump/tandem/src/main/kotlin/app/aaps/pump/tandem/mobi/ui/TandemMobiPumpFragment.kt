@@ -251,15 +251,11 @@ class TandemMobiPumpFragment : DaggerFragment() {
             } else if (pumpStatus.lastConnection + 30 * 60 * 1000 < System.currentTimeMillis()) {
 
                 if (min < 60) {
-                    binding.pumpLastConnection.text = resourceHelper.gs(app.aaps.core.interfaces.R.string.minago, min)
+                    binding.pumpLastConnection.text = dateUtil.minAgo(resourceHelper, pumpStatus.lastConnection)
                 } else if (min < 1440) {
-                    val h = min / 60.0f
-                    binding.pumpLastConnection.text = resourceHelper.gs(app.aaps.core.interfaces.R.string.hoursago, h)
+                    binding.pumpLastConnection.text = dateUtil.hourAgo(pumpStatus.lastConnection, resourceHelper)
                 } else {
-                    val h = min / 60.0f
-                    val d = h / 24.0f
-                    // h = h - (d * 24);
-                    binding.pumpLastConnection.text = resourceHelper.gs(app.aaps.core.interfaces.R.string.days_ago, d)
+                    binding.pumpLastConnection.text = dateUtil.dayAgo(pumpStatus.lastConnection, resourceHelper)
                 }
                 binding.pumpLastConnection.setTextColor(Color.RED)
             } else {
