@@ -454,6 +454,40 @@ class TandemMobiPumpPlugin @Inject constructor(
         return percentRate
     }
 
+    override fun applyBolusConstraints(insulin: Constraint<Double>): Constraint<Double> {
+        // pump-enforced minimum bolus
+        val MIN_BOLUS = 0.05
+
+        // Check minimum bolus constraint
+        if (insulin.value() > 0.0 && insulin.value() < MIN_BOLUS) {
+            insulin.set(
+                0.0,
+                rh.gs(R.string.tandem_constraint_bolus_minimum, MIN_BOLUS),
+                this
+            )
+        }
+
+        // maximum value of max bolus limit
+        val MAX_BOLUS = 25.0
+        val maxBolusBySettings = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBolus)
+
+
+        // Check maximum bolus setting
+        insulin.setIfSmaller(
+            maxBolusBySettings.toDouble(),
+            rh.gs(R.string.tandem_constraint_bolus_maximum, maxBolusBySettings),
+            this
+        )
+
+        insulin.setIfSmaller(
+            MAX_BOLUS,
+            rh.gs(R.string.tandem_constraint_bolus_maximum, maxBolusBySettings),
+            this
+        )
+
+        return insulin
+
+    }
 
     override var serviceConnection: ServiceConnection? = object : ServiceConnection {
         override fun onServiceDisconnected(name: ComponentName) {

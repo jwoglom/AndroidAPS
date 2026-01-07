@@ -267,6 +267,9 @@
     <string name="tandem_constraint_basal_rate_percent">Requested TBR was %d %%, which is more than pump allows (250%%), so limiting to 250%%.</string>
     <string name="tandem_constraint_basal_rate_percent_max_pump">Requested TBR %% was bigger than max configured basal on pump %d.</string>
     <string name="tandem_constraint_SMB">SMB Allowed on Mobi.</string>
+    <string name="tandem_constraint_bolus_minimum">Bolus rounded down to 0 U (minimum bolus is %1$.2f U)</string>
+    <string name="tandem_constraint_bolus_maximum">Bolus limited to %1$d U (pump max bolus setting)</string>
+
 
     <!-- Tandem BLE Config -->
     <string name="tandem_ble_config_scan_title">Tandem Scan</string>
