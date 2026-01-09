@@ -235,7 +235,7 @@ class DateUtilImpl @Inject constructor(
 
     override fun hourAgo(time: Long, rh: ResourceHelper): String {
         val duration = (now() - time).milliseconds
-        val hours = duration.inWholeHours
+        val hours = duration.toDouble(DurationUnit.HOURS)
         return rh.gs(R.string.hoursago, hours)
     }
 
