@@ -32,22 +32,22 @@ class AdaptiveIntentPreference(
         title?.let { this.title = context.getString(it) }
         this.intent = intent
 
-        val preferenceKey = intentKey ?: preferences.get(key) as IntentPreferenceKey?
-        if (preferences.simpleMode && preferenceKey?.defaultedBySM == true) isVisible = false
-        if (preferences.apsMode && preferenceKey?.showInApsMode == false) {
+        val preferenceKey = intentKey ?: preferences.get(key) as IntentPreferenceKey
+        if (preferences.simpleMode && preferenceKey.defaultedBySM) isVisible = false
+        if (preferences.apsMode && !preferenceKey.showInApsMode) {
             isVisible = false; isEnabled = false
         }
-        if (preferences.nsclientMode && preferenceKey?.showInNsClientMode == false) {
+        if (preferences.nsclientMode && !preferenceKey.showInNsClientMode) {
             isVisible = false; isEnabled = false
         }
-        if (preferences.pumpControlMode && preferenceKey?.showInPumpControlMode == false) {
+        if (preferences.pumpControlMode && !preferenceKey.showInPumpControlMode) {
             isVisible = false; isEnabled = false
         }
-        preferenceKey?.dependency?.let {
+        preferenceKey.dependency?.let {
             if (!preferences.get(it))
                 isVisible = false
         }
-        preferenceKey?.negativeDependency?.let {
+        preferenceKey.negativeDependency?.let {
             if (preferences.get(it))
                 isVisible = false
         }
@@ -56,8 +56,8 @@ class AdaptiveIntentPreference(
     override fun onAttached() {
         super.onAttached()
         // PreferenceScreen is final so we cannot extend and modify behavior
-        val preferenceKey = preferences.get(key) as IntentPreferenceKey?
-        if (preferenceKey?.hideParentScreenIfHidden == true) {
+        val preferenceKey = preferences.get(key) as IntentPreferenceKey
+        if (preferenceKey.hideParentScreenIfHidden) {
             parent?.isVisible = isVisible
             parent?.isEnabled = isEnabled
         }
