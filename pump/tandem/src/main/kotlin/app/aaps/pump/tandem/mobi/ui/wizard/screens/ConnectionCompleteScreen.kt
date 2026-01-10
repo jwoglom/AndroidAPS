@@ -2,6 +2,7 @@ package app.aaps.pump.tandem.mobi.ui.wizard.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,11 +23,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 
 @Composable
 fun ConnectionCompleteScreen(
     pumpSerial: String,
     pumpName: String,
+    pumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.Unknown,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -86,6 +90,15 @@ fun ConnectionCompleteScreen(
                 text = pumpSerial,
                 style = MaterialTheme.typography.bodyLarge
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = stringResource(R.string.tandem_wizard_pump_supported_capabilities),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SupportedCapabilitiesForVersion(pumpApiVersion)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -98,6 +111,51 @@ fun ConnectionCompleteScreen(
                 text = stringResource(R.string.tandem_wizard_finish),
                 style = MaterialTheme.typography.labelLarge
             )
+        }
+    }
+}
+
+@Composable
+fun SupportedCapabilitiesForVersion(apiVersion: TandemPumpApiVersion) {
+
+    @Composable
+    fun IconAndText(ok: Boolean, text: String) {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (ok) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Checkmark",
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "Warning",
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+
+            }
+
+            Text(
+                text,
+                modifier = Modifier.height(12.dp),
+            )
+        }
+    }
+
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp)
+    ) {
+        if (apiVersion.isClosedLoopPossible) {
+            IconAndText(true, stringResource(R.string.tandem_wizard_pump_closed_loop_supported))
+        } else if (apiVersion.hasBolus) {
+            IconAndText(true, stringResource(R.string.tandem_wizard_pump_bolus_only_supported))
+        } else {
+            IconAndText(true, stringResource(R.string.tandem_wizard_pump_open_loop_only))
         }
     }
 }

@@ -1,7 +1,9 @@
 package app.aaps.pump.tandem.mobi.ui.wizard
 
 import android.bluetooth.BluetoothDevice
+import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.events.PairingError
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 
 /**
  * State for the Tandem Mobi connection wizard
@@ -13,11 +15,13 @@ data class TandemMobiWizardState(
     val deviceName: String = "",
     val enteredPIN: String = "",
     val pairingStatus: Int = -1,
+    val pairingLabel: String = "",
     val pairingError: PairingError? = null,
     val retryCount: Int = 0,
     val isRePairing: Boolean = false,
     val pairedPumpSerial: String = "",
-    val pairedPumpName: String = ""
+    val pairedPumpName: String = "",
+    val pairedPumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.Unknown
 )
 
 /**

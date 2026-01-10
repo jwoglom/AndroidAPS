@@ -105,6 +105,7 @@ open class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
 
         binding.pumpBleConfigCurrentlySelectedText.text = bleSelector.getText(PumpBLESelectorText.SELECTED_PUMP_TITLE)
         binding.pumpBleConfigScanTitle.text = bleSelector.getText(PumpBLESelectorText.SCAN_TITLE)
+        binding.pumpBleConfigInstructionsText.text = bleSelector.getText(PumpBLESelectorText.INSTRUCTIONS_TEXT)
 
         title = bleSelector.getText(PumpBLESelectorText.PUMP_CONFIGURATION)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)

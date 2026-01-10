@@ -780,7 +780,7 @@
                     android:drawableTop="@drawable/ic_settings"
                     android:paddingLeft="0dp"
                     android:paddingRight="0dp"
-                    android:text="@string/pump_settings" />
+                    android:text="@string/pump_actions" />
 
             </LinearLayout>
 

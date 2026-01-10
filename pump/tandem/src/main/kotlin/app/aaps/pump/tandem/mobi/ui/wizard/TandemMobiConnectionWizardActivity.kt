@@ -262,6 +262,7 @@ private fun WizardContent(
                     ConnectionCompleteScreen(
                         pumpSerial = state.pairedPumpSerial,
                         pumpName = state.pairedPumpName,
+                        pumpApiVersion = state.pairedPumpApiVersion,
                         onFinish = onFinish
                     )
                 }
