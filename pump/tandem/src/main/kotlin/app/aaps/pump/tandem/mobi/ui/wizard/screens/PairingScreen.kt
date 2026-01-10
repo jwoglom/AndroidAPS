@@ -21,6 +21,7 @@ import app.aaps.pump.tandem.R
 @Composable
 fun PairingScreen(
     pairingStatus: Int,
+    pairingLabel: String,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -50,6 +51,14 @@ fun PairingScreen(
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        Text(
+            text = pairingLabel,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
     }
 }
 

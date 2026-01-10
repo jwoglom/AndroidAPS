@@ -119,9 +119,7 @@ class TandemUICommunication @Inject constructor (
                 dataStore.notificationBundle.value = NotificationBundle()
             }
 
-            if (pumpUtil.isNotificationNotFiltered(message)) {
-                dataStore.notificationBundle.value = dataStore.notificationBundle.value?.add(message)
-            }
+            dataStore.notificationBundle.value = dataStore.notificationBundle.value?.add(message)
 
             return
         }
@@ -279,19 +277,6 @@ class TandemUICommunication @Inject constructor (
         }
 
     }
-
-    // TODO(jwoglom): if uncommented, sync with MalfunctionStatusResponse#hasMalfunction()
-    // val malfunctionFilterSet: HashSet<String> = hashSetOf(
-    //     "17-0x2032"  // LOW INSULIN ALERT2
-    // )
-    //
-    // private fun isNotFiltered(message: Message): Boolean {
-    //     if (message is MalfunctionStatusResponse) {
-    //         val malfunction : MalfunctionStatusResponse  = message as MalfunctionStatusResponse
-    //         return !(malfunctionFilterSet.contains(malfunction.errorString))
-    //     } else
-    //         return true;
-    // }
 
     private fun unsuccessfulAlert(req: String) {
 

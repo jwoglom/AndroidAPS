@@ -246,7 +246,7 @@ class TandemPumpConnectionManager @Inject constructor(
             GET_MALFUNCTIONS -> {
                 val malfunctionStatus = responseData.value as MalfunctionStatusDto
 
-                if (malfunctionStatus.hasMalfunction()) {
+                if (malfunctionStatus.hasMalfunction() && !malfunctionStatus.malfunctionMatchesActiveAlertOrAlarm) {
                     setNotificationSemaphore()
                 }
             }

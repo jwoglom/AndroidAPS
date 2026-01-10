@@ -385,6 +385,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     override fun applyBasalConstraints(absoluteRate: Constraint<Double>, profile: Profile): Constraint<Double> {
+        // 1. Check if above 250% of profile rate
         val maxBasalBySettings = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBasal)
 
         val allowedAmount = baseBasalRate * 2.5 // 250% is max allowed
@@ -401,6 +402,16 @@ class TandemMobiPumpPlugin @Inject constructor(
                                  rh.gs(R.string.tandem_constraint_basal_rate_on_pump, maxBasalBySettings),
                                  this)
             }
+        }
+
+        // 2. Check if below minimum allowed basal rate
+        // Effective basal rate can be 0.0u/hr, 0.1u/hr, or greater, but not between 0.0-0.1u
+        // (e.g., 0.05u/hr is not allowed as an effective basal rate)
+        if (absoluteRate.value() > 0 && absoluteRate.value() < 0.1) {
+            absoluteRate.set(0.0,
+                             rh.gs(R.string.tandem_constraint_basal_rate_min_0_1u, absoluteRate.value()),
+                             this)
+
         }
 
         return absoluteRate
@@ -443,6 +454,40 @@ class TandemMobiPumpPlugin @Inject constructor(
         return percentRate
     }
 
+    override fun applyBolusConstraints(insulin: Constraint<Double>): Constraint<Double> {
+        // pump-enforced minimum bolus
+        val MIN_BOLUS = 0.05
+
+        // Check minimum bolus constraint
+        if (insulin.value() > 0.0 && insulin.value() < MIN_BOLUS) {
+            insulin.set(
+                0.0,
+                rh.gs(R.string.tandem_constraint_bolus_minimum, MIN_BOLUS),
+                this
+            )
+        }
+
+        // maximum value of max bolus limit
+        val MAX_BOLUS = 25.0
+        val maxBolusBySettings = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBolus)
+
+
+        // Check maximum bolus setting
+        insulin.setIfSmaller(
+            maxBolusBySettings.toDouble(),
+            rh.gs(R.string.tandem_constraint_bolus_maximum, maxBolusBySettings),
+            this
+        )
+
+        insulin.setIfSmaller(
+            MAX_BOLUS,
+            rh.gs(R.string.tandem_constraint_bolus_maximum, maxBolusBySettings),
+            this
+        )
+
+        return insulin
+
+    }
 
     override var serviceConnection: ServiceConnection? = object : ServiceConnection {
         override fun onServiceDisconnected(name: ComponentName) {
@@ -620,7 +665,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     override fun canHandleDST(): Boolean {
-        // TODO(jwoglom): pretty sure it can't (requires manual time update)
+        // TODO(AndyRozman): check DST transitions
         return true
     }
 
@@ -921,7 +966,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                         }
                     }
                     is MalfunctionStatusDto -> {
-                        if (valueOfResponse.hasMalfunction()) {
+                        if (valueOfResponse.hasMalfunction() && !valueOfResponse.malfunctionMatchesActiveAlertOrAlarm) {
                             notificationFound = true
                             break;
                         }

@@ -1,7 +1,6 @@
 package app.aaps.pump.tandem.common.driver.connector
 
 import android.content.Context
-import app.aaps.core.data.model.BS
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.Notification
@@ -14,7 +13,6 @@ import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.rx.events.EventOverviewBolusStopDeliveryEnabled
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.BolusData
@@ -49,6 +47,7 @@ import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.MalfunctionStatusDto
+import app.aaps.pump.tandem.common.driver.connector.response.PumpGlobalsDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
@@ -57,6 +56,7 @@ import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.TandemConfig
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
+import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.models.PairingCodeType
 import com.jwoglom.pumpx2.pump.messages.models.StatusMessage
 import com.jwoglom.pumpx2.pump.messages.request.control.BolusPermissionRequest
@@ -72,7 +72,6 @@ import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBolusLimitRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
-import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BasalLimitSettingsRequest
@@ -108,7 +107,6 @@ import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBolusLimitRespons
 import com.jwoglom.pumpx2.pump.messages.response.control.SetQuickBolusSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.StopTempRateResponse
-import com.jwoglom.pumpx2.pump.messages.response.control.SuspendPumpingResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalIQStatusResponse
@@ -167,8 +165,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     // TODO Better Error response handling
 
-    fun getCommunicationManager(): TandemCommunicationManager {
-        return tandemCommunicationManager!!
+    fun getCommunicationManager(): TandemCommunicationManager? {
+        return tandemCommunicationManager
     }
 
 
@@ -222,7 +220,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             this.btAddressUsed = newBtAddress
         }
 
-        return getCommunicationManager().connect()
+        return getCommunicationManager()!!.connect()
 
     }
 
@@ -230,8 +228,13 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     override fun disconnectFromPump(): Boolean {
         aapsLogger.info(TAG, "disconnectFromPump")
 
-        getCommunicationManager().disconnect()
-        return true
+        val c = getCommunicationManager()
+        return if (c == null) {
+            aapsLogger.warn(TAG, "disconnectFromPump: nothing to do, communication manager already destroyed")
+            false
+        } else {
+            c.disconnect()
+        }
     }
 
 
@@ -253,18 +256,24 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         val map:  MutableMap<PumpConfigurationTypeInterface, Any> = mutableMapOf()
 
         try {
-            addToSettings(TandemPumpSettingType.CONTROL_IQ_ENABLED, map, getCommunicationManager().sendCommand(getCorrectRequest(TandemCommandType.ControlIQInfo)))
-            addToSettings(TandemPumpSettingType.BASAL_LIMIT, map, getCommunicationManager().sendCommand(BasalLimitSettingsRequest()))
-            addToSettings(TandemPumpSettingType.MAX_BOLUS, map, getCommunicationManager().sendCommand(GlobalMaxBolusSettingsRequest()))
-            addToSettings(TandemPumpSettingType.QUICK_BOLUS, map, getCommunicationManager().sendCommand(PumpGlobalsRequest()))
+            val comm = getCommunicationManager()
+            if (comm == null) {
+                return DataCommandResponse(
+                    PumpCommandType.GetSettings, false, "Problem reading settings, no active communicationManager", map
+                )
+            }
+            addToSettings(TandemPumpSettingType.CONTROL_IQ_ENABLED, map, comm.sendCommand(getCorrectRequest(TandemCommandType.ControlIQInfo)))
+            addToSettings(TandemPumpSettingType.BASAL_LIMIT, map, comm.sendCommand(BasalLimitSettingsRequest()))
+            addToSettings(TandemPumpSettingType.MAX_BOLUS, map, comm.sendCommand(GlobalMaxBolusSettingsRequest()))
+            addToSettings(TandemPumpSettingType.QUICK_BOLUS, map, comm.sendCommand(PumpGlobalsRequest()))
 
             if (this.tandemPumpStatus.tandemPumpFirmware.isSameVersion(TandemPumpApiVersion.VERSION_2_1_to_2_4)) {
                 if (tandemPumpStatus.featuresV1==null) {
-                    addToSettings(TandemPumpSettingType.PUMP_FEATURES_1, map, getCommunicationManager().sendCommand(PumpFeaturesV1Request()))
+                    addToSettings(TandemPumpSettingType.PUMP_FEATURES_1, map, comm.sendCommand(PumpFeaturesV1Request()))
                 }
             } else {
                 if (tandemPumpStatus.featuresV2==null) {
-                    addToSettings(TandemPumpSettingType.PUMP_FEATURES_2, map, getCommunicationManager().sendCommand(PumpFeaturesV2Request()))
+                    addToSettings(TandemPumpSettingType.PUMP_FEATURES_2, map, comm.sendCommand(PumpFeaturesV2Request()))
                 }
             }
 
@@ -378,11 +387,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         //                                                                     isSMB = detailedBolusInfo.bolusType === BS.Type.SMB,
         //                                                                     id = detailedBolusInfo.id)
 
-        sendBolusEvent(bolusEvent = TandemBolusEvent.Preparing,
+        sendBolusEvent(bolusEvent = TandemBolusEvent.Initiating,
                        fullAmount = detailedBolusInfo.insulin,
                        id = detailedBolusInfo.id)
 
-        val permissionResponseMessage: BolusPermissionResponse? = getCommunicationManager().sendCommand(
+        val permissionResponseMessage: BolusPermissionResponse? = getCommunicationManager()?.sendCommand(
             BolusPermissionRequest()
         ) as BolusPermissionResponse?
 
@@ -418,7 +427,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                 0, 0,
                                                 bolusCarbs, 0, 0)
 
-        val bolusRequestResponse: InitiateBolusResponse? = getCommunicationManager().sendCommand(
+        val bolusRequestResponse: InitiateBolusResponse? = getCommunicationManager()?.sendCommand(
             bolusRequest
         ) as InitiateBolusResponse?
 
@@ -434,7 +443,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         aapsLogger.debug(TAG, "BolusRequest: $bolusRequest and response: $bolusRequestResponse")
 
-        if (!bolusRequestResponse.isStatusOK) {
+        sendBolusEvent(bolusEvent = TandemBolusEvent.Preparing,
+                       fullAmount = detailedBolusInfo.insulin,
+                       id = detailedBolusInfo.id)
+
+
+        if (!bolusRequestResponse.wasBolusInitiated()) {
             aapsLogger.error(TAG, "InitiateBolusResponse status was not ok, bolus was not started: status: ${bolusRequestResponse.statusType.name}." )
 
             return DataCommandResponse(
@@ -446,43 +460,69 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         var finished = false
         var bolusStatusResponse: CurrentBolusStatusResponse? = null
-        var deliveryStartTime: Long = System.currentTimeMillis()
-        var startedSending = false
+        var initiateStartTime: Long = System.currentTimeMillis()
+        var deliveryStartTime: Long? = null
+        var startedRequesting = false
+        var startedDelivering = false
 
-        // TODO(jwoglom): ??
         val maxBolus = detailedBolusInfo.insulin - 0.01
 
         while (!finished) {
 
-            Thread.sleep(1000)
+            Thread.sleep(500)
 
             bolusStatusResponse = getCommunicationManager()
-                .sendCommand(CurrentBolusStatusRequest()) as CurrentBolusStatusResponse?
+                ?.sendCommand(CurrentBolusStatusRequest()) as CurrentBolusStatusResponse?
 
             if (bolusStatusResponse==null) {
                 aapsLogger.warn(TAG, "No response for CurrentBolusStatusResponse")
+                val elapsedSeconds = (System.currentTimeMillis() - initiateStartTime) / 1000
+                if (elapsedSeconds >= 30) {
+                    return DataCommandResponse(
+                        PumpCommandType.SetBolus, false,
+                        "Never received BolusStatusResponse",
+                        null
+                    )
+                }
             } else {
                 if (bolusStatusResponse.status== CurrentBolusStatusResponse.CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID) {
-                    aapsLogger.error(TAG, "Bolus delivered: " + getJsonStringFromObject(bolusStatusResponse))
-                    finished = true
-                    val bolusTimeSec = ((System.currentTimeMillis() - deliveryStartTime!!)/1000).toInt()
-                    aapsLogger.error(TAG, "Bolus: amount=${detailedBolusInfo.insulin}, bolusId=$bolusId, timeSeconds=${bolusTimeSec}")
-                    bolusId = 0
-                    sendBolusEvent(bolusEvent = TandemBolusEvent.DeliveryDone)
+                    if (startedDelivering) {
+                        aapsLogger.error(TAG, "Bolus delivered: " + getJsonStringFromObject(bolusStatusResponse))
+                        finished = true
+                        val bolusTimeSec = ((System.currentTimeMillis() - initiateStartTime) / 1000).toInt()
+                        aapsLogger.error(TAG, "Bolus: amount=${detailedBolusInfo.insulin}, bolusId=$bolusId, timeSeconds=${bolusTimeSec}")
+                        bolusId = 0
+                        sendBolusEvent(bolusEvent = TandemBolusEvent.DeliveryDone)
+                    } else {
+                        val elapsedSeconds = (System.currentTimeMillis() - initiateStartTime) / 1000
+                        if (elapsedSeconds >= 30) {
+                            return DataCommandResponse(
+                                PumpCommandType.SetBolus, false,
+                                "Never received BolusStatusResponse",
+                                null
+                            )
+                        }
+                    }
                 } else {
                     //aapsLogger.error(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
-                    if (bolusStatusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING) {
-
-                        if (!startedSending) {
-                            rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = true))
-                            startedSending = true
+                    if (bolusStatusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING) {
+                        if (!startedRequesting) {
+                            startedRequesting = true
+                            sendBolusEvent(bolusEvent = TandemBolusEvent.Requesting)
                         }
 
-                        if (deliveryStartTime==null) {
-                            deliveryStartTime = System.currentTimeMillis()
+                    } else if (bolusStatusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING) {
+
+                        if (!startedDelivering) {
+                            rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = true))
+                            startedDelivering = true
+                        }
+
+                        if (initiateStartTime==null) {
+                            initiateStartTime = System.currentTimeMillis()
                             aapsLogger.error(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
                         } else {
-                            val bolusTimeSec = ((System.currentTimeMillis() - deliveryStartTime)/1000).toInt()
+                            val bolusTimeSec = ((System.currentTimeMillis() - initiateStartTime)/1000).toInt()
                             val bolusAmount = 0.035714286 * bolusTimeSec
 
                             if (bolusAmount > maxBolus) {
@@ -495,15 +535,15 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                         }
                     } else {
                         aapsLogger.error(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
-                        deliveryStartTime = System.currentTimeMillis()
+                        initiateStartTime = System.currentTimeMillis()
                     }
                 }
             }
 
         }
 
-        // it seems that when CurrentBolusStatusResponse comes back as delivered, we don't have
-        // any bolus details, so we just read bolus again...
+        // when CurrentBolusStatusResponse comes back as delivered, we don't have
+        // any bolus details, so we just read the latest bolus which just occurred
         val bolusDataCommandResponse = getBolus()
 
         if (bolusDataCommandResponse.isSuccess) {
@@ -525,16 +565,24 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         var status = ""
 
         when(bolusEvent) {
+            TandemBolusEvent.Initiating -> {
+                percent = 0
+                status = resourceHelper.gs(Rpc.string.bolus_preparing, fullAmount)
+            }
             TandemBolusEvent.Preparing    -> {
-                percent = 1
+                percent = 5
                 status = resourceHelper.gs(Rpc.string.bolus_preparing,fullAmount)
             }
+            TandemBolusEvent.Requesting -> {
+                percent = 10
+                status = resourceHelper.gs(Rpc.string.bolus_preparing, fullAmount)
+            }
             TandemBolusEvent.Delivering   -> {
-                percent = ((amountBolus/fullAmount)*100).toInt()
-                if (percent>=100) {
-                    percent = 99
+                percent = 10 + ((amountBolus/fullAmount)*90).toInt()
+                if (percent>=95) {
+                    percent = 95
                 } else if (percent<1) {
-                    percent = 1
+                    percent = 0
                 }
 
                 var amountBolus2 = amountBolus
@@ -551,7 +599,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             }
         }
 
-        aapsLogger.error(TAG, "Sending Bolus Event: status=${status}, progress=${percent}")
+        aapsLogger.info(TAG, "Sending Bolus Event: status=${status}, progress=${percent}")
 
         rxBus.send(EventOverviewBolusProgress(status = status, percent = percent, id = id))
 
@@ -559,8 +607,29 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     enum class TandemBolusEvent {
+        /**
+         * Initiating: calling BolusPermissionRequest and InitiateBolusRequest commands
+         */
+        Initiating,
+
+        /**
+         * Preparing: between call to InitiateBolusRequest and when we receive data on CurrentBolusStatusRequest
+         */
         Preparing,
+
+        /**
+         * Requesting: CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING (pump preparing piston)
+         */
+        Requesting,
+
+        /**
+         * Delivering: CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING (pump delivering insulin)
+         */
         Delivering,
+
+        /**
+         * DeliveryDone: insulin delivered and pump bolus operation complete
+         */
         DeliveryDone
     }
 
@@ -575,24 +644,46 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             // TODO(jwoglom): since this is a safety critical path, we need to handle bolusId being null
             // and fall back on requesting active bolus ID and then canceling it. and also do the same
             // if we get a rejection (status!=0) on CancelBolusResponse.
-            aapsLogger.info(TAG, "cancelBolus: no BolusId found, exiting")
-            return DataCommandResponse(
-                PumpCommandType.CancelBolus, false, "No Bolus Id found, bouls might not be running anymore.",
-                null
-            )
+            aapsLogger.warn(TAG, "cancelBolus: no BolusId found, fetching the active bolus ID as fallback")
+
+            val currentBolus: CurrentBolusStatusResponse? = getCommunicationManager()?.sendCommand(CurrentBolusStatusRequest()) as CurrentBolusStatusResponse?
+            aapsLogger.warn(TAG, "cancelBolus: current bolus: $currentBolus")
+
+            if (currentBolus == null || currentBolus.status == CurrentBolusStatusResponse.CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID) {
+
+                return DataCommandResponse(
+                    PumpCommandType.CancelBolus, false, "No Bolus Id found, bolus either already finished or did not occur",
+                    null
+                )
+            }
+
+            bolusId = currentBolus.bolusId
         } else {
             aapsLogger.info(TAG, "cancelBolus (bolusId=$bolusId)")
         }
 
-        val responseMessage: Message? = getCommunicationManager().sendCommand(CancelBolusRequest(bolusId))
-            as CancelBolusResponse
+        val responseMessage: CancelBolusResponse? = getCommunicationManager()?.sendCommand(CancelBolusRequest(bolusId))
+            as CancelBolusResponse?
 
-        aapsLogger.debug(TAG, "ResponseMessgae: $responseMessage ")
+        aapsLogger.debug(TAG, "cancelBolus responseMessage: $responseMessage ")
 
-        return DataCommandResponse(
-            PumpCommandType.CancelBolus, true, null,
-            null
-        )
+
+        return if (responseMessage != null && responseMessage.status == CancelBolusResponse.CancelStatus.SUCCESS) {
+            DataCommandResponse(
+                PumpCommandType.CancelBolus,
+                true,
+                null,
+                null
+            )
+        } else {
+            DataCommandResponse(
+                PumpCommandType.CancelBolus,
+                false,
+                "Error cancelling bolus, got status ${responseMessage?.statusId}: $responseMessage",
+                null
+            )
+
+        }
     }
 
 
@@ -635,7 +726,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             return super.sendTemporaryBasal(value, duration)
         }
 
-        val responseMessage: SetTempRateResponse? = getCommunicationManager().sendCommand(
+        val responseMessage: SetTempRateResponse? = getCommunicationManager()?.sendCommand(
             SetTempRateRequest(duration, value)) as SetTempRateResponse?
 
         if (responseMessage!=null) {
@@ -674,7 +765,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         }
 
         val responseMessage: StopTempRateResponse? = getCommunicationManager()
-            .sendCommand(StopTempRateRequest()) as StopTempRateResponse?
+            ?.sendCommand(StopTempRateRequest()) as StopTempRateResponse?
 
         return if (responseMessage!=null) {
             DataCommandResponse(
@@ -697,7 +788,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                 operation: String): DataCommandResponse<AdditionalResponseDataInterface?> {
 
         val responseMessage: StatusMessage? = getCommunicationManager()
-            .sendCommand(requestMessage) as StatusMessage?
+            ?.sendCommand(requestMessage) as StatusMessage?
 
         return if (responseMessage!=null) {
             DataCommandResponse(
@@ -751,7 +842,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
             aapsLogger.debug(LTag.PUMPCOMM, "IDPSegmentRequest [idpId=$idpId, segmentIndex=$i]")
 
-            responseMessage = getCommunicationManager().sendCommand(IDPSegmentRequest(idpId, i))
+            responseMessage = getCommunicationManager()
+                ?.sendCommand(IDPSegmentRequest(idpId, i))
 
             responseText = checkResponse(responseMessage, "IDPSegmentRequest [idpId=${idpId}, segmentNumber=${i}]")
 
@@ -795,7 +887,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     fun getInitialBasalProfileConfiguration(): PumpProfileDto {
 
-        var responseMessage: Message? = getCommunicationManager().sendCommand(ProfileStatusRequest())
+        var responseMessage: Message? = getCommunicationManager()
+            ?.sendCommand(ProfileStatusRequest())
 
         var responseText = checkResponse(responseMessage, "ProfileStatusRequest")
 
@@ -821,7 +914,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             return pumpProfileDto
         }
 
-        responseMessage = getCommunicationManager().sendCommand(IDPSettingsRequest(idpId))
+        responseMessage = getCommunicationManager()
+            ?.sendCommand(IDPSettingsRequest(idpId))
 
         responseText = checkResponse(responseMessage, "IDPSettingsRequest (idpId=${idpId}")
 
@@ -893,11 +987,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                   profile.dia.toInt() * 60,
                                                   0) // for AAPS profile we are setting this to 0
 
-            val responseMessage = getCommunicationManager().sendCommand(createIDPRequest) as CreateIDPResponse
+            val responseMessage = getCommunicationManager()?.sendCommand(createIDPRequest) as CreateIDPResponse?
 
             responseText = checkResponse(responseMessage, "sendBasalProfile - NEW Scenario - Create Initial IDP")
 
-            if (responseText!=null) {
+            if (responseText!=null || responseMessage == null) {
                 aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile: ERROR: $responseText  - NEW Scenario - Create Initial IDP")
 
                 return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
@@ -948,11 +1042,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                   idpSegments[index].profileISF,
                                                   idpStatusId)
 
-            val responseMessage = getCommunicationManager().sendCommand(setSegment) as SetIDPSegmentResponse
+            val responseMessage = getCommunicationManager()?.sendCommand(setSegment) as SetIDPSegmentResponse?
 
             responseText = checkResponse(responseMessage, "sendBasalProfile - SetIDPSegmentRequest (idpId=${idpId},segmentIndex=$index)")
 
-            if (responseText!=null) {
+            if (responseText!=null || responseMessage == null) {
                 aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile: ERROR:  $responseText    SetIDPSegmentRequest [index=${index},operation=$operation]")
 
                 return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
@@ -1029,11 +1123,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                   idpSegments[index].profileISF,
                                                   idpStatusId)
 
-            val responseMessage = getCommunicationManager().sendCommand(setSegment) as SetIDPSegmentResponse
+            val responseMessage = getCommunicationManager()?.sendCommand(setSegment) as SetIDPSegmentResponse
 
             responseText = checkResponse(responseMessage, "sendBasalProfile - SetIDPSegmentRequest (idpId=${idpId},segmentIndex=$index)")
 
-            if (responseText!=null) {
+            if (responseText!=null || responseMessage == null) {
                 aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile: ERROR:  $responseText    SetIDPSegmentRequest [index=${index},operation=$operation]")
 
                 return DataCommandResponse(PumpCommandType.SetBasalProfile, false, responseText, false)
@@ -1056,7 +1150,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                               idpSegment.profileCarbRatio, idpSegment.profileTargetBG, idpSegment.profileISF,
                                               idpStatusId)
 
-        val responseMessage = getCommunicationManager().sendCommand(setSegment) as SetIDPSegmentResponse
+        val responseMessage = getCommunicationManager()?.sendCommand(setSegment) as SetIDPSegmentResponse?
 
         val responseText = checkResponse(responseMessage, "SetIDPSegmentRequest [idpId=${idpSegment.idpId},segmentIndex=$index]")
 
@@ -1065,7 +1159,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             return false
         }
 
-        val success = responseMessage.isStatusOK
+        val success = responseMessage?.isStatusOK == true
 
         aapsLogger.info(LTag.PUMPCOMM, "sendBasalProfile - SetIDPSegmentRequest[segmentIndex=$index,op=DELETE_SEGMENT_ID] Status: success=$success")
 
@@ -1077,7 +1171,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         // TimeSinceResetRequest
         aapsLogger.info(LTag.PUMPCOMM, "getTime")
 
-        val responseMessage = getCommunicationManager().sendCommand(TimeSinceResetRequest())
+        val responseMessage = getCommunicationManager()?.sendCommand(TimeSinceResetRequest())
             as TimeSinceResetResponse
 
         val responseText = checkResponse(responseMessage, "TimeSinceResetRequest")
@@ -1105,11 +1199,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             return super.setTime()
         }
 
-        val responseMessage = getCommunicationManager().sendCommand(ChangeTimeDateRequest(Instant.now())) as StatusMessage
+        val responseMessage = getCommunicationManager()?.sendCommand(ChangeTimeDateRequest(Instant.now())) as StatusMessage?
+
 
         val responseText = checkResponse(responseMessage, "ChangeTimeDateRequest")
 
-        if (responseText!=null) {
+        if (responseText!=null || responseMessage == null) {
             return DataCommandResponse(PumpCommandType.SetTime, false, responseText, false)
         }
 
@@ -1131,7 +1226,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(LTag.PUMPCOMM, "getPumpStatus")
 
         val responseMessage: HomeScreenMirrorResponse? = getCommunicationManager()
-            .sendCommand(HomeScreenMirrorRequest()) as HomeScreenMirrorResponse?
+            ?.sendCommand(HomeScreenMirrorRequest()) as HomeScreenMirrorResponse?
 
         if (responseMessage!=null) {
 
@@ -1202,7 +1297,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(LTag.PUMPCOMM, "dismissNotification $details")
 
         val responseMessage: DismissNotificationResponse? = getCommunicationManager()
-            .sendCommand(dismissNotificationRequest) as DismissNotificationResponse?
+            ?.sendCommand(dismissNotificationRequest) as DismissNotificationResponse?
 
         if (responseMessage!=null) {
             return DataCommandResponse(
@@ -1226,7 +1321,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(TAG, "getPumpInfo")
 
         val responseMessage: PumpVersionResponse? = getCommunicationManager()
-            .sendCommand(PumpVersionRequest()) as PumpVersionResponse?
+            ?.sendCommand(PumpVersionRequest()) as PumpVersionResponse?
 
         if (responseMessage!=null) {
 
@@ -1253,7 +1348,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(LTag.PUMPCOMM, "setMaxBolus [bolusAmount=$bolusAmount]")
 
         val responseMessage: SetMaxBolusLimitResponse? = getCommunicationManager()
-            .sendCommand(SetMaxBolusLimitRequest(
+            ?.sendCommand(SetMaxBolusLimitRequest(
                 InsulinUnit.from1To1000(bolusAmount.toDouble()).toInt()
             )) as SetMaxBolusLimitResponse?
 
@@ -1278,7 +1373,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(LTag.PUMPCOMM, "getAlerts")
 
         val responseMessage: AlertStatusResponse? = getCommunicationManager()
-            .sendCommand(AlertStatusRequest()) as AlertStatusResponse?
+            ?.sendCommand(AlertStatusRequest()) as AlertStatusResponse?
 
         if (responseMessage!=null) {
 
@@ -1305,7 +1400,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(LTag.PUMPCOMM, "getAlerts")
 
         val responseMessage: AlarmStatusResponse? = getCommunicationManager()
-            .sendCommand(AlarmStatusRequest()) as AlarmStatusResponse?
+            ?.sendCommand(AlarmStatusRequest()) as AlarmStatusResponse?
 
         if (responseMessage!=null) {
 
@@ -1328,16 +1423,39 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     private fun getMalfunctions(): DataCommandResponse<AdditionalResponseDataInterface?> {
-
+        // NOTE: MalfunctionStatusResponse returns data which is not always necessarily
+        // reflective of an actual malfunction. If the codeA matches an active alarm or alert,
+        // we ignore the malfunction in favor of notifying for that specific alert code.
+        // As a result, we will actually re-fetch the current alarm and alert state here
+        // to then use pumpx2's NotificationBundle filtering logic to prevent errant notifications.
         aapsLogger.info(LTag.PUMPCOMM, "getMalfunctions")
 
         val responseMessage: MalfunctionStatusResponse? = getCommunicationManager()
-            .sendCommand(MalfunctionStatusRequest()) as MalfunctionStatusResponse?
+            ?.sendCommand(MalfunctionStatusRequest()) as MalfunctionStatusResponse?
 
         if (responseMessage!=null) {
 
-            val malfunctionStatusDto = MalfunctionStatusDto()
+            val bundle = NotificationBundle()
+            val alertResponse: AlertStatusResponse? = getCommunicationManager()
+                ?.sendCommand(AlertStatusRequest()) as AlertStatusResponse?
+            if (alertResponse != null) {
+                bundle.add(alertResponse)
+            }
+
+            val alarmResponse: AlarmStatusResponse? = getCommunicationManager()
+                ?.sendCommand(AlarmStatusRequest()) as AlarmStatusResponse?
+            if (alarmResponse != null) {
+                bundle.add(alarmResponse)
+            }
+
+            // if after adding the malfunction response to the bundle
+            // it is automatically excluded, then ignore it
+            bundle.add(responseMessage)
+            val malfunctionMatchesActiveAlertOrAlarm = bundle.get().none { it is MalfunctionStatusResponse }
+
+            val malfunctionStatusDto = MalfunctionStatusDto(malfunctionMatchesActiveAlertOrAlarm)
             malfunctionStatusDto.parse(responseMessage.cargo)
+
 
             return DataCommandResponse(
                 PumpCommandType.CustomCommand, true,
@@ -1356,32 +1474,23 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     private fun getQuickBolus(): DataCommandResponse<AdditionalResponseDataInterface?> {
 
-        aapsLogger.error(LTag.PUMPCOMM, "getQuickBolus Not implemented")
-
-        // TODO: IMPLEMENT
-        return DataCommandResponse(
-            PumpCommandType.CustomCommand, false,
-            "getQuickBolus Not implemented",
-            null)
-
-
-        val responseMessage: AlertStatusResponse? = getCommunicationManager()
-            .sendCommand((AlertStatusRequest())) as AlertStatusResponse?
+        val responseMessage: PumpGlobalsResponse? = getCommunicationManager()
+            ?.sendCommand((PumpGlobalsRequest())) as PumpGlobalsResponse?
 
         if (responseMessage!=null) {
 
-            val alertStatusDto = AlertStatusDto()
-            alertStatusDto.parse(responseMessage.cargo)
+            val pumpGlobalsDto = PumpGlobalsDto()
+            pumpGlobalsDto.parse(responseMessage.cargo)
 
             return DataCommandResponse(
                 PumpCommandType.CustomCommand, true,
                 null,
-                alertStatusDto
+                pumpGlobalsDto
             )
         } else {
             return DataCommandResponse(
                 PumpCommandType.CustomCommand, false,
-                "Error getting response from sending AlertStatusRequest: null",
+                "Error getting response for getQuickBolus: null",
                 null
             )
         }
@@ -1389,12 +1498,18 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
 
+    /**
+     * @param basalAmount units
+     */
     private fun setMaxBasal(basalAmount: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
 
         aapsLogger.info(LTag.PUMPCOMM, "setMaxBasal [basalAmount=$basalAmount]")
 
+        // units -> milliunits
+        val newMaxBasalLimit = SetMaxBasalLimitRequest(basalAmount*1000)
+
         val responseMessage: SetMaxBasalLimitResponse? = getCommunicationManager()
-            .sendCommand(SetMaxBasalLimitRequest(basalAmount*1000)) as SetMaxBasalLimitResponse?
+            ?.sendCommand(newMaxBasalLimit) as SetMaxBasalLimitResponse?
 
         if (responseMessage!=null) {
             return DataCommandResponse(
@@ -1418,7 +1533,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         val quickBolusIncrement = SetQuickBolusSettingsRequest.QuickBolusIncrement.valueOf(quickBolusType.name)
 
         val responseMessage: SetQuickBolusSettingsResponse? = getCommunicationManager()
-            .sendCommand(SetQuickBolusSettingsRequest(quickBolusIncrement)) as SetQuickBolusSettingsResponse?
+            ?.sendCommand(SetQuickBolusSettingsRequest(quickBolusIncrement)) as SetQuickBolusSettingsResponse?
 
         if (responseMessage!=null) {
             return DataCommandResponse(
@@ -1442,7 +1557,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(LTag.PUMPCOMM, "setControlIQDisabled")
 
         val responseMessage: ChangeControlIQSettingsResponse? = getCommunicationManager()
-            .sendCommand(ChangeControlIQSettingsRequest(false, 0, 0)) as ChangeControlIQSettingsResponse?
+            ?.sendCommand(ChangeControlIQSettingsRequest(false, 0, 0)) as ChangeControlIQSettingsResponse?
 
         if (responseMessage!=null) {
             return DataCommandResponse(
@@ -1469,7 +1584,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData for $commandType  - Request message: ${requestMessage.javaClass.name}")
 
-        val responseMessage: Message? = getCommunicationManager().sendCommand(requestMessage)
+        val responseMessage: Message? = getCommunicationManager()?.sendCommand(requestMessage)
 
         aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData: Response: $responseMessage")
 
@@ -1543,7 +1658,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         return if (tandemCommunicationManager==null) {
             false
         } else {
-            getCommunicationManager().connected
+            getCommunicationManager()?.connected == true
         }
     }
 

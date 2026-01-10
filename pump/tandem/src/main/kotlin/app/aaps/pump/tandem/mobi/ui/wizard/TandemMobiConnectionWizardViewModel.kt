@@ -140,8 +140,11 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
             is EventTandemPairingStatus.WaitingForCode -> {
                 _state.update { it.copy(pairingStatus = 40) }
             }
-            is EventTandemPairingStatus.Connecting -> {
-                _state.update { it.copy(pairingStatus = 50) }
+            is EventTandemPairingStatus.PairingInProgress -> {
+                _state.update { it.copy(
+                    pairingStatus = 50 + (event.progressPercent / 2),
+                    pairingLabel = event.progressLabel
+                ) }
             }
             is EventTandemPairingStatus.PairingSuccess -> {
                 aapsLogger.info(LTag.PUMP, "Pairing successful: ${event.pumpSerial}")
@@ -149,7 +152,8 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
                     currentStep = WizardStep.Complete,
                     pairingStatus = 100,
                     pairedPumpSerial = event.pumpSerial,
-                    pairedPumpName = event.pumpName
+                    pairedPumpName = event.pumpName,
+                    pairedPumpApiVersion = event.pumpApiVersion,
                 )}
             }
             is EventTandemPairingStatus.PairingFailed -> {

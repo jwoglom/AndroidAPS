@@ -110,6 +110,7 @@ interface PumpBLESelector {
 
 enum class PumpBLESelectorText {
     SCAN_TITLE,
+    INSTRUCTIONS_TEXT,
     SELECTED_PUMP_TITLE,
     REMOVE_TITLE,
     REMOVE_TEXT,

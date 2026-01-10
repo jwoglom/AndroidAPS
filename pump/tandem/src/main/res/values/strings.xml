@@ -19,7 +19,7 @@
     <string name="pump_last_bolus" translatable="false">%1$.2f %2$s (%3$s)</string>
     <string name="pump_firmware_open_loop_only">%s (Open-Loop only)</string>
     <string name="pump_firmware_demo">Ignored. Demo mode</string>
-    <string name="pump_settings">Settings</string>
+    <string name="pump_actions">Actions</string>
     <string name="pump_data">Data</string>
     <string name="driver_version">Driver Version</string>
     <string name="pump_serial_number">Serial Number</string>
@@ -111,7 +111,7 @@
 
 
     <!-- UI Configuration::Actions -->
-    <string name="ui_a_title">Settings</string>
+    <string name="ui_a_title">Actions</string>
     <string name="ui_a_min_ago">%1$d min left</string>
 
 
@@ -262,10 +262,14 @@
 
     <!-- Tandem specific constraints -->
     <string name="tandem_constraint_basal_rate_max_250">Max allowed Basal Rate is 250%% which is %1$.2f, with Base Basal Rate of %2$.2f.</string>
+    <string name="tandem_constraint_basal_rate_min_0_1u">Requested effective basal rate is %.2f U/h, which is below the minimum pump allowed non-zero basal rate of 0.1 U/h, so lowering basal rate to 0 U/h.</string>
     <string name="tandem_constraint_basal_rate_on_pump">Max configured Basal Rate on pump is %.2f U/h.</string>
     <string name="tandem_constraint_basal_rate_percent">Requested TBR was %d %%, which is more than pump allows (250%%), so limiting to 250%%.</string>
     <string name="tandem_constraint_basal_rate_percent_max_pump">Requested TBR %% was bigger than max configured basal on pump %d.</string>
     <string name="tandem_constraint_SMB">SMB Allowed on Mobi.</string>
+    <string name="tandem_constraint_bolus_minimum">Bolus rounded down to 0 U (minimum bolus is %1$.2f U)</string>
+    <string name="tandem_constraint_bolus_maximum">Bolus limited to %1$d U (pump max bolus setting)</string>
+
 
     <!-- Tandem BLE Config -->
     <string name="tandem_ble_config_scan_title">Tandem Scan</string>
@@ -347,7 +351,7 @@
     <string name="tandem_wizard_intro_title">Pair Your Tandem Mobi Pump</string>
     <string name="tandem_wizard_repair_title">Re-pair Your Tandem Mobi Pump</string>
     <string name="tandem_wizard_intro_description">This wizard will guide you through pairing your Tandem Mobi pump with your phone via Bluetooth.</string>
-    <string name="tandem_wizard_intro_prerequisites">Prerequisites:\n&#8226; Pump is powered on\n&#8226; Pump wireless charger is available and plugged in\n&#8226; You have the 6-digit PIN from the pump</string>
+    <string name="tandem_wizard_intro_prerequisites">Prerequisites:\n&#8226; Pump is powered on\n&#8226; Pump has been placed on the wireless charger \n&#8226; You have the 6-digit PIN from the pump</string>
     <string name="tandem_wizard_begin_pairing">Begin Pairing</string>
 
     <!-- Device Selection -->
@@ -387,6 +391,10 @@
     <string name="tandem_wizard_success_description">Your Tandem Mobi pump has been paired successfully.</string>
     <string name="tandem_wizard_pump_name_label">Pump Name</string>
     <string name="tandem_wizard_pump_serial_label">Serial Number</string>
+    <string name="tandem_wizard_pump_supported_capabilities">Supported Capabilities</string>
+    <string name="tandem_wizard_pump_closed_loop_supported">Closed Loop supported</string>
+    <string name="tandem_wizard_pump_bolus_only_supported">Open Loop with bolus supported (no closed loop)</string>
+    <string name="tandem_wizard_pump_open_loop_only">Open Loop only (no closed loop)</string>
     <string name="tandem_wizard_finish">Finish</string>
 
 

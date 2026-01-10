@@ -243,7 +243,8 @@ private fun WizardContent(
                 }
                 is WizardStep.Pairing -> {
                     PairingScreen(
-                        pairingStatus = state.pairingStatus
+                        pairingStatus = state.pairingStatus,
+                        pairingLabel = state.pairingLabel
                     )
                 }
                 is WizardStep.Error -> {
@@ -262,6 +263,7 @@ private fun WizardContent(
                     ConnectionCompleteScreen(
                         pumpSerial = state.pairedPumpSerial,
                         pumpName = state.pairedPumpName,
+                        pumpApiVersion = state.pairedPumpApiVersion,
                         onFinish = onFinish
                     )
                 }

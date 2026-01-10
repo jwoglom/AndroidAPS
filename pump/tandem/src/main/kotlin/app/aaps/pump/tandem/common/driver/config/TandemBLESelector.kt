@@ -106,7 +106,9 @@ class TandemBLESelector @Inject constructor(
 
         aapsLogger.debug(TAG, "TANDEMDBG: onDeviceSelected: ${bleAddress} ")
 
-        val selectionOnly = activity.intent?.getBooleanExtra(TandemPumpBLEConfigActivity.EXTRA_SELECTION_ONLY, false) ?: false
+        val selectionOnly = activity.intent?.getBooleanExtra(
+            TandemPumpBLEConfigActivity.EXTRA_SELECTION_ONLY, false
+        ) ?: false
 
         //var addressChanged = false
 
@@ -193,11 +195,13 @@ class TandemBLESelector @Inject constructor(
 
         when (key) {
             PumpBLESelectorText.SCAN_TITLE          -> stringId = R.string.tandem_ble_config_scan_title
+            PumpBLESelectorText.INSTRUCTIONS_TEXT   -> stringId = R.string.tandem_wizard_waiting_device_selection
             PumpBLESelectorText.SELECTED_PUMP_TITLE -> stringId = R.string.tandem_ble_config_selected_pump_title
             PumpBLESelectorText.REMOVE_TITLE        -> stringId = R.string.tandem_ble_config_remove_pump_title
             PumpBLESelectorText.REMOVE_TEXT         -> stringId = R.string.tandem_ble_config_remove_pump_confirmation
             PumpBLESelectorText.NO_SELECTED_PUMP    -> stringId = R.string.tandem_ble_config_no_pump_selected
             PumpBLESelectorText.PUMP_CONFIGURATION  -> stringId = R.string.tandem_configuration
+            else -> return ""
         }
 
         return resourceHelper.gs(stringId)

@@ -110,27 +110,6 @@ class TandemPumpUtil @Inject constructor(
         }
 
 
-    val malfunctionFilterSet: HashSet<String> = hashSetOf(
-        "17-0x2032",  // LOW INSULIN ALERT2
-        "0-0x2032",  // LOW INSULIN ALERT
-        "2-0x2082",  // LOW_POWER_ALERTS
-    )
-
-    fun isNotificationNotFiltered(message: Message): Boolean {
-        if (message is MalfunctionStatusResponse) {
-            return isMalfunctionNotFiltered(message)
-        } else
-            return true;
-    }
-
-    fun isMalfunctionNotFiltered(malfunction: MalfunctionStatusResponse): Boolean {
-        return !(malfunctionFilterSet.contains(malfunction.errorString)) && !malfunction.hasMalfunction()
-    }
-
-
-
-
-
     companion object {
 
         const val MAX_RETRY = 2
