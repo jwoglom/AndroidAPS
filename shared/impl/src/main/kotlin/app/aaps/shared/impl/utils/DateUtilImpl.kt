@@ -252,9 +252,9 @@ class DateUtilImpl @Inject constructor(
             }
         }
         return if (duration.isPositive()) {
-            rh.gs(R.string.days_ago, duration.inWholeDays)
+            rh.gs(R.string.days_ago, duration.toDouble(DurationUnit.DAYS))
         } else {
-            rh.gs(R.string.in_days, abs(duration.inWholeDays))
+            rh.gs(R.string.in_days, abs(duration.toDouble(DurationUnit.DAYS)))
         }
     }
 
