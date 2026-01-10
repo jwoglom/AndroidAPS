@@ -243,7 +243,8 @@ private fun WizardContent(
                 }
                 is WizardStep.Pairing -> {
                     PairingScreen(
-                        pairingStatus = state.pairingStatus
+                        pairingStatus = state.pairingStatus,
+                        pairingLabel = state.pairingLabel
                     )
                 }
                 is WizardStep.Error -> {

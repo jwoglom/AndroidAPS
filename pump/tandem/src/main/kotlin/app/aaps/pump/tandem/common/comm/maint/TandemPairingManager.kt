@@ -53,6 +53,7 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import java.util.*
 import app.aaps.pump.tandem.common.events.EventTandemPairingStatus
 import app.aaps.pump.tandem.common.events.PairingError
+import com.jwoglom.pumpx2.pump.messages.builders.JpakeAuthBuilder
 
 /**
  * This is low-level driver that does pairing with pump
@@ -291,10 +292,9 @@ class TandemPairingManager constructor(
     //     // rxBus.send()
     // }
 
-    // added in pumpx2 1.8.1
-    // override fun onJpakeProgress(jpakeStep: JpakeAuthBuilder.JpakeStep) {
-    //     rxBus.send(EventTandemPairingStatus.PairingInProgress(jpakeStep.progressPercent, jpakeStep.name()))
-    // }
+    override fun onJpakeProgress(jpakeStep: JpakeAuthBuilder.JpakeStep) {
+        rxBus.send(EventTandemPairingStatus.PairingInProgress(jpakeStep.progressPercent, jpakeStep.name))
+    }
 
     private fun triggerPairDialog(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse) {
 
