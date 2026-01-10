@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 
@@ -127,14 +128,14 @@ fun SupportedCapabilitiesForVersion(apiVersion: TandemPumpApiVersion) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Checkmark",
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             } else {
                 Icon(
                     imageVector = Icons.Default.Warning,
                     contentDescription = "Warning",
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.secondary
                 )
 
@@ -142,7 +143,8 @@ fun SupportedCapabilitiesForVersion(apiVersion: TandemPumpApiVersion) {
 
             Text(
                 text,
-                modifier = Modifier.height(12.dp),
+                fontSize = 12.sp,
+                modifier = Modifier.height(16.dp),
             )
         }
     }
