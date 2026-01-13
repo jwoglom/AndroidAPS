@@ -38,7 +38,6 @@ import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.validators.preferences.AdaptiveIntPreference
-import app.aaps.core.validators.preferences.AdaptiveIntentPreference
 import app.aaps.core.validators.preferences.AdaptiveListPreference
 import app.aaps.core.validators.preferences.AdaptiveStringPreference
 import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
@@ -92,6 +91,7 @@ import app.aaps.pump.tandem.common.keys.TandemIntentPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
+import app.aaps.pump.tandem.common.util.AdaptiveIntentPreference
 import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
 import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
@@ -1748,7 +1748,8 @@ class TandemMobiPumpPlugin @Inject constructor(
                 // singleLine="false", selectAllOnFocus="true"
             )
 
-            // TODO Intent selector doesn't work - trying again
+            // TODO the AAPS core AdaptiveIntentPreference doesn't work,
+            // we have forked it in the tandem module with added null pointer checks
             addPreference(
                 AdaptiveIntentPreference(
                     ctx = context,
