@@ -12,10 +12,12 @@ import app.aaps.pump.tandem.mobi.ui.wizard.screens.ConnectionCompleteScreen
 import app.aaps.pump.tandem.mobi.ui.wizard.screens.DeviceListScreen
 import app.aaps.pump.tandem.mobi.ui.wizard.screens.EnterPINScreen
 import app.aaps.pump.tandem.mobi.ui.wizard.screens.ErrorScreen
+import app.aaps.pump.tandem.mobi.ui.wizard.screens.ExistingPumpScreen
 import app.aaps.pump.tandem.mobi.ui.wizard.screens.IntroductionScreen
 import app.aaps.pump.tandem.mobi.ui.wizard.screens.PairingScreen
 
 object WizardRoutes {
+    const val EXISTING_PUMP = "existing_pump"
     const val INTRODUCTION = "introduction"
     const val DEVICE_LIST = "device_list"
     const val ENTER_PIN = "enter_pin"
@@ -30,7 +32,9 @@ fun WizardNavHost(
     viewModel: TandemMobiConnectionWizardViewModel,
     startDestination: String = WizardRoutes.INTRODUCTION,
     onFinish: () -> Unit,
-    onCreatePairingManager: (String) -> Unit
+    onFinishAndRestart: () -> Unit,
+    onCreatePairingManager: (String) -> Unit,
+    onRequestPumpDisconnect: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -38,6 +42,26 @@ fun WizardNavHost(
         navController = navController,
         startDestination = startDestination
     ) {
+        // Existing Pump Screen (shown if pump already paired)
+        composable(WizardRoutes.EXISTING_PUMP) {
+            ExistingPumpScreen(
+                pumpName = state.existingPumpName,
+                pumpSerial = state.existingPumpSerial,
+                pumpAddress = state.existingPumpAddress,
+                onContinue = {
+                    viewModel.onConfirmRemoveExistingPump()
+                    onRequestPumpDisconnect()
+                    navController.navigate(WizardRoutes.INTRODUCTION) {
+                        popUpTo(WizardRoutes.EXISTING_PUMP) { inclusive = true }
+                    }
+                },
+                onCancel = {
+                    viewModel.onCancelRemoveExistingPump()
+                    onFinish()
+                }
+            )
+        }
+
         // Introduction Screen
         composable(WizardRoutes.INTRODUCTION) {
             IntroductionScreen(
@@ -133,7 +157,7 @@ fun WizardNavHost(
                 pumpSerial = state.pairedPumpSerial,
                 pumpName = state.pairedPumpName,
                 pumpApiVersion = state.pairedPumpApiVersion,
-                onFinish = onFinish
+                onFinish = onFinishAndRestart
             )
         }
     }

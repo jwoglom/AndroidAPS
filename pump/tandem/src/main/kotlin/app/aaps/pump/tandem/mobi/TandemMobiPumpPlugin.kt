@@ -1755,6 +1755,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                     ctx = context,
                     intentKey = TandemIntentPreferenceKey.PumpPairing,
                     title = R.string.tandem_pump_configuration,
+                    summary = R.string.tandem_pump_configuration_subtitle,
                     intent = Intent(context, TandemMobiConnectionWizardActivity::class.java)
                 )
             )

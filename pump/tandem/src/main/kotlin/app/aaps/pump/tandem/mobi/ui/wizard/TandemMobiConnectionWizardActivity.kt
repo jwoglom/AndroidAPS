@@ -35,10 +35,11 @@ import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import androidx.compose.runtime.collectAsState
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import app.aaps.pump.common.events.EventPumpForceDisconnect
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
+import kotlin.system.exitProcess
 
 /**
  * Jetpack Compose-based wizard for pairing Tandem Mobi pump
@@ -83,9 +84,13 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
             viewModel.startRePairing()
         }
 
-        // Check if there's already a paired pump and show confirmation dialog
-        if (!isRePairing && viewModel.hasExistingPairing()) {
-            showExistingPumpDialog()
+        // Determine start destination based on existing pairing
+        val startDestination = if (!isRePairing && viewModel.hasExistingPairing()) {
+            // Load existing pump info into state and start at existing pump screen
+            viewModel.loadExistingPumpInfo()
+            WizardRoutes.EXISTING_PUMP
+        } else {
+            WizardRoutes.INTRODUCTION
         }
 
         setContent {
@@ -95,8 +100,11 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
                 WizardContent(
                     navController = navController,
                     viewModel = viewModel,
+                    startDestination = startDestination,
                     onFinish = { finish() },
-                    onCreatePairingManager = { address -> createPairingManager(address) }
+                    onFinishAndRestart = { showRestartDialogAndRestart() },
+                    onCreatePairingManager = { address -> createPairingManager(address) },
+                    onRequestPumpDisconnect = { handleExistingPumpRemoval() }
                 )
             }
         }
@@ -132,8 +140,8 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
             aapsSchedulers = aapsSchedulers
         ).also { manager ->
             viewModel.setPairingManager(manager)
-            // Always clear pairing data at the start of pairing to ensure clean state
-            manager.clearPairingData()
+            // Note: Pairing data already cleared by handleExistingPumpRemoval if needed
+            // No need to clear again here
         }
 
         needsPairingReset = false
@@ -147,34 +155,6 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
     }
 
     /**
-     * Show dialog asking user to confirm removal of existing pump pairing
-     */
-    private fun showExistingPumpDialog() {
-        val (pumpName, pumpSerial, pumpAddress) = viewModel.getExistingPumpInfo()
-
-        aapsLogger.info(LTag.PUMP, "Showing existing pump dialog: $pumpName ($pumpSerial)")
-
-        MaterialAlertDialogBuilder(this, app.aaps.core.ui.R.style.DialogTheme)
-            .setTitle(resourceHelper.gs(R.string.tandem_wizard_existing_pump_title))
-            .setMessage(resourceHelper.gs(
-                R.string.tandem_wizard_existing_pump_message,
-                pumpName,
-                pumpSerial,
-                pumpAddress
-            ))
-            .setPositiveButton(resourceHelper.gs(R.string.tandem_wizard_existing_pump_continue)) { _, _ ->
-                aapsLogger.info(LTag.PUMP, "User confirmed removal of existing pump")
-                handleExistingPumpRemoval()
-            }
-            .setNegativeButton(resourceHelper.gs(R.string.tandem_wizard_existing_pump_cancel)) { _, _ ->
-                aapsLogger.info(LTag.PUMP, "User cancelled pairing wizard")
-                finish()
-            }
-            .setCancelable(false)
-            .show()
-    }
-
-    /**
      * Handle removal of existing pump: disconnect and clear pairing data
      */
     private fun handleExistingPumpRemoval() {
@@ -183,12 +163,35 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
         // Send event to disconnect the pump via the service
         rxBus.send(EventPumpForceDisconnect())
 
-        // Give the disconnect event time to be processed, then reset pairing
+        // Give the disconnect event time to be processed, then clear all pairing data
         Handler(Looper.getMainLooper()).postDelayed({
+            // Clear ALL pairing data using TandemPumpUtil
+            tandemPumpUtil.clearAllPairingData()
+
             // Mark that we need to reset pairing
             needsPairingReset = true
-            viewModel.startRePairing()
-        }, 500)
+            // Note: State is reset by viewModel.onConfirmRemoveExistingPump() with isRePairing=false
+
+            aapsLogger.info(LTag.PUMP, "Existing pump removed, ready for new pairing")
+        }, 1000) // Increased to 1 second to ensure disconnect completes
+    }
+
+    /**
+     * Show restart dialog and restart AndroidAPS after user confirms
+     */
+    private fun showRestartDialogAndRestart() {
+        aapsLogger.info(LTag.PUMP, "Pairing complete, showing restart dialog")
+
+        MaterialAlertDialogBuilder(this, app.aaps.core.ui.R.style.DialogTheme)
+            .setMessage(resourceHelper.gs(R.string.tandem_wizard_restart_message))
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                aapsLogger.info(LTag.PUMP, "User confirmed restart, restarting AndroidAPS")
+                Handler(Looper.getMainLooper()).postDelayed({
+                    exitProcess(0)
+                }, 500)
+            }
+            .setCancelable(false)
+            .show()
     }
 
     companion object {
@@ -200,8 +203,11 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
 private fun WizardContent(
     navController: NavHostController,
     viewModel: TandemMobiConnectionWizardViewModel,
+    startDestination: String,
     onFinish: () -> Unit,
-    onCreatePairingManager: (String) -> Unit
+    onFinishAndRestart: () -> Unit,
+    onCreatePairingManager: (String) -> Unit,
+    onRequestPumpDisconnect: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -228,8 +234,11 @@ private fun WizardContent(
             WizardNavHost(
                 navController = navController,
                 viewModel = viewModel,
+                startDestination = startDestination,
                 onFinish = onFinish,
-                onCreatePairingManager = onCreatePairingManager
+                onFinishAndRestart = onFinishAndRestart,
+                onCreatePairingManager = onCreatePairingManager,
+                onRequestPumpDisconnect = onRequestPumpDisconnect
             )
         }
     }
@@ -237,6 +246,7 @@ private fun WizardContent(
 
 private fun calculateProgress(route: String?): Float {
     return when (route) {
+        WizardRoutes.EXISTING_PUMP -> 0.0f
         WizardRoutes.INTRODUCTION -> 0.0f
         WizardRoutes.DEVICE_LIST -> 0.25f
         WizardRoutes.ENTER_PIN -> 0.5f

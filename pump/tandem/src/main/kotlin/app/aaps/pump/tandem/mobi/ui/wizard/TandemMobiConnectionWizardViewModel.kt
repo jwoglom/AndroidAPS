@@ -313,6 +313,37 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
         return Triple(pumpName, pumpSerial, pumpAddress)
     }
 
+    /**
+     * Populate state with existing pump information for display
+     */
+    fun loadExistingPumpInfo() {
+        val (pumpName, pumpSerial, pumpAddress) = getExistingPumpInfo()
+        _state.update { it.copy(
+            existingPumpName = pumpName,
+            existingPumpSerial = pumpSerial,
+            existingPumpAddress = pumpAddress
+        )}
+    }
+
+    /**
+     * User confirmed they want to remove existing pump and continue.
+     * Resets state for fresh pairing (not re-pairing since we cleared the data).
+     */
+    fun onConfirmRemoveExistingPump() {
+        aapsLogger.info(LTag.PUMP, "User confirmed removal of existing pump, resetting to fresh pairing state")
+        _state.update {
+            TandemMobiWizardState(isRePairing = false)
+        }
+    }
+
+    /**
+     * User cancelled removing existing pump
+     */
+    fun onCancelRemoveExistingPump() {
+        aapsLogger.info(LTag.PUMP, "User cancelled removal of existing pump")
+        // Activity will handle finish
+    }
+
     override fun onCleared() {
         super.onCleared()
         stopDeviceScan()

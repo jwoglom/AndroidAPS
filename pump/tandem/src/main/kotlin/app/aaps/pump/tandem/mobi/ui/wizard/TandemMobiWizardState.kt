@@ -34,7 +34,12 @@ data class TandemMobiWizardState(
     val isRePairing: Boolean = false,
     val pairedPumpSerial: String = "",
     val pairedPumpName: String = "",
-    val pairedPumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.Unknown
+    val pairedPumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.Unknown,
+
+    // Existing pump info (for confirmation screen)
+    val existingPumpName: String = "",
+    val existingPumpSerial: String = "",
+    val existingPumpAddress: String = ""
 )
 
 /**
