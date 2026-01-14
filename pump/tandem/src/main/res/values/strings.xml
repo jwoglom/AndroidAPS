@@ -401,6 +401,11 @@
     <string name="tandem_wizard_pump_open_loop_only">Open Loop only (no closed loop)</string>
     <string name="tandem_wizard_finish">Finish</string>
 
+    <!-- Existing pump dialog -->
+    <string name="tandem_wizard_existing_pump_title">Pump Already Paired</string>
+    <string name="tandem_wizard_existing_pump_message">A pump is already configured:\n\nPump Name: %1$s\nSerial Number: %2$s\nAddress: %3$s\n\nTo pair a new pump, the existing pump must be disconnected. No other data in AndroidAPS will be removed. Do you want to continue?</string>
+    <string name="tandem_wizard_existing_pump_continue">Remove and Continue</string>
+    <string name="tandem_wizard_existing_pump_cancel">Cancel</string>
 
 
     <!-- OLD Ones past this line -->

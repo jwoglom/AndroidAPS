@@ -294,6 +294,25 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Check if there's already a paired pump
+     */
+    fun hasExistingPairing(): Boolean {
+        val pairStatus = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, -1)
+        val pumpSerial = tandemPumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpSerial, "")
+        return pairStatus == 100 && pumpSerial.isNotEmpty()
+    }
+
+    /**
+     * Get the currently paired pump information
+     */
+    fun getExistingPumpInfo(): Triple<String, String, String> {
+        val pumpName = tandemPumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpName, "Unknown")
+        val pumpSerial = tandemPumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpSerial, "Unknown")
+        val pumpAddress = tandemPumpUtil.getStringPreferenceOrDefault(TandemStringPreferenceKey.PumpAddress, "Unknown")
+        return Triple(pumpName, pumpSerial, pumpAddress)
+    }
+
     override fun onCleared() {
         super.onCleared()
         stopDeviceScan()

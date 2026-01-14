@@ -2,6 +2,8 @@ package app.aaps.pump.tandem.mobi.ui.wizard
 
 import android.bluetooth.BluetoothManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +35,8 @@ import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import androidx.compose.runtime.collectAsState
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import app.aaps.pump.common.events.EventPumpForceDisconnect
 import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
 
@@ -77,6 +81,11 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
         if (isRePairing) {
             needsPairingReset = true
             viewModel.startRePairing()
+        }
+
+        // Check if there's already a paired pump and show confirmation dialog
+        if (!isRePairing && viewModel.hasExistingPairing()) {
+            showExistingPumpDialog()
         }
 
         setContent {
@@ -135,6 +144,51 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         pairingManager?.shutdownPairingManager()
+    }
+
+    /**
+     * Show dialog asking user to confirm removal of existing pump pairing
+     */
+    private fun showExistingPumpDialog() {
+        val (pumpName, pumpSerial, pumpAddress) = viewModel.getExistingPumpInfo()
+
+        aapsLogger.info(LTag.PUMP, "Showing existing pump dialog: $pumpName ($pumpSerial)")
+
+        MaterialAlertDialogBuilder(this, app.aaps.core.ui.R.style.DialogTheme)
+            .setTitle(resourceHelper.gs(R.string.tandem_wizard_existing_pump_title))
+            .setMessage(resourceHelper.gs(
+                R.string.tandem_wizard_existing_pump_message,
+                pumpName,
+                pumpSerial,
+                pumpAddress
+            ))
+            .setPositiveButton(resourceHelper.gs(R.string.tandem_wizard_existing_pump_continue)) { _, _ ->
+                aapsLogger.info(LTag.PUMP, "User confirmed removal of existing pump")
+                handleExistingPumpRemoval()
+            }
+            .setNegativeButton(resourceHelper.gs(R.string.tandem_wizard_existing_pump_cancel)) { _, _ ->
+                aapsLogger.info(LTag.PUMP, "User cancelled pairing wizard")
+                finish()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    /**
+     * Handle removal of existing pump: disconnect and clear pairing data
+     */
+    private fun handleExistingPumpRemoval() {
+        aapsLogger.info(LTag.PUMP, "Disconnecting existing pump and clearing pairing data")
+
+        // Send event to disconnect the pump via the service
+        rxBus.send(EventPumpForceDisconnect())
+
+        // Give the disconnect event time to be processed, then reset pairing
+        Handler(Looper.getMainLooper()).postDelayed({
+            // Mark that we need to reset pairing
+            needsPairingReset = true
+            viewModel.startRePairing()
+        }, 500)
     }
 
     companion object {
