@@ -277,6 +277,10 @@
     <string name="tandem_ble_config_remove_pump_confirmation">Are you sure that you want to remove your Tandem pump?</string>
     <string name="tandem_ble_config_remove_pump_title">Remove Tandem pump</string>
     <string name="tandem_ble_config_no_pump_selected">No Tandem pump selected</string>
+    <string name="ble_config_scan_start">Start Scan</string>
+    <string name="ble_config_scan_stop">Stop Scan</string>
+    <string name="ble_config_scanning">Scanning for devices...</string>
+    <string name="ble_config_no_devices">No devices found. Press Start Scan to search.</string>
 
 
 
