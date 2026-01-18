@@ -42,6 +42,7 @@ abstract class TandemModule {
     // Configuration
     @ContributesAndroidInjector abstract fun contributesTandemBLESelector(): TandemBLESelector
     @ContributesAndroidInjector abstract fun contributesTandemPumpBLEConfigActivity(): TandemPumpBLEConfigActivity
+    @ContributesAndroidInjector abstract fun contributesAdaptiveIntentPreference(): app.aaps.pump.tandem.common.util.AdaptiveIntentPreference
 
     // Data
     // @ContributesAndroidInjector abstract fun contributesTandemHistoryDataProvider(): TandemHistoryDataProvider

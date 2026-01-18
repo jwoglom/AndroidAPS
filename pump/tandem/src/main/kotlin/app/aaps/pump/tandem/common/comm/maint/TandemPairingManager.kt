@@ -145,11 +145,16 @@ class TandemPairingManager constructor(
     fun stopBluetoothHandler() {
         aapsLogger.info(TAG, "TANDEM-PAIR-DBG: stopBluetoothHandler pairing")
 
-        if (bluetoothHandler != null) {
-            bluetoothHandler!!.stop()
-            bluetoothHandler = null
+        bluetoothHandler?.let {
+            synchronized (it) {
+                try {
+                    it.stop()
+                } catch (e: IllegalArgumentException) {
+                    aapsLogger.error(TAG, "Ignoring IllegalArgumentException during stopBluetoothHandler (BLE library bug)", e)
+                }
+                bluetoothHandler = null
+            }
         }
-        //return getBluetoothHandler()
     }
 
     // Pair Status

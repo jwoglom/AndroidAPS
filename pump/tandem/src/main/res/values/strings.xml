@@ -229,7 +229,8 @@
 
 
     <string name="tandem_configuration">Tandem Configuration</string>
-    <string name="tandem_pump_configuration">Tandem Pump Selector</string>
+    <string name="tandem_pump_configuration">Tandem Pump Connection Wizard</string>
+    <string name="tandem_pump_configuration_subtitle">Connect to and pair AAPS with a Mobi pump</string>
     <string name="tandem_pump_max_bolus">Max Bolus on Pump (U) [Max 25]</string>
     <string name="tandem_pump_max_basal">Max Basal on Pump (U/h) [Max 15]</string>
     <string name="tandem_cfg_display_driver_version">Display Driver Version</string>
@@ -277,6 +278,10 @@
     <string name="tandem_ble_config_remove_pump_confirmation">Are you sure that you want to remove your Tandem pump?</string>
     <string name="tandem_ble_config_remove_pump_title">Remove Tandem pump</string>
     <string name="tandem_ble_config_no_pump_selected">No Tandem pump selected</string>
+    <string name="ble_config_scan_start">Start Scan</string>
+    <string name="ble_config_scan_stop">Stop Scan</string>
+    <string name="ble_config_scanning">Scanning for devices...</string>
+    <string name="ble_config_no_devices">No devices found. Press Start Scan to search.</string>
 
 
 
@@ -345,7 +350,7 @@
     <!-- Connection Wizard -->
     <string name="tandem_pair_pump">Pair Pump</string>
     <string name="tandem_repair_pump">Re-pair Pump</string>
-    <string name="tandem_wizard_title">Tandem Mobi Connection Wizard</string>
+    <string name="tandem_wizard_title">Tandem Pump Connection Wizard</string>
 
     <!-- Introduction Screen -->
     <string name="tandem_wizard_intro_title">Pair Your Tandem Mobi Pump</string>
@@ -360,7 +365,7 @@
     <!-- PIN Entry Screen -->
     <string name="tandem_wizard_enter_pin_title">Enter Pairing PIN</string>
     <string name="tandem_wizard_selected_device">Selected: %1$s\n%2$s</string>
-    <string name="tandem_wizard_enter_pin_description">Enter the 6-digit PIN displayed on the pump.</string>
+    <string name="tandem_wizard_enter_pin_description">Enter the 6-digit PIN written on the inside of the cartridge.</string>
     <string name="tandem_wizard_pin_label">6-Digit PIN</string>
     <string name="tandem_wizard_connect">Connect</string>
     <string name="tandem_wizard_back_to_scan">Back to Scan</string>
@@ -397,6 +402,14 @@
     <string name="tandem_wizard_pump_open_loop_only">Open Loop only (no closed loop)</string>
     <string name="tandem_wizard_finish">Finish</string>
 
+    <!-- Existing pump dialog -->
+    <string name="tandem_wizard_existing_pump_title">Pump Already Configured</string>
+    <string name="tandem_wizard_existing_pump_message">To pair a new pump, the existing pump must be disconnected. No other data in AndroidAPS will be removed. Do you want to continue?</string>
+    <string name="tandem_wizard_existing_pump_continue">Continue</string>
+    <string name="tandem_wizard_existing_pump_cancel">Cancel</string>
+
+    <!-- Restart dialog -->
+    <string name="tandem_wizard_restart_message">AndroidAPS will restart to re-initialize the Mobi pump driver.</string>
 
 
     <!-- OLD Ones past this line -->

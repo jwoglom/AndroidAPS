@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 
@@ -122,35 +121,28 @@ fun SupportedCapabilitiesForVersion(apiVersion: TandemPumpApiVersion) {
     @Composable
     fun IconAndText(ok: Boolean, text: String) {
         Row(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
         ) {
-            if (ok) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Checkmark",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = "Warning",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-
-            }
-
+            Icon(
+                imageVector = if (ok) Icons.Default.CheckCircle else Icons.Default.Warning,
+                contentDescription = if (ok) "Supported" else "Warning",
+                modifier = Modifier.size(20.dp),
+                tint = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+            )
+            Spacer(modifier = Modifier.size(8.dp))
             Text(
-                text,
-                fontSize = 12.sp,
-                modifier = Modifier.height(16.dp),
+                text = text,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
 
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp)
+        modifier = Modifier.padding(start = 8.dp, top = 4.dp)
     ) {
         if (apiVersion.isClosedLoopPossible) {
             IconAndText(true, stringResource(R.string.tandem_wizard_pump_closed_loop_supported))

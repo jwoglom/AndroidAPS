@@ -18,6 +18,10 @@ import app.aaps.pump.common.utils.PumpUtil
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.events.EventRefreshPumpData
+import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
+import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
+import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatusResponse
 import java.nio.ByteBuffer
@@ -108,6 +112,40 @@ class TandemPumpUtil @Inject constructor(
             rxBus.send(EventPumpDriverStateChanged(if (status==null) PumpDriverState.Connected
                                                    else PumpDriverState.ExecutingCommand))
         }
+
+    /**
+     * Clear all pairing data to allow re-pairing with a pump
+     * This can be called without needing a TandemPairingManager instance
+     */
+    fun clearAllPairingData() {
+        aapsLogger.info(LTag.PUMPCOMM, "TandemPumpUtil: Clearing all pairing data for re-pairing")
+
+        // Clear preferences
+        preferences.put(TandemIntPreferenceKey.PumpPairStatus, -1)
+        preferences.put(TandemStringPreferenceKey.PumpAddress, "")
+        preferences.put(TandemStringPreferenceKey.PumpPairCode, "")
+        preferences.put(TandemStringPreferenceKey.PumpSerial, "")
+        preferences.put(TandemStringPreferenceKey.PumpName, "")
+        preferences.put(TandemStringPreferenceKey.PumpVersionResponse, "")
+        preferences.put(TandemStringPreferenceKey.PumpApiVersion, "")
+
+        // Clear PumpX2 library state
+        try {
+            PumpState.resetState(context)
+            aapsLogger.info(LTag.PUMPCOMM, "TandemPumpUtil: PumpState cleared successfully")
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.PUMPCOMM, "TandemPumpUtil: Error clearing PumpState", e)
+        }
+
+        // Reset pump status
+        tandemPumpStatus.serialNumber = 0L
+        tandemPumpStatus.errorDescription = ""
+
+        // Notify UI and service
+        rxBus.send(EventPumpConnectionParametersChanged())
+
+        aapsLogger.info(LTag.PUMPCOMM, "TandemPumpUtil: All pairing data cleared successfully")
+    }
 
 
     companion object {
