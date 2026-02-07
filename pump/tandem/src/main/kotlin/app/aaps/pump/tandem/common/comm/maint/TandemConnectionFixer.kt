@@ -20,10 +20,6 @@ class TandemConnectionFixer @Inject constructor(
     val enabled = TandemMobiPluginVersion.connectionFixerEnabled
 
     fun startConnectionFix(communicationManager: TandemCommunicationManager) {
-
-        aapsLogger.warn(TAG, "CF: StartConnectionFix disabled - experimental code not yet ready for use")
-        return;
-
         if (!enabled) {
             aapsLogger.warn(TAG, "CF: StartConnectionFix disabled - experimental code not yet ready for use")
             return
@@ -34,21 +30,42 @@ class TandemConnectionFixer @Inject constructor(
         if (running)
             return;
 
-        do {
-            aapsLogger.error(TAG, "CF: Start ConnectionFix - in run")
+        running = true
 
-            //tandemPumpConnector
-            val statusConnection  = communicationManager.connect()
+        Thread {
+            do {
+                aapsLogger.error(TAG, "CF: Start ConnectionFix - in run")
+                communicationManager.pumpUtil.driverStatus = app.aaps.pump.common.defs.PumpDriverState.Connecting
+                communicationManager.rxBus.send(
+                    app.aaps.pump.common.events.EventPumpFragmentValuesChanged(
+                        app.aaps.pump.common.defs.PumpUpdateFragmentType.None
+                    )
+                )
 
-            if (statusConnection) {
-                running = false
-            }
+                val statusConnection = communicationManager.connect()
 
-            Thread.sleep(60000) // wait 60 seconds and retry
+                if (statusConnection) {
+                    communicationManager.pumpUtil.driverStatus = app.aaps.pump.common.defs.PumpDriverState.Connected
+                    communicationManager.rxBus.send(
+                        app.aaps.pump.common.events.EventPumpFragmentValuesChanged(
+                            app.aaps.pump.common.defs.PumpUpdateFragmentType.None
+                        )
+                    )
+                    running = false
+                } else {
+                    communicationManager.pumpUtil.driverStatus =
+                        app.aaps.pump.common.defs.PumpDriverState.ErrorCommunicatingWithPump
+                    communicationManager.rxBus.send(
+                        app.aaps.pump.common.events.EventPumpFragmentValuesChanged(
+                            app.aaps.pump.common.defs.PumpUpdateFragmentType.None
+                        )
+                    )
+                    Thread.sleep(60000) // wait 60 seconds and retry
+                }
+            } while (running)
 
-        } while (running)
-
-        aapsLogger.error(TAG, "CF: End ConnectionFix - connection fixed")
+            aapsLogger.error(TAG, "CF: End ConnectionFix - connection fixed")
+        }.start()
 
     }
 

@@ -447,11 +447,9 @@ class TandemCommunicationManager(
         this.pumpStatus.disconnectData = DisconnectDataDto(onDisconnect = onDisconnect,
                                                            hciStatus = hciStatus,
                                                            tandemError = tandemError)
-        if (onDisconnect) {
-            // TODO
-        } else {
-
-        }
+        pumpUtil.driverStatus = PumpDriverState.ErrorCommunicatingWithPump
+        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+        tandemConnectionFixer.startConnectionFix(this)
     }
 
 
