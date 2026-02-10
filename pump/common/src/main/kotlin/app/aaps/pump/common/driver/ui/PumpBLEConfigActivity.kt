@@ -1,8 +1,7 @@
-package app.aaps.pump.common.ui
+package app.aaps.pump.common.driver.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -41,6 +40,9 @@ import app.aaps.pump.common.driver.ble.PumpBLESelector
 import app.aaps.pump.common.driver.ble.PumpBLESelectorText
 import org.apache.commons.lang3.StringUtils
 import javax.inject.Inject
+import kotlin.also
+import kotlin.collections.set
+import kotlin.plus
 
 @SuppressLint("MissingPermission")
 open class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
@@ -62,7 +64,7 @@ open class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
     val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
     val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
     var scanning = false
-    private val devicesMap: MutableMap<String, BluetoothDevice> = HashMap()
+    private val devicesMap: MutableMap<String, BluetoothDevice> = kotlin.collections.HashMap()
 
     private val stopScanAfterTimeoutRunnable = Runnable {
         if (scanning) {
@@ -88,12 +90,12 @@ open class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
         if (activePump is PumpDriverConfigurationCapable) {
             val pumpBLESelector = activePump.getPumpDriverConfiguration().getPumpBLESelector()
             if (pumpBLESelector==null) {
-                throw RuntimeException("PumpBLESelector needs to be implemented for PumpBLEConfigActivity to be used.")
+                throw kotlin.RuntimeException("PumpBLESelector needs to be implemented for PumpBLEConfigActivity to be used.")
             } else {
                 bleSelector = pumpBLESelector
             }
         } else {
-            throw RuntimeException("PumpBLEConfigActivity can be used only with PumpDriverConfigurationCapable pump driver.")
+            throw kotlin.RuntimeException("PumpBLEConfigActivity can be used only with PumpDriverConfigurationCapable pump driver.")
         }
 
         if (!blePreCheck.prerequisitesCheck(this, bleSelector.getAdditionalPermissions())) {
@@ -124,7 +126,7 @@ open class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
                 aapsLogger.debug(TAG, "Device FOUND in deviceMap: $bleAddress")
                 val bluetoothDevice = devicesMap[bleAddress]
                 bleSelector.onDeviceSelected(bluetoothDevice!!, bleAddress, deviceName, this)
-                setResult(Activity.RESULT_OK)
+                setResult(RESULT_OK)
 
                 if (bleSelector.onDeviceSelectedClosesActivity()) {
                     finish()

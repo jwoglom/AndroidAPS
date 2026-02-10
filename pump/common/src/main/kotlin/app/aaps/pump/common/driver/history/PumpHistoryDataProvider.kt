@@ -87,13 +87,6 @@ enum class PumpHistoryPeriod(
 
 enum class PumpHistoryText {
 
-    PUMP_HISTORY,
+    PUMP_HISTORY
 
-    // OLD ONES
-    SCAN_TITLE,
-    SELECTED_PUMP_TITLE,
-    REMOVE_TITLE,
-    REMOVE_TEXT,
-    NO_SELECTED_PUMP,
-    PUMP_CONFIGURATION
 }

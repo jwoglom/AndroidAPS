@@ -4,7 +4,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Context
-import app.aaps.pump.common.ui.PumpBLEConfigActivity
+import app.aaps.pump.common.driver.ui.PumpBLEConfigActivity
 
 interface PumpBLESelector {
 

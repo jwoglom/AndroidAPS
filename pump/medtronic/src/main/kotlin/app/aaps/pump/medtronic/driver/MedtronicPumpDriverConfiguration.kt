@@ -1,4 +1,4 @@
-package info.nightscout.androidaps.plugins.pump.medtronic.driver
+package app.aaps.pump.medtronic.driver
 
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.pump.common.driver.PumpDriverConfiguration

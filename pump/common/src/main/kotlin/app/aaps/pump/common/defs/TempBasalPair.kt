@@ -19,6 +19,8 @@ open class TempBasalPair constructor(
         }
     }
 
+    constructor(insulinRate: Double, isPercent: Boolean, durationMinutes: Int):
+        this(insulinRate, isPercent, durationMinutes, null)
 
 
     // constructor(insulinRate: Double, isPercent: Boolean, durationMinutes: Int) {
