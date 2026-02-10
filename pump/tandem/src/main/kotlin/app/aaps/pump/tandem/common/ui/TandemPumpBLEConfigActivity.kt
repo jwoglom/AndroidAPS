@@ -10,7 +10,7 @@ import androidx.core.app.ActivityCompat
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.ui.toast.ToastUtils
-import app.aaps.pump.common.ui.PumpBLEConfigActivity
+import app.aaps.pump.common.driver.ui.PumpBLEConfigActivity
 // import app.aaps.pump.tandem.common.events.EventPumpNeedsPairingCode
 // import app.aaps.pump.tandem.common.events.EventPumpPairingCodeProvided
 

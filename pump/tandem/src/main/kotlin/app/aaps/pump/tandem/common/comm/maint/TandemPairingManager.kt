@@ -33,9 +33,10 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetRes
 //import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
+import app.aaps.pump.common.driver.ui.PumpBLEConfigActivity
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
-import app.aaps.pump.common.ui.PumpBLEConfigActivity
+
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.config.TandemPumpConfig
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey

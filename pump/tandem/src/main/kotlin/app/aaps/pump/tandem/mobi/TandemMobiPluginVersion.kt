@@ -7,7 +7,7 @@ class TandemMobiPluginVersion {
     val devVersion = "3.4.0.0-dev (04.02.2026)"
 
     val pumpX2Version = BuildConfig.PUMPX2_VERSION
-    val tandemModuleVersion = "v0.7.9.0"
+    val tandemModuleVersion = "v0.7.10.0"
 
     companion object {
         val connectionFixerEnabled = false   // this is in testing for now

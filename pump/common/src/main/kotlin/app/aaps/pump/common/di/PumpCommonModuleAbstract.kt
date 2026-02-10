@@ -3,7 +3,7 @@ package app.aaps.pump.common.di
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import app.aaps.pump.common.ble.BondStateReceiver
-import app.aaps.pump.common.ui.PumpBLEConfigActivity
+import app.aaps.pump.common.driver.ui.PumpBLEConfigActivity
 import app.aaps.pump.common.ui.PumpHistoryActivity
 
 @Module

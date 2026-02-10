@@ -23,7 +23,7 @@ import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.events.EventPumpForceDisconnect
-import app.aaps.pump.common.ui.PumpBLEConfigActivity
+import app.aaps.pump.common.driver.ui.PumpBLEConfigActivity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
