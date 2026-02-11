@@ -6,13 +6,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -151,119 +157,135 @@ fun ChangeCartridgeScreen(
             sendPumpCommands(listOf(msg))
         }
 
-        LazyColumn(
-            contentPadding = innerPadding,
-            verticalArrangement = Arrangement.spacedBy(0.dp),
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 0.dp),
-            content = {
-                item {
-                    HeaderLineWithBackButton(
-                        text = resourceHelper.gs(R.string.cc_title),
-                        onBackClick = navigateBack,
-                        resourceHelper = resourceHelper
-                    )
-                    HorizontalDivider()
-                }
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = innerPadding.calculateBottomPadding()
+                )
+        ) {
+            HeaderLineWithBackButton(
+                text = resourceHelper.gs(R.string.cc_title),
+                onBackClick = navigateBack,
+                resourceHelper = resourceHelper
+            )
+            HorizontalDivider()
 
-                // Alert/Alarm banner - display at top if any exist
-                if (notifications.isNotEmpty()) {
-                    item {
-                        AlertBanner(
-                            notifications = notifications,
-                            onDismissAlert = { alert ->
-                                sendPumpCommands(listOf(
-                                    com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest(
-                                        com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest.NotificationType.ALERT,
-                                        alert.bitmask().toLong()
-                                    )
-                                ))
-                            },
-                            onDismissAlarm = { alarm ->
-                                sendPumpCommands(listOf(
-                                    com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest(
-                                        com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest.NotificationType.ALARM,
-                                        alarm.bitmask().toLong()
-                                    )
-                                ))
-                            },
-                            resourceHelper = resourceHelper
+            // Alert/Alarm banner - display at top if any exist
+            if (notifications.isNotEmpty()) {
+                AlertBanner(
+                    notifications = notifications,
+                    sendPumpCommands = sendPumpCommands,
+                    refreshScope = refreshScope,
+                    resourceHelper = resourceHelper
+                )
+            }
+
+            // Status text
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                if (detectingCartridgeState.value != null) {
+                    if (detectingCartridgeState.value?.isComplete == true) {
+                        Text(text = resourceHelper.gs(R.string.cc_complete))
+                        Text("\n")
+                        Text(text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"))
+                    } else {
+                        Text(text = resourceHelper.gs(R.string.cc_detect_insulin_cart))
+                        Text("\n")
+                        Text(text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"))
+                    }
+                } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
+                    Text(text = resourceHelper.gs(R.string.cc_can_remove_cart))
+                    Text("\n")
+                    Text(text = resourceHelper.gs(R.string.cc_when_inserted_press))
+                } else if (inChangeCartridgeMode.value == true) {
+                    Text(text = resourceHelper.gs(R.string.cc_preparing_cc))
+                    Text("\n")
+                } else if (pumpRunningState.value == PumpRunningState.Suspended) {
+                    Text(text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site, resourceHelper.gs(R.string.cc_btn_begin)))
+                    Text("\n")
+                } else {
+                    Text(text = resourceHelper.gs(R.string.ca_before_stop_delivery, resourceHelper.gs(R.string.cc_action)))
+                    Text("\n")
+                }
+            }
+
+            // Spacer to push button to bottom
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Action button at bottom
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                if (detectingCartridgeState.value?.isComplete == true) {
+                    // Cartridge change complete
+                    Button(
+                        onClick = {
+                            refreshScope.launch {
+                                navigateBack()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text(
+                            text = resourceHelper.gs(R.string.common_done),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
+                    Button(
+                        onClick = {
+                            refreshScope.launch {
+                                sendPumpCommand(ExitChangeCartridgeModeRequest())
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text(
+                            text = resourceHelper.gs(R.string.cc_btn_cart_inserted),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                } else if (inChangeCartridgeMode.value != true) {
+                    Button(
+                        onClick = {
+                            refreshScope.launch {
+                                sendPumpCommand(EnterChangeCartridgeModeRequest())
+                            }
+                        },
+                        enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text(
+                            text = resourceHelper.gs(R.string.cc_btn_begin),
+                            style = MaterialTheme.typography.titleMedium
                         )
                     }
                 }
-
-                // Status text
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        if (detectingCartridgeState.value != null) {
-                            if (detectingCartridgeState.value?.isComplete == true) {
-                                Text(text = resourceHelper.gs(R.string.cc_complete))
-                                Text("\n")
-                                Text(text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"))
-                            } else {
-                                Text(text = resourceHelper.gs(R.string.cc_detect_insulin_cart))
-                                Text("\n")
-                                Text(text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"))
-                            }
-                        } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                            Text(text = resourceHelper.gs(R.string.cc_can_remove_cart))
-                            Text("\n")
-                            Text(text = resourceHelper.gs(R.string.cc_when_inserted_press))
-                        } else if (inChangeCartridgeMode.value == true) {
-                            Text(text = resourceHelper.gs(R.string.cc_preparing_cc))
-                            Text("\n")
-                        } else if (pumpRunningState.value == PumpRunningState.Suspended) {
-                            Text(text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site, resourceHelper.gs(R.string.cc_btn_begin)))
-                            Text("\n")
-                        } else {
-                            Text(text = resourceHelper.gs(R.string.ca_before_stop_delivery, resourceHelper.gs(R.string.cc_action)))
-                            Text("\n")
-                        }
-                    }
-                }
-
-                // Action buttons
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        if (detectingCartridgeState.value?.isComplete == true) {
-                            // Cartridge change complete - no action needed
-                        } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                            TextButton(
-                                onClick = {
-                                    refreshScope.launch {
-                                        sendPumpCommand(ExitChangeCartridgeModeRequest())
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(text = resourceHelper.gs(R.string.cc_btn_cart_inserted))
-                            }
-                        } else if (inChangeCartridgeMode.value != true) {
-                            TextButton(
-                                onClick = {
-                                    refreshScope.launch {
-                                        sendPumpCommand(EnterChangeCartridgeModeRequest())
-                                    }
-                                },
-                                enabled = pumpRunningState.value == PumpRunningState.Suspended,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(text = resourceHelper.gs(R.string.cc_btn_begin))
-                            }
-                        }
-                    }
-                }
             }
-        )
+        }
     }
 }
 

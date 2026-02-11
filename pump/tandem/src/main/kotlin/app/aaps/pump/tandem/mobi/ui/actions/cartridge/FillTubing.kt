@@ -137,22 +137,8 @@ fun FillTubing(innerPadding: PaddingValues,
                                 item {
                                     AlertBanner(
                                         notifications = notifications,
-                                        onDismissAlert = { alert ->
-                                            sendPumpCommands(listOf(
-                                                DismissNotificationRequest(
-                                                    DismissNotificationRequest.NotificationType.ALERT,
-                                                    alert.bitmask().toLong()
-                                                )
-                                            ))
-                                        },
-                                        onDismissAlarm = { alarm ->
-                                            sendPumpCommands(listOf(
-                                                DismissNotificationRequest(
-                                                    DismissNotificationRequest.NotificationType.ALARM,
-                                                    alarm.bitmask().toLong()
-                                                )
-                                            ))
-                                        },
+                                        sendPumpCommands = sendPumpCommands,
+                                        refreshScope = refreshScope,
                                         resourceHelper = resourceHelper
                                     )
                                 }

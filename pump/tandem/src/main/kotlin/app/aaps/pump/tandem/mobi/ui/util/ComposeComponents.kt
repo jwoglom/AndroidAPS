@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -64,9 +65,16 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
+import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse.AlarmResponseType
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse.AlertResponseType
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
 import androidx.compose.material3.Text as Text1
@@ -403,13 +411,50 @@ fun compactTBRDisplay(tempRateResponse: TempRateResponse?, resourceHelper: Resou
 @Composable
 fun AlertBanner(
     notifications: List<Any>,
-    onDismissAlert: (AlertResponseType) -> Unit,
-    onDismissAlarm: (AlarmResponseType) -> Unit,
+    sendPumpCommands: (List<Message>) -> Boolean,
+    refreshScope: CoroutineScope,
     resourceHelper: ResourceHelper
 ) {
     // Filter for alerts and alarms only
     val alarms = notifications.filterIsInstance<AlarmResponseType>()
     val alerts = notifications.filterIsInstance<AlertResponseType>()
+
+    // Track which notification is being dismissed
+    var dismissingItem by remember { mutableStateOf<Any?>(null) }
+
+    // Dismiss handler for alerts
+    fun dismissAlert(alert: AlertResponseType) {
+        dismissingItem = alert
+        refreshScope.launch {
+            sendPumpCommands(listOf(
+                DismissNotificationRequest(
+                    DismissNotificationRequest.NotificationType.ALERT,
+                    alert.bitmask().toLong()
+                )
+            ))
+            // Immediately refresh notifications after dismissing
+            delay(500) // Small delay for dismiss to process
+            sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+            dismissingItem = null
+        }
+    }
+
+    // Dismiss handler for alarms
+    fun dismissAlarm(alarm: AlarmResponseType) {
+        dismissingItem = alarm
+        refreshScope.launch {
+            sendPumpCommands(listOf(
+                DismissNotificationRequest(
+                    DismissNotificationRequest.NotificationType.ALARM,
+                    alarm.bitmask().toLong()
+                )
+            ))
+            // Immediately refresh notifications after dismissing
+            delay(500) // Small delay for dismiss to process
+            sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+            dismissingItem = null
+        }
+    }
 
     // Combine alerts and alarms for display (show up to 3 total, alarms first)
     val totalCount = alerts.size + alarms.size
@@ -482,14 +527,22 @@ fun AlertBanner(
                         }
                     }
                     IconButton(
-                        onClick = { onDismissAlarm(alarm) },
-                        modifier = Modifier.size(24.dp)
+                        onClick = { dismissAlarm(alarm) },
+                        modifier = Modifier.size(24.dp),
+                        enabled = dismissingItem != alarm
                     ) {
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = "Dismiss",
-                            modifier = Modifier.size(20.dp)
-                        )
+                        if (dismissingItem == alarm) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Dismiss",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -538,14 +591,22 @@ fun AlertBanner(
                         }
                     }
                     IconButton(
-                        onClick = { onDismissAlert(alert) },
-                        modifier = Modifier.size(24.dp)
+                        onClick = { dismissAlert(alert) },
+                        modifier = Modifier.size(24.dp),
+                        enabled = dismissingItem != alert
                     ) {
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = "Dismiss",
-                            modifier = Modifier.size(20.dp)
-                        )
+                        if (dismissingItem == alert) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Dismiss",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }
