@@ -460,7 +460,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         var finished = false
         var bolusStatusResponse: CurrentBolusStatusResponse? = null
-        var initiateStartTime: Long = System.currentTimeMillis()
+        var bolusStartTime: Long = System.currentTimeMillis()
         var deliveryStartTime: Long? = null
         var startedRequesting = false
         var startedDelivering = false
@@ -476,7 +476,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
             if (bolusStatusResponse==null) {
                 aapsLogger.warn(TAG, "No response for CurrentBolusStatusResponse")
-                val elapsedSeconds = (System.currentTimeMillis() - initiateStartTime) / 1000
+                val elapsedSeconds = (System.currentTimeMillis() - bolusStartTime) / 1000
                 if (elapsedSeconds >= 30) {
                     return DataCommandResponse(
                         PumpCommandType.SetBolus, false,
@@ -486,15 +486,16 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 }
             } else {
                 if (bolusStatusResponse.status== CurrentBolusStatusResponse.CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID) {
-                    if (startedDelivering) {
+                    if (startedDelivering && deliveryStartTime != null) {
                         aapsLogger.error(TAG, "Bolus delivered: " + getJsonStringFromObject(bolusStatusResponse))
                         finished = true
-                        val bolusTimeSec = ((System.currentTimeMillis() - initiateStartTime) / 1000).toInt()
-                        aapsLogger.error(TAG, "Bolus: amount=${detailedBolusInfo.insulin}, bolusId=$bolusId, timeSeconds=${bolusTimeSec}")
+                        val deliveryTimeSec = ((System.currentTimeMillis() - deliveryStartTime) / 1000).toInt()
+                        val totalTimeSec = ((System.currentTimeMillis() - bolusStartTime) / 1000).toInt()
+                        aapsLogger.error(TAG, "Bolus: amount=${detailedBolusInfo.insulin}, bolusId=$bolusId, deliveryTimeSec=${deliveryTimeSec} totalTimeSec=${totalTimeSec}")
                         bolusId = 0
                         sendBolusEvent(bolusEvent = TandemBolusEvent.DeliveryDone)
                     } else {
-                        val elapsedSeconds = (System.currentTimeMillis() - initiateStartTime) / 1000
+                        val elapsedSeconds = (System.currentTimeMillis() - bolusStartTime) / 1000
                         if (elapsedSeconds >= 30) {
                             return DataCommandResponse(
                                 PumpCommandType.SetBolus, false,
@@ -518,12 +519,19 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                             startedDelivering = true
                         }
 
-                        if (initiateStartTime==null) {
-                            initiateStartTime = System.currentTimeMillis()
+                        if (deliveryStartTime==null) {
+                            deliveryStartTime = System.currentTimeMillis()
                             aapsLogger.error(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
                         } else {
-                            val bolusTimeSec = ((System.currentTimeMillis() - initiateStartTime)/1000).toInt()
-                            val bolusAmount = 0.035714286 * bolusTimeSec
+                            val bolusTimeSec = ((System.currentTimeMillis() - deliveryStartTime)/1000).toInt()
+                            val avgRateUnder10u = 28.745858684009523
+                            val avgRateOver10u = 11.200233479381131
+                            val rateForBolus = when {
+                                detailedBolusInfo.insulin >= 10 -> avgRateOver10u
+                                else -> avgRateUnder10u
+                            }
+
+                            val bolusAmount = (bolusTimeSec / rateForBolus)
 
                             if (bolusAmount > maxBolus) {
                                 aapsLogger.error(TAG, "Bolus Delivering: Max $maxBolus U")
@@ -534,8 +542,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                             }
                         }
                     } else {
-                        aapsLogger.error(TAG, "Bolus status: ${bolusStatusResponse.status.name}")
-                        initiateStartTime = System.currentTimeMillis()
+                        aapsLogger.error(TAG, "Bolus status unknown: ${bolusStatusResponse.status.name}")
                     }
                 }
             }
