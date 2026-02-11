@@ -30,6 +30,7 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingMod
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateStreamResponse
 // import com.jwoglom.pumpx2.pump.messages.response.controlStream.PumpingStateStreamResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
@@ -265,6 +266,27 @@ class TandemUICommunication @Inject constructor (
                     dataStore.pumpRunningState.value = PumpRunningState.Running
                 } else {
                     unsuccessfulAlert(message.messageName())
+                }
+            }
+            is AlertStatusResponse -> {
+                // Only process alerts during fill tubing mode
+                if (dataStore.inFillTubingMode.value == true) {
+                    val alerts = message.alerts ?: emptySet()
+                    val previousAlerts = dataStore.actionAlerts.value ?: emptySet()
+                    val newAlerts = alerts - previousAlerts
+
+                    // Update stored alerts
+                    dataStore.actionAlerts.value = alerts
+
+                    // Generate AAPS notification for new critical alerts
+                    if (newAlerts.isNotEmpty()) {
+                        val alertNames = newAlerts.joinToString(", ") { it.name }
+                        uiInteraction.addNotification(
+                            Notification.PUMP_WARNING,
+                            text = "Fill tubing alert: $alertNames",
+                            level = Notification.NORMAL
+                        )
+                    }
                 }
             }
             is StatusMessage            -> {
