@@ -64,6 +64,7 @@ fun CartridgeActions(
     aapsLogger: AAPSLogger,
     navigateToChangeCartridge: () -> Unit,
     navigateToFillTubing: () -> Unit,
+    navigateToFillCannula: () -> Unit,
     navigateToSiteReminder: () -> Unit,
     navigateBack: () -> Unit
 ) {
@@ -189,10 +190,30 @@ fun CartridgeActions(
                 }
 
                 item {
-                    FillCannula(innerPadding = innerPadding,
-                                sendPumpCommands = sendPumpCommands,
-                                resourceHelper = resourceHelper,
-                                refreshScope = refreshScope)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.TopStart)
+                    ) {
+                        ListItem(
+                            headlineContent = {
+                                Text(text = resourceHelper.gs(R.string.fc_title))
+                            },
+                            supportingContent = {
+                            },
+                            leadingContent = {
+                                Icon(Icons.Filled.Settings, contentDescription = null)
+                            },
+                            modifier = Modifier.clickable {
+                                refreshScope.launch {
+                                    // Clear state before navigating
+                                    ds.fillCannulaState.value = null
+                                    sendPumpCommands(listOf(TimeSinceResetRequest()))
+                                    navigateToFillCannula()
+                                }
+                            }
+                        )
+                    }
                 }
 
                 item {
@@ -246,6 +267,7 @@ private fun DefaultPreview() {
                 navigateBack = {},
                 navigateToChangeCartridge = {},
                 navigateToFillTubing = {},
+                navigateToFillCannula = {},
                 navigateToSiteReminder = {},
                 resourceHelper = ResourceHelperTest(),
                 aapsLogger = AAPSLoggerTest()
@@ -270,6 +292,7 @@ private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
                 navigateBack = {},
                 navigateToChangeCartridge = {},
                 navigateToFillTubing = {},
+                navigateToFillCannula = {},
                 navigateToSiteReminder = {},
                 resourceHelper = ResourceHelperTest(),
                 aapsLogger = AAPSLoggerTest()
@@ -294,6 +317,7 @@ private fun DefaultPreviewChangeCartridge_InsulinStopped() {
                 navigateBack = {},
                 navigateToChangeCartridge = {},
                 navigateToFillTubing = {},
+                navigateToFillCannula = {},
                 navigateToSiteReminder = {},
                 resourceHelper = ResourceHelperTest(),
                 aapsLogger = AAPSLoggerTest()

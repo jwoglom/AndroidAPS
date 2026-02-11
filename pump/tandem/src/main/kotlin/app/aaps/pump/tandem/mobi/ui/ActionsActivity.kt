@@ -48,6 +48,7 @@ import app.aaps.pump.tandem.mobi.ui.actions.Actions
 import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.ChangeCartridgeScreen
+import app.aaps.pump.tandem.mobi.ui.actions.cartridge.FillCannulaScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.FillTubingScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.SiteReminder
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
@@ -192,6 +193,9 @@ class ActionsActivity : DaggerComponentActivity() {
                                             navigateToFillTubing = {
                                                 selectedItem = ActionsLandingSection.FILL_TUBING
                                             },
+                                            navigateToFillCannula = {
+                                                selectedItem = ActionsLandingSection.FILL_CANNULA
+                                            },
                                             navigateToSiteReminder = {
                                                 selectedItem = ActionsLandingSection.SITE_REMINDER
                                             },
@@ -217,6 +221,19 @@ class ActionsActivity : DaggerComponentActivity() {
 
                                     ActionsLandingSection.FILL_TUBING -> {
                                         FillTubingScreen(
+                                            innerPadding = innerPadding,
+                                            aapsLogger = aapsLogger,
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
+                                            resourceHelper = resourceHelper,
+                                            navigateBack = {
+                                                selectedItem = ActionsLandingSection.CARTRIDGE_ACTIONS
+                                            },
+                                        )
+                                    }
+
+
+                                    ActionsLandingSection.FILL_CANNULA -> {
+                                        FillCannulaScreen(
                                             innerPadding = innerPadding,
                                             aapsLogger = aapsLogger,
                                             sendPumpCommands = { messages -> sendPumpCommands(messages) },
@@ -303,6 +320,7 @@ enum class ActionsLandingSection(val label: String, val icon: ImageVector) {
     CARTRIDGE_ACTIONS("Actions", Icons.Filled.Create),
     CHANGE_CARTRIDGE("Change Cartridge", Icons.Filled.Create),
     FILL_TUBING("Fill Tubing", Icons.Filled.Create),
+    FILL_CANNULA("Fill Cannula", Icons.Filled.Create),
     PUMP_INFO("Pump Info", Icons.Filled.Create),
     SITE_REMINDER("Site Reminder", Icons.Filled.Create)
     ;
