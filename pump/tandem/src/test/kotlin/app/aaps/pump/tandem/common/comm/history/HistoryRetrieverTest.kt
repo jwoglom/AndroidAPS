@@ -12,6 +12,7 @@ import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
+import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.google.gson.Gson
@@ -67,6 +68,9 @@ class HistoryRetrieverTest {
 
         //setPrivateField(this.tandemPumpUtil, "gsonRegular", gsonRegular)
         `when`(this.tandemPumpUtil.gsonRegular).thenReturn(gsonRegular)
+        `when`(dbDataHandler.getLatestHistorySequenceIds(any())).thenReturn(emptySet())
+        `when`(dbDataHandler.getMaxHistorySequenceId()).thenReturn(null)
+        `when`(preferences.getIfExists(TandemLongNonPreferenceKey.HistoryResumeUpperSequence)).thenReturn(null)
 
         this.unitToTest = HistoryRetriever(
             //communication = tandemUICommunication,
@@ -538,9 +542,41 @@ class HistoryRetrieverTest {
         unitToTest.receivedStatus(historyLogStatusResponse)
         verify(tandemUICommunication).sendCommand(any())
 
-        assertEquals(1, historySummaryDto.missedRanges.size)
-        assertMissedRange(historySummaryDto, 10, 200)
+        assertEquals(0, historySummaryDto.missedRanges.size)
         //Assert.fail()
+    }
+
+    @Test
+    fun buildRequestsFromMissingSequenceIds_ContiguousRange() {
+        val existingIds = (501L..1000L).toSet()
+        val requests = unitToTest.buildRequestsFromMissingSequenceIds(501L, 1500L, existingIds)
+
+        assertEquals(3, requests.size)
+        assertHistoryRequestInfo(requests, 1301, 1500)
+        assertHistoryRequestInfo(requests, 1101, 1300)
+        assertHistoryRequestInfo(requests, 1001, 1100)
+    }
+
+    @Test
+    fun calculateRemainingUpperBound_UsesContiguousHighTail() {
+        val request = HistoryRequestInfo(startSequence = 1301, endSequence = 1500)
+        for (sequence in 1500L downTo 1400L) {
+            request.historyLogMap[sequence] = AlarmActivatedHistoryLog(1L, sequence, 1)
+        }
+
+        val remainingUpper = unitToTest.calculateRemainingUpperBound(request)
+        assertEquals(1399L, remainingUpper)
+    }
+
+    @Test
+    fun determineEffectiveUpperBound_UsesPersistedValueInsideWindow() {
+        val effective = unitToTest.determineEffectiveUpperBound(
+            pumpLastSequence = 1500L,
+            windowStart = 501L,
+            persistedResumeUpper = 1399L
+        )
+
+        assertEquals(1399L, effective)
     }
 
 

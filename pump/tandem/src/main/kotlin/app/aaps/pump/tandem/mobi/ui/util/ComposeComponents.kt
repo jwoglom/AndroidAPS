@@ -4,15 +4,23 @@ import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -57,7 +65,16 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
+import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse.AlarmResponseType
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse.AlertResponseType
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
 import androidx.compose.material3.Text as Text1
@@ -388,6 +405,222 @@ fun compactTBRDisplay(tempRateResponse: TempRateResponse?, resourceHelper: Resou
         "${tempRateResponse.percentage}%  (${remainingTime(tempRateResponse.duration,tempRateResponse.startTimeInstant, resourceHelper)})"
     } else {
         " - "
+    }
+}
+
+@Composable
+fun AlertBanner(
+    notifications: List<Any>,
+    sendPumpCommands: (List<Message>) -> Boolean,
+    refreshScope: CoroutineScope,
+    resourceHelper: ResourceHelper
+) {
+    // Filter for alerts and alarms only
+    val alarms = notifications.filterIsInstance<AlarmResponseType>()
+    val alerts = notifications.filterIsInstance<AlertResponseType>()
+
+    // Track which notification is being dismissed
+    var dismissingItem by remember { mutableStateOf<Any?>(null) }
+
+    // Dismiss handler for alerts
+    fun dismissAlert(alert: AlertResponseType) {
+        dismissingItem = alert
+        refreshScope.launch {
+            sendPumpCommands(listOf(
+                DismissNotificationRequest(
+                    DismissNotificationRequest.NotificationType.ALERT,
+                    alert.bitmask().toLong()
+                )
+            ))
+            // Immediately refresh notifications after dismissing
+            delay(500) // Small delay for dismiss to process
+            sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+            dismissingItem = null
+        }
+    }
+
+    // Dismiss handler for alarms
+    fun dismissAlarm(alarm: AlarmResponseType) {
+        dismissingItem = alarm
+        refreshScope.launch {
+            sendPumpCommands(listOf(
+                DismissNotificationRequest(
+                    DismissNotificationRequest.NotificationType.ALARM,
+                    alarm.bitmask().toLong()
+                )
+            ))
+            // Immediately refresh notifications after dismissing
+            delay(500) // Small delay for dismiss to process
+            sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+            dismissingItem = null
+        }
+    }
+
+    // Combine alerts and alarms for display (show up to 3 total, alarms first)
+    val totalCount = alerts.size + alarms.size
+    val displayAlarms = alarms.take(3)
+    val displayAlerts = if (displayAlarms.size < 3) alerts.take(3 - displayAlarms.size) else emptyList()
+    val remainingCount = totalCount - displayAlarms.size - displayAlerts.size
+
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header
+            Text(
+                text = "Dismiss notifications before continuing",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // Display alarms first (more critical)
+            displayAlarms.forEach { alarm ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "ALARM",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = alarm.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = { dismissAlarm(alarm) },
+                        modifier = Modifier.size(24.dp),
+                        enabled = dismissingItem != alarm
+                    ) {
+                        if (dismissingItem == alarm) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Dismiss",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+            // Display alerts
+            displayAlerts.forEach { alert ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "ALERT",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = alert.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = { dismissAlert(alert) },
+                        modifier = Modifier.size(24.dp),
+                        enabled = dismissingItem != alert
+                    ) {
+                        if (dismissingItem == alert) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Dismiss",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+            if (remainingCount > 0) {
+                Text(
+                    text = "+ $remainingCount more notification${if (remainingCount > 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
     }
 }
 

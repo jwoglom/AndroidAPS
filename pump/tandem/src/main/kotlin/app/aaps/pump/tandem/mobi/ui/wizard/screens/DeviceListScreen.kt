@@ -1,5 +1,6 @@
 package app.aaps.pump.tandem.mobi.ui.wizard.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,9 +20,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -39,6 +42,9 @@ fun DeviceListScreen(
     onDeviceSelected: (ScannedDevice) -> Unit,
     onBack: () -> Unit
 ) {
+    LaunchedEffect(Unit) {
+        onStartScan()
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -56,23 +62,12 @@ fun DeviceListScreen(
         }
 
         // Scan controls
-        Text(
-            text = stringResource(R.string.tandem_ble_config_scan_title),
-            style = MaterialTheme.typography.titleMedium
-        )
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Button(
-                onClick = onStartScan,
-                enabled = !isScanning,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(stringResource(R.string.ble_config_scan_start))
-            }
 
             if (isScanning) {
                 Button(
@@ -80,6 +75,14 @@ fun DeviceListScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(stringResource(R.string.ble_config_scan_stop))
+                }
+            } else {
+                Button(
+                    onClick = onStartScan,
+                    enabled = !isScanning,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(R.string.ble_config_scan_start))
                 }
             }
         }
@@ -113,15 +116,17 @@ fun DeviceListScreen(
                 )
             }
 
-            if (scannedDevices.isEmpty() && !isScanning) {
+            if (scannedDevices.isEmpty()) {
                 item {
-                    Text(
-                        text = stringResource(R.string.ble_config_no_devices),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(16.dp)
-                    )
+                    if (!isScanning) {
+                        Text(
+                            text = stringResource(R.string.ble_config_no_devices),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                        )
+                    }
                 }
             }
         }

@@ -19,7 +19,6 @@ import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import app.aaps.pump.tandem.mobi.driver.TandemMobiPumpDriverConfiguration
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
-import app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
 import dagger.Binds
@@ -41,7 +40,6 @@ abstract class TandemModule {
 
     // Configuration
     @ContributesAndroidInjector abstract fun contributesTandemBLESelector(): TandemBLESelector
-    @ContributesAndroidInjector abstract fun contributesTandemPumpBLEConfigActivity(): TandemPumpBLEConfigActivity
     @ContributesAndroidInjector abstract fun contributesAdaptiveIntentPreference(): app.aaps.pump.tandem.common.util.AdaptiveIntentPreference
 
     // Data

@@ -121,6 +121,17 @@ class DbDataHandler @Inject constructor(
             )
     }
 
+    fun getLatestHistorySequenceIds(limit: Int): Set<Long> {
+        return tandemPumpDatabase.historyRecordDao()
+            .getLatestSequenceIdsBlocking(pumpStatus.serialNumber.toInt(), limit)
+            .toSet()
+    }
+
+    fun getMaxHistorySequenceId(): Long? {
+        return tandemPumpDatabase.historyRecordDao()
+            .getMaxSequenceIdBlocking(pumpStatus.serialNumber.toInt())
+    }
+
 
     fun getCurrentQEItemsBlocking(): List<TandemQualifyingEventEntity> {
 

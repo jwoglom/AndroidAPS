@@ -20,6 +20,7 @@ import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.TandemMobiPluginVersion
@@ -78,6 +79,7 @@ class HistoryRetriever @Inject constructor(
         const val CHUNK_SIZE = 200 // how many records on each call
         const val HISTORY_LIMIT_IN_DAYS = 44 // how many day of history we are getting
         const val SHORT_RECORDS_RETRIEVAL_AMOUNT = 20 // for short readings we get last x entries only
+        const val WATCHDOG_TIMEOUT_MS = 30_000L // abort if no history progress/messages for this long
         val TAG = LTag.PUMPCOMM
     }
 
@@ -88,6 +90,7 @@ class HistoryRetriever @Inject constructor(
     private var listOfMissingItemsInChunk = ArrayDeque<HistoryRequestInfo>()
     private var downloadRunning = false
     private var listOfReturnedItems = mutableListOf<HistoryLog>()
+    private var lastHistoryMessageAtMs: Long = 0
 
     // added
     lateinit var communication: TandemUICommunication
@@ -122,6 +125,7 @@ class HistoryRetriever @Inject constructor(
         val timeoutTime = startTime + ( 60 * 60 * 1000 )
         resetProgress(1000)
         downloadRunning = true
+        lastHistoryMessageAtMs = startTime
         startDataRetrieval()
 
         while (downloadRunning) {
@@ -134,7 +138,15 @@ class HistoryRetriever @Inject constructor(
                     return false
                 } else {
                     aapsLogger.error(TAG, "[History] Timeout reached while trying to read history, with ${communication.messageCount} messages read.")
+                    downloadRunning = false
+                    return false
                 }
+            }
+
+            if (System.currentTimeMillis() - lastHistoryMessageAtMs > WATCHDOG_TIMEOUT_MS) {
+                aapsLogger.error(TAG, "[History] Watchdog timeout reached with no new history messages/progress in ${WATCHDOG_TIMEOUT_MS}ms.")
+                downloadRunning = false
+                return false
             }
         }
 
@@ -183,11 +195,18 @@ class HistoryRetriever @Inject constructor(
         val startTime = System.currentTimeMillis()
         resetProgress(1000)
         downloadRunning = true
+        lastHistoryMessageAtMs = startTime
         startDataRetrieval()
 
         while(downloadRunning) {
             aapsLogger.debug("HST: download running")
             pumpUtil.sleepSeconds(5)
+
+            if (System.currentTimeMillis() - lastHistoryMessageAtMs > WATCHDOG_TIMEOUT_MS) {
+                aapsLogger.error(TAG, "[History] Watchdog timeout reached with no new history messages/progress in ${WATCHDOG_TIMEOUT_MS}ms.")
+                downloadRunning = false
+                break
+            }
         }
 
         this.communication.tandemCommunicationManager = null
@@ -238,6 +257,10 @@ class HistoryRetriever @Inject constructor(
     }
 
     private fun startDataRetrieval()  {
+        listOfRequests.clear()
+        listOfMissingItemsInChunk.clear()
+        currentRequest = null
+
         val summaryData = preferences.get(TandemStringNonPreferenceKey.HistorySummaryData)
         if (summaryData.isNotBlank()) {
             historySummaryDto = pumpUtil.gsonRegular.fromJson(summaryData, HistorySummaryDto::class.java)
@@ -263,13 +286,16 @@ class HistoryRetriever @Inject constructor(
     fun receivedStatus(message: HistoryLogStatusResponse) {
 
         aapsLogger.debug(TAG, "HST: Got LogStatusResponse: $message")
+        lastHistoryMessageAtMs = System.currentTimeMillis()
+        listOfRequests.clear()
+        val firstReadCreated = historySummaryDto == null
 
-        if (historySummaryDto==null) {
+        if (firstReadCreated) {
 
             aapsLogger.debug(TAG, "HST: First read, creating DTO")
 
-            val remainingRange = HistoryRange(message.firstSequenceNum,
-                                              message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT)
+            val remainingRangeEnd = maxOf(message.firstSequenceNum, message.lastSequenceNum - RECORDS_RETRIEVAL_AMOUNT)
+            val remainingRange = HistoryRange(message.firstSequenceNum, remainingRangeEnd)
 
             historySummaryDto = HistorySummaryDto(serialNumber = pumpStatus.serialNumber.toInt(),
                                                   startRecord = message.firstSequenceNum,
@@ -277,70 +303,22 @@ class HistoryRetriever @Inject constructor(
                                                   modifiedStartRecord = message.firstSequenceNum,
                                                   missedRanges = arrayListOf(remainingRange)
             )
-
-            var firstRec = message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT
-
-            if (firstRec<0) {
-                firstRec = 0
-            }
-
-            // get last 1000 records
-            listOfRequests.addAll(prepareChunks(firstRec, message.lastSequenceNum))
-
-            // - on first read we get min, max (HistoryLogStatusRequest) and create HistorySummary and save it
-            // - we start retreiving data: we will retrieve 5 x 200 = 1000 records per reading
-            //     (reading will be done together with status every 5 minutes)
-            // - once reading is done we create HistoryRange and add it to missed range
-
-        } else {
-
-            if (silentDownload) {
-                prepareForShortHistoryReading(message)
-            } else {
-                prepareForFullHistoryReading(message)
-            }
-
-            // aapsLogger.debug(TAG, "HST: Non-First read")
-            //
-            // val diff = message.lastSequenceNum - historySummaryDto!!.lastRecord
-            //
-            // if (diff==0L) {
-            //     aapsLogger.debug(TAG, "HST: Non-First read: No new records.")
-            //     // no new records
-            //     listOfRequests.addAll(getNextChunks(RECORDS_RETRIEVAL_AMOUNT))
-            // } else if (diff<RECORDS_RETRIEVAL_AMOUNT) {
-            //     aapsLogger.debug(TAG, "HST: Non-First read: Less than $RECORDS_RETRIEVAL_AMOUNT new records.")
-            //     // less than 1000 new records
-            //     listOfRequests.addAll(prepareChunks(historySummaryDto!!.lastRecord+1,
-            //                                         message.lastSequenceNum))
-            //
-            //     val howMuchToGet = RECORDS_RETRIEVAL_AMOUNT - diff
-            //
-            //     // take something from missedRanges and update missed Ranger
-            //     listOfRequests.addAll(getNextChunks(howMuchToGet.toInt()))
-            //
-            // } else {
-            //     aapsLogger.debug(TAG, "HST: Non-First read: We have more than $RECORDS_RETRIEVAL_AMOUNT new records.")
-            //     listOfRequests.addAll(prepareChunks(message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT,
-            //                                         message.lastSequenceNum))
-            //
-            //     val remainingRange = HistoryRange(message.firstSequenceNum,
-            //                                       message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT)
-            //
-            //     // set remaining into missedRanges
-            //     historySummaryDto!!.missedRanges.add(remainingRange)
-            // }
-
-            historySummaryDto!!.lastRecord = message.lastSequenceNum
-
-            // SUBSEQUENT READS
-            //     - read min, max (HistoryLogStatusRequest) and check if new records there
-            // - NO: read missedRanges and read next 1000 items
-            // - YES: read new data, and remaining range is used to read old data, if there is more than
-            // 1000 new records add new missedRange or modify the current one
-
         }
 
+        if (silentDownload) {
+            if (firstReadCreated) {
+                val shortStart = maxOf(0L, message.lastSequenceNum - SHORT_RECORDS_RETRIEVAL_AMOUNT + 1)
+                listOfRequests.addAll(prepareChunks(shortStart, message.lastSequenceNum))
+            } else {
+                prepareForShortHistoryReading(message)
+            }
+        } else {
+            prepareForFullHistoryReading(message)
+        }
+
+        historySummaryDto!!.lastRecord = message.lastSequenceNum
+
+        historySummaryDto!!.activeProcessing.clear()
         historySummaryDto!!.activeProcessing.addAll(listOfRequests)
         saveSummary()
 
@@ -352,8 +330,10 @@ class HistoryRetriever @Inject constructor(
 
         if (listOfRequests.isEmpty()) {
             aapsLogger.info(TAG, "HST: There is no new records to retrieve")
+            clearPersistedResumeUpperBound()
             this.downloadRunning = false
         } else {
+            persistResumeUpperBound(listOfRequests.first().endSequence)
             aapsLogger.info(TAG, "HST: Start first retrieval (listOfRequests=${listOfRequests.size})")
             // start reading
             executeNextLogGet(listOfRequests)
@@ -361,36 +341,61 @@ class HistoryRetriever @Inject constructor(
     }
 
     private fun prepareForFullHistoryReading(message: HistoryLogStatusResponse) {
-        aapsLogger.debug(TAG, "HST: Non-First read - Full Reading")
+        aapsLogger.debug(TAG, "HST: Non-First read - Full Reading (DB-aware)")
 
-        val diff = message.lastSequenceNum - historySummaryDto!!.lastRecord
-
-        if (diff==0L) {
-            aapsLogger.debug(TAG, "HST: Non-First read: No new records.")
-            // no new records
-            listOfRequests.addAll(getNextChunks(RECORDS_RETRIEVAL_AMOUNT))
-        } else if (diff<RECORDS_RETRIEVAL_AMOUNT) {
-            aapsLogger.debug(TAG, "HST: Non-First read: Less than $RECORDS_RETRIEVAL_AMOUNT new records.")
-            // less than 1000 new records
-            listOfRequests.addAll(prepareChunks(historySummaryDto!!.lastRecord+1,
-                                                message.lastSequenceNum))
-
-            val howMuchToGet = RECORDS_RETRIEVAL_AMOUNT - diff
-
-            // take something from missedRanges and update missed Ranger
-            listOfRequests.addAll(getNextChunks(howMuchToGet.toInt()))
-
-        } else {
-            aapsLogger.debug(TAG, "HST: Non-First read: We have more than $RECORDS_RETRIEVAL_AMOUNT new records.")
-            listOfRequests.addAll(prepareChunks(message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT,
-                                                message.lastSequenceNum))
-
-            val remainingRange = HistoryRange(historySummaryDto!!.lastRecord+1,
-                                              message.lastSequenceNum-RECORDS_RETRIEVAL_AMOUNT)
-
-            // set remaining into missedRanges
-            historySummaryDto!!.missedRanges.add(remainingRange)
+        val resumeFromActive = getRequestsFromActiveProcessing()
+        if (resumeFromActive.isNotEmpty()) {
+            listOfRequests.addAll(resumeFromActive)
+            return
         }
+
+        val pumpLastSequence = message.lastSequenceNum
+        val windowStart = maxOf(0L, pumpLastSequence - RECORDS_RETRIEVAL_AMOUNT + 1)
+        val persistedResumeUpper = getPersistedResumeUpperBound()
+        val effectiveUpper = determineEffectiveUpperBound(pumpLastSequence, windowStart, persistedResumeUpper)
+
+        if (effectiveUpper < windowStart) {
+            aapsLogger.info(TAG, "HST: Nothing to fetch in latest window (effectiveUpper=$effectiveUpper, windowStart=$windowStart)")
+            return
+        }
+
+        val dbMax = dbDataHandler.getMaxHistorySequenceId()
+        val existingSequenceIds = dbDataHandler.getLatestHistorySequenceIds(RECORDS_RETRIEVAL_AMOUNT)
+
+        if (dbMax == null || dbMax < windowStart) {
+            aapsLogger.info(TAG, "HST: Database max sequence is older than latest window; evaluating missing IDs in full latest window")
+        }
+
+        val planned = buildRequestsFromMissingSequenceIds(windowStart, effectiveUpper, existingSequenceIds)
+        listOfRequests.addAll(planned)
+    }
+
+    private fun getRequestsFromActiveProcessing(): List<HistoryRequestInfo> {
+        if (historySummaryDto!!.activeProcessing.isEmpty()) {
+            return emptyList()
+        }
+
+        val persistedResumeUpper = getPersistedResumeUpperBound()
+        val clipped = historySummaryDto!!.activeProcessing
+            .mapNotNull { request ->
+                var endSequence = request.endSequence
+                if (persistedResumeUpper != null) {
+                    endSequence = minOf(endSequence, persistedResumeUpper)
+                }
+                if (endSequence >= request.startSequence) {
+                    HistoryRequestInfo(request.startSequence, endSequence)
+                } else {
+                    null
+                }
+            }
+            .sortedByDescending { it.endSequence }
+
+        if (clipped.isNotEmpty()) {
+            aapsLogger.info(TAG, "HST: Resuming history retrieval from activeProcessing (count=${clipped.size})")
+            historySummaryDto!!.activeProcessing.clear()
+        }
+
+        return clipped
     }
 
 
@@ -598,6 +603,7 @@ class HistoryRetriever @Inject constructor(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun executeNextLogGet(queue: ArrayDeque<HistoryRequestInfo>) {
         currentRequest = queue.removeFirst()
+        persistResumeUpperBound(currentRequest!!.endSequence)
         aapsLogger.info(TAG, "HST: executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
         this.communication.sendCommand(HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs))
     }
@@ -606,8 +612,10 @@ class HistoryRetriever @Inject constructor(
     fun receivedLogStreamResponse(message: HistoryLogStreamResponse) {
 
         aapsLogger.debug(TAG, "HST: Received from Stream: numberOfHistoryLogs=${message.numberOfHistoryLogs}, streamId=${message.streamId}, historyLogsSize=${message.historyLogs.size} ")
+        lastHistoryMessageAtMs = System.currentTimeMillis()
 
         this.currentRequest!!.historyLogMap.putAll(message.historyLogs.associateBy { it.sequenceNum })
+        persistResumeUpperBound(calculateRemainingUpperBound(this.currentRequest!!))
 
         this.progressCurrentChunk = currentRequest!!.historyLogMap.size
 
@@ -651,6 +659,7 @@ class HistoryRetriever @Inject constructor(
             this.historySummaryDto!!.modifiedStartRecord = currentRequest!!.startSequence //we change modifiedStartRecord
             this.historySummaryDto!!.activeProcessing.clear()
             this.historySummaryDto!!.missedRanges.clear() // since we have all history needed, we clear missedRanges
+            clearPersistedResumeUpperBound()
             saveSummary()
             return
         }
@@ -664,6 +673,7 @@ class HistoryRetriever @Inject constructor(
                 executeNextLogGet(listOfRequests)
             } else {
                 aapsLogger.debug(TAG, "HST: No more chunks to get... Exiting")
+                clearPersistedResumeUpperBound()
                 this.downloadRunning = false
             }
         }
@@ -726,6 +736,96 @@ class HistoryRetriever @Inject constructor(
         saveSummary()
 
         this.listOfMissingItemsInChunk.addAll(historyRangeList)
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun determineEffectiveUpperBound(pumpLastSequence: Long, windowStart: Long, persistedResumeUpper: Long?): Long {
+        if (persistedResumeUpper == null || persistedResumeUpper <= 0L) {
+            return pumpLastSequence
+        }
+        if (persistedResumeUpper < windowStart) {
+            return windowStart - 1
+        }
+        return minOf(pumpLastSequence, persistedResumeUpper)
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun buildRequestsFromMissingSequenceIds(
+        windowStart: Long,
+        windowEnd: Long,
+        existingSequenceIds: Set<Long>
+    ): MutableList<HistoryRequestInfo> {
+
+        val output = mutableListOf<HistoryRequestInfo>()
+        if (windowEnd < windowStart) {
+            return output
+        }
+
+        var runStart: Long? = null
+        var runEnd: Long? = null
+
+        for (sequenceId in windowEnd downTo windowStart) {
+            if (!existingSequenceIds.contains(sequenceId)) {
+                if (runStart == null) {
+                    runStart = sequenceId
+                    runEnd = sequenceId
+                } else if (sequenceId == runStart - 1) {
+                    runStart = sequenceId
+                } else {
+                    val start = runStart
+                    val end = runEnd
+                    if (start != null && end != null) {
+                        output.addAll(prepareChunks(start, end))
+                    }
+                    runStart = sequenceId
+                    runEnd = sequenceId
+                }
+            } else if (runStart != null) {
+                val start = runStart
+                val end = runEnd
+                if (start != null && end != null) {
+                    output.addAll(prepareChunks(start, end))
+                }
+                runStart = null
+                runEnd = null
+            }
+        }
+
+        if (runStart != null) {
+            val start = runStart
+            val end = runEnd
+            if (start != null && end != null) {
+                output.addAll(prepareChunks(start, end))
+            }
+        }
+
+        return output
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun calculateRemainingUpperBound(request: HistoryRequestInfo): Long {
+        var upper = request.endSequence
+        while (upper >= request.startSequence && request.historyLogMap.containsKey(upper)) {
+            upper--
+        }
+        return maxOf(0L, upper)
+    }
+
+    private fun getPersistedResumeUpperBound(): Long? {
+        val value = preferences.getIfExists(TandemLongNonPreferenceKey.HistoryResumeUpperSequence) ?: return null
+        return if (value > 0L) value else null
+    }
+
+    private fun persistResumeUpperBound(upperSequence: Long) {
+        if (!silentDownload) {
+            preferences.put(TandemLongNonPreferenceKey.HistoryResumeUpperSequence, maxOf(0L, upperSequence))
+        }
+    }
+
+    private fun clearPersistedResumeUpperBound() {
+        if (!silentDownload) {
+            preferences.put(TandemLongNonPreferenceKey.HistoryResumeUpperSequence, 0L)
+        }
     }
 
     val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
@@ -806,7 +906,7 @@ class HistoryRetriever @Inject constructor(
 
     fun receivedLogResponse(message: HistoryLogResponse) {
         //aapsLogger.error(TAG, "HST: Received LogResponse: $message")
+        lastHistoryMessageAtMs = System.currentTimeMillis()
     }
 
 }
-

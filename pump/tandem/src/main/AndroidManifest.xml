@@ -7,16 +7,6 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application>
-        <activity
-            android:name=".common.ui.TandemPumpBLEConfigActivity"
-            android:theme="@style/AppTheme"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
 <!--        <activity android:name="app.aaps.pump.tandem.mobi.ui.TandemMobiSettingsActivity" />-->
 <!--        <activity android:name="app.aaps.pump.tandem.common.ui.DebugActionsActivity" />-->
 

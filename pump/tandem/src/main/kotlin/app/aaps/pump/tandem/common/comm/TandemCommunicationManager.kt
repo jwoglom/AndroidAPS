@@ -37,6 +37,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
+import com.welie.blessed.ConnectionState
 import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.HciStatus
 import org.joda.time.DateTime
@@ -60,8 +61,8 @@ class TandemCommunicationManager(
 ) : TandemPump(context, pumpConfig) {
 
     lateinit var peripheral: BluetoothPeripheral
-    var connected = false
-    var errorConnecting = false
+    @Volatile var connected = false
+    @Volatile var errorConnecting = false
     var commandRequestModeRunning: Boolean = false
         get() { return inFlightRequests.isNotEmpty() }
 
@@ -81,11 +82,13 @@ class TandemCommunicationManager(
 
 
 
-    var operationMode: OperationMode = OperationMode.None
+    @Volatile var operationMode: OperationMode = OperationMode.None
 
     companion object {
         val TAG = LTag.PUMPBTCOMM
-        val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout
+        val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout for receiving pump command response
+        val HANDSHAKE_TIMEOUT = 30 * 1000L  // 30s (in ms) timeout for handshake (pairing) connecting flow
+        val CONNECT_TIMEOUT = 60 * 1000L // 60s (in ms) timeout for complete connecting flow
     }
 
 
@@ -98,6 +101,7 @@ class TandemCommunicationManager(
         }
 
         connected = false
+        val connectStartTime = System.currentTimeMillis()
         operationMode = OperationMode.ConnectionMode
         bluetoothHandler!!.startScan()
 
@@ -108,6 +112,19 @@ class TandemCommunicationManager(
             if (connected || errorConnecting) {
                 aapsLogger.info(TAG, "connected: $connected error: $errorConnecting")
                 operationMode = OperationMode.StandardOperation
+            } else if (handshakingStartTime > 0 &&
+                       pumpUtil.driverStatus == PumpDriverState.Handshaking &&
+                       System.currentTimeMillis() - handshakingStartTime > HANDSHAKE_TIMEOUT) {
+                aapsLogger.error(TAG, "Handshake timeout after ${HANDSHAKE_TIMEOUT / 1000}s, forcing disconnect")
+                handshakingStartTime = 0L
+                errorConnecting = true
+                forceDisconnect(onDisconnect = false, tandemError = null)
+            } else if (handshakingStartTime > 0 &&
+                    pumpUtil.driverStatus == PumpDriverState.Connecting &&
+                    System.currentTimeMillis() - connectStartTime > CONNECT_TIMEOUT) {
+                aapsLogger.error(TAG, "Connection timeout after ${CONNECT_TIMEOUT / 1000}s, forcing disconnect")
+                errorConnecting = true
+                forceDisconnect(onDisconnect = false, tandemError = null)
             }
         }
 
@@ -161,10 +178,16 @@ class TandemCommunicationManager(
     }
 
 
+    private var handshakingStartTime: Long = 0L
+
     override fun onInitialPumpConnection(peripheral: BluetoothPeripheral)  {
         aapsLogger.info(TAG, "onInitialPumpConnection: $peripheral")
 
         this.peripheral = peripheral
+        connected = false
+        errorConnecting = false
+        operationMode = OperationMode.ConnectionMode
+        handshakingStartTime = System.currentTimeMillis()
         pumpUtil.driverStatus = PumpDriverState.Handshaking
         super.onInitialPumpConnection(peripheral)
     }
@@ -235,15 +258,46 @@ class TandemCommunicationManager(
 
 
     private fun isPumpStillConnected(): Boolean {
-        // TODO isPumpStillConnected
-        //   use flag to disable reconnect
-        return true;
+        val bleConnected = ::peripheral.isInitialized &&
+            peripheral.state == ConnectionState.CONNECTED
+        if (!bleConnected && connected) {
+            aapsLogger.warn(TAG, "BLE no longer connected; updating state.")
+            connected = false
+            pumpUtil.driverStatus = PumpDriverState.Disconnected
+            runOnUiThread {
+                dataStore.pumpConnected.value = false
+            }
+        }
+        return bleConnected && connected
     }
 
 
     private fun tryToReconnectToPump(): Boolean {
-        // TODO tryToReconnectToPump
-        return true;
+        aapsLogger.warn(TAG, "Attempting to reconnect to pump.")
+
+        pumpUtil.driverStatus = PumpDriverState.Connecting
+        runOnUiThread {
+            dataStore.pumpConnected.value = false
+        }
+
+        errorConnecting = false
+        connected = false
+
+        if (bluetoothHandler != null) {
+            bluetoothHandler!!.stop()
+        }
+        operationMode = OperationMode.None
+
+        val reconnectResult = connect()
+        if (!reconnectResult) {
+            aapsLogger.error(TAG, "Reconnect attempt failed.")
+            pumpUtil.driverStatus = PumpDriverState.Disconnected
+            runOnUiThread {
+                dataStore.pumpConnected.value = false
+            }
+        }
+
+        return reconnectResult
     }
 
 
@@ -386,7 +440,7 @@ class TandemCommunicationManager(
             //aapsLogger.info(TAG, "TandemCommMgr: onWaitingForPairingCode. Pairing Code: ${pairingCode} ")
 
             if (pairingCode.isNullOrBlank()) {
-                aapsLogger.error(LTag.PUMPCOMM, "TandemCommMgr: onWaitingForPairingCode. It seems you Pairing code was not saved.")
+                aapsLogger.error(LTag.PUMPCOMM, "TandemCommMgr: onWaitingForPairingCode. It seems your Pairing code was not saved.")
                 sendInvalidPairingCodeError()
                 return
             }
@@ -429,7 +483,7 @@ class TandemCommunicationManager(
             }
         }
 
-        //tandemConnectionFixer.startConnectionFix(this)
+        //tandemConnectionFixer.startConnectionFix()
 
         super.onPumpCriticalError(peripheral, reason)
     }
@@ -447,11 +501,9 @@ class TandemCommunicationManager(
         this.pumpStatus.disconnectData = DisconnectDataDto(onDisconnect = onDisconnect,
                                                            hciStatus = hciStatus,
                                                            tandemError = tandemError)
-        if (onDisconnect) {
-            // TODO
-        } else {
-
-        }
+        pumpUtil.driverStatus = PumpDriverState.Disconnected
+        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
+        tandemConnectionFixer.startConnectionFix()
     }
 
 
