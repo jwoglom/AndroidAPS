@@ -61,8 +61,8 @@ class TandemCommunicationManager(
 ) : TandemPump(context, pumpConfig) {
 
     lateinit var peripheral: BluetoothPeripheral
-    var connected = false
-    var errorConnecting = false
+    @Volatile var connected = false
+    @Volatile var errorConnecting = false
     var commandRequestModeRunning: Boolean = false
         get() { return inFlightRequests.isNotEmpty() }
 
@@ -82,7 +82,7 @@ class TandemCommunicationManager(
 
 
 
-    var operationMode: OperationMode = OperationMode.None
+    @Volatile var operationMode: OperationMode = OperationMode.None
 
     companion object {
         val TAG = LTag.PUMPBTCOMM
@@ -184,6 +184,9 @@ class TandemCommunicationManager(
         aapsLogger.info(TAG, "onInitialPumpConnection: $peripheral")
 
         this.peripheral = peripheral
+        connected = false
+        errorConnecting = false
+        operationMode = OperationMode.ConnectionMode
         handshakingStartTime = System.currentTimeMillis()
         pumpUtil.driverStatus = PumpDriverState.Handshaking
         super.onInitialPumpConnection(peripheral)

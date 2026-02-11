@@ -14,7 +14,7 @@ class TandemConnectionFixer @Inject constructor(
 ){
 
     val TAG = LTag.PUMPBTCOMM
-    var running = false
+    @Volatile var running = false
 
     val enabled = TandemMobiPluginVersion.connectionFixerEnabled
 
