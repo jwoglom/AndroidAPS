@@ -48,6 +48,7 @@ import app.aaps.pump.tandem.mobi.ui.actions.Actions
 import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.ChangeCartridgeScreen
+import app.aaps.pump.tandem.mobi.ui.actions.cartridge.FillTubingScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.SiteReminder
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.shared.tests.AAPSLoggerTest
@@ -188,6 +189,9 @@ class ActionsActivity : DaggerComponentActivity() {
                                             navigateToChangeCartridge = {
                                                 selectedItem = ActionsLandingSection.CHANGE_CARTRIDGE
                                             },
+                                            navigateToFillTubing = {
+                                                selectedItem = ActionsLandingSection.FILL_TUBING
+                                            },
                                             navigateToSiteReminder = {
                                                 selectedItem = ActionsLandingSection.SITE_REMINDER
                                             },
@@ -200,6 +204,19 @@ class ActionsActivity : DaggerComponentActivity() {
 
                                     ActionsLandingSection.CHANGE_CARTRIDGE -> {
                                         ChangeCartridgeScreen(
+                                            innerPadding = innerPadding,
+                                            aapsLogger = aapsLogger,
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
+                                            resourceHelper = resourceHelper,
+                                            navigateBack = {
+                                                selectedItem = ActionsLandingSection.CARTRIDGE_ACTIONS
+                                            },
+                                        )
+                                    }
+
+
+                                    ActionsLandingSection.FILL_TUBING -> {
+                                        FillTubingScreen(
                                             innerPadding = innerPadding,
                                             aapsLogger = aapsLogger,
                                             sendPumpCommands = { messages -> sendPumpCommands(messages) },
@@ -285,6 +302,7 @@ enum class ActionsLandingSection(val label: String, val icon: ImageVector) {
     ACTIONS("Actions", Icons.Filled.Create),
     CARTRIDGE_ACTIONS("Actions", Icons.Filled.Create),
     CHANGE_CARTRIDGE("Change Cartridge", Icons.Filled.Create),
+    FILL_TUBING("Fill Tubing", Icons.Filled.Create),
     PUMP_INFO("Pump Info", Icons.Filled.Create),
     SITE_REMINDER("Site Reminder", Icons.Filled.Create)
     ;

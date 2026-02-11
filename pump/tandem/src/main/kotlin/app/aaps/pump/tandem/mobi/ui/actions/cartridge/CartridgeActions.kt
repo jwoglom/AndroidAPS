@@ -63,6 +63,7 @@ fun CartridgeActions(
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
     navigateToChangeCartridge: () -> Unit,
+    navigateToFillTubing: () -> Unit,
     navigateToSiteReminder: () -> Unit,
     navigateBack: () -> Unit
 ) {
@@ -159,10 +160,32 @@ fun CartridgeActions(
                 }
 
                 item {
-                    FillTubing(innerPadding = innerPadding,
-                                sendPumpCommands = sendPumpCommands,
-                                resourceHelper = resourceHelper,
-                                refreshScope = refreshScope)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.TopStart)
+                    ) {
+                        ListItem(
+                            headlineContent = {
+                                Text(text = resourceHelper.gs(R.string.ft_title))
+                            },
+                            supportingContent = {
+                            },
+                            leadingContent = {
+                                Icon(Icons.Filled.Settings, contentDescription = null)
+                            },
+                            modifier = Modifier.clickable {
+                                refreshScope.launch {
+                                    // Clear state before navigating
+                                    ds.fillTubingState.value = null
+                                    ds.exitFillTubingState.value = null
+                                    ds.inFillTubingMode.value = false
+                                    sendPumpCommands(listOf(TimeSinceResetRequest()))
+                                    navigateToFillTubing()
+                                }
+                            }
+                        )
+                    }
                 }
 
                 item {
@@ -222,6 +245,7 @@ private fun DefaultPreview() {
                 sendPumpCommands = { _ -> true},
                 navigateBack = {},
                 navigateToChangeCartridge = {},
+                navigateToFillTubing = {},
                 navigateToSiteReminder = {},
                 resourceHelper = ResourceHelperTest(),
                 aapsLogger = AAPSLoggerTest()
@@ -245,6 +269,7 @@ private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
                 //_changeCartridgeMenuState = true,
                 navigateBack = {},
                 navigateToChangeCartridge = {},
+                navigateToFillTubing = {},
                 navigateToSiteReminder = {},
                 resourceHelper = ResourceHelperTest(),
                 aapsLogger = AAPSLoggerTest()
@@ -268,6 +293,7 @@ private fun DefaultPreviewChangeCartridge_InsulinStopped() {
                 //_changeCartridgeMenuState = true,
                 navigateBack = {},
                 navigateToChangeCartridge = {},
+                navigateToFillTubing = {},
                 navigateToSiteReminder = {},
                 resourceHelper = ResourceHelperTest(),
                 aapsLogger = AAPSLoggerTest()
