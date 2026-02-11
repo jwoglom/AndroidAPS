@@ -21,6 +21,12 @@ abstract class TandemHistoryRecordDao {
     @Query("SELECT COUNT(*) FROM history_records")
     abstract fun getHistoryCount(): Single<Long>
 
+    @Query("SELECT sequenceId FROM history_records WHERE pumpSerial=:serialNo ORDER BY sequenceId DESC LIMIT :limit")
+    abstract fun getLatestSequenceIdsBlocking(serialNo: Int, limit: Int): List<Long>
+
+    @Query("SELECT MAX(sequenceId) FROM history_records WHERE pumpSerial=:serialNo")
+    abstract fun getMaxSequenceIdBlocking(serialNo: Int): Long?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun saveBlocking(tandemHistoryRecordEntity: TandemHistoryRecordEntity)
 
