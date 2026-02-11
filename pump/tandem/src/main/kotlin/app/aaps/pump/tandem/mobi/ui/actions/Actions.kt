@@ -23,12 +23,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,7 +46,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavHostController
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -62,9 +63,7 @@ import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.mobi.ui.util.compactTBRDisplay
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.request.control.ResumePumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
-import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import kotlinx.coroutines.Dispatchers
@@ -79,8 +78,6 @@ fun Actions(
     innerPadding: PaddingValues = PaddingValues(),
     //navController: NavHostController? = null,
     sendPumpCommands: (List<Message>) -> Boolean,
-    _resumeInsulinMenuState: Boolean = false,
-    _suspendInsulinMenuState: Boolean = false,
     _stopTempRateMenuState: Boolean = false,
     aapsLogger: AAPSLogger,
     resourceHelper: ResourceHelper,
@@ -88,8 +85,7 @@ fun Actions(
     navigateToPumpInfo: () -> Unit
 ) {
 
-    var showResumeInsulinMenu by remember { mutableStateOf(_resumeInsulinMenuState) }
-    var showSuspendInsulinMenu by remember { mutableStateOf(_suspendInsulinMenuState) }
+    var showStartStopInsulinSheet by remember { mutableStateOf(false) }
     var showStopTempRateMenu by remember { mutableStateOf(_stopTempRateMenuState) }
 
     val ds = LocalTandemDataStore.current
@@ -186,177 +182,42 @@ fun Actions(
                     HeaderLine(resourceHelper.gs(R.string.ui_a_title))
                 }
                 item {
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.TopStart)
-                    ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                when (pumpRunningState.value) {
-                                    PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_start_insulin)
-                                    PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_start_insulin)
-                                    else                       -> resourceHelper.gs(R.string.ca_stop_insulin)
-                                }
-                            )},
-                            supportingContent = { Text(
-                                when (pumpRunningState.value) {
-                                    PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_resume_insulin_deliveries)
-                                    PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_resume_insulin_deliveries)
-                                    else                       -> resourceHelper.gs(R.string.ca_stop_insulin_deliveries)
-                                }
-                            ) },
-                            leadingContent = {
-                                Icon(
-                                    when (pumpRunningState.value) {
-                                        PumpRunningState.Unknown, null  -> Icons.Filled.Close
-                                        PumpRunningState.Suspended -> Icons.Filled.PlayArrow
-                                        else                       -> Icons.Filled.Close
-                                    },
-                                    contentDescription = null,
-                                )
-                            },
-                            colors = ListItemDefaults.colors(
-                                containerColor = when (pumpRunningState.value) {
-                                    PumpRunningState.Unknown, null  -> ListItemDefaults.containerColor
-                                    PumpRunningState.Suspended -> Color.Green.copy(alpha = 0.5F)
-                                    else                       -> Color.Red.copy(alpha = 0.5F)
-                                }
-                            ),
-                            modifier = Modifier.clickable {
-                                when (pumpRunningState.value) {
-                                    PumpRunningState.Unknown, null  -> {}
-                                    PumpRunningState.Suspended -> {showResumeInsulinMenu = true}
-                                    else                       -> {showSuspendInsulinMenu = true}
-                                }
+                    ListItem(
+                        headlineContent = { Text(
+                            when (pumpRunningState.value) {
+                                PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_start_insulin)
+                                PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_start_insulin)
+                                else                       -> resourceHelper.gs(R.string.ca_stop_insulin)
                             }
-                        )
-                        DropdownMenu(
-                            expanded = showResumeInsulinMenu,
-                            onDismissRequest = { showResumeInsulinMenu = false },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-
-                            AlertDialog(
-                                onDismissRequest = {},
-                                title = {
-                                    Text(resourceHelper.gs(R.string.ca_resume_insulin))
+                        )},
+                        supportingContent = { Text(
+                            when (pumpRunningState.value) {
+                                PumpRunningState.Unknown, null  -> resourceHelper.gs(R.string.ca_stop_resume_insulin_deliveries)
+                                PumpRunningState.Suspended -> resourceHelper.gs(R.string.ca_resume_insulin_deliveries)
+                                else                       -> resourceHelper.gs(R.string.ca_stop_insulin_deliveries)
+                            }
+                        ) },
+                        leadingContent = {
+                            Icon(
+                                when (pumpRunningState.value) {
+                                    PumpRunningState.Unknown, null  -> Icons.Filled.Close
+                                    PumpRunningState.Suspended -> Icons.Filled.PlayArrow
+                                    else                       -> Icons.Filled.Close
                                 },
-                                text = {
-                                    Text(resourceHelper.gs(R.string.ca_resume_all_insulin_deliveries))
-                                },
-                                dismissButton = {
-                                    TextButton(
-                                        onClick = {
-                                            showResumeInsulinMenu = false
-                                        },
-                                        modifier = Modifier.padding(top = 16.dp)
-                                    ) {
-                                        Text(resourceHelper.gs(Rco.string.cancel))
-                                    }
-                                },
-                                confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            showResumeInsulinMenu = false
-                                            sendPumpCommands(listOf(ResumePumpingRequest()))
-                                            refreshScope.launch {
-                                                repeat(5) {
-                                                    if (pumpRunningState.value == PumpRunningState.Running) {
-                                                        return@repeat
-                                                    }
-                                                    Thread.sleep(1000)
-                                                    sendPumpCommands(
-                                                        listOf(HomeScreenMirrorRequest())
-                                                    )
-                                                }
-                                            }
-                                        },
-                                        modifier = Modifier.padding(top = 16.dp)
-                                    ) {
-                                        Text(resourceHelper.gs(R.string.ca_resume_insulin))
-                                    }
-                                }
+                                contentDescription = null,
                             )
-
-                        }
-
-                        DropdownMenu(
-                            expanded = showSuspendInsulinMenu,
-                            onDismissRequest = { showSuspendInsulinMenu = false },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-
-                            if (tempRateActive.value==true) {
-                                AlertDialog(
-                                    onDismissRequest = {},
-                                    title = {
-                                        Text(resourceHelper.gs(R.string.common_warning))
-                                    },
-                                    text = {
-                                        Text(resourceHelper.gs(R.string.ca_before_stopping_stop_tbr))
-                                    },
-                                    confirmButton = {
-                                        TextButton(
-                                            onClick = {
-                                                showSuspendInsulinMenu = false
-                                            },
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            Text(resourceHelper.gs(Rco.string.close))
-                                        }
-                                    }
-                                )
-
-                            } else {
-
-                                AlertDialog(
-                                    onDismissRequest = {},
-                                    title = {
-                                        Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
-                                    },
-                                    text = {
-                                        Text(resourceHelper.gs(R.string.ca_suspend_all_insulin_deliveries))
-                                    },
-                                    dismissButton = {
-                                        TextButton(
-                                            onClick = {
-                                                showSuspendInsulinMenu = false
-                                            },
-                                            modifier = Modifier.padding(top = 16.dp)
-                                        ) {
-                                            Text(resourceHelper.gs(Rco.string.cancel))
-                                        }
-                                    },
-                                    confirmButton = {
-                                            TextButton(
-                                                onClick = {
-                                                    showSuspendInsulinMenu = false
-                                                    sendPumpCommands(listOf(SuspendPumpingRequest()))
-                                                    refreshScope.launch {
-                                                        repeat(5) {
-                                                            if (pumpRunningState.value == PumpRunningState.Suspended) {
-                                                                return@repeat
-                                                            }
-                                                            Thread.sleep(1000)
-                                                            sendPumpCommands(listOf(HomeScreenMirrorRequest()))
-                                                        }
-                                                    }
-                                                },
-                                                modifier = Modifier.padding(top = 16.dp)
-                                            ) {
-                                                Text(resourceHelper.gs(R.string.ca_stop_insulin_small))
-                                            }
-
-                                    }
-                                )
-
+                        },
+                        colors = ListItemDefaults.colors(
+                            containerColor = when (pumpRunningState.value) {
+                                PumpRunningState.Unknown, null  -> ListItemDefaults.containerColor
+                                PumpRunningState.Suspended -> Color.Green.copy(alpha = 0.5F)
+                                else                       -> Color.Red.copy(alpha = 0.5F)
                             }
-
+                        ),
+                        modifier = Modifier.clickable {
+                            showStartStopInsulinSheet = true
                         }
-
-                    }
+                    )
                 }
 
 
@@ -511,6 +372,20 @@ fun Actions(
             }
         )
     }
+
+    if (showStartStopInsulinSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showStartStopInsulinSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            StartStopInsulinScreen(
+                sendPumpCommands = sendPumpCommands,
+                resourceHelper = resourceHelper,
+                aapsLogger = aapsLogger,
+                navigateBack = { showStartStopInsulinSheet = false }
+            )
+        }
+    }
 }
 val actionsCommands = listOf(
     HomeScreenMirrorRequest(),
@@ -545,27 +420,6 @@ private fun PreviewInsulinActive() {
 
 @Preview(showBackground = true)
 @Composable
-private fun PreviewInsulinActive_StopMenuOpen() {
-    TMobiScreensTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White,
-        ) {
-            setUpPreviewState(LocalTandemDataStore.current)
-            Actions(
-                sendPumpCommands = { _ -> true},
-                _suspendInsulinMenuState = true,
-                aapsLogger = AAPSLoggerTest(),
-                navigateToCartridgeActions = {},
-                navigateToPumpInfo = {},
-                resourceHelper = ResourceHelperTest()
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
 private fun PreviewInsulinSuspended() {
     TMobiScreensTheme() {
         Surface(
@@ -576,29 +430,6 @@ private fun PreviewInsulinSuspended() {
             LocalTandemDataStore.current.pumpRunningState.value = PumpRunningState.Suspended
             Actions(
                 sendPumpCommands = { _ -> true},
-                aapsLogger = AAPSLoggerTest(),
-                navigateToCartridgeActions = {},
-                navigateToPumpInfo = {},
-                resourceHelper = ResourceHelperTest()
-            )
-        }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-private fun PreviewInsulinSuspended_ResumeMenuOpen() {
-    TMobiScreensTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White,
-        ) {
-            setUpPreviewState(LocalTandemDataStore.current)
-            LocalTandemDataStore.current.pumpRunningState.value = PumpRunningState.Suspended
-            Actions(
-                sendPumpCommands = { _ -> true},
-                _resumeInsulinMenuState = true,
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
