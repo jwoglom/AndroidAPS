@@ -19,12 +19,16 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Observer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -39,6 +43,7 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.EnterFillTubingModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ExitFillTubingModeRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingModeStateStreamResponse
@@ -77,7 +82,6 @@ fun FillTubing(innerPadding: PaddingValues,
                     ds.fillTubingState.value = null
                     ds.exitFillTubingState.value = null
                     ds.inFillTubingMode.value = false
-                    ds.actionAlerts.value = emptySet()
                     sendPumpCommands(listOf(TimeSinceResetRequest()))
                     showFillTubingMenu = true
                 }
@@ -93,14 +97,22 @@ fun FillTubing(innerPadding: PaddingValues,
             val inFillTubingMode = ds.inFillTubingMode.observeAsState()
             val fillTubingState = ds.fillTubingState.observeAsState()
             val exitFillTubingState = ds.exitFillTubingState.observeAsState()
-            val actionAlerts = ds.actionAlerts.observeAsState()
 
-            // Poll for alerts every 10 seconds during fill tubing
-            LaunchedEffect(inFillTubingMode.value, intervalOf(10)) {
-                if (inFillTubingMode.value == true) {
-                    sendPumpCommands(listOf(AlertStatusRequest()))
+            // Observe notification bundle for alerts/alarms
+            val notifications = remember { mutableStateListOf<Any>() }
+            ds.notificationBundle.observe(LocalLifecycleOwner.current, Observer {
+                ds.notificationBundle.value?.let {
+                    notifications.clear()
+                    notifications.addAll(it.get().toTypedArray())
                 }
+            })
+
+            // Poll for alerts and alarms every 10 seconds while the fill tubing dialog is open
+            LaunchedEffect(intervalOf(10)) {
+                sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
             }
+
+            // Note: notification bundle is managed globally, so we don't clear it here
 
             AlertDialog(
                 onDismissRequest = {
@@ -120,16 +132,24 @@ fun FillTubing(innerPadding: PaddingValues,
                             .fillMaxHeight()
                             .padding(horizontal = 0.dp),
                         content = {
-                            // Alert banner - display at top if alerts exist
-                            if (!actionAlerts.value.isNullOrEmpty()) {
+                            // Alert/Alarm banner - display at top if any exist
+                            if (notifications.isNotEmpty()) {
                                 item {
                                     AlertBanner(
-                                        alerts = actionAlerts.value!!,
-                                        onDismiss = { alert ->
+                                        notifications = notifications,
+                                        onDismissAlert = { alert ->
                                             sendPumpCommands(listOf(
                                                 DismissNotificationRequest(
                                                     DismissNotificationRequest.NotificationType.ALERT,
                                                     alert.bitmask().toLong()
+                                                )
+                                            ))
+                                        },
+                                        onDismissAlarm = { alarm ->
+                                            sendPumpCommands(listOf(
+                                                DismissNotificationRequest(
+                                                    DismissNotificationRequest.NotificationType.ALARM,
+                                                    alarm.bitmask().toLong()
                                                 )
                                             ))
                                         },

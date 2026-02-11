@@ -64,6 +64,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse.AlarmResponseType
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse.AlertResponseType
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import timber.log.Timber
 import java.time.Instant
@@ -400,28 +402,53 @@ fun compactTBRDisplay(tempRateResponse: TempRateResponse?, resourceHelper: Resou
 
 @Composable
 fun AlertBanner(
-    alerts: Set<com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse.AlertResponseType>,
-    onDismiss: (com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse.AlertResponseType) -> Unit,
+    notifications: List<Any>,
+    onDismissAlert: (AlertResponseType) -> Unit,
+    onDismissAlarm: (AlarmResponseType) -> Unit,
     resourceHelper: ResourceHelper
 ) {
-    // Display up to 3 alerts, show count if more
-    val displayAlerts = alerts.take(3)
-    val remainingCount = alerts.size - displayAlerts.size
+    // Filter for alerts and alarms only
+    val alarms = notifications.filterIsInstance<AlarmResponseType>()
+    val alerts = notifications.filterIsInstance<AlertResponseType>()
 
-    Column(
+    // Combine alerts and alarms for display (show up to 3 total, alarms first)
+    val totalCount = alerts.size + alarms.size
+    val displayAlarms = alarms.take(3)
+    val displayAlerts = if (displayAlarms.size < 3) alerts.take(3 - displayAlarms.size) else emptyList()
+    val remainingCount = totalCount - displayAlarms.size - displayAlerts.size
+
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        displayAlerts.forEach { alert ->
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 4.dp)
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header
+            Text(
+                text = "Dismiss notifications before continuing",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // Display alarms first (more critical)
+            displayAlarms.forEach { alarm ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -440,14 +467,22 @@ fun AlertBanner(
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text(
-                            text = alert.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Column {
+                            Text(
+                                text = "ALARM",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = alarm.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                     IconButton(
-                        onClick = { onDismiss(alert) },
+                        onClick = { onDismissAlarm(alarm) },
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
@@ -460,13 +495,70 @@ fun AlertBanner(
             }
         }
 
-        if (remainingCount > 0) {
-            Text(
-                text = "+ $remainingCount more alert${if (remainingCount > 1) "s" else ""}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
-            )
+            // Display alerts
+            displayAlerts.forEach { alert ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "ALERT",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = alert.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = { onDismissAlert(alert) },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Dismiss",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+            if (remainingCount > 0) {
+                Text(
+                    text = "+ $remainingCount more notification${if (remainingCount > 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
         }
     }
 }

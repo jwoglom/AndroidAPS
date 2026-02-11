@@ -150,7 +150,6 @@ fun CartridgeActions(
                                     // Clear state before navigating
                                     ds.enterChangeCartridgeState.value = null
                                     ds.detectingCartridgeState.value = null
-                                    ds.actionAlerts.value = emptySet()
                                     sendPumpCommands(listOf(TimeSinceResetRequest()))
                                     navigateToChangeCartridge()
                                 }
