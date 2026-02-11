@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -61,6 +62,7 @@ fun CartridgeActions(
     sendPumpCommands: (List<Message>) -> Boolean,
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
+    navigateToChangeCartridge: () -> Unit,
     navigateToSiteReminder: () -> Unit,
     navigateBack: () -> Unit
 ) {
@@ -129,10 +131,32 @@ fun CartridgeActions(
                 }
 
                 item {
-                    ChangeCartridge(innerPadding = innerPadding,
-                               sendPumpCommands = sendPumpCommands,
-                               resourceHelper = resourceHelper,
-                               refreshScope = refreshScope)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.TopStart)
+                    ) {
+                        ListItem(
+                            headlineContent = {
+                                Text(text = resourceHelper.gs(R.string.cc_title))
+                            },
+                            supportingContent = {
+                            },
+                            leadingContent = {
+                                Icon(Icons.Filled.Settings, contentDescription = null)
+                            },
+                            modifier = Modifier.clickable {
+                                refreshScope.launch {
+                                    // Clear state before navigating
+                                    ds.enterChangeCartridgeState.value = null
+                                    ds.detectingCartridgeState.value = null
+                                    ds.actionAlerts.value = emptySet()
+                                    sendPumpCommands(listOf(TimeSinceResetRequest()))
+                                    navigateToChangeCartridge()
+                                }
+                            }
+                        )
+                    }
                 }
 
                 item {
@@ -198,6 +222,7 @@ private fun DefaultPreview() {
             CartridgeActions(
                 sendPumpCommands = { _ -> true},
                 navigateBack = {},
+                navigateToChangeCartridge = {},
                 navigateToSiteReminder = {},
                 resourceHelper = ResourceHelperTest(),
                 aapsLogger = AAPSLoggerTest()
@@ -220,6 +245,7 @@ private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
                 sendPumpCommands = { _ -> true},
                 //_changeCartridgeMenuState = true,
                 navigateBack = {},
+                navigateToChangeCartridge = {},
                 navigateToSiteReminder = {},
                 resourceHelper = ResourceHelperTest(),
                 aapsLogger = AAPSLoggerTest()
@@ -242,6 +268,7 @@ private fun DefaultPreviewChangeCartridge_InsulinStopped() {
                 sendPumpCommands = { _ -> true},
                 //_changeCartridgeMenuState = true,
                 navigateBack = {},
+                navigateToChangeCartridge = {},
                 navigateToSiteReminder = {},
                 resourceHelper = ResourceHelperTest(),
                 aapsLogger = AAPSLoggerTest()

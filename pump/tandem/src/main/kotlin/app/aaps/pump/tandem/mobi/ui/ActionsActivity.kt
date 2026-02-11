@@ -47,6 +47,7 @@ import app.aaps.pump.tandem.di.TandemComposeUiComponent
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
 import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
+import app.aaps.pump.tandem.mobi.ui.actions.cartridge.ChangeCartridgeScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.SiteReminder
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.shared.tests.AAPSLoggerTest
@@ -184,11 +185,27 @@ class ActionsActivity : DaggerComponentActivity() {
                                             //navController = navController,
                                             sendPumpCommands = { messages -> sendPumpCommands(messages) },
                                             resourceHelper = resourceHelper,
+                                            navigateToChangeCartridge = {
+                                                selectedItem = ActionsLandingSection.CHANGE_CARTRIDGE
+                                            },
                                             navigateToSiteReminder = {
                                                 selectedItem = ActionsLandingSection.SITE_REMINDER
                                             },
                                             navigateBack = {
                                                 selectedItem = ActionsLandingSection.ACTIONS
+                                            },
+                                        )
+                                    }
+
+
+                                    ActionsLandingSection.CHANGE_CARTRIDGE -> {
+                                        ChangeCartridgeScreen(
+                                            innerPadding = innerPadding,
+                                            aapsLogger = aapsLogger,
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
+                                            resourceHelper = resourceHelper,
+                                            navigateBack = {
+                                                selectedItem = ActionsLandingSection.CARTRIDGE_ACTIONS
                                             },
                                         )
                                     }
@@ -267,6 +284,7 @@ enum class ActionsLandingSection(val label: String, val icon: ImageVector) {
 
     ACTIONS("Actions", Icons.Filled.Create),
     CARTRIDGE_ACTIONS("Actions", Icons.Filled.Create),
+    CHANGE_CARTRIDGE("Change Cartridge", Icons.Filled.Create),
     PUMP_INFO("Pump Info", Icons.Filled.Create),
     SITE_REMINDER("Site Reminder", Icons.Filled.Create)
     ;
