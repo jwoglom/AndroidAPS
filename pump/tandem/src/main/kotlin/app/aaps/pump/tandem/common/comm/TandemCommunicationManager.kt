@@ -86,7 +86,9 @@ class TandemCommunicationManager(
 
     companion object {
         val TAG = LTag.PUMPBTCOMM
-        val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout
+        val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout for receiving pump command response
+        val HANDSHAKE_TIMEOUT = 30 * 1000L  // 30s (in ms) timeout for handshake (pairing) connecting flow
+        val CONNECT_TIMEOUT = 60 * 1000L // 60s (in ms) timeout for complete connecting flow
     }
 
 
@@ -99,6 +101,7 @@ class TandemCommunicationManager(
         }
 
         connected = false
+        val connectStartTime = System.currentTimeMillis()
         operationMode = OperationMode.ConnectionMode
         bluetoothHandler!!.startScan()
 
@@ -109,6 +112,19 @@ class TandemCommunicationManager(
             if (connected || errorConnecting) {
                 aapsLogger.info(TAG, "connected: $connected error: $errorConnecting")
                 operationMode = OperationMode.StandardOperation
+            } else if (handshakingStartTime > 0 &&
+                       pumpUtil.driverStatus == PumpDriverState.Handshaking &&
+                       System.currentTimeMillis() - handshakingStartTime > HANDSHAKE_TIMEOUT) {
+                aapsLogger.error(TAG, "Handshake timeout after ${HANDSHAKE_TIMEOUT / 1000}s, forcing disconnect")
+                handshakingStartTime = 0L
+                errorConnecting = true
+                forceDisconnect(onDisconnect = false, tandemError = null)
+            } else if (handshakingStartTime > 0 &&
+                    pumpUtil.driverStatus == PumpDriverState.Connecting &&
+                    System.currentTimeMillis() - connectStartTime > CONNECT_TIMEOUT) {
+                aapsLogger.error(TAG, "Connection timeout after ${CONNECT_TIMEOUT / 1000}s, forcing disconnect")
+                errorConnecting = true
+                forceDisconnect(onDisconnect = false, tandemError = null)
             }
         }
 
@@ -162,10 +178,13 @@ class TandemCommunicationManager(
     }
 
 
+    private var handshakingStartTime: Long = 0L
+
     override fun onInitialPumpConnection(peripheral: BluetoothPeripheral)  {
         aapsLogger.info(TAG, "onInitialPumpConnection: $peripheral")
 
         this.peripheral = peripheral
+        handshakingStartTime = System.currentTimeMillis()
         pumpUtil.driverStatus = PumpDriverState.Handshaking
         super.onInitialPumpConnection(peripheral)
     }
