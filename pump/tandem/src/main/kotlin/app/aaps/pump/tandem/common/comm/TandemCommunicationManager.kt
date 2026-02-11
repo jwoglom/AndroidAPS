@@ -37,6 +37,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
+import com.welie.blessed.ConnectionState
 import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.HciStatus
 import org.joda.time.DateTime
@@ -235,15 +236,46 @@ class TandemCommunicationManager(
 
 
     private fun isPumpStillConnected(): Boolean {
-        // TODO isPumpStillConnected
-        //   use flag to disable reconnect
-        return true;
+        val bleConnected = ::peripheral.isInitialized &&
+            peripheral.state == ConnectionState.CONNECTED
+        if (!bleConnected && connected) {
+            aapsLogger.warn(TAG, "BLE no longer connected; updating state.")
+            connected = false
+            pumpUtil.driverStatus = PumpDriverState.Disconnected
+            runOnUiThread {
+                dataStore.pumpConnected.value = false
+            }
+        }
+        return bleConnected && connected
     }
 
 
     private fun tryToReconnectToPump(): Boolean {
-        // TODO tryToReconnectToPump
-        return true;
+        aapsLogger.warn(TAG, "Attempting to reconnect to pump.")
+
+        pumpUtil.driverStatus = PumpDriverState.Connecting
+        runOnUiThread {
+            dataStore.pumpConnected.value = false
+        }
+
+        errorConnecting = false
+        connected = false
+
+        if (bluetoothHandler != null) {
+            bluetoothHandler!!.stop()
+        }
+        operationMode = OperationMode.None
+
+        val reconnectResult = connect()
+        if (!reconnectResult) {
+            aapsLogger.error(TAG, "Reconnect attempt failed.")
+            pumpUtil.driverStatus = PumpDriverState.Disconnected
+            runOnUiThread {
+                dataStore.pumpConnected.value = false
+            }
+        }
+
+        return reconnectResult
     }
 
 
