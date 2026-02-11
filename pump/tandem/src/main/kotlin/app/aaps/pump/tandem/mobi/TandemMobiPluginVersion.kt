@@ -10,7 +10,8 @@ class TandemMobiPluginVersion {
     val tandemModuleVersion = "v0.7.10.0"
 
     companion object {
-        val connectionFixerEnabled = false   // this is in testing for now
+        @JvmStatic
+        val connectionFixerEnabled = true   // this is in testing for now
 
         @JvmStatic
         val downloadHistory = true // it seems we have some issues with history download on new versions

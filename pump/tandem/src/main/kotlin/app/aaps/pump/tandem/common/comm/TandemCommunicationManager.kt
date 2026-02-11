@@ -418,7 +418,7 @@ class TandemCommunicationManager(
             //aapsLogger.info(TAG, "TandemCommMgr: onWaitingForPairingCode. Pairing Code: ${pairingCode} ")
 
             if (pairingCode.isNullOrBlank()) {
-                aapsLogger.error(LTag.PUMPCOMM, "TandemCommMgr: onWaitingForPairingCode. It seems you Pairing code was not saved.")
+                aapsLogger.error(LTag.PUMPCOMM, "TandemCommMgr: onWaitingForPairingCode. It seems your Pairing code was not saved.")
                 sendInvalidPairingCodeError()
                 return
             }
@@ -461,7 +461,7 @@ class TandemCommunicationManager(
             }
         }
 
-        //tandemConnectionFixer.startConnectionFix(this)
+        //tandemConnectionFixer.startConnectionFix()
 
         super.onPumpCriticalError(peripheral, reason)
     }
@@ -479,9 +479,9 @@ class TandemCommunicationManager(
         this.pumpStatus.disconnectData = DisconnectDataDto(onDisconnect = onDisconnect,
                                                            hciStatus = hciStatus,
                                                            tandemError = tandemError)
-        pumpUtil.driverStatus = PumpDriverState.ErrorCommunicatingWithPump
-        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
-        tandemConnectionFixer.startConnectionFix(this)
+        pumpUtil.driverStatus = PumpDriverState.Disconnected
+        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
+        tandemConnectionFixer.startConnectionFix()
     }
 
 
