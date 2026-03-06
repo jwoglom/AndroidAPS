@@ -1,4 +1,6 @@
-package app.aaps.pump.omnipod.common.bledriver.comm.io
+package app.aaps.pump.omnipod.common.bledriver.comm.interfaces
+
+import app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendResult
 
 /**
  * Abstraction for BLE characteristic I/O: blocking read, write-with-confirmation,

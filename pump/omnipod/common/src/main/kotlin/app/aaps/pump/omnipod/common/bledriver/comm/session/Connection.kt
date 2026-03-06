@@ -18,10 +18,10 @@ import app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.EnDecrypt
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.ConnectException
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.FailedToConnectException
 import app.aaps.pump.omnipod.common.bledriver.comm.io.CharacteristicType
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.CmdBleIO
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.DataBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.AndroidCmdBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.AndroidDataBleIO
-import app.aaps.pump.omnipod.common.bledriver.comm.io.CmdBleIO
-import app.aaps.pump.omnipod.common.bledriver.comm.io.DataBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.IncomingPackets
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageIO
 import app.aaps.pump.omnipod.common.bledriver.pod.state.OmnipodDashPodStateManager

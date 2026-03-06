@@ -2,6 +2,7 @@
 
 package app.aaps.pump.omnipod.common.bledriver.comm.io
 
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.BleCharacteristicIO
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
