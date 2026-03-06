@@ -18,6 +18,8 @@ import app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.EnDecrypt
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.ConnectException
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.FailedToConnectException
 import app.aaps.pump.omnipod.common.bledriver.comm.io.CharacteristicType
+import app.aaps.pump.omnipod.common.bledriver.comm.io.AndroidCmdBleIO
+import app.aaps.pump.omnipod.common.bledriver.comm.io.AndroidDataBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.CmdBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.DataBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.IncomingPackets
@@ -101,19 +103,17 @@ class Connection(
 
         val discoverer = ServiceDiscoverer(aapsLogger, gatt, bleCommCallbacks, this)
         val discovered = discoverer.discoverServices(connectionWaitCond)
-        val cmdBleIO = CmdBleIO(
+        val cmdBleIO: CmdBleIO = AndroidCmdBleIO(
             aapsLogger,
             discovered.getValue(CharacteristicType.CMD),
-            incomingPackets
-                .cmdQueue,
+            incomingPackets.cmdQueue,
             gatt,
             bleCommCallbacks
         )
-        val dataBleIO = DataBleIO(
+        val dataBleIO: DataBleIO = AndroidDataBleIO(
             aapsLogger,
             discovered.getValue(CharacteristicType.DATA),
-            incomingPackets
-                .dataQueue,
+            incomingPackets.dataQueue,
             gatt,
             bleCommCallbacks
         )
