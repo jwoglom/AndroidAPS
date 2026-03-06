@@ -1,48 +1,22 @@
 package app.aaps.pump.omnipod.common.bledriver.comm.io
 
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCharacteristic
-import app.aaps.core.interfaces.logging.AAPSLogger
-import app.aaps.pump.omnipod.common.bledriver.comm.OmnipodDashBleManagerImpl
-import app.aaps.pump.omnipod.common.bledriver.comm.callbacks.BleCommCallbacks
 import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommand
-import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandHello
-import java.util.concurrent.BlockingQueue
 
-sealed class BleConfirmResult
+/**
+ * CMD characteristic I/O with protocol helpers for RTS/CTS flow control.
+ * Used by MessageIO for control channel.
+ */
+interface CmdBleIO : BleCharacteristicIO {
 
-object BleConfirmSuccess : BleConfirmResult()
-data class BleConfirmIncorrectData(val payload: ByteArray) : BleConfirmResult()
-data class BleConfirmError(val msg: String) : BleConfirmResult()
+    /** Peek at the next incoming command without consuming it. */
+    fun peekCommand(): ByteArray?
 
-class CmdBleIO(
-    logger: AAPSLogger,
-    characteristic: BluetoothGattCharacteristic,
-    private val incomingPackets: BlockingQueue<ByteArray>,
-    gatt: BluetoothGatt,
-    bleCommCallbacks: BleCommCallbacks
-) : BleIO(
-    logger,
-    characteristic,
-    incomingPackets,
-    gatt,
-    bleCommCallbacks,
-    CharacteristicType.CMD
-) {
+    /** Send hello packet for connection handshake. */
+    fun hello()
 
-    fun peekCommand(): ByteArray? {
-        return incomingPackets.peek()
-    }
-
-    fun hello() = sendAndConfirmPacket(BleCommandHello(OmnipodDashBleManagerImpl.CONTROLLER_ID).data)
-
-    fun expectCommandType(expected: BleCommand, timeoutMs: Long = DEFAULT_IO_TIMEOUT_MS): BleConfirmResult {
-        return receivePacket(timeoutMs)?.let {
-            if (it.isNotEmpty() && it[0] == expected.data[0])
-                BleConfirmSuccess
-            else
-                BleConfirmIncorrectData(it)
-        }
-            ?: BleConfirmError("Error reading packet")
-    }
+    /**
+     * Receive a packet and verify it matches expected command type.
+     * @return Success, incorrect data (with payload), or error
+     */
+    fun expectCommandType(expected: BleCommand, timeoutMs: Long = BleCharacteristicIO.DEFAULT_IO_TIMEOUT_MS): BleConfirmResult
 }

@@ -22,6 +22,17 @@ object BleSendSuccess : BleSendResult()
 data class BleSendErrorSending(val msg: String, val cause: Throwable? = null) : BleSendResult()
 data class BleSendErrorConfirming(val msg: String, val cause: Throwable? = null) : BleSendResult()
 
+sealed class BleConfirmResult
+
+object BleConfirmSuccess : BleConfirmResult()
+data class BleConfirmIncorrectData(val payload: ByteArray) : BleConfirmResult() {
+    override fun equals(other: Any?): Boolean =
+        (other as? BleConfirmIncorrectData)?.payload?.contentEquals(payload) == true
+
+    override fun hashCode(): Int = payload.contentHashCode()
+}
+data class BleConfirmError(val msg: String) : BleConfirmResult()
+
 open class BleIO(
     private val aapsLogger: AAPSLogger,
     private var characteristic: BluetoothGattCharacteristic,
@@ -29,13 +40,13 @@ open class BleIO(
     private val gatt: BluetoothGatt,
     private val bleCommCallbacks: BleCommCallbacks,
     private val type: CharacteristicType
-) {
+) : BleCharacteristicIO {
 
     /***
      *
      * @return a byte array with the received data or error
      */
-    fun receivePacket(timeoutMs: Long = DEFAULT_IO_TIMEOUT_MS): ByteArray? {
+    override fun receivePacket(timeoutMs: Long): ByteArray? {
         return try {
             val packet = incomingPackets.poll(timeoutMs, TimeUnit.MILLISECONDS)
             if (packet == null) {
@@ -53,7 +64,7 @@ open class BleIO(
      * @param payload the data to send
      */
     @Suppress("ReturnCount", "DEPRECATION")
-    fun sendAndConfirmPacket(payload: ByteArray): BleSendResult {
+    override fun sendAndConfirmPacket(payload: ByteArray): BleSendResult {
         aapsLogger.debug(LTag.PUMPBTCOMM, "BleIO: Sending on $type: ${payload.toHex()}")
         val set = characteristic.setValue(payload)
         if (!set) {
@@ -84,7 +95,7 @@ open class BleIO(
      * Called before sending a new message.
      * The incoming queues should be empty, so we log when they are not.
      */
-    open fun flushIncomingQueue(): Boolean {
+    override fun flushIncomingQueue(): Boolean {
         var foundRTS = false
         do {
             val found = incomingPackets.poll()?.also {
@@ -102,7 +113,7 @@ open class BleIO(
      * This will signal the pod it can start sending back data
      * @return
      */
-    @Suppress("DEPRECATION") fun readyToRead(): BleSendResult {
+    @Suppress("DEPRECATION") override fun readyToRead(): BleSendResult {
         gatt.setCharacteristicNotification(characteristic, true)
             .assertTrue("enable notifications")
 
