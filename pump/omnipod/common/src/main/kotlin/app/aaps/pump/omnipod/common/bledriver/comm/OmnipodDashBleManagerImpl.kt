@@ -21,7 +21,8 @@ import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.MessageIOException
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.NotConnectedException
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.SessionEstablishmentException
 import app.aaps.pump.omnipod.common.bledriver.comm.pair.LTKExchanger
-import app.aaps.pump.omnipod.common.bledriver.comm.scan.PodScanner
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.PodScanner
+import app.aaps.pump.omnipod.common.bledriver.comm.scan.BlessedPodScanner
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandAckError
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandReceiveError
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandReceiveSuccess
@@ -230,7 +231,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
             emitter.onNext(PodEvent.Scanning)
             val adapter = bluetoothAdapter
                 ?: throw ConnectException("Bluetooth not available")
-            val podScanner = PodScanner(aapsLogger, adapter)
+            val podScanner: PodScanner = BlessedPodScanner(context, aapsLogger)
             val podAddress = podScanner.scanForPod(
                 PodScanner.SCAN_FOR_SERVICE_UUID,
                 PodScanner.POD_ID_NOT_ACTIVATED
