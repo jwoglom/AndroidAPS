@@ -30,7 +30,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandSendErrorConfi
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandSendErrorSending
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandSendSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.session.Connected
-import app.aaps.pump.omnipod.common.bledriver.comm.session.Connection
+import app.aaps.pump.omnipod.common.bledriver.comm.session.BlessedConnection
 import app.aaps.pump.omnipod.common.bledriver.comm.session.ConnectionState
 import app.aaps.pump.omnipod.common.bledriver.comm.session.ConnectionWaitCondition
 import app.aaps.pump.omnipod.common.bledriver.comm.session.NotConnected
@@ -58,7 +58,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
 
     private val busy = AtomicBoolean(false)
     private val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
-    private var connection: Connection? = null
+    private var connection: BlessedConnection? = null
     private val ids = Ids(podState)
 
     override fun sendCommand(cmd: Command, responseType: KClass<out Response>): Observable<PodEvent> =
@@ -133,6 +133,9 @@ class OmnipodDashBleManagerImpl @Inject constructor(
         return connect(ConnectionWaitCondition(timeoutMs = timeoutMs))
     }
 
+    private fun createConnection(podAddress: String): BlessedConnection =
+        BlessedConnection(podAddress, aapsLogger, config, context, podState)
+
     // used for async connections
     override fun connect(stopConnectionLatch: CountDownLatch): Observable<PodEvent> {
         return connect(ConnectionWaitCondition(stopConnection = stopConnectionLatch))
@@ -149,19 +152,24 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                 val podAddress =
                     podState.bluetoothAddress
                         ?: throw FailedToConnectException("Missing bluetoothAddress, activate the pod first")
-                val podDevice = bluetoothAdapter?.getRemoteDevice(podAddress)
-                    ?: throw ConnectException("Bluetooth not available")
 
-                if (podDevice.bondState == BluetoothDevice.BOND_NONE && preferences.get(DashBooleanPreferenceKey.UseBonding)) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM && ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                if (bluetoothAdapter == null) {
+                    throw ConnectException("Bluetooth not available")
+                }
+                if (bluetoothAdapter?.getRemoteDevice(podAddress)?.bondState == BluetoothDevice.BOND_NONE &&
+                    preferences.get(DashBooleanPreferenceKey.UseBonding)
+                ) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM &&
+                        ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        val podDevice = bluetoothAdapter!!.getRemoteDevice(podAddress)
                         val result = podDevice.createBond()
                         aapsLogger.debug(LTag.PUMPBTCOMM, "Bonding with pod resulted $result")
                         Thread.sleep(10000)
                     }
                 }
 
-                val conn = connection
-                    ?: Connection(podDevice, aapsLogger, config, context, podState)
+                val conn = connection ?: createConnection(podAddress)
                 connection = conn
                 if (conn.connectionState() is Connected && conn.session != null) {
                     emitter.onNext(PodEvent.AlreadyConnected(podAddress))
@@ -211,7 +219,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
             ?: throw FailedToConnectException("Missing LTK, activate the pod first")
     }
 
-    private fun assertConnected(): Connection {
+    private fun assertConnected(): BlessedConnection {
         return connection
             ?: throw FailedToConnectException("connection lost")
     }
@@ -229,8 +237,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
             aapsLogger.info(LTag.PUMPBTCOMM, "Starting new pod activation")
 
             emitter.onNext(PodEvent.Scanning)
-            val adapter = bluetoothAdapter
-                ?: throw ConnectException("Bluetooth not available")
+            bluetoothAdapter ?: throw ConnectException("Bluetooth not available")
             val podScanner: PodScanner = BlessedPodScanner(context, aapsLogger)
             val podAddress = podScanner.scanForPod(
                 PodScanner.SCAN_FOR_SERVICE_UUID,
@@ -239,10 +246,9 @@ class OmnipodDashBleManagerImpl @Inject constructor(
             podState.bluetoothAddress = podAddress
 
             emitter.onNext(PodEvent.BluetoothConnecting)
-            val podDevice = adapter.getRemoteDevice(podAddress)
-            val conn = Connection(podDevice, aapsLogger, config, context, podState)
+            val conn = createConnection(podAddress)
             connection = conn
-            conn.connect(ConnectionWaitCondition(timeoutMs = 3 * Connection.BASE_CONNECT_TIMEOUT_MS))
+            conn.connect(ConnectionWaitCondition(timeoutMs = 3 * BlessedConnection.BASE_CONNECT_TIMEOUT_MS))
             emitter.onNext(PodEvent.BluetoothConnected(podAddress))
 
             emitter.onNext(PodEvent.Pairing)
