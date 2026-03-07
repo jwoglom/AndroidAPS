@@ -30,6 +30,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandSendErrorConfi
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandSendErrorSending
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandSendSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.session.Connected
+import app.aaps.pump.omnipod.common.bledriver.comm.session.BlessedBondingHelper
 import app.aaps.pump.omnipod.common.bledriver.comm.session.BlessedConnection
 import app.aaps.pump.omnipod.common.bledriver.comm.session.ConnectionState
 import app.aaps.pump.omnipod.common.bledriver.comm.session.ConnectionWaitCondition
@@ -156,17 +157,8 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                 if (bluetoothAdapter == null) {
                     throw ConnectException("Bluetooth not available")
                 }
-                if (bluetoothAdapter?.getRemoteDevice(podAddress)?.bondState == BluetoothDevice.BOND_NONE &&
-                    preferences.get(DashBooleanPreferenceKey.UseBonding)
-                ) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM &&
-                        ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        val podDevice = bluetoothAdapter!!.getRemoteDevice(podAddress)
-                        val result = podDevice.createBond()
-                        aapsLogger.debug(LTag.PUMPBTCOMM, "Bonding with pod resulted $result")
-                        Thread.sleep(10000)
-                    }
+                if (preferences.get(DashBooleanPreferenceKey.UseBonding)) {
+                    BlessedBondingHelper.createBondIfNeeded(context, podAddress, aapsLogger)
                 }
 
                 val conn = connection ?: createConnection(podAddress)
@@ -285,16 +277,9 @@ class OmnipodDashBleManagerImpl @Inject constructor(
 
     override fun removeBond() {
         try {
-            if (preferences.get(DashBooleanPreferenceKey.UseBonding) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM &&
-                ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-            ) {
-                val device = bluetoothAdapter?.getRemoteDevice(podState.bluetoothAddress) ?: throw IllegalStateException("MAC address not found")
-                // At time of writing (2021-12-06), the removeBond method
-                // is inexplicably still marked with @hide, so we must use
-                // reflection to get to it and unpair this device.
-                val removeBondMethod = device.javaClass.getMethod("removeBond")
-                val result = removeBondMethod.invoke(device)
-                aapsLogger.debug(LTag.PUMPBTCOMM, "Remove bond resulted $result")
+            if (preferences.get(DashBooleanPreferenceKey.UseBonding)) {
+                val address = podState.bluetoothAddress ?: return
+                BlessedBondingHelper.removeBond(context, address, aapsLogger)
             }
         } catch (t: Throwable) {
             aapsLogger.error(LTag.PUMPBTCOMM, "Unpairing device with address ${podState.bluetoothAddress} failed with error $t")
