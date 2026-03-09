@@ -15,6 +15,7 @@ class FakeCmdBleIO(
 
     val expectCommandResults: MutableList<BleConfirmResult> = mutableListOf()
     var expectCommandResultIndex: Int = 0
+    var helloCallCount: Int = 0
 
     /** Configure what expectCommandType() returns (in order). */
     fun expectCommandResults(vararg results: BleConfirmResult) {
@@ -26,6 +27,7 @@ class FakeCmdBleIO(
     override fun peekCommand(): ByteArray? = incomingPackets.peek()
 
     override fun hello() {
+        helloCallCount++
         sendAndConfirmPacket(BleCommandHello(4242).data)
     }
 
@@ -39,5 +41,12 @@ class FakeCmdBleIO(
             }
                 ?: BleConfirmError("No programmed result and receivePacket returned null")
         }
+    }
+
+    override fun reset() {
+        super.reset()
+        expectCommandResults.clear()
+        expectCommandResultIndex = 0
+        helloCallCount = 0
     }
 }
