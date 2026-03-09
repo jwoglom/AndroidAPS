@@ -37,7 +37,6 @@ dependencies {
     androidTestImplementation(project(":shared:tests"))
     testImplementation(project(":shared:tests"))
     testImplementation(libs.commons.codec)
-    testImplementation("com.github.weliem:blessed-kotlin:3.0.12")
 
     ksp(libs.com.google.dagger.compiler)
     ksp(libs.com.google.dagger.android.processor)
