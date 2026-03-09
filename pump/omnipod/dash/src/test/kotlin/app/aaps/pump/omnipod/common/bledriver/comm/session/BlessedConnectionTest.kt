@@ -2,6 +2,7 @@ package app.aaps.pump.omnipod.common.bledriver.comm.session
 
 import app.aaps.pump.omnipod.common.bledriver.comm.Id
 import app.aaps.pump.omnipod.common.bledriver.comm.Ids
+import app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.Nonce
 import app.aaps.pump.omnipod.common.bledriver.pod.state.OmnipodDashPodStateManager
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.DisplayName
@@ -12,61 +13,57 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 /**
- * Phase 9: BlessedConnection tests.
+ * Phase 9: Connection layer tests — shared types only.
  *
- * Tests connection lifecycle, session establishment, disconnect,
- * and connection wait conditions.
+ * Tests the types and contracts that both old (Connection) and new
+ * (BlessedConnection) implementations share:
+ * - ConnectionState sealed hierarchy
+ * - ConnectionWaitCondition validation
+ * - SessionKeys construction and validation
+ * - SessionNegotiationResponse hierarchy
+ * - DisconnectHandler interface
+ * - Ids construction
  *
- * DUAL-IMPLEMENTATION NOTE: Key differences between old Connection and new BlessedConnection:
- *
- * | Aspect                  | Old (Connection)                     | New (BlessedConnection)              |
- * |------------------------|--------------------------------------|--------------------------------------|
- * | Connection API         | BluetoothDevice.connectGatt()        | BluetoothCentralManager.connect()    |
- * | State tracking         | BluetoothManager.getConnectionState  | AtomicReference<ConnectionState>     |
- * | Service discovery      | ServiceDiscoverer + BleCommCallbacks | BlessedBleCallbacks.onServicesDiscovered |
- * | Disconnect (soft)      | gatt.disconnect()                    | centralManager.cancelConnection()    |
- * | Disconnect (hard)      | gatt.close() + nullify               | centralManager.close() + nullify     |
- * | Reconnect behavior     | gatt.connect() on existing gatt      | New centralManager per connect       |
- * | Sleep on failure       | 10s sleep                            | No sleep (immediate throw)           |
- * | Connection priority    | Commented out                        | requestConnectionPriority(HIGH)      |
- *
- * These tests validate the shared behavioral invariants.
+ * No implementation-specific classes (BlessedConnection, Connection,
+ * BluetoothCentralManager, BluetoothGatt) are referenced.
  */
-class BlessedConnectionTest {
+class ConnectionLayerTest {
 
     @Nested
-    @DisplayName("9.1 Connection Constants")
-    inner class ConnectionConstants {
+    @DisplayName("9.1 ConnectionState Sealed Hierarchy")
+    inner class ConnectionStateTests {
 
         @Test
-        fun `BASE_CONNECT_TIMEOUT_MS is 10 seconds`() {
-            assertThat(BlessedConnection.BASE_CONNECT_TIMEOUT_MS).isEqualTo(10000L)
+        fun `three connection states exist`() {
+            val states = listOf(Connecting, Connected, NotConnected)
+            assertThat(states).hasSize(3)
+            states.forEach { assertThat(it).isInstanceOf(ConnectionState::class.java) }
         }
 
         @Test
-        fun `MIN_DISCOVERY_TIMEOUT_MS is 10 seconds`() {
-            assertThat(BlessedConnection.MIN_DISCOVERY_TIMEOUT_MS).isEqualTo(10000L)
+        fun `NotConnected is distinct from Connected`() {
+            assertThat(NotConnected).isNotEqualTo(Connected)
         }
 
         @Test
-        fun `STOP_CONNECTING_CHECK_INTERVAL_MS is 500ms`() {
-            assertThat(BlessedConnection.STOP_CONNECTING_CHECK_INTERVAL_MS).isEqualTo(500L)
+        fun `Connecting is distinct from Connected`() {
+            assertThat(Connecting).isNotEqualTo(Connected)
         }
     }
 
     @Nested
-    @DisplayName("9.2 ConnectionWaitCondition")
+    @DisplayName("9.2 ConnectionWaitCondition Validation")
     inner class ConnectionWaitConditionTests {
 
         @Test
-        fun `timeout-based wait creates valid condition`() {
+        fun `timeout-based condition is valid`() {
             val cond = ConnectionWaitCondition(timeoutMs = 5000L)
             assertThat(cond.timeoutMs).isEqualTo(5000L)
             assertThat(cond.stopConnection).isNull()
         }
 
         @Test
-        fun `latch-based wait creates valid condition`() {
+        fun `latch-based condition is valid`() {
             val latch = java.util.concurrent.CountDownLatch(1)
             val cond = ConnectionWaitCondition(stopConnection = latch)
             assertThat(cond.timeoutMs).isNull()
@@ -74,14 +71,14 @@ class BlessedConnectionTest {
         }
 
         @Test
-        fun `neither timeout nor latch throws`() {
+        fun `both null throws IllegalArgumentException`() {
             assertThrows<IllegalArgumentException> {
                 ConnectionWaitCondition()
             }
         }
 
         @Test
-        fun `both timeout and latch throws`() {
+        fun `both non-null throws IllegalArgumentException`() {
             assertThrows<IllegalArgumentException> {
                 ConnectionWaitCondition(
                     timeoutMs = 1000L,
@@ -89,10 +86,17 @@ class BlessedConnectionTest {
                 )
             }
         }
+
+        @Test
+        fun `timeoutMs is mutable`() {
+            val cond = ConnectionWaitCondition(timeoutMs = 5000L)
+            cond.timeoutMs = 3000L
+            assertThat(cond.timeoutMs).isEqualTo(3000L)
+        }
     }
 
     @Nested
-    @DisplayName("9.3 Session Keys")
+    @DisplayName("9.3 SessionKeys")
     inner class SessionKeysTests {
 
         @Test
@@ -100,17 +104,17 @@ class BlessedConnectionTest {
             assertThrows<IllegalArgumentException> {
                 SessionKeys(
                     ck = ByteArray(10),
-                    nonce = app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.Nonce(ByteArray(8), 0),
+                    nonce = Nonce(ByteArray(8), 0),
                     msgSequenceNumber = 0
                 )
             }
         }
 
         @Test
-        fun `SessionKeys with valid CK succeeds`() {
+        fun `SessionKeys with valid 16-byte CK succeeds`() {
             val keys = SessionKeys(
                 ck = ByteArray(16),
-                nonce = app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.Nonce(ByteArray(8), 0),
+                nonce = Nonce(ByteArray(8), 0),
                 msgSequenceNumber = 0
             )
             assertThat(keys.ck).hasLength(16)
@@ -120,11 +124,25 @@ class BlessedConnectionTest {
         fun `msgSequenceNumber is mutable`() {
             val keys = SessionKeys(
                 ck = ByteArray(16),
-                nonce = app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.Nonce(ByteArray(8), 0),
+                nonce = Nonce(ByteArray(8), 0),
                 msgSequenceNumber = 0
             )
             keys.msgSequenceNumber = 5
             assertThat(keys.msgSequenceNumber).isEqualTo(5.toByte())
+        }
+
+        @Test
+        fun `Nonce requires 8-byte prefix`() {
+            assertThrows<IllegalArgumentException> {
+                Nonce(ByteArray(4), 0)
+            }
+        }
+
+        @Test
+        fun `Nonce increment produces 13-byte result`() {
+            val nonce = Nonce(ByteArray(8), 0)
+            val result = nonce.increment(podReceiving = true)
+            assertThat(result).hasLength(13)
         }
     }
 
@@ -136,7 +154,7 @@ class BlessedConnectionTest {
         fun `SessionKeys is a SessionNegotiationResponse`() {
             val keys = SessionKeys(
                 ck = ByteArray(16),
-                nonce = app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.Nonce(ByteArray(8), 0),
+                nonce = Nonce(ByteArray(8), 0),
                 msgSequenceNumber = 0
             )
             assertThat(keys).isInstanceOf(SessionNegotiationResponse::class.java)
@@ -157,15 +175,27 @@ class BlessedConnectionTest {
     inner class DisconnectHandlerTests {
 
         @Test
-        fun `DisconnectHandler can be implemented`() {
+        fun `DisconnectHandler can be implemented and invoked`() {
+            var receivedStatus = -1
             val handler = object : DisconnectHandler {
-                var lastStatus: Int = -1
                 override fun onConnectionLost(status: Int) {
-                    lastStatus = status
+                    receivedStatus = status
                 }
             }
             handler.onConnectionLost(42)
-            assertThat(handler.lastStatus).isEqualTo(42)
+            assertThat(receivedStatus).isEqualTo(42)
+        }
+
+        @Test
+        fun `DisconnectHandler handles zero status`() {
+            var receivedStatus = -1
+            val handler = object : DisconnectHandler {
+                override fun onConnectionLost(status: Int) {
+                    receivedStatus = status
+                }
+            }
+            handler.onConnectionLost(0)
+            assertThat(receivedStatus).isEqualTo(0)
         }
     }
 

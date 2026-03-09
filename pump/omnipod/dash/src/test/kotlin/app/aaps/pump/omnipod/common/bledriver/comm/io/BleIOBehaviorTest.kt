@@ -15,16 +15,13 @@ import org.junit.jupiter.api.Test
  * Phases 6 & 7: BleIO behavior tests.
  *
  * Tests BLE I/O through the interface contract using FakeBleCharacteristicIO,
- * FakeCmdBleIO, and FakeDataBleIO. This validates the contract that both
- * old (BleIO/CmdBleIO/DataBleIO) and new (BlessedBleIO/BlessedCmdBleIO/BlessedDataBleIO)
- * implementations must satisfy.
+ * FakeCmdBleIO, and FakeDataBleIO. This validates the contract that any
+ * implementation of BleCharacteristicIO, CmdBleIO, and DataBleIO must satisfy.
  *
  * DUAL-IMPLEMENTATION NOTE: These tests define the behavioral contract.
- * - Old: BleIO uses BluetoothGatt.writeCharacteristic + characteristic.setValue
- * - New: BlessedBleIO uses BluetoothPeripheral.writeCharacteristic with WriteType
- * - Old: BleIO.readyToRead checks descriptor count == 1
- * - New: BlessedBleIO.readyToRead uses peripheral.startNotify()
- * The interface contract is the same: sendAndConfirmPacket, receivePacket, flushIncomingQueue, readyToRead.
+ * The old and new implementations differ in how they talk to hardware, but
+ * both must satisfy the same interface: sendAndConfirmPacket, receivePacket,
+ * flushIncomingQueue, readyToRead.
  */
 class BleIOBehaviorTest {
 
