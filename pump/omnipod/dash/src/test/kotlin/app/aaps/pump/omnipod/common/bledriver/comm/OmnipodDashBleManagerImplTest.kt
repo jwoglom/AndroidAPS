@@ -299,7 +299,7 @@ class OmnipodDashBleManagerImplTest : TestBase() {
         var connectCalls: Int = 0
         val connectWaitConditions = mutableListOf<ConnectionWaitCondition>()
         val disconnectCalls = mutableListOf<Boolean>()
-        val establishSessionResults = ArrayDeque<EapSqn?>()
+        val establishSessionResults = mutableListOf<EapSqn?>()
         val establishSessionCalls = mutableListOf<EstablishSessionCall>()
 
         override fun connect(connectionWaitCond: ConnectionWaitCondition) {
@@ -324,7 +324,7 @@ class OmnipodDashBleManagerImplTest : TestBase() {
             return if (establishSessionResults.isEmpty()) {
                 null
             } else {
-                establishSessionResults.removeFirst()
+                establishSessionResults.removeAt(0)
             }
         }
     }
