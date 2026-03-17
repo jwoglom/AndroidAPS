@@ -10,8 +10,6 @@ import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.scan.PodScanner
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.session.BleConnection
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.session.BleConnectionFactory
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageIO
-import app.aaps.pump.omnipod.common.bledriver.comm.pair.LTKExchanger
-import app.aaps.pump.omnipod.common.bledriver.comm.pair.PairResult
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandReceiveSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandSendErrorConfirming
 import app.aaps.pump.omnipod.common.bledriver.comm.session.CommandSendErrorSending
@@ -36,7 +34,6 @@ import org.apache.commons.codec.binary.Hex
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
-import org.mockito.Mockito.mockConstruction
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
@@ -206,36 +203,18 @@ class OmnipodDashBleManagerImplTest : TestBase() {
     }
 
     @Test
-    fun `pairNewPod scans connects negotiates ltk and stores pod state`() {
-        val pairedLtk = ByteArray(16) { (it + 1).toByte() }
-        val pairResult = PairResult(pairedLtk, 9.toByte())
-        connection.msgIO = mock<MessageIO>()
-        connection.session = mock()
-        connection.establishSessionResults.addLast(null)
+    fun `pairNewPod short circuits when the pod is already paired`() {
+        podState.ltk = ByteArray(16) { (it + 1).toByte() }
 
-        mockConstruction(LTKExchanger::class.java) { mock, _ ->
-            doReturn(pairResult).whenever(mock).negotiateLTK()
-        }.use {
-            val observer = bleManager.pairNewPod().test()
+        val observer = bleManager.pairNewPod().test()
 
-            observer.awaitDone(1, TimeUnit.SECONDS)
-            observer.assertComplete()
-            observer.assertNoErrors()
-            assertThat(observer.values()).hasSize(7)
-            assertThat(observer.values()[0]).isSameInstanceAs(PodEvent.Scanning)
-            assertThat(observer.values()[1]).isSameInstanceAs(PodEvent.BluetoothConnecting)
-            assertThat((observer.values()[2] as PodEvent.BluetoothConnected).bluetoothAddress).isEqualTo(TEST_ADDRESS)
-            assertThat(observer.values()[3]).isSameInstanceAs(PodEvent.Pairing)
-            val pairedEvent = observer.values()[4] as PodEvent.Paired
-            assertThat(observer.values()[5]).isSameInstanceAs(PodEvent.EstablishingSession)
-            assertThat(observer.values()[6]).isSameInstanceAs(PodEvent.Connected)
-            assertThat(deviceManager.scannedAddresses).containsExactly(TEST_ADDRESS)
-            assertThat(connectionFactory.createdAddresses).containsExactly(TEST_ADDRESS)
-            assertThat(podState.bluetoothAddress).isEqualTo(TEST_ADDRESS)
-            assertThat(podState.ltk).isEqualTo(pairedLtk)
-            assertThat(podState.uniqueId).isEqualTo(pairedEvent.uniqueId.toLong())
-            assertThat(connection.connectCalls).isEqualTo(1)
-        }
+        observer.awaitDone(1, TimeUnit.SECONDS)
+        observer.assertComplete()
+        observer.assertNoErrors()
+        assertThat(observer.values()).containsExactly(PodEvent.AlreadyPaired)
+        assertThat(deviceManager.scannedAddresses).isEmpty()
+        assertThat(connectionFactory.createdAddresses).isEmpty()
+        assertThat(connection.connectCalls).isEqualTo(0)
     }
 
     private fun prepareStoredPod() {
@@ -335,6 +314,10 @@ class OmnipodDashBleManagerImplTest : TestBase() {
         }
 
         override fun connectionState(): ConnectionState = state
+
+        override fun onConnectionLost(status: Int) {
+            state = NotConnected
+        }
 
         override fun establishSession(ltk: ByteArray, msgSeq: Byte, ids: Ids, eapSqn: ByteArray): EapSqn? {
             establishSessionCalls += EstablishSessionCall(ltk, msgSeq, ids, EapSqn(eapSqn))

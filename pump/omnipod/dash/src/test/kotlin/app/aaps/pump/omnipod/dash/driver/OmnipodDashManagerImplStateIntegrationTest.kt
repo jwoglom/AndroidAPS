@@ -240,7 +240,7 @@ class OmnipodDashManagerImplStateIntegrationTest : TestBase() {
 
         observer.assertComplete()
         observer.assertNoErrors()
-        assertThat(bleManager.sentCommands.map { it.commandType }).containsExactly(CommandType.SUSPEND_DELIVERY)
+        assertThat(bleManager.sentCommands.map { it.commandType }).containsExactly(CommandType.STOP_DELIVERY)
         assertThat(podStateManager.suspendAlertsEnabled).isTrue()
     }
 
