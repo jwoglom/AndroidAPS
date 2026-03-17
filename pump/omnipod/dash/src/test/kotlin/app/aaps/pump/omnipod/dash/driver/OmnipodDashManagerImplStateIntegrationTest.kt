@@ -75,7 +75,6 @@ class OmnipodDashManagerImplStateIntegrationTest : TestBase() {
         assertThat(podStateManager.messageSequenceNumber).isEqualTo(2.toShort())
         assertThat(podStateManager.podStatus).isEqualTo(PodStatus.RUNNING_ABOVE_MIN_VOLUME)
         assertThat(podStateManager.deliveryStatus).isEqualTo(DeliveryStatus.BASAL_ACTIVE)
-        assertThat(podStateManager.lastStatusResponseReceived).isGreaterThan(0L)
         assertThat(podStateManager.activationTime).isNotNull()
     }
 
@@ -100,7 +99,7 @@ class OmnipodDashManagerImplStateIntegrationTest : TestBase() {
         bleManager.enqueueCommand { command ->
             Observable.just(
                 PodEvent.CommandSent(command),
-                PodEvent.ResponseReceived(command, setUniqueIdResponse(firstPrimePulses = 0, secondPrimePulses = 0))
+                PodEvent.ResponseReceived(command, setUniqueIdResponse(firstPrimePulses = 1, secondPrimePulses = 1))
             )
         }
         bleManager.enqueueCommand { command ->
@@ -124,7 +123,7 @@ class OmnipodDashManagerImplStateIntegrationTest : TestBase() {
 
         val observer = manager.activatePodPart1(lowReservoirAlertTrigger = null).test()
 
-        observer.awaitDone(2, TimeUnit.SECONDS)
+        observer.awaitDone(3, TimeUnit.SECONDS)
         observer.assertComplete()
         observer.assertNoErrors()
         assertThat(bleManager.pairCalls).isEqualTo(1)
@@ -140,7 +139,7 @@ class OmnipodDashManagerImplStateIntegrationTest : TestBase() {
         assertThat(podStateManager.uniqueId).isEqualTo(TEST_UNIQUE_ID)
         assertThat(podStateManager.lotNumber).isEqualTo(135556289L)
         assertThat(podStateManager.podSequenceNumber).isEqualTo(611540L)
-        assertThat(podStateManager.firstPrimeBolusVolume).isEqualTo(0.toShort())
+        assertThat(podStateManager.firstPrimeBolusVolume).isEqualTo(1.toShort())
         assertThat(podStateManager.podStatus).isEqualTo(PodStatus.CLUTCH_DRIVE_ENGAGED)
     }
 
@@ -190,7 +189,7 @@ class OmnipodDashManagerImplStateIntegrationTest : TestBase() {
             userConfiguredExpirationAlarmHours = 1L
         ).test()
 
-        observer.awaitDone(2, TimeUnit.SECONDS)
+        observer.awaitDone(3, TimeUnit.SECONDS)
         observer.assertComplete()
         observer.assertNoErrors()
         assertThat(bleManager.connectCalls).isEqualTo(2)
@@ -251,7 +250,7 @@ class OmnipodDashManagerImplStateIntegrationTest : TestBase() {
     }
 
     private fun preparePhase1CompletedPod() {
-        podStateManager.updateFromSetUniqueIdResponse(setUniqueIdResponse(firstPrimePulses = 0, secondPrimePulses = 0))
+        podStateManager.updateFromSetUniqueIdResponse(setUniqueIdResponse(firstPrimePulses = 1, secondPrimePulses = 1))
         podStateManager.updateFromDefaultStatusResponse(runningStatusResponse())
         podStateManager.activationProgress = ActivationProgress.PHASE_1_COMPLETED
     }

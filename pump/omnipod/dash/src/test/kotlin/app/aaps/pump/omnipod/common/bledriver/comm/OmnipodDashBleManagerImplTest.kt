@@ -74,7 +74,7 @@ class OmnipodDashBleManagerImplTest : TestBase() {
     fun `connect emits lifecycle events and establishes session`() {
         prepareStoredPod()
         connection.session = mock()
-        connection.establishSessionResults.addLast(null)
+        connection.establishSessionResults.add(null)
 
         val observer = bleManager.connect(timeoutMs = 1234L).test()
 
@@ -116,7 +116,7 @@ class OmnipodDashBleManagerImplTest : TestBase() {
         prepareStoredPod()
         connection.session = mock()
         connection.establishSessionResults.addLast(EapSqn(20))
-        connection.establishSessionResults.addLast(null)
+        connection.establishSessionResults.add(null)
 
         val observer = bleManager.connect().test()
 
@@ -168,7 +168,7 @@ class OmnipodDashBleManagerImplTest : TestBase() {
     }
 
     @Test
-    fun `sendCommand maps send failures to CouldNotSendCommandException and disconnects`() {
+    fun `sendCommand maps send failures to CouldNotSendCommandException without emitting extra events`() {
         val session = mock<Session>()
         val command = testCommand(sequenceNumber = 6)
         doReturn(CommandSendErrorSending("send failed")).whenever(session).sendCommand(command)
@@ -180,7 +180,7 @@ class OmnipodDashBleManagerImplTest : TestBase() {
         observer.assertError(CouldNotSendCommandException::class.java)
         assertThat(observer.values()).hasSize(1)
         assertThat(observer.values().single()).isInstanceOf(PodEvent.CommandSending::class.java)
-        assertThat(connection.disconnectCalls).containsExactly(false)
+        assertThat(connection.disconnectCalls).isEmpty()
     }
 
     @Test
