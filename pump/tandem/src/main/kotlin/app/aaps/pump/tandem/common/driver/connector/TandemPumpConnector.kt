@@ -3,12 +3,11 @@ package app.aaps.pump.tandem.common.driver.connector
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.pump.PumpProfile
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventNewNotification
 import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.rx.events.EventOverviewBolusStopDeliveryEnabled
 import app.aaps.core.interfaces.sharedPreferences.SP
@@ -37,6 +36,7 @@ import app.aaps.pump.tandem.common.data.IDPSegmentDto
 import app.aaps.pump.tandem.common.data.PumpProfileDto
 import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 import app.aaps.pump.tandem.common.data.defs.TandemCommandType
+import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
@@ -946,7 +946,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                  IDPSegmentStatus.CORRECTION_FACTOR)
 
     // TODO(jwoglom): use IDPManager which handles some of these complexities
-    override fun sendBasalProfile(profile: Profile): DataCommandResponse<Boolean?> {
+    override fun sendBasalProfile(profile: PumpProfile): DataCommandResponse<Boolean?> {
 
         aapsLogger.info(LTag.PUMPCOMM, "sendBasalProfile")
 
@@ -970,9 +970,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         // TODO(jwoglom): make and use PumpX2 const
         if (idpSegments.size>16) {
             aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile - You have more than 16 basal segments. Profile must be adjusted to have only 16 segments. Last valid segment (16) will be extended over remaining time.")
-
-            val notification = Notification(Notification.TANDEM_BASAL_PROFILE_ERROR, resourceHelper.gs(R.string.tandem_error_profile_only_16_segments), Notification.URGENT, 24*60)
-            rxBus.send(EventNewNotification(notification))
+            tandemPumpUtil.sendNotification(TandemNotificationType.TandemBasalProfileError);
         }
 
         val gsonText = pumpUtil.gson.toJson(idpSegments)

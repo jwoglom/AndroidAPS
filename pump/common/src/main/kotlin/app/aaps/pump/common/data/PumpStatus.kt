@@ -2,6 +2,7 @@ package app.aaps.pump.common.data
 
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.TempBasalPair
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.Date
@@ -63,6 +64,7 @@ abstract class PumpStatus(var pumpType: PumpType) {
     // TDD
     var dailyTotalUnits: Double? = null
     var maxDailyTotalUnits: String? = null
+    var pumpRunningState = PumpRunningState.Running
 
     // temp basal
     var currentTempBasal: TempBasalPair? = null

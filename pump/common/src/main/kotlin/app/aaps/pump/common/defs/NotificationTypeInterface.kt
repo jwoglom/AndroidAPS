@@ -11,4 +11,6 @@ interface NotificationTypeInterface {
 
     val notificationUrgency: NotificationLevel
 
+    val validMinutes: Int?
+
 }

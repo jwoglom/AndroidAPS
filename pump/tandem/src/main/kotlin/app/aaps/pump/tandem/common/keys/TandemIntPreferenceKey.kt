@@ -7,6 +7,8 @@ import app.aaps.pump.tandem.R
 enum class TandemIntPreferenceKey(
     override val key: String,
     override val defaultValue: Int,
+    override val titleResId: Int = 0,
+    override val summaryResId: Int? = null,
     override val min: Int = Int.MIN_VALUE,
     override val max: Int = Int.MAX_VALUE,
     override val calculatedDefaultValue: Boolean = false,
@@ -21,10 +23,21 @@ enum class TandemIntPreferenceKey(
     override val exportable: Boolean = true
 ) : IntPreferenceKey {
 
-    MaxBasal("pref_tandem_max_basal", 15, min = 1, max = 15),
-    MaxBolus("pref_tandem_max_bolus", 25, min = 1, max = 25),
-    PumpPairStatus("pref_tandem_pair_status", -1)
+    MaxBasal(key = "pref_tandem_max_basal",
+             defaultValue = 15,
+             min = 1,
+             max = 15,
+             titleResId = R.string.tandem_pump_max_basal),
 
-    //@JvmField val PumpPairStatus = R.string.key_tandem_pair_status
+    MaxBolus(key ="pref_tandem_max_bolus",
+             defaultValue = 25,
+             min = 1,
+             max = 25,
+             titleResId = R.string.tandem_pump_max_bolus),
+
+    PumpPairStatus(key = "pref_tandem_pair_status",
+                   defaultValue = -1,
+                   titleResId = R.string.tandem_pump_pair_status,
+                   engineeringModeOnly = true)
 
 }

@@ -1,7 +1,9 @@
 package app.aaps.pump.tandem.common.data.defs
 
 import androidx.annotation.StringRes
-import app.aaps.core.interfaces.notifications.Notification
+import app.aaps.core.interfaces.notifications.NotificationId
+import app.aaps.core.interfaces.notifications.NotificationLevel
+import app.aaps.pump.common.R as Rc
 import app.aaps.pump.common.defs.NotificationTypeInterface
 import app.aaps.pump.tandem.R
 
@@ -9,21 +11,39 @@ import app.aaps.pump.tandem.R
 /**
  * Created by andy on 01/06/2021.
  */
-enum class TandemNotificationType(override var notificationType: Int,
+enum class TandemNotificationType(override var notificationType: NotificationId,
                                   override @StringRes val resourceId: Int,
-                                  override val notificationUrgency: Int) : NotificationTypeInterface {
+                                  override val notificationUrgency: NotificationLevel,
+                                  override val validMinutes: Int? = null) : NotificationTypeInterface {
 
     // TODO TandemNotificationType - InvalidPairingCodeReconfigure this might be removed
-    InvalidPairingCodeReconfigure(R.string.tandem_notification_wrong_pairing_code, Notification.URGENT),
-    SiteReminder(Notification.TANDEM_SITE_REMINDER, R.string.tandem_notification_site_reminder, Notification.NORMAL)
+    InvalidPairingCodeReconfigure(resourceId = R.string.tandem_notification_wrong_pairing_code,
+                                  notificationUrgency = NotificationLevel.URGENT),
 
-    //PumpIncorrectBasalProfileSelected(R.string.pump_settings_error_incorrect_basal_profile_selected, Notification.URGENT),  //
-    //PumpWrongMaxBolusSet(R.string.pump_settings_error_wrong_max_bolus_set, Notification.NORMAL),  //
-    //PumpWrongMaxBasalSet(R.string.pump_settings_error_wrong_max_basal_set, Notification.NORMAL),  //
-    //PumpWrongTimeUrgent(R.string.medtronic_notification_check_time_date, Notification.URGENT),
-    //PumpWrongTimeNormal(R.string.medtronic_notification_check_time_date, Notification.NORMAL),
-    //TimeChangeOver24h(Notification.OVER_24H_TIME_CHANGE_REQUESTED, R.string.medtronic_error_pump_24h_time_change_requested, Notification.URGENT);
-    ;
+    SiteReminder(notificationType = NotificationId.TANDEM_SITE_REMINDER,
+                 resourceId = R.string.tandem_notification_site_reminder,
+                 notificationUrgency = NotificationLevel.NORMAL),
 
-    constructor(resourceId: Int, notificationUrgency: Int) : this(Notification.COMBO_PUMP_ALARM, resourceId, notificationUrgency) {}
+    DateTimeUpdated(notificationType = NotificationId.INSIGHT_DATE_TIME_UPDATED,
+                    resourceId = Rc.string.pump_time_updated,
+                    notificationUrgency = NotificationLevel.NORMAL,
+                    validMinutes = 60),
+
+    TimeDifferenceTooBig(notificationType = NotificationId.OMNIPOD_TIME_OUT_OF_SYNC,
+                         resourceId = Rc.string.pump_time_difference_too_big,
+                         notificationUrgency = NotificationLevel.NORMAL,
+                         validMinutes = 60),
+
+    TandemPumpSettingsUpdated(notificationType = NotificationId.TANDEM_PUMP_SETTINGS_UPDATED,
+                              resourceId =  R.string.tandem_notification_pump_settings_changed,
+                              notificationUrgency = NotificationLevel.NORMAL,
+                              validMinutes = 60),
+
+    TandemBasalProfileError(notificationType = NotificationId.TANDEM_BASAL_PROFILE_ERROR,
+                            resourceId = R.string.tandem_error_profile_only_16_segments,
+                            notificationUrgency = NotificationLevel.URGENT,
+                            validMinutes = 24*60
+    );
+
+    constructor(resourceId: Int, notificationUrgency: NotificationLevel) : this(NotificationId.COMBO_PUMP_ALARM, resourceId, notificationUrgency, -1) {}
 }

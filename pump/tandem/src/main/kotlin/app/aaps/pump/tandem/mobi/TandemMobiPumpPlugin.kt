@@ -18,19 +18,20 @@ import app.aaps.core.interfaces.constraints.Constraint
 import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.Notification
-import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.Pump
 import app.aaps.core.interfaces.pump.PumpEnactResult
+import app.aaps.core.interfaces.pump.PumpInsulin
+import app.aaps.core.interfaces.pump.PumpProfile
+import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.pump.PumpSync.TemporaryBasalType
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventNewNotification
 import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
 import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.interfaces.utils.DateUtil
@@ -97,7 +98,7 @@ import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import io.reactivex.rxjava3.kotlin.plusAssign
-
+import kotlinx.coroutines.flow.StateFlow
 
 import javax.inject.Inject
 import javax.inject.Provider
@@ -388,7 +389,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         // 1. Check if above 250% of profile rate
         val maxBasalBySettings = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBasal)
 
-        val allowedAmount = baseBasalRate * 2.5 // 250% is max allowed
+        val allowedAmount = baseBasalRate.cU * 2.5 // 250% is max allowed
 
         val maxBasalRate = Math.min(allowedAmount, maxBasalBySettings.toDouble())
 
@@ -422,11 +423,11 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         val maxBasalBySettings = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.MaxBasal)
 
-        val requestedAmount = baseBasalRate * (percentRate.value() / 100.0) // 250% is max allowed
+        val requestedAmount = baseBasalRate.cU * (percentRate.value() / 100.0) // 250% is max allowed
 
         if (requestedAmount>maxBasalBySettings) {
 
-            val percent = (maxBasalBySettings / baseBasalRate)
+            val percent = (maxBasalBySettings / baseBasalRate.cU)
 
             if (percent > SetTempRateRequest.MAX_PERCENT) {
                 percentRate.set(
@@ -805,12 +806,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                         val stringQuickBolus = rh.gs(this.newQuickBolusType!!.friendlyName)
 
-                        val notification = Notification(id = Notification.TANDEM_PUMP_SETTINGS_UPDATED,
-                                                        text = rh.gs(R.string.tandem_notification_pump_settings_changed, "Quick Bolus (" + stringQuickBolus + ")"),
-                                                        level = Notification.NORMAL,
-                                                        validMinutes = 60)
-                        rxBus.send(EventNewNotification(notification))
-
+                        tandemPumpUtil.sendNotification(notificationType = TandemNotificationType.TandemPumpSettingsUpdated,
+                                                        "Quick Bolus (" + stringQuickBolus + ")")
 
                         resetTime = true
                     }
@@ -1058,7 +1055,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun isThisProfileSet(profile: Profile): Boolean {
+    override fun isThisProfileSet(profile: PumpProfile): Boolean {
 
         aapsLogger.debug(TAG, "isThisProfileSet")
 
@@ -1093,25 +1090,17 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override val baseBasalRate: Double
+    override val baseBasalRate: PumpRate
         get() = if (pumpStatus.basalsByHour == null) {
                 aapsLogger.debug(LTag.PUMP, "Profile is not set !")
                 pumpStatus.baseBasalRate = 0.0
-                pumpStatus.baseBasalRate
+                PumpRate(pumpStatus.baseBasalRate)
             } else {
                 val basal = pumpStatus.basalProfileForHour
                 aapsLogger.debug(LTag.PUMP, "Basal for this hour is: $basal")
                 pumpStatus.baseBasalRate = basal
-                basal
+                PumpRate(basal)
             }
-
-
-    override val reservoirLevel: Double
-        get() = pumpStatus.reservoirRemainingUnits
-
-
-    override val batteryLevel: Int?
-        get() = pumpStatus.batteryRemaining
 
 
     override fun triggerUIChange() {
@@ -1177,11 +1166,8 @@ class TandemMobiPumpPlugin @Inject constructor(
             if (changedItems.isNotEmpty()) {
                 val changedItemsString = changedItems.joinToString(", ")
 
-                val notification = Notification(id = Notification.TANDEM_PUMP_SETTINGS_UPDATED,
-                                                text = rh.gs(R.string.tandem_notification_pump_settings_changed, changedItemsString),
-                                                level = Notification.NORMAL,
-                                                validMinutes = 60)
-                rxBus.send(EventNewNotification(notification))
+                tandemPumpUtil.sendNotification(notificationType = TandemNotificationType.TandemPumpSettingsUpdated,
+                                                changedItemsString)
             }
         }
     }
@@ -1200,28 +1186,20 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                 val diff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
 
-                pumpStatus.pumpTime!!.displayTime(gson = gson, aapsLogger = aapsLogger)
+                pumpStatus.pumpTime!!.displayTime(gson = tandemPumpUtil.gson,
+                                                  aapsLogger = aapsLogger)
 
                 if (diff > 60) {
                     aapsLogger.error(TAG, "Time difference between phone and pump is more than 60s ($diff)")
 
                     if (!pumpStatus.tandemPumpFirmware.isMobi()) {
-                        val notification = Notification(Notification.OMNIPOD_TIME_OUT_OF_SYNC,
-                                                        rh.gs(Rc.string.pump_time_difference_too_big, 60, diff), Notification.INFO, 60)
-                        rxBus.send(EventNewNotification(notification))
+                        tandemPumpUtil.sendNotification(TandemNotificationType.TimeDifferenceTooBig, 60, diff)
                     } else {
 
                         val time = pumpConnectionManager.setTime()
 
                         if (time.isSuccess) {
-
-                                val notification = Notification(
-                                    Notification.INSIGHT_DATE_TIME_UPDATED,
-                                    rh.gs(Rc.string.pump_time_updated),
-                                    Notification.INFO, 60
-                                )
-                                rxBus.send(EventNewNotification(notification))
-
+                            tandemPumpUtil.sendNotification(TandemNotificationType.DateTimeUpdated)
                         } else {
                             aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
                         }
@@ -1297,7 +1275,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 if (detailedBolusInfo.insulin > 0.0) {
                     pumpSync.syncBolusWithPumpId(
                         timestamp = now,
-                        amount = detailedBolusInfo.insulin,
+                        amount = PumpInsulin(detailedBolusInfo.insulin),
                         pumpId = getPrefixedIdForDb(pumpEventId = bolusData.bolusId!!, isBolus = true),
                         pumpType = pumpType,
                         pumpSerial = serialNumber(),
@@ -1351,12 +1329,13 @@ class TandemMobiPumpPlugin @Inject constructor(
     private val isLoggingEnabled: Boolean
         get() = true
 
+    //setTempBasalPercent(percent: Int, durationInMinutes: Int, enforceNew: Boolean, tbrType: TemporaryBasalType)
 
     // if enforceNew===true current temp basal is canceled and new TBR set (duration is prolonged),
     // if false and the same rate is requested enacted=false and success=true is returned and TBR is not changed
     @Synchronized
-    override fun setTempBasalPercent(percent: Int, durationInMinutes: Int, profile: Profile,
-                                     enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType
+    override fun setTempBasalPercent(percent: Int, durationInMinutes: Int,
+                                     enforceNew: Boolean, tbrType: TemporaryBasalType
     ): PumpEnactResult {
         setRefreshButtonEnabled(false)
 
@@ -1410,7 +1389,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                     pumpType = PumpType.TANDEM_MOBI_BT,
                     type = tbrType,
                     duration = (controlCommandResponse.durationMinutes * 60 * 1000).toLong(),
-                    rate = percent.toDouble(),
+                    rate = PumpRate(percent.toDouble()),
                     pumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id!!, isBolus =false)
                 )
 
@@ -1427,17 +1406,19 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
     }
 
-
-    override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int, profile: Profile,
-                                      enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType
+    override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int,
+                                      enforceNew: Boolean, tbrType: TemporaryBasalType
     ): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, "TBR setTempBasalAbsolute called with a rate of $absoluteRate for $durationInMinutes min [enforce=$enforceNew,tbrType=${tbrType.name}].")
 
-        val unroundedPercentage = ((absoluteRate / baseBasalRate) * 100).toInt()
+        val unroundedPercentage = ((absoluteRate / baseBasalRate.cU) * 100).toInt()
 
         aapsLogger.info(LTag.PUMP, "TBR abs=$absoluteRate,base=${pumpStatus.basalProfileForHour},percent: $unroundedPercentage")
 
-        return this.setTempBasalPercent(unroundedPercentage, durationInMinutes, profile, enforceNew, tbrType)
+        return this.setTempBasalPercent(unroundedPercentage,
+                                        durationInMinutes = durationInMinutes,
+                                        enforceNew = enforceNew,
+                                        tbrType = tbrType)
     }
 
 
@@ -1570,7 +1551,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun setNewBasalProfile(profile: Profile): PumpEnactResult {
+    override fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, "setNewBasalProfile - start")
         return try {
             setRefreshButtonEnabled(false)

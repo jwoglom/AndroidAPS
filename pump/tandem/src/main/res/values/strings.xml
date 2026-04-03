@@ -243,7 +243,7 @@
     <string name="tandem_cfg_show_cargo_of_unknown_logs_summary">If Unknown Logs are displayed, we also display payload (raw data)</string>
     <string name="tandem_cfg_auto_confirm_low_basal_delivery">Auto confirm Low Basal Delivery Alert</string>
     <string name="tandem_cfg_auto_confirm_low_basal_delivery_summary">When Basal delivery is less that certain percent, Low Basal Delivery alert gets triggered. This automatically confirms that alert.</string>
-
+    <string name="tandem_pump_pair_status">Pump Pair Status</string>
 
 
     <!-- Commands -->

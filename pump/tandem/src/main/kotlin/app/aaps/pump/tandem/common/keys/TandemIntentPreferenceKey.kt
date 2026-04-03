@@ -2,9 +2,12 @@ package app.aaps.pump.tandem.common.keys
 
 import app.aaps.core.keys.interfaces.BooleanPreferenceKey
 import app.aaps.core.keys.interfaces.IntentPreferenceKey
+import app.aaps.pump.tandem.R
 
 enum class TandemIntentPreferenceKey(
     override val key: String,
+    override val titleResId: Int = 0,
+    override val summaryResId: Int? = null,
     override val defaultedBySM: Boolean = false,
     override val showInApsMode: Boolean = true,
     override val showInNsClientMode: Boolean = true,
@@ -15,6 +18,9 @@ enum class TandemIntentPreferenceKey(
     override val exportable: Boolean = false
 ) : IntentPreferenceKey {
 
+    // TODO not sure if this are correct strings
     PumpPairing(key = "pref_tandem_device_selector",
-                negativeDependency = TandemBooleanPreferenceKey.UseSharedConnection)
+                negativeDependency = TandemBooleanPreferenceKey.UseSharedConnection,
+                titleResId = R.string.tandem_pump_configuration,
+                summaryResId = R.string.tandem_pump_configuration_subtitle)
 }

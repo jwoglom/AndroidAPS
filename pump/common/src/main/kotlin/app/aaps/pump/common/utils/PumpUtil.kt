@@ -223,21 +223,39 @@ open class PumpUtil constructor(
         //     notificationType.notificationUrgency
         // )
         // rxBus.send(EventNewNotification(notification))
-
-        notificationManager.post(notificationType.notificationType,
-                                 notificationType.resourceId, null,
-                                 level = notificationType.notificationUrgency)
+        if (notificationType.validMinutes == -1) {
+            notificationManager.post(
+                id = notificationType.notificationType,
+                textRes = notificationType.resourceId,
+                level = notificationType.notificationUrgency
+            )
+        } else {
+            notificationManager.post(
+                id = notificationType.notificationType,
+                textRes = notificationType.resourceId,
+                level = notificationType.notificationUrgency,
+                validMinutes = notificationType.validMinutes!!
+            )
+        }
     }
 
     fun sendNotification(notificationType: NotificationTypeInterface, vararg parameters: Any?) {
-        // val notification = Notification( //
-        //     notificationType.notificationType,  //
-        //     resourceHelper.gs(notificationType.resourceId, *parameters),  //
-        //     notificationType.notificationUrgency
-        // )
-        notificationManager.post(notificationType.notificationType,
-                                 notificationType.resourceId, parameters,
-                                 level = notificationType.notificationUrgency)
+        if (notificationType.validMinutes == -1) {
+            notificationManager.post(
+                id = notificationType.notificationType,
+                textRes = notificationType.resourceId,
+                formatArgs = parameters,
+                level = notificationType.notificationUrgency
+            )
+        } else {
+            notificationManager.post(
+                id = notificationType.notificationType,
+                textRes = notificationType.resourceId,
+                formatArgs = parameters,
+                level = notificationType.notificationUrgency,
+                validMinutes = notificationType.validMinutes!!
+            )
+        }
     }
 
 

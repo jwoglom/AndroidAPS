@@ -10,6 +10,8 @@ import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 enum class TandemStringPreferenceKey(
     override val key: String,
     override val defaultValue: String,
+    override val titleResId: Int = 0,
+    override val summaryResId: Int? = null,
     override val defaultedBySM: Boolean = false,
     override val showInApsMode: Boolean = true,
     override val showInNsClientMode: Boolean = true,
@@ -27,6 +29,7 @@ enum class TandemStringPreferenceKey(
     PumpName("pref_tandem_name", ""),
     SharedConnectionData(key="pref_tandem_shared_connection_data",
                          defaultValue = "",
+                         titleResId = R.string.tandem_cfg_shared_connection_data,
                          dependency = TandemBooleanPreferenceKey.UseSharedConnection, isPassword = true),
     PumpPairCode("pref_tandem_pair_code", ""),
     PumpApiVersion("pref_tandem_api_version", ""),

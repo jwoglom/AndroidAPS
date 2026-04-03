@@ -3,7 +3,6 @@ package app.aaps.pump.tandem.common.comm.ui
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
