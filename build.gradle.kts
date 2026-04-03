@@ -26,7 +26,6 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler) apply false
     id(libs.plugins.android.test.get().pluginId) apply false
-    id(libs.plugins.kotlin.android.get().pluginId) apply false
 }
 
 allprojects {
@@ -40,7 +39,7 @@ allprojects {
             freeCompilerArgs.add("-opt-in=kotlin.RequiresOptIn")
             freeCompilerArgs.add("-opt-in=kotlin.ExperimentalUnsignedTypes")
             freeCompilerArgs.add("-Xannotation-default-target=param-property")
-            freeCompilerArgs.add("-Xjvm-default=all") //Support @JvmDefault
+            freeCompilerArgs.add("-XXLanguage:+ExplicitBackingFields")
             jvmTarget.set(Versions.jvmTarget)
         }
     }
@@ -54,6 +53,7 @@ allprojects {
 
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "jacoco")
+
 }
 
 // Setup all reports aggregation

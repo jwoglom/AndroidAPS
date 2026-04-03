@@ -14,6 +14,7 @@ import app.aaps.pump.common.data.DateTimeDto
 import app.aaps.pump.common.defs.NotificationTypeInterface
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpErrorType
+import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
@@ -218,7 +219,7 @@ open class PumpUtil constructor(
     }
 
     fun sendNotification(notificationType: NotificationTypeInterface) {
-        val notification = Notification( //
+        val notification = PumpHistoryEntryGroup.Notification( //
             notificationType.notificationType,  //
             resourceHelper.gs(notificationType.resourceId),  //
             notificationType.notificationUrgency

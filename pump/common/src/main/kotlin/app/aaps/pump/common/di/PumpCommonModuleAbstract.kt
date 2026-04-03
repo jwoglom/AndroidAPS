@@ -5,8 +5,11 @@ import dagger.android.ContributesAndroidInjector
 import app.aaps.pump.common.ble.BondStateReceiver
 import app.aaps.pump.common.driver.ui.PumpBLEConfigActivity
 import app.aaps.pump.common.ui.PumpHistoryActivity
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 
 @Module
+@InstallIn(SingletonComponent::class)
 @Suppress("unused")
 abstract class PumpCommonModuleAbstract {
 

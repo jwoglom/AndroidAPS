@@ -7,9 +7,12 @@ import app.aaps.core.keys.interfaces.Preferences
 import dagger.Module
 import dagger.Provides
 import app.aaps.pump.common.sync.PumpSyncStorage
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
+@InstallIn(SingletonComponent::class)
 @Suppress("unused")
 class PumpCommonModuleImpl {
 
