@@ -1,7 +1,9 @@
 package app.aaps.pump.tandem.di
 
-import app.aaps.core.interfaces.ui.compose.ComposeUiFactory
-import app.aaps.implementation.ui.ComposeUiModule
+import app.aaps.core.interfaces.di.PumpDriver
+import app.aaps.core.interfaces.plugin.PluginBase
+// import app.aaps.core.interfaces.ui.compose.ComposeUiFactory
+// import app.aaps.implementation.ui.ComposeUiModule
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
@@ -22,10 +24,14 @@ import dagger.android.ContributesAndroidInjector
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
 import dagger.Binds
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.IntKey
 import dagger.multibindings.IntoMap
 
 @Module(includes = [TandemDatabaseModule::class, TandemModuleImpl::class],
         subcomponents = [TandemComposeUiComponent::class])
+@InstallIn(SingletonComponent::class)
 @Suppress("unused")
 abstract class TandemModule {
 
@@ -81,10 +87,18 @@ abstract class TandemModule {
     // @ContributesAndroidInjector abstract fun contributesTandemPumpDriverConfiguration(): TandemPumpDriverConfiguration
 
 
+    // @Binds
+    // @IntoMap
+    // @ComposeUiModule("tandem")
+    // abstract fun bindTandemComposeUiFactory(factory: TandemComposeUiComponent.FactoryCompose): ComposeUiFactory
+
+
+    // Pump plugin registration — @IntKey range 1000–1200, see PluginsListModule for overview
     @Binds
+    @PumpDriver
     @IntoMap
-    @ComposeUiModule("tandem")
-    abstract fun bindTandemComposeUiFactory(factory: TandemComposeUiComponent.FactoryCompose): ComposeUiFactory
+    @IntKey(1090)
+    abstract fun bindTandemMobiPumpPlugin(plugin: TandemMobiPumpPlugin): PluginBase
 
 
 }

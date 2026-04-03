@@ -3,10 +3,9 @@ package app.aaps.pump.common.utils
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.Notification
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventNewNotification
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.utils.pump.ByteUtil
@@ -14,11 +13,9 @@ import app.aaps.pump.common.data.DateTimeDto
 import app.aaps.pump.common.defs.NotificationTypeInterface
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpErrorType
-import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
@@ -36,6 +33,7 @@ open class PumpUtil constructor(
     val rxBus: RxBus,
     val context: Context,
     val resourceHelper: ResourceHelper,
+    val notificationManager: NotificationManager,
     val preferences: Preferences
 ) {
 
@@ -219,21 +217,27 @@ open class PumpUtil constructor(
     }
 
     fun sendNotification(notificationType: NotificationTypeInterface) {
-        val notification = PumpHistoryEntryGroup.Notification( //
-            notificationType.notificationType,  //
-            resourceHelper.gs(notificationType.resourceId),  //
-            notificationType.notificationUrgency
-        )
-        rxBus.send(EventNewNotification(notification))
+        // val notification = Notification( //
+        //     notificationType.notificationType,  //
+        //     resourceHelper.gs(notificationType.resourceId),  //
+        //     notificationType.notificationUrgency
+        // )
+        // rxBus.send(EventNewNotification(notification))
+
+        notificationManager.post(notificationType.notificationType,
+                                 notificationType.resourceId, null,
+                                 level = notificationType.notificationUrgency)
     }
 
     fun sendNotification(notificationType: NotificationTypeInterface, vararg parameters: Any?) {
-        val notification = Notification( //
-            notificationType.notificationType,  //
-            resourceHelper.gs(notificationType.resourceId, *parameters),  //
-            notificationType.notificationUrgency
-        )
-        rxBus.send(EventNewNotification(notification))
+        // val notification = Notification( //
+        //     notificationType.notificationType,  //
+        //     resourceHelper.gs(notificationType.resourceId, *parameters),  //
+        //     notificationType.notificationUrgency
+        // )
+        notificationManager.post(notificationType.notificationType,
+                                 notificationType.resourceId, parameters,
+                                 level = notificationType.notificationUrgency)
     }
 
 

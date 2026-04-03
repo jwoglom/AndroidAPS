@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.keys.interfaces.BooleanPreferenceKey
@@ -36,10 +37,11 @@ class TandemPumpUtil @Inject constructor(
     rxBus: RxBus,
     context: Context,
     resourceHelper: ResourceHelper,
+    notificationManager: NotificationManager,
     preferences: Preferences,
-    var tandemPumpStatus: TandemPumpStatus
+    var tandemPumpStatus: TandemPumpStatus,
 
-): PumpUtil(aapsLogger, rxBus, context, resourceHelper, preferences) {
+): PumpUtil(aapsLogger, rxBus, context, resourceHelper, notificationManager, preferences) {
 
     fun getTimeFromPumpAsEpochMillis(pumpTime: Long): Long {
         return Dates.fromJan12008EpochSecondsToDate(pumpTime).toEpochMilli();
