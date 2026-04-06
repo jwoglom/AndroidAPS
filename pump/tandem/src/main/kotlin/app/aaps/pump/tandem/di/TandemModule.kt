@@ -92,7 +92,7 @@ abstract class TandemModule {
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(1090)
+    @IntKey(1140)
     abstract fun bindTandemMobiPumpPlugin(plugin: TandemMobiPumpPlugin): PluginBase
 
 
