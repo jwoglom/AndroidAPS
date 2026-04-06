@@ -102,18 +102,31 @@ class QualifyingEventHandler @Inject constructor(
         val outList: MutableList<TandemQualifyingEventEntity> = mutableListOf()
 
         for (entity in qeItems) {
-            try {
-                if (isAapsRelevant(QualifyingEvent.valueOf(entity.name))) {
-                    outList.add(entity)
-                }
-            } catch (_: IllegalArgumentException) {
-                aapsLogger.warn(TAG, "Unknown QualifyingEvent name in database: ${entity.name}")
+            val event = resolveQualifyingEvent(entity.name) ?: continue
+            if (isAapsRelevant(event)) {
+                outList.add(entity)
             }
         }
 
         aapsLogger.info(TAG, "QualifyingEvents filtering [before=${qeItems.size}, after=${outList.size}]")
 
         return outList
+    }
+
+    // Maps old enum names from v1.8.3 to their v1.8.9 equivalents
+    private val legacyEventNames = mapOf(
+        "SUSPEND_COMM" to QualifyingEvent.PUMP_COMMUNICATIONS_SUSPENDED,
+        "ACTIVE_SEGMENT_CHANGE" to QualifyingEvent.ACTIVE_PROFILE_SEGMENT_CHANGE,
+    )
+
+    private fun resolveQualifyingEvent(name: String): QualifyingEvent? {
+        legacyEventNames[name]?.let { return it }
+        return try {
+            QualifyingEvent.valueOf(name)
+        } catch (_: IllegalArgumentException) {
+            aapsLogger.warn(TAG, "Unknown QualifyingEvent name in database: $name")
+            null
+        }
     }
 
 
