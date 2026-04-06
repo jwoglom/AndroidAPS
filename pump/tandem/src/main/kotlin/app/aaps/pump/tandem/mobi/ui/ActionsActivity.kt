@@ -30,9 +30,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.ui.compose.ComposeUiProvider
-import app.aaps.core.interfaces.ui.compose.DaggerComponentActivity
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
@@ -43,7 +42,6 @@ import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.di.TandemComposeUiComponent
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
 import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
@@ -54,10 +52,11 @@ import app.aaps.pump.tandem.mobi.ui.actions.cartridge.SiteReminder
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
+import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
 
 
-class ActionsActivity : DaggerComponentActivity() {
+class ActionsActivity : DaggerAppCompatActivity() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var tandemPumpStatus: TandemPumpStatus
@@ -67,6 +66,7 @@ class ActionsActivity : DaggerComponentActivity() {
     @Inject lateinit var tandemPumpConnector: TandemPumpConnector
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction
+    @Inject lateinit var notificationManager: NotificationManager
 
 
     var sectionState: ActionsLandingSection = ActionsLandingSection.ACTIONS
@@ -82,17 +82,13 @@ class ActionsActivity : DaggerComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val composeUiComponent = (application as ComposeUiProvider)
-            .getComposeUiModule("tandem") as TandemComposeUiComponent
-
-        composeUiComponent.inject(this)
-
         tandemUICommunication = TandemUICommunication(dataStore = tandemDataStore,
                                                       pumpStatus = tandemPumpStatus,
                                                       context = context,
                                                       pumpUtil = tandemPumpUtil,
                                                       aapsLogger= aapsLogger,
-                                                      uiInteraction = uiInteraction)
+                                                      uiInteraction = uiInteraction,
+                                                      notificationManager = notificationManager)
 
         if (intent != null && intent.extras != null && intent.getStringExtra("section") != null) {
             sectionState = ActionsLandingSection.entries.find {

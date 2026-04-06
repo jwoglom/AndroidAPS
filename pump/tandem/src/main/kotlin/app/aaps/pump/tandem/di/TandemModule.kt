@@ -2,8 +2,6 @@ package app.aaps.pump.tandem.di
 
 import app.aaps.core.interfaces.di.PumpDriver
 import app.aaps.core.interfaces.plugin.PluginBase
-// import app.aaps.core.interfaces.ui.compose.ComposeUiFactory
-// import app.aaps.implementation.ui.ComposeUiModule
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
@@ -16,6 +14,8 @@ import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import app.aaps.pump.tandem.mobi.ui.ActionsActivity
+import app.aaps.pump.tandem.mobi.ui.DataActivity
 import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
 import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import app.aaps.pump.tandem.mobi.driver.TandemMobiPumpDriverConfiguration
@@ -29,8 +29,7 @@ import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntKey
 import dagger.multibindings.IntoMap
 
-@Module(includes = [TandemDatabaseModule::class, TandemModuleImpl::class],
-        subcomponents = [TandemComposeUiComponent::class])
+@Module(includes = [TandemDatabaseModule::class, TandemModuleImpl::class])
 @InstallIn(SingletonComponent::class)
 @Suppress("unused")
 abstract class TandemModule {
@@ -75,8 +74,8 @@ abstract class TandemModule {
 
 
     // Compose UI Activities
-    //@ContributesAndroidInjector abstract fun contributesActionsActivity(): ActionsActivity
-    // @ContributesAndroidInjector abstract fun contributesTandemUICommunication(): TandemUICommunication
+    @ContributesAndroidInjector abstract fun contributesActionsActivity(): ActionsActivity
+    @ContributesAndroidInjector abstract fun contributesDataActivity(): DataActivity
 
     // @Provides
     // @Singleton
@@ -87,10 +86,6 @@ abstract class TandemModule {
     // @ContributesAndroidInjector abstract fun contributesTandemPumpDriverConfiguration(): TandemPumpDriverConfiguration
 
 
-    // @Binds
-    // @IntoMap
-    // @ComposeUiModule("tandem")
-    // abstract fun bindTandemComposeUiFactory(factory: TandemComposeUiComponent.FactoryCompose): ComposeUiFactory
 
 
     // Pump plugin registration — @IntKey range 1000–1200, see PluginsListModule for overview
