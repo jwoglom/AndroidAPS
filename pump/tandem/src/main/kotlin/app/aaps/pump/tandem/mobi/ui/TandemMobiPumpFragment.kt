@@ -20,10 +20,8 @@ import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventExtendedBolusChange
 import app.aaps.core.interfaces.rx.events.EventQueueChanged
 import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
-import app.aaps.core.interfaces.rx.events.EventTempBasalChange
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
@@ -191,14 +189,6 @@ class TandemMobiPumpFragment : DaggerFragment() {
             .toObservable(EventPumpDriverStateChanged::class.java)
             .observeOn(aapsSchedulers.main)
             .subscribe({ updateCurrentActivity(it.driverStatus) }, { fabricPrivacy.logException(it) })
-        disposable += rxBus
-            .toObservable(EventExtendedBolusChange::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ updateGUI(PumpUpdateFragmentType.TreatmentValues) }, { fabricPrivacy.logException(it) })
-        disposable += rxBus
-            .toObservable(EventTempBasalChange::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ updateGUI(PumpUpdateFragmentType.TreatmentValues) }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventPumpFragmentValuesChanged::class.java)
             .observeOn(aapsSchedulers.main)

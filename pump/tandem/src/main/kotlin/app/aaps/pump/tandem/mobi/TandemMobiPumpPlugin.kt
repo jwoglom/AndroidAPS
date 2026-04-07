@@ -37,6 +37,7 @@ import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import kotlinx.coroutines.runBlocking
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.validators.preferences.AdaptiveIntPreference
 import app.aaps.core.validators.preferences.AdaptiveListPreference
@@ -883,12 +884,14 @@ class TandemMobiPumpPlugin @Inject constructor(
                 }
 
                 if (tbrId!=null) {
-                    pumpSync.syncStopTemporaryBasalWithPumpId(
-                        timestamp = System.currentTimeMillis(),
-                        pumpSerial = serialNumber(),
-                        pumpType = PumpType.TANDEM_MOBI_BT,
-                        endPumpId = getPrefixedIdForDb(pumpEventId = tbrId, isBolus = false)
-                    )
+                    runBlocking {
+                        pumpSync.syncStopTemporaryBasalWithPumpId(
+                            timestamp = System.currentTimeMillis(),
+                            pumpSerial = serialNumber(),
+                            pumpType = PumpType.TANDEM_MOBI_BT,
+                            endPumpId = getPrefixedIdForDb(pumpEventId = tbrId, isBolus = false)
+                        )
+                    }
 
                     pumpStatus.currentTempBasalInternal = null
                     preferences.put(TandemLongNonPreferenceKey.LastTbrId, 0L)
@@ -1263,24 +1266,28 @@ class TandemMobiPumpPlugin @Inject constructor(
                     TandemLongNonPreferenceKey.StandardBoluses)
 
                 if (detailedBolusInfo.carbs > 0.0) {
-                    pumpSync.syncCarbsWithTimestamp(
-                        timestamp = now,
-                        amount = detailedBolusInfo.carbs,
-                        pumpId = getPrefixedIdForDb(pumpEventId = bolusData.bolusId!!, isBolus = true),
-                        pumpType = pumpType,
-                        pumpSerial = serialNumber()
-                    )
+                    runBlocking {
+                        pumpSync.syncCarbsWithTimestamp(
+                            timestamp = now,
+                            amount = detailedBolusInfo.carbs,
+                            pumpId = getPrefixedIdForDb(pumpEventId = bolusData.bolusId!!, isBolus = true),
+                            pumpType = pumpType,
+                            pumpSerial = serialNumber()
+                        )
+                    }
                 }
 
                 if (detailedBolusInfo.insulin > 0.0) {
-                    pumpSync.syncBolusWithPumpId(
-                        timestamp = now,
-                        amount = PumpInsulin(detailedBolusInfo.insulin),
-                        pumpId = getPrefixedIdForDb(pumpEventId = bolusData.bolusId!!, isBolus = true),
-                        pumpType = pumpType,
-                        pumpSerial = serialNumber(),
-                        type = detailedBolusInfo.bolusType
-                    )
+                    runBlocking {
+                        pumpSync.syncBolusWithPumpId(
+                            timestamp = now,
+                            amount = PumpInsulin(detailedBolusInfo.insulin),
+                            pumpId = getPrefixedIdForDb(pumpEventId = bolusData.bolusId!!, isBolus = true),
+                            pumpType = pumpType,
+                            pumpSerial = serialNumber(),
+                            type = detailedBolusInfo.bolusType
+                        )
+                    }
                 }
 
                 //readPumpHistoryAfterAction(bolusInfo = detailedBolusInfo)
@@ -1382,16 +1389,18 @@ class TandemMobiPumpPlugin @Inject constructor(
                 preferences.put(key = TandemLongNonPreferenceKey.LastTbrId,
                                 value = controlCommandResponse.id!!)
 
-                pumpSync.syncTemporaryBasalWithPumpId(
-                    timestamp = controlCommandResponse.start!!,
-                    isAbsolute = false,
-                    pumpSerial = serialNumber(),
-                    pumpType = PumpType.TANDEM_MOBI_BT,
-                    type = tbrType,
-                    duration = (controlCommandResponse.durationMinutes * 60 * 1000).toLong(),
-                    rate = PumpRate(percent.toDouble()),
-                    pumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id!!, isBolus =false)
-                )
+                runBlocking {
+                    pumpSync.syncTemporaryBasalWithPumpId(
+                        timestamp = controlCommandResponse.start!!,
+                        isAbsolute = false,
+                        pumpSerial = serialNumber(),
+                        pumpType = PumpType.TANDEM_MOBI_BT,
+                        type = tbrType,
+                        duration = (controlCommandResponse.durationMinutes * 60 * 1000).toLong(),
+                        rate = PumpRate(percent.toDouble()),
+                        pumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id!!, isBolus = false)
+                    )
+                }
 
                 incrementStatistics(statsKey = TandemLongNonPreferenceKey.TbrsSet)
 
@@ -1514,12 +1523,14 @@ class TandemMobiPumpPlugin @Inject constructor(
 
             val controlCommandResponse = commandResponseCancel.value as ControlCommandResponse
 
-            pumpSync.syncStopTemporaryBasalWithPumpId(
-                timestamp = System.currentTimeMillis(),
-                pumpSerial = serialNumber(),
-                pumpType = PumpType.TANDEM_MOBI_BT,
-                endPumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus = false)
-            )
+            runBlocking {
+                pumpSync.syncStopTemporaryBasalWithPumpId(
+                    timestamp = System.currentTimeMillis(),
+                    pumpSerial = serialNumber(),
+                    pumpType = PumpType.TANDEM_MOBI_BT,
+                    endPumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus = false)
+                )
+            }
 
             pumpStatus.currentTempBasalInternal = null
             preferences.put(TandemLongNonPreferenceKey.LastTbrId, 0L)

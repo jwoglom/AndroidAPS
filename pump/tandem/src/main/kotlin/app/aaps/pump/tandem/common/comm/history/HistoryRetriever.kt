@@ -6,6 +6,7 @@ import androidx.annotation.VisibleForTesting
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.PumpDriverState
@@ -70,7 +71,8 @@ class HistoryRetriever @Inject constructor(
     val rxBus: RxBus,
     var context: Context,
     val dbDataHandler: DbDataHandler,
-    val uiInteraction: UiInteraction
+    val uiInteraction: UiInteraction,
+    val notificationManager: NotificationManager
 
 ) {
 
@@ -115,7 +117,8 @@ class HistoryRetriever @Inject constructor(
                                               context = context,
                                               pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,
-                                              uiInteraction = uiInteraction)
+                                              uiInteraction = uiInteraction,
+                                              notificationManager = notificationManager)
 
         communication.historyRetriever = this
         this.communication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
@@ -186,7 +189,8 @@ class HistoryRetriever @Inject constructor(
                                               context = context,
                                               pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,
-                                              uiInteraction = uiInteraction)
+                                              uiInteraction = uiInteraction,
+                                              notificationManager = notificationManager)
 
         communication.historyRetriever = this
         this.communication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()

@@ -350,7 +350,7 @@ class TandemPairingManager constructor(
         input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
 
         MaterialAlertDialogBuilder(context, app.aaps.core.ui.R.style.DialogTheme)
-            .setCustomTitle(AlertDialogHelper.buildCustomTitle(context, resourceHelper.gs(R.string.tandem_ble_config_pairing_title)))
+            .setTitle(resourceHelper.gs(R.string.tandem_ble_config_pairing_title))
             .setMessage(resourceHelper.gs(R.string.tandem_ble_config_pairing_message, btName, btAddress))
             .setView(input)
             .setPositiveButton(context.getString(app.aaps.core.ui.R.string.ok)) { dialog: DialogInterface, _: Int ->

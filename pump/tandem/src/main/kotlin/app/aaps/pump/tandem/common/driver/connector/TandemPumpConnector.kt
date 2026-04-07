@@ -946,7 +946,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                  IDPSegmentStatus.CORRECTION_FACTOR)
 
     // TODO(jwoglom): use IDPManager which handles some of these complexities
-    override fun sendBasalProfile(profile: PumpProfile): DataCommandResponse<Boolean?> {
+    override fun sendBasalProfile(profile: Profile): DataCommandResponse<Boolean?> {
 
         aapsLogger.info(LTag.PUMPCOMM, "sendBasalProfile")
 
@@ -989,7 +989,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                   idpSegments[0].profileBasalRate,
                                                   idpSegments[0].profileTargetBG,
                                                   idpSegments[0].profileISF,
-                                                  profile.dia.toInt() * 60,
+                                                  (profile.iCfg?.dia?.toInt() ?: 0) * 60,
                                                   0) // for AAPS profile we are setting this to 0
 
             val responseMessage = getCommunicationManager()?.sendCommand(createIDPRequest) as CreateIDPResponse?

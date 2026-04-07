@@ -34,9 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.ui.compose.ComposeUiProvider
-import app.aaps.core.interfaces.ui.compose.DaggerComponentActivity
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
 import app.aaps.pump.tandem.common.data.defs.RefreshData
@@ -48,7 +47,6 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.di.TandemComposeUiComponent
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
 import app.aaps.pump.tandem.mobi.ui.data.DataDisplayMain
 import app.aaps.pump.tandem.mobi.ui.data.History
@@ -60,10 +58,11 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import java.time.LocalDateTime
 import java.time.ZoneId
+import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
 
 
-class DataActivity : DaggerComponentActivity() {
+class DataActivity : DaggerAppCompatActivity() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var tandemPumpStatus: TandemPumpStatus
@@ -73,6 +72,7 @@ class DataActivity : DaggerComponentActivity() {
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var dbDataHandler: DbDataHandler
     @Inject lateinit var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction
+    @Inject lateinit var notificationManager: NotificationManager
 
 
     var sectionState: DataLandingSection = DataLandingSection.DATA
@@ -87,11 +87,6 @@ class DataActivity : DaggerComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val composeUiComponent = (application as ComposeUiProvider)
-            .getComposeUiModule("tandem") as TandemComposeUiComponent
-
-        composeUiComponent.inject(this)
         
         if (intent != null && intent.extras != null && intent.getStringExtra("section") != null) {
             sectionState = DataLandingSection.entries.find {
@@ -104,7 +99,8 @@ class DataActivity : DaggerComponentActivity() {
                                                       context = context,
                                                       pumpUtil = tandemPumpUtil,
                                                       aapsLogger= aapsLogger,
-                                                      uiInteraction = uiInteraction)
+                                                      uiInteraction = uiInteraction,
+                                                      notificationManager = notificationManager)
 
         enableEdgeToEdge()
         setContent {
