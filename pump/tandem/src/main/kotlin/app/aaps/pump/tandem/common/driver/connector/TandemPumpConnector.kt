@@ -122,7 +122,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusV2Response
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionBitmaskStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ProfileStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
@@ -1435,8 +1435,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         // to then use pumpx2's NotificationBundle filtering logic to prevent errant notifications.
         aapsLogger.info(LTag.PUMPCOMM, "getMalfunctions")
 
-        val responseMessage: MalfunctionStatusResponse? = getCommunicationManager()
-            ?.sendCommand(MalfunctionStatusRequest()) as MalfunctionStatusResponse?
+        val responseMessage: MalfunctionBitmaskStatusResponse? = getCommunicationManager()
+            ?.sendCommand(MalfunctionStatusRequest()) as MalfunctionBitmaskStatusResponse?
 
         if (responseMessage!=null) {
 
@@ -1456,7 +1456,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             // if after adding the malfunction response to the bundle
             // it is automatically excluded, then ignore it
             bundle.add(responseMessage)
-            val malfunctionMatchesActiveAlertOrAlarm = bundle.get().none { it is MalfunctionStatusResponse }
+            val malfunctionMatchesActiveAlertOrAlarm = bundle.get().none { it is MalfunctionBitmaskStatusResponse }
 
             val malfunctionStatusDto = MalfunctionStatusDto(malfunctionMatchesActiveAlertOrAlarm)
             malfunctionStatusDto.parse(responseMessage.cargo)
@@ -1511,7 +1511,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(LTag.PUMPCOMM, "setMaxBasal [basalAmount=$basalAmount]")
 
         // units -> milliunits
-        val newMaxBasalLimit = SetMaxBasalLimitRequest(basalAmount*1000)
+        val newMaxBasalLimit = SetMaxBasalLimitRequest((basalAmount * 1000).toLong())
 
         val responseMessage: SetMaxBasalLimitResponse? = getCommunicationManager()
             ?.sendCommand(newMaxBasalLimit) as SetMaxBasalLimitResponse?

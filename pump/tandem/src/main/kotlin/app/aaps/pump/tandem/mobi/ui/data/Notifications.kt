@@ -62,7 +62,7 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.MalfunctionStatusR
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CGMAlertStatusResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionBitmaskStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ReminderStatusResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -166,7 +166,8 @@ fun Notifications(
                                             is ReminderStatusResponse.ReminderType -> resourceHelper.gs(R.string.notif_reminder) + ": ${it.name}"
                                             is AlarmStatusResponse.AlarmResponseType -> resourceHelper.gs(R.string.notif_alarm) + ": ${it.name}"
                                             is CGMAlertStatusResponse.CGMAlert -> resourceHelper.gs(R.string.notif_cgm_alert) + ": ${it.name}"
-                                            is MalfunctionStatusResponse -> resourceHelper.gs(R.string.notif_malfunction_big) + ": ${it.errorString}"
+                                            is MalfunctionBitmaskStatusResponse -> resourceHelper.gs(R.string.notif_malfunction_big) +
+                                                ": " + String.format("%d-%#x", it.codeA, it.codeB)
                                             else -> "$it"
                                         }
                                     )
@@ -179,7 +180,7 @@ fun Notifications(
                                         is AlarmStatusResponse.AlarmResponseType -> Text(
                                             it.description ?: ""
                                         )
-                                        is MalfunctionStatusResponse -> Text(resourceHelper.gs(R.string.notif_cant_be_cleared))
+                                        is MalfunctionBitmaskStatusResponse -> Text(resourceHelper.gs(R.string.notif_cant_be_cleared))
                                         else -> {}
                                     }
                                 },
@@ -205,7 +206,7 @@ fun Notifications(
                                             contentDescription = resourceHelper.gs(R.string.notif_cgm_alert)
                                         )
 
-                                        is MalfunctionStatusResponse -> Icon(
+                                        is MalfunctionBitmaskStatusResponse -> Icon(
                                             Icons.Filled.Warning,
                                             contentDescription = resourceHelper.gs(R.string.notif_malfunction)
                                         )
