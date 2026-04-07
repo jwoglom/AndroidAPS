@@ -51,7 +51,6 @@ import app.aaps.pump.tandem.R
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.UnknownMobiOpcode20Request
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -248,8 +247,7 @@ fun CartridgeActions(
 
 val cartridgeActionsCommands = listOf(
     HomeScreenMirrorRequest(),
-    TimeSinceResetRequest(),
-    UnknownMobiOpcode20Request()
+    TimeSinceResetRequest()
 )
 
 

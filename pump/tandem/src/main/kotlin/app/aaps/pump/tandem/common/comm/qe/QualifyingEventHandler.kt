@@ -102,7 +102,8 @@ class QualifyingEventHandler @Inject constructor(
         val outList: MutableList<TandemQualifyingEventEntity> = mutableListOf()
 
         for (entity in qeItems) {
-            if (isAapsRelevant(QualifyingEvent.valueOf(entity.name))) {
+            val event = resolveQualifyingEvent(entity.name) ?: continue
+            if (isAapsRelevant(event)) {
                 outList.add(entity)
             }
         }
@@ -112,42 +113,72 @@ class QualifyingEventHandler @Inject constructor(
         return outList
     }
 
+    // Maps old enum names from v1.8.3 to their v1.8.9 equivalents
+    private val legacyEventNames = mapOf(
+        "SUSPEND_COMM" to QualifyingEvent.PUMP_COMMUNICATIONS_SUSPENDED,
+        "ACTIVE_SEGMENT_CHANGE" to QualifyingEvent.ACTIVE_PROFILE_SEGMENT_CHANGE,
+    )
+
+    private fun resolveQualifyingEvent(name: String): QualifyingEvent? {
+        legacyEventNames[name]?.let { return it }
+        return try {
+            QualifyingEvent.valueOf(name)
+        } catch (_: IllegalArgumentException) {
+            aapsLogger.warn(TAG, "Unknown QualifyingEvent name in database: $name")
+            null
+        }
+    }
+
 
     fun isAapsRelevant(event: QualifyingEvent): Boolean {
         return when (event) {
-            QualifyingEvent.ALERT,
-            QualifyingEvent.ALARM,
-            QualifyingEvent.REMINDER,
-            QualifyingEvent.MALFUNCTION,
-            QualifyingEvent.HOME_SCREEN_CHANGE,
-            QualifyingEvent.PUMP_SUSPEND,
-            QualifyingEvent.PUMP_RESUME,
-            QualifyingEvent.TIME_CHANGE,
-            QualifyingEvent.BASAL_CHANGE,
-            QualifyingEvent.BOLUS_CHANGE,
-            QualifyingEvent.PROFILE_CHANGE,
-            QualifyingEvent.BATTERY,
-            QualifyingEvent.REMAINING_INSULIN,
-            QualifyingEvent.SUSPEND_COMM,
-            QualifyingEvent.ACTIVE_SEGMENT_CHANGE,
-            QualifyingEvent.BOLUS_PERMISSION_REVOKED -> {
-                true
-            }
+            // Notifications that require user attention or AAPS action
+            QualifyingEvent.ALERT,                           // Pump alert active (e.g., low reservoir)
+            QualifyingEvent.ALARM,                           // Pump alarm active (e.g., occlusion)
+            QualifyingEvent.REMINDER,                        // User-configured reminder triggered
+            QualifyingEvent.MALFUNCTION,                     // Pump malfunction detected
 
-            // TODO(jwoglom): AAPS may want to track controliq being inadvertently enabled on the pump
-            // here as an indicator to stop diy looping
-            QualifyingEvent.CGM_ALERT,
-            QualifyingEvent.BASAL_IQ_STATUS,
-            QualifyingEvent.IOB_CHANGE,
-            QualifyingEvent.BG,
-            QualifyingEvent.EXTENDED_BOLUS_CHANGE,
-            QualifyingEvent.CGM_CHANGE,
-            QualifyingEvent.BASAL_IQ,
-            QualifyingEvent.CONTROL_IQ_INFO,
-            QualifyingEvent.CONTROL_IQ_SLEEP         -> {
-                false
-            }
+            // Pump state changes that affect insulin delivery
+            QualifyingEvent.PUMP_SUSPEND,                    // Insulin delivery suspended
+            QualifyingEvent.PUMP_RESUME,                     // Insulin delivery resumed
+            QualifyingEvent.PUMP_RESET,                      // Pump was reset — may affect delivery state
+            QualifyingEvent.PUMP_COMMUNICATIONS_SUSPENDED,   // BT comms suspended (renamed from SUSPEND_COMM)
 
+            // Profile and delivery parameter changes AAPS needs to track
+            QualifyingEvent.BASAL_CHANGE,                    // Basal rate changed on pump
+            QualifyingEvent.BOLUS_CHANGE,                    // Bolus delivered or cancelled
+            QualifyingEvent.PROFILE_CHANGE,                  // Active IDP profile changed
+            QualifyingEvent.ACTIVE_PROFILE_SEGMENT_CHANGE,   // Active profile time segment changed (renamed from ACTIVE_SEGMENT_CHANGE)
+            QualifyingEvent.BOLUS_PERMISSION_REVOKED,        // Bolus permission revoked by pump
+
+            // Status changes relevant to AAPS state tracking
+            QualifyingEvent.HOME_SCREEN_CHANGE,              // Pump home screen updated (reflects delivery state)
+            QualifyingEvent.TIME_CHANGE,                     // Pump clock changed — affects scheduling
+            QualifyingEvent.BATTERY,                         // Battery level changed
+            QualifyingEvent.REMAINING_INSULIN                // Reservoir level changed
+            -> true
+
+            // CGM data — AAPS gets CGM data from its own CGM source, not the pump
+            QualifyingEvent.CGM_ALERT,                       // CGM high/low alert
+            QualifyingEvent.BG,                              // Blood glucose reading
+            QualifyingEvent.CGM_CHANGE,                      // CGM sensor status change
+
+            // Tandem closed-loop status — not relevant when AAPS controls the loop
+            // TODO(jwoglom): AAPS may want to track controliq being inadvertently enabled
+            // on the pump here as an indicator to stop DIY looping
+            QualifyingEvent.BASAL_IQ_STATUS,                 // Basal-IQ algorithm status
+            QualifyingEvent.BASAL_IQ,                        // Basal-IQ event
+            QualifyingEvent.CONTROL_IQ_INFO,                 // Control-IQ information update
+            QualifyingEvent.CONTROL_IQ_SLEEP,                // Control-IQ sleep activity mode
+
+            // Informational events that don't affect AAPS loop decisions
+            QualifyingEvent.IOB_CHANGE,                      // Pump-calculated IOB changed (AAPS calculates its own)
+            QualifyingEvent.EXTENDED_BOLUS_CHANGE,           // Extended bolus status (not used by AAPS)
+            QualifyingEvent.GLOBAL_PUMP_SETTINGS,            // Global pump settings changed (display, sound, etc.)
+            QualifyingEvent.SNOOZE_STATUS,                   // Alert snooze status changed
+            QualifyingEvent.PUMPING_STATUS,                  // Pumping mechanism status (motor activity)
+            QualifyingEvent.HEARTBEAT                        // Periodic heartbeat signal
+            -> false
         }
     }
 

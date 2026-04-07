@@ -62,7 +62,6 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.UnknownMobiOpcode20Request
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingModeStateStreamResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -347,8 +346,7 @@ fun FillTubingScreen(
 
 val fillTubingScreenCommands = listOf(
     HomeScreenMirrorRequest(),
-    TimeSinceResetRequest(),
-    UnknownMobiOpcode20Request()
+    TimeSinceResetRequest()
 )
 
 @Preview(showBackground = true)
