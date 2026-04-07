@@ -24,7 +24,6 @@ import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.MalfunctionStatusResponse
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException

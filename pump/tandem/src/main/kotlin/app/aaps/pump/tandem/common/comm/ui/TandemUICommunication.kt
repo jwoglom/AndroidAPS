@@ -38,7 +38,6 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusR
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.UnknownMobiOpcode20Response
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
 import java.time.Instant
 import javax.inject.Inject
@@ -232,9 +231,6 @@ class TandemUICommunication @Inject constructor (
                 } else {
                     dataStore.inFillTubingMode.value = false
                 }
-            }
-            is UnknownMobiOpcode20Response -> {
-                aapsLogger.error(TAG, "Received UnknownMobiOpcode20Response ignoring.")
             }
             is SetTempRateResponse -> {
                 if (!message.isStatusOK)
