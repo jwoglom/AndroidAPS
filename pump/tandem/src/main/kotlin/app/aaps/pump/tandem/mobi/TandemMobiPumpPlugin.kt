@@ -41,6 +41,9 @@ import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import kotlinx.coroutines.runBlocking
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.keys.interfaces.withActivity
+import app.aaps.core.keys.interfaces.withEntriesProvider
+import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.core.validators.preferences.AdaptiveIntPreference
 import app.aaps.core.validators.preferences.AdaptiveListPreference
 import app.aaps.core.validators.preferences.AdaptiveStringPreference
@@ -178,7 +181,8 @@ class TandemMobiPumpPlugin @Inject constructor(
         TandemLongNonPreferenceKey::class.java,
         TandemStringPreferenceKey::class.java,
         TandemIntPreferenceKey::class.java,
-        TandemBooleanPreferenceKey::class.java
+        TandemBooleanPreferenceKey::class.java,
+        TandemIntentPreferenceKey::class.java
     )
 ), Pump, PluginConstraints, PumpDataRefreshCapable /*, PumpConstraints */ {
 
@@ -1680,6 +1684,32 @@ class TandemMobiPumpPlugin @Inject constructor(
     // TODO Preferences:
     //    - add MIN_RESERVOIR2 confirmation not implemented yet, but might be needed
 
+    override fun getPreferenceScreenContent(): PreferenceSubScreenDef =
+        PreferenceSubScreenDef(
+            key = "tandem_tmobi_settings",
+            titleResId = R.string.tandem_name_mobi,
+            items = listOf(
+                TandemBooleanPreferenceKey.UseSharedConnection,
+                TandemStringPreferenceKey.SharedConnectionData,
+                TandemIntentPreferenceKey.PumpPairing.withActivity(TandemMobiConnectionWizardActivity::class.java),
+                TandemIntPreferenceKey.MaxBolus,
+                TandemIntPreferenceKey.MaxBasal,
+                TandemStringPreferenceKey.QualifyingEventsFilterPref.withEntriesProvider(provider = { context: Context ->
+                    QualifyingEventsFilter.entries.associate { it.name to context.getString(it.friendlyName) }
+                }),
+                TandemStringPreferenceKey.QualifyingEventsRangePref.withEntriesProvider(provider = { context: Context ->
+                    QualifyingEventsRange.entries.associate { it.name to context.getString(it.friendlyName) }
+                }),
+                TandemBooleanPreferenceKey.DisplayDriverVersion,
+                TandemBooleanPreferenceKey.ShowCargoOfUnknownEntries,
+                TandemBooleanPreferenceKey.AutoConfirmLowBasalDelivery,
+                TandemStringPreferenceKey.QuickBolusTypePref.withEntriesProvider(provider = { context: Context ->
+                    QuickBolusType.entries.associate { it.name to context.getString(it.friendlyName) }
+                })
+            )
+        )
+
+    // TODO: Remove after full migration to Compose preferences (getPreferenceScreenContent)
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
         aapsLogger.info(TAG, "addPreferenceScreen: preferenceManager=$preferenceManager, parent=$parent, requiredKey=$requiredKey")
         if (requiredKey != null) return
