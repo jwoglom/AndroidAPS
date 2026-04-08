@@ -86,6 +86,9 @@ class TandemPairingManager constructor(
     var bluetoothHandler: TandemBluetoothHandler? = null
     var finishActivity = false
 
+    @Volatile
+    var pairingCompleted: Boolean = false
+
     private var pairingCodeToUse: String? = null
     private var pairingStartTime: Long = 0
 
@@ -96,9 +99,9 @@ class TandemPairingManager constructor(
 
         aapsLogger.info(TAG, "TANDEM-PAIR-DBG: start Pairing")
 
-        createBluetoothHandler()
+        pairingCompleted = false
 
-        showToast( "Staring pairing with Tandem, this can take some time, please don't press anything until its done.") // TODO TandemPairingManager N-5
+        createBluetoothHandler()
 
         bluetoothHandler!!.startScan()
     }
@@ -117,7 +120,12 @@ class TandemPairingManager constructor(
     }
 
     fun shutdownPairingManager() {
-        stopBluetoothHandler()
+        if (pairingCompleted) {
+            aapsLogger.info(TAG, "shutdownPairingManager: pairing succeeded, handing BLE handler off to main service")
+            bluetoothHandler = null
+        } else {
+            stopBluetoothHandler()
+        }
     }
 
     fun showToast(text:String) {
@@ -198,6 +206,7 @@ class TandemPairingManager constructor(
             aapsLogger.info(TAG, "TANDEM-PAIR-DBG: got PumpVersionResponse")
 
             preferences.put(TandemIntPreferenceKey.PumpPairStatus, 100)
+            pairingCompleted = true
             val pumpVersionResponse = message
 
             aapsLogger.info(TAG, "PumpVersionResponse: ${pumpVersionResponse}")
@@ -479,6 +488,12 @@ class TandemPairingManager constructor(
      */
     fun clearPairingData() {
         aapsLogger.info(TAG, "Clearing pairing data for re-pairing")
+
+        // Tear down any live BLE handler — we're resetting pairing state
+        stopBluetoothHandler()
+
+        // Reset pairing flags
+        pairingCompleted = false
 
         // Clear preferences
         preferences.put(TandemIntPreferenceKey.PumpPairStatus, -1)

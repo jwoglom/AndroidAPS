@@ -39,7 +39,6 @@ fun WizardNavHost(
     viewModel: TandemMobiConnectionWizardViewModel,
     startDestination: String = WizardRoutes.INTRODUCTION,
     onFinish: () -> Unit,
-    onFinishAndRestart: () -> Unit,
     onCreatePairingManager: (String) -> Unit,
     onRequestPumpDisconnect: () -> Unit
 ) {
@@ -189,7 +188,7 @@ fun WizardNavHost(
                 pumpSerial = state.pairedPumpSerial,
                 pumpName = state.pairedPumpName,
                 pumpApiVersion = state.pairedPumpApiVersion,
-                onFinish = onFinishAndRestart
+                onFinish = onFinish
             )
         }
     }

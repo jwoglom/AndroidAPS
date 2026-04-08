@@ -36,10 +36,8 @@ import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import androidx.compose.runtime.collectAsState
 import app.aaps.pump.common.events.EventPumpForceDisconnect
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
-import kotlin.system.exitProcess
 
 /**
  * Jetpack Compose-based wizard for pairing Tandem Mobi pump
@@ -81,6 +79,7 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
         val isRePairing = intent.getBooleanExtra(EXTRA_IS_RE_PAIRING, false)
         if (isRePairing) {
             needsPairingReset = true
+            tandemPumpUtil.clearAllPairingData()
             viewModel.startRePairing()
         }
 
@@ -102,7 +101,6 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
                     viewModel = viewModel,
                     startDestination = startDestination,
                     onFinish = { finish() },
-                    onFinishAndRestart = { showRestartDialogAndRestart() },
                     onCreatePairingManager = { address -> createPairingManager(address) },
                     onRequestPumpDisconnect = { handleExistingPumpRemoval() }
                 )
@@ -176,24 +174,6 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
         }, 1000) // Increased to 1 second to ensure disconnect completes
     }
 
-    /**
-     * Show restart dialog and restart AndroidAPS after user confirms
-     */
-    private fun showRestartDialogAndRestart() {
-        aapsLogger.info(LTag.PUMP, "Pairing complete, showing restart dialog")
-
-        MaterialAlertDialogBuilder(this, app.aaps.core.ui.R.style.DialogTheme)
-            .setMessage(resourceHelper.gs(R.string.tandem_wizard_restart_message))
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                aapsLogger.info(LTag.PUMP, "User confirmed restart, restarting AndroidAPS")
-                Handler(Looper.getMainLooper()).postDelayed({
-                    exitProcess(0)
-                }, 500)
-            }
-            .setCancelable(false)
-            .show()
-    }
-
     companion object {
         const val EXTRA_IS_RE_PAIRING = "is_re_pairing"
     }
@@ -205,7 +185,6 @@ private fun WizardContent(
     viewModel: TandemMobiConnectionWizardViewModel,
     startDestination: String,
     onFinish: () -> Unit,
-    onFinishAndRestart: () -> Unit,
     onCreatePairingManager: (String) -> Unit,
     onRequestPumpDisconnect: () -> Unit
 ) {
@@ -236,7 +215,6 @@ private fun WizardContent(
                 viewModel = viewModel,
                 startDestination = startDestination,
                 onFinish = onFinish,
-                onFinishAndRestart = onFinishAndRestart,
                 onCreatePairingManager = onCreatePairingManager,
                 onRequestPumpDisconnect = onRequestPumpDisconnect
             )
