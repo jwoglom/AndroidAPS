@@ -298,6 +298,7 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
 
     fun onRetryPairing() {
         aapsLogger.info(LTag.PUMP, "Retrying pairing with same PIN")
+        pairingManager?.clearPairingData()
         _state.update { it.copy(pairingError = null) }
         startPairing(_state.value.enteredPIN)
     }
@@ -309,6 +310,7 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
 
     fun onCancelAndRescan() {
         aapsLogger.info(LTag.PUMP, "User wants to rescan for devices")
+        pairingManager?.clearPairingData()
         _state.update { it.copy(
             enteredPIN = "",
             pairingError = null,

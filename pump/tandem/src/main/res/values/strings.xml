@@ -408,9 +408,6 @@
     <string name="tandem_wizard_existing_pump_continue">Continue</string>
     <string name="tandem_wizard_existing_pump_cancel">Cancel</string>
 
-    <!-- Restart dialog -->
-    <string name="tandem_wizard_restart_message">AndroidAPS will restart to re-initialize the Mobi pump driver.</string>
-
 
     <!-- OLD Ones past this line -->
 
