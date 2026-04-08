@@ -312,7 +312,7 @@ class TandemMobiPumpFragment : DaggerFragment() {
             // base basal rate
             binding.pumpBaseBasalRate.text = resourceHelper.gs(Rc.string.pump_base_basal_rate_with_profile,
                                                                pumpStatus.activeProfileName,
-                                                               tandemPumpPlugin.baseBasalRate)
+                                                               tandemPumpPlugin.baseBasalRate.cU)
 
             // tbr (always saved on pumpStatus)
             if (pumpStatus.currentTempBasal==null || System.currentTimeMillis() > pumpStatus.currentTempBasalEstimatedEnd!!) {

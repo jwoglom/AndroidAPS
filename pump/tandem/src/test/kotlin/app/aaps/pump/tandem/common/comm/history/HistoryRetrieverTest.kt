@@ -82,7 +82,7 @@ class HistoryRetrieverTest {
             rxBus = rxBus,
             context = context,
             tandemPumpConnector = tandemPumpConnector,
-            uiInteraction = uiInteraction
+               uiInteraction = uiInteraction
         )
 
         this.unitToTestSpy = spy(this.unitToTest)
