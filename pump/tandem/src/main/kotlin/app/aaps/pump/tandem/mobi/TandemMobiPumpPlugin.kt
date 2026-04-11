@@ -18,6 +18,8 @@ import app.aaps.core.interfaces.constraints.Constraint
 import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
@@ -95,6 +97,8 @@ import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.common.util.AdaptiveIntentPreference
 import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
+import app.aaps.pump.tandem.mobi.ui.TandemUiController
+import app.aaps.pump.tandem.mobi.ui.overview.MobiComposeContent
 import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
@@ -117,7 +121,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     context: Context,
     preferences: Preferences,
     rh: ResourceHelper,
-    //activePlugin: ActivePlugin,
+    val activePlugin: ActivePlugin,
     commandQueue: CommandQueue,
     fabricPrivacy: FabricPrivacy,
     val tandemPumpUtil: TandemPumpUtil,
@@ -132,16 +136,27 @@ class TandemMobiPumpPlugin @Inject constructor(
     decimalFormatter: DecimalFormatter,
     val dbDataHandler: DbDataHandler,
     val historyRetriever: HistoryRetriever,
+    val tandemUiController: TandemUiController,
+    val resourceHelper: ResourceHelper,
     pumpEnactResultProvider: Provider<PumpEnactResult>
 ) : PumpPluginAbstract(
     pluginDescription = PluginDescription() //
         .mainType(PluginType.PUMP) //
-        .fragmentClass(TandemMobiPumpFragment::class.java.name) //
+        .composeContent { _ ->
+            MobiComposeContent(
+                pluginName = (activePlugin.activePumpInternal as? PluginBase)?.name ?: "",
+                tandemPumpStatus = pumpStatus,
+                aapsLogger = aapsLogger,
+                resourceHelper = resourceHelper,
+                tandemUiController = tandemUiController
+            )
+        }
+        //.fragmentClass(TandemMobiPumpFragment::class.java.name)
         .pluginIcon(app.aaps.core.ui.R.drawable.ic_tmobi_128)
-        .pluginName(R.string.tandem_name_mobi) //
-        .shortName(R.string.tandem_name_mobi_short) //
+        .pluginName(R.string.tandem_name_mobi)
+        .shortName(R.string.tandem_name_mobi_short)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
-        .description(R.string.description_pump_tandem_mobi),  //
+        .description(R.string.description_pump_tandem_mobi),
     pumpType = PumpType.TANDEM_MOBI_BT,
     rh = rh,
     aapsLogger = aapsLogger,

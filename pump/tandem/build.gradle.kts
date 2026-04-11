@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
+    //alias(libs.plugins.hilt)
     id("android-module-dependencies")
     id("test-module-dependencies")
     id("jacoco-module-dependencies")
@@ -19,13 +20,13 @@ android {
     }
 
 
-    buildFeatures {
-        compose=true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion="1.5.3"
-    }
+    // buildFeatures {
+    //     compose=true
+    // }
+    //
+    // composeOptions {
+    //     kotlinCompilerExtensionVersion="1.5.3"
+    // }
 }
 
 
@@ -59,6 +60,8 @@ dependencies {
     // compose dependencies
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
+
+    implementation(libs.androidx.hilt.navigation.compose)
 
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)

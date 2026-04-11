@@ -23,6 +23,7 @@ import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
+import app.aaps.pump.tandem.mobi.ui.TandemUiController
 import dagger.Binds
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -72,10 +73,14 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributesTandemMobiConnectionWizardActivity(): TandemMobiConnectionWizardActivity
 
 
-
     // Compose UI Activities
     @ContributesAndroidInjector abstract fun contributesActionsActivity(): ActionsActivity
     @ContributesAndroidInjector abstract fun contributesDataActivity(): DataActivity
+
+
+    // AAPS 4.0 Compose
+    @ContributesAndroidInjector abstract fun contributesTandemUiController(): TandemUiController
+
 
     // @Provides
     // @Singleton
