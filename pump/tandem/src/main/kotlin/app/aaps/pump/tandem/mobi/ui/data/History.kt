@@ -73,7 +73,8 @@ fun History(
     refreshDatabase: (DatabaseTarget, DatabaseQueryParameters) -> Unit,
     refreshMainAppData: (RefreshData) -> Unit,
     navigateBack: () -> Unit,
-    resourceHelper: ResourceHelper
+    resourceHelper: ResourceHelper,
+    showHeader: Boolean = true
 ) {
 
     val ds = LocalTandemDataStore.current

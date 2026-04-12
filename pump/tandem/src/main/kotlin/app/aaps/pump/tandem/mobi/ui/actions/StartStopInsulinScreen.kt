@@ -70,7 +70,8 @@ fun StartStopInsulinScreen(
     sendPumpCommands: (List<Message>) -> Boolean,
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
-    navigateBack: () -> Unit
+    navigateBack: () -> Unit,
+    showHeader: Boolean = true
 ) {
     val ds = LocalTandemDataStore.current
     @Suppress("PropertyName")

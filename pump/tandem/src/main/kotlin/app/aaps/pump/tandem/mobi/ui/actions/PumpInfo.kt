@@ -32,7 +32,8 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionRespon
 fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
              navigateBack: () -> Unit,
              tandemPumpStatus: TandemPumpStatus? = null,
-             resourceHelper: ResourceHelper
+             resourceHelper: ResourceHelper,
+             showHeader: Boolean = true
              ) {
 
     val pumpInfo = LocalTandemDataStore.current.pumpVersionResponse.value
@@ -47,11 +48,15 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
             .fillMaxSize()
             .padding(horizontal = 0.dp),
         content = {
-            item {
-                HeaderLineWithBackButton(text= resourceHelper.gs(R.string.pi_title),
-                                         onBackClick=navigateBack,
-                                         resourceHelper = resourceHelper)
-                HorizontalDivider()
+            if (showHeader) {
+                item {
+                    HeaderLineWithBackButton(
+                        text = resourceHelper.gs(R.string.pi_title),
+                        onBackClick = navigateBack,
+                        resourceHelper = resourceHelper
+                    )
+                    HorizontalDivider()
+                }
             }
 
             item {

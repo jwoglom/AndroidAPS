@@ -11,7 +11,7 @@ import app.aaps.core.ui.compose.StatusLevel
 @Immutable
 data class PumpOverviewUiState(
     val statusBanner: StatusBanner? = null,
-    val infoRows: List<PumpInfoRow> = emptyList(),
+    val infoRows: List<PumpInfoInterface> = emptyList(),
     val primaryActions: List<PumpAction> = emptyList(),
     val managementActions: List<PumpAction> = emptyList(),
     val queueStatus: String? = null
@@ -26,6 +26,9 @@ data class StatusBanner(
     val level: StatusLevel = StatusLevel.UNSPECIFIED
 )
 
+interface PumpInfoInterface
+
+
 /**
  * A single label:value row in the pump info section.
  */
@@ -35,7 +38,14 @@ data class PumpInfoRow(
     val value: String,
     val level: StatusLevel = StatusLevel.UNSPECIFIED,
     val visible: Boolean = true
-)
+): PumpInfoInterface
+
+
+data class PumpInfoGroup(
+    var list: MutableList<PumpInfoRow> = mutableListOf()
+): PumpInfoInterface
+
+
 
 /**
  * Action category for separating primary operational actions from device management actions.

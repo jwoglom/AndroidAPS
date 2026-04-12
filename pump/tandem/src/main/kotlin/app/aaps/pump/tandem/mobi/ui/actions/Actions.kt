@@ -82,7 +82,8 @@ fun Actions(
     aapsLogger: AAPSLogger,
     resourceHelper: ResourceHelper,
     navigateToCartridgeActions: () -> Unit,
-    navigateToPumpInfo: () -> Unit
+    navigateToPumpInfo: () -> Unit,
+    showHeader: Boolean = true
 ) {
 
     var showStartStopInsulinSheet by remember { mutableStateOf(false) }
@@ -178,8 +179,10 @@ fun Actions(
                 .fillMaxSize()
                 .padding(horizontal = 0.dp),
             content = {
-                item {
-                    HeaderLine(resourceHelper.gs(R.string.ui_a_title))
+                if (showHeader) {
+                    item {
+                        HeaderLine(resourceHelper.gs(R.string.ui_a_title))
+                    }
                 }
                 item {
                     ListItem(

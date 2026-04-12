@@ -412,7 +412,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         if (absoluteRate.value() > maxBasalRate) {
             if (maxBasalRate == allowedAmount) {
                 absoluteRate.set(maxBasalRate,
-                                 rh.gs(R.string.tandem_constraint_basal_rate_max_250, maxBasalRate, baseBasalRate),
+                                 rh.gs(R.string.tandem_constraint_basal_rate_max_250, maxBasalRate, baseBasalRate.cU),
                                  this)
             } else {
                 absoluteRate.set(maxBasalRate,

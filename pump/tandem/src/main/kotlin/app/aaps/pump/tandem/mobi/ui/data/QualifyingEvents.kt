@@ -64,7 +64,8 @@ fun QualifyingEvents(
     refreshDatabase: (DatabaseTarget, DatabaseQueryParameters) -> Unit,
     refreshMainAppData: (RefreshData) -> Unit,
     navigateBack: () -> Unit,
-    resourceHelper: ResourceHelper
+    resourceHelper: ResourceHelper,
+    showHeader: Boolean = true
 ) {
 
     val ds = LocalTandemDataStore.current
@@ -133,11 +134,16 @@ fun QualifyingEvents(
                 .fillMaxSize()
                 .padding(horizontal = 0.dp),
             content = {
-                item {
-                    HeaderLineWithBackButton(text= resourceHelper.gs(R.string.data_events),
-                                             onBackClick=navigateBack,
-                                             resourceHelper = resourceHelper)
-                    HorizontalDivider()
+
+                if (showHeader) {
+                    item {
+                        HeaderLineWithBackButton(
+                            text = resourceHelper.gs(R.string.data_events),
+                            onBackClick = navigateBack,
+                            resourceHelper = resourceHelper
+                        )
+                        HorizontalDivider()
+                    }
                 }
 
                 events.forEach {

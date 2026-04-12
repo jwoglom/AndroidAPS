@@ -64,7 +64,16 @@ abstract class PumpStatus(var pumpType: PumpType) {
     // TDD
     var dailyTotalUnits: Double? = null
     var maxDailyTotalUnits: String? = null
-    var pumpRunningState = PumpRunningState.Running
+
+    var pumpRunningStateFlow = MutableStateFlow<PumpRunningState>(PumpRunningState.Running)
+    var pumpRunningState: PumpRunningState
+        get() = pumpRunningStateFlow.value
+        set(value) {
+            pumpRunningStateFlow.value = value
+        }
+
+
+
 
     // temp basal
     var currentTempBasal: TempBasalPair? = null

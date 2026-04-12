@@ -31,8 +31,8 @@ fun MobiOverviewScreen(
                 painter = painterResource(id = iconRes),
                 contentDescription = null,
                 modifier = Modifier
-                    .height(157.dp)
-                    .width(239.dp),
+                    .fillMaxWidth()
+                    .height(168.dp),
                 contentScale = ContentScale.Fit
             )
         }

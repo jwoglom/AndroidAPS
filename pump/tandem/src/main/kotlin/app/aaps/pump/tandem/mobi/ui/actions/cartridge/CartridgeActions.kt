@@ -65,7 +65,8 @@ fun CartridgeActions(
     navigateToFillTubing: () -> Unit,
     navigateToFillCannula: () -> Unit,
     navigateToSiteReminder: () -> Unit,
-    navigateBack: () -> Unit
+    navigateBack: () -> Unit,
+    showHeader: Boolean = true
 ) {
 
     val ds = LocalTandemDataStore.current
@@ -124,11 +125,15 @@ fun CartridgeActions(
                 .fillMaxSize()
                 .padding(horizontal = 0.dp),
             content = {
-                item {
-                    HeaderLineWithBackButton(text= resourceHelper.gs(R.string.ca_label),
-                                             onBackClick=navigateBack,
-                                             resourceHelper = resourceHelper)
-                    HorizontalDivider()
+                if (showHeader) {
+                    item {
+                        HeaderLineWithBackButton(
+                            text = resourceHelper.gs(R.string.ca_label),
+                            onBackClick = navigateBack,
+                            resourceHelper = resourceHelper
+                        )
+                        HorizontalDivider()
+                    }
                 }
 
                 item {

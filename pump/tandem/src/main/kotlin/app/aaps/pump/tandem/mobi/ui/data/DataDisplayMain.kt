@@ -68,7 +68,8 @@ fun DataDisplayMain(
     navigateToPumpHistory: () -> Unit,
     navigateToEvents: () -> Unit,
     navigateToNotifications: () -> Unit,
-    resourceHelper: ResourceHelper
+    resourceHelper: ResourceHelper,
+    showHeader: Boolean = true
 ) {
 
     val ds = LocalTandemDataStore.current
@@ -131,11 +132,13 @@ fun DataDisplayMain(
                 .fillMaxSize()
                 .padding(horizontal = 0.dp),
             content = {
-                item {
-                    HeaderLine(text = resourceHelper.gs(R.string.data_data))
-                    HorizontalDivider()
-                }
 
+                if (showHeader) {
+                    item {
+                        HeaderLine(text = resourceHelper.gs(R.string.data_data))
+                        HorizontalDivider()
+                    }
+                }
 
                 item {
 

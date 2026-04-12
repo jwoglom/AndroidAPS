@@ -75,7 +75,8 @@ fun Notifications(
     sendPumpCommands: (List<Message>) -> Boolean,
     refreshMainAppData: (RefreshData) -> Unit,
     navigateBack: () -> Unit,
-    resourceHelper: ResourceHelper
+    resourceHelper: ResourceHelper,
+    showHeader: Boolean = true
 ) {
 
     val ds = LocalTandemDataStore.current
@@ -143,11 +144,16 @@ fun Notifications(
                 .fillMaxSize()
                 .padding(horizontal = 0.dp),
             content = {
-                item {
-                    HeaderLineWithBackButton(text=resourceHelper.gs(R.string.data_notifications),
-                                             onBackClick=navigateBack,
-                                             resourceHelper = resourceHelper)
-                    HorizontalDivider()
+
+                if (showHeader) {
+                    item {
+                        HeaderLineWithBackButton(
+                            text = resourceHelper.gs(R.string.data_notifications),
+                            onBackClick = navigateBack,
+                            resourceHelper = resourceHelper
+                        )
+                        HorizontalDivider()
+                    }
                 }
 
                 aapsLogger.info(TAG, "Notifications fetched: $notifications")

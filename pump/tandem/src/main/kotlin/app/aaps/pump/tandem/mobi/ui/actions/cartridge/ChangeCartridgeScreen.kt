@@ -75,7 +75,8 @@ fun ChangeCartridgeScreen(
     sendPumpCommands: (List<Message>) -> Boolean,
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
-    navigateBack: () -> Unit
+    navigateBack: () -> Unit,
+    showHeader: Boolean = true
 ) {
     val ds = LocalTandemDataStore.current
     @Suppress("PropertyName")
@@ -165,12 +166,14 @@ fun ChangeCartridgeScreen(
                     bottom = innerPadding.calculateBottomPadding()
                 )
         ) {
-            HeaderLineWithBackButton(
-                text = resourceHelper.gs(R.string.cc_title),
-                onBackClick = navigateBack,
-                resourceHelper = resourceHelper
-            )
-            HorizontalDivider()
+            if (showHeader) {
+                HeaderLineWithBackButton(
+                    text = resourceHelper.gs(R.string.cc_title),
+                    onBackClick = navigateBack,
+                    resourceHelper = resourceHelper
+                )
+                HorizontalDivider()
+            }
 
             // Alert/Alarm banner - display at top if any exist
             if (notifications.isNotEmpty()) {

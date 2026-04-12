@@ -69,7 +69,8 @@ import app.aaps.core.ui.R as Rco
 fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
                  navigateBack: () -> Unit,
                  aapsLogger: AAPSLogger,
-                 resourceHelper: ResourceHelper
+                 resourceHelper: ResourceHelper,
+                 showHeader: Boolean = true
 ) {
 
     val ds = LocalTandemDataStore.current
@@ -122,11 +123,15 @@ fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
             .fillMaxSize()
             .padding(horizontal = 0.dp),
         content = {
-            item {
-                HeaderLineWithBackButton(text= resourceHelper.gs(R.string.sr_title),
-                                         onBackClick=navigateBack,
-                                         resourceHelper = resourceHelper)
-                HorizontalDivider()
+            if (showHeader) {
+                item {
+                    HeaderLineWithBackButton(
+                        text = resourceHelper.gs(R.string.sr_title),
+                        onBackClick = navigateBack,
+                        resourceHelper = resourceHelper
+                    )
+                    HorizontalDivider()
+                }
             }
 
             item {

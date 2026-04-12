@@ -19,11 +19,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.ui.R
 import app.aaps.core.ui.compose.ComposablePluginContent
 import app.aaps.core.ui.compose.ToolbarConfig
 import app.aaps.core.ui.compose.dialogs.OkCancelDialog
 import app.aaps.core.ui.compose.dialogs.OkDialog
+import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.mobi.ui.ActionsLandingSection
 import app.aaps.pump.tandem.mobi.ui.DataLandingSection
@@ -39,6 +39,9 @@ import app.aaps.pump.tandem.mobi.ui.data.DataDisplayMain
 import app.aaps.pump.tandem.mobi.ui.data.History
 import app.aaps.pump.tandem.mobi.ui.data.Notifications
 import app.aaps.pump.tandem.mobi.ui.data.QualifyingEvents
+import app.aaps.core.ui.R as Rco
+import app.aaps.pump.common.R as Rc
+import app.aaps.core.interfaces.R as Rci
 
 private enum class MobiScreen {
     OVERVIEW,
@@ -66,6 +69,7 @@ class MobiComposeContent(
 
 ) : ComposablePluginContent {
 
+
     @Composable
     override fun Render(
         setToolbarConfig: (ToolbarConfig) -> Unit,
@@ -73,7 +77,6 @@ class MobiComposeContent(
         onSettings: (() -> Unit)?
     ) {
         val overviewViewModel: MobiOverviewViewModel = hiltViewModel()
-        //val wizardViewModel: DanaRPairWizardViewModel = hiltViewModel()
 
         // Navigation state
         var currentScreen by remember { mutableStateOf(MobiScreen.OVERVIEW) }
@@ -90,27 +93,44 @@ class MobiComposeContent(
         //     )
         // }
 
+        //val iconBack = Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
 
-
-        // Toolbar configuration
-        //val historyTitle = stringResource(R.string.pump_history)
-        //val userOptionsTitle = stringResource(R.string.danar_pump_settings)
-        //val pairingTitle = stringResource(R.string.pairing)
 
         val overviewNavIcon: @Composable () -> Unit = {
             IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
             }
         }
+
         val subScreenNavIcon: @Composable () -> Unit = {
             IconButton(onClick = { currentScreen = MobiScreen.OVERVIEW }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
             }
         }
+
+        val navIconBackToData: @Composable () -> Unit = {
+            IconButton(onClick = { currentScreen = MobiScreen.DATA }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
+            }
+        }
+
+        val navIconBackToActions: @Composable () -> Unit = {
+            IconButton(onClick = { currentScreen = MobiScreen.ACTIONS }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
+            }
+        }
+
+        val navIconBackToCartridgeActions: @Composable () -> Unit = {
+            IconButton(onClick = { currentScreen = MobiScreen.ACTIONS }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
+            }
+        }
+
+
         val settingsAction: @Composable RowScope.() -> Unit = {
             onSettings?.let { action ->
                 IconButton(onClick = action) {
-                    Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                    Icon(Icons.Filled.Settings, contentDescription = stringResource(Rco.string.settings))
                 }
             }
         }
@@ -119,17 +139,27 @@ class MobiComposeContent(
             setToolbarConfig(
                 when (currentScreen) {
                     MobiScreen.OVERVIEW     -> ToolbarConfig(title = pluginName, navigationIcon = overviewNavIcon, actions = settingsAction)
-                    // MobiScreen.PAIR_WIZARD  -> ToolbarConfig(title = pairingTitle, navigationIcon = subScreenNavIcon, actions = {})
-                    // MobiScreen.HISTORY      -> ToolbarConfig(title = historyTitle, navigationIcon = subScreenNavIcon, actions = {})
-                    // MobiScreen.USER_OPTIONS -> ToolbarConfig(title = userOptionsTitle, navigationIcon = subScreenNavIcon, actions = {})
-                    MobiScreen.ACTIONS      -> ToolbarConfig(title = "action", navigationIcon = {}, actions = {})
-                    MobiScreen.DATA         -> ToolbarConfig(title = "data", navigationIcon = {}, actions = {})
-                    MobiScreen.DATA_NOTIFICATIONS -> ToolbarConfig(title = "notif", navigationIcon = {}, actions = {})
-                    MobiScreen.DATA_EVENTS -> ToolbarConfig(title = "eventss", navigationIcon = {}, actions = {})
-                    MobiScreen.DATA_HISTORY -> ToolbarConfig(title = "hist", navigationIcon = {}, actions = {})
-
-                    // TODO missing items
-                    else -> ToolbarConfig(title = "else", navigationIcon = {}, actions = {})
+                    MobiScreen.ACTIONS      -> ToolbarConfig(title = "action", navigationIcon = subScreenNavIcon, actions = {})
+                    MobiScreen.DATA         -> ToolbarConfig(title = resourceHelper.gs(R.string.data_data),
+                                                             navigationIcon = subScreenNavIcon, actions = {})
+                    MobiScreen.DATA_NOTIFICATIONS -> ToolbarConfig(title = resourceHelper.gs(R.string.data_notifications),
+                                                                   navigationIcon = navIconBackToData, actions = {})
+                    MobiScreen.DATA_EVENTS -> ToolbarConfig(title = resourceHelper.gs(R.string.data_events),
+                                                            navigationIcon = navIconBackToData, actions = {})
+                    MobiScreen.DATA_HISTORY -> ToolbarConfig(title = resourceHelper.gs(R.string.data_pump_history),
+                                                             navigationIcon = navIconBackToData, actions = {})
+                    MobiScreen.ACTIONS_CARTRIDGE_ACTIONS -> ToolbarConfig(title = resourceHelper.gs(R.string.ca_label),
+                                                                          navigationIcon = navIconBackToActions, actions = {})
+                    MobiScreen.ACTIONS_PUMP_INFO -> ToolbarConfig(title = resourceHelper.gs(R.string.pi_title),
+                                                                  navigationIcon = navIconBackToActions, actions = {})
+                    MobiScreen.ACTIONS_CHANGE_CARTRIDGE -> ToolbarConfig(title = resourceHelper.gs(R.string.cc_title),
+                                                                         navigationIcon = navIconBackToCartridgeActions, actions = {})
+                    MobiScreen.ACTIONS_FILL_TUBING -> ToolbarConfig(title = resourceHelper.gs(R.string.ft_title),
+                                                                    navigationIcon = navIconBackToCartridgeActions, actions = {})
+                    MobiScreen.ACTIONS_FILL_CANNULA -> ToolbarConfig(title = resourceHelper.gs(R.string.fc_title),
+                                                                     navigationIcon = navIconBackToCartridgeActions, actions = {})
+                    MobiScreen.ACTIONS_SITE_REMINDER -> ToolbarConfig(title = resourceHelper.gs(R.string.sr_title),
+                                                                      navigationIcon = navIconBackToCartridgeActions, actions = {})
                 }
             )
         }
@@ -160,6 +190,7 @@ class MobiComposeContent(
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     aapsLogger = aapsLogger,
                     resourceHelper = resourceHelper,
+                    showHeader = false,
                     navigateToPumpHistory = {
                         currentScreen = MobiScreen.DATA_HISTORY
                     },
@@ -178,6 +209,7 @@ class MobiComposeContent(
                     refreshMainAppData = { refreshData -> tandemUiController.refreshMainAppData(refreshData = refreshData)},
                     aapsLogger = aapsLogger,
                     resourceHelper = resourceHelper,
+                    showHeader = false,
                     navigateBack = {
                         currentScreen = MobiScreen.DATA
                     },
@@ -188,6 +220,7 @@ class MobiComposeContent(
                 QualifyingEvents (
                     aapsLogger = aapsLogger,
                     resourceHelper = resourceHelper,
+                    showHeader = false,
                     refreshDatabase = { target, queryParameters -> tandemUiController.refreshDatabase(target, queryParameters) },
                     refreshMainAppData = { refreshData -> tandemUiController.refreshMainAppData(refreshData = refreshData)},
                     navigateBack = {
@@ -200,6 +233,7 @@ class MobiComposeContent(
                 Notifications(
                     resourceHelper = resourceHelper,
                     aapsLogger = aapsLogger,
+                    showHeader = false,
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     refreshMainAppData = { refreshData -> tandemUiController.refreshMainAppData(refreshData = refreshData)},
                     navigateBack = {
@@ -213,6 +247,7 @@ class MobiComposeContent(
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     aapsLogger = aapsLogger,
                     resourceHelper = resourceHelper,
+                    showHeader = false,
                     navigateToPumpInfo = {
                         currentScreen = MobiScreen.ACTIONS_PUMP_INFO
                     },
@@ -226,6 +261,7 @@ class MobiComposeContent(
                 PumpInfo(
                     resourceHelper = resourceHelper,
                     tandemPumpStatus = tandemPumpStatus,
+                    showHeader = false,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS
                     },
@@ -237,6 +273,7 @@ class MobiComposeContent(
                     aapsLogger = aapsLogger,
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     resourceHelper = resourceHelper,
+                    showHeader = false,
                     navigateToChangeCartridge = {
                         currentScreen = MobiScreen.ACTIONS_CHANGE_CARTRIDGE
                     },
@@ -261,6 +298,7 @@ class MobiComposeContent(
                     aapsLogger = aapsLogger,
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     resourceHelper = resourceHelper,
+                    showHeader = false,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     },
@@ -273,6 +311,7 @@ class MobiComposeContent(
                     aapsLogger = aapsLogger,
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     resourceHelper = resourceHelper,
+                    showHeader = false,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     },
@@ -285,6 +324,7 @@ class MobiComposeContent(
                     aapsLogger = aapsLogger,
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     resourceHelper = resourceHelper,
+                    showHeader = false,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     }
@@ -296,6 +336,7 @@ class MobiComposeContent(
                 SiteReminder(
                     resourceHelper = resourceHelper,
                     aapsLogger = aapsLogger,
+                    showHeader = false,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     }
