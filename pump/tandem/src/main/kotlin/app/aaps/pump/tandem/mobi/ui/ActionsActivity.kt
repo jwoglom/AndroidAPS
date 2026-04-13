@@ -84,7 +84,6 @@ class ActionsActivity : DaggerAppCompatActivity() {
 
         tandemUICommunication = TandemUICommunication(dataStore = tandemDataStore,
                                                       pumpStatus = tandemPumpStatus,
-                                                      context = context,
                                                       pumpUtil = tandemPumpUtil,
                                                       aapsLogger= aapsLogger,
                                                       uiInteraction = uiInteraction,

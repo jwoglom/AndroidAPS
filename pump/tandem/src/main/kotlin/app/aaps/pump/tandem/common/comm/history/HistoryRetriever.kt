@@ -114,7 +114,6 @@ class HistoryRetriever @Inject constructor(
 
         communication = TandemUICommunication(dataStore = tandemDataStore,
                                               pumpStatus = pumpStatus,
-                                              context = context,
                                               pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,
                                               uiInteraction = uiInteraction,
@@ -186,7 +185,6 @@ class HistoryRetriever @Inject constructor(
 
         communication = TandemUICommunication(dataStore = tandemDataStore,
                                               pumpStatus = pumpStatus,
-                                              context = context,
                                               pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,
                                               uiInteraction = uiInteraction,

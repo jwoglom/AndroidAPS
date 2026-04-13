@@ -48,7 +48,7 @@ import javax.inject.Singleton
 class TandemUICommunication @Inject constructor (
     var dataStore: TandemUIDataStore,
     var pumpStatus: TandemPumpStatus,
-    var context: Context,
+    //var context: Context,
     var aapsLogger: AAPSLogger,
     var pumpUtil: TandemPumpUtil,
     var uiInteraction: UiInteraction,

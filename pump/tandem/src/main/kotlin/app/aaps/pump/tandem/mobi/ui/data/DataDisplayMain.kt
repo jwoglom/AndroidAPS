@@ -61,7 +61,6 @@ import java.time.Instant
 @Composable
 fun DataDisplayMain(
     innerPadding: PaddingValues = PaddingValues(),
-    //navController: NavHostController? = null,
     sendPumpCommands: (List<Message>) -> Boolean,
     //refreshMainAppData: (RefreshData) -> Unit,
     aapsLogger: AAPSLogger,

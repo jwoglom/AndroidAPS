@@ -102,11 +102,24 @@ class MobiComposeContent(
             }
         }
 
-        val subScreenNavIcon: @Composable () -> Unit = {
-            IconButton(onClick = { currentScreen = MobiScreen.OVERVIEW }) {
+        val nvaIconBackFromActions: @Composable () -> Unit = {
+            IconButton(onClick = {
+                currentScreen = MobiScreen.OVERVIEW
+                tandemUiController.disposeTandemUiCommunication(TandemUiController.AdditionalConfigurationScreens.Actions)
+            }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
             }
         }
+
+        val nvaIconBackFromData: @Composable () -> Unit = {
+            IconButton(onClick = {
+                currentScreen = MobiScreen.OVERVIEW
+                tandemUiController.disposeTandemUiCommunication(TandemUiController.AdditionalConfigurationScreens.Data)
+            }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
+            }
+        }
+
 
         val navIconBackToData: @Composable () -> Unit = {
             IconButton(onClick = { currentScreen = MobiScreen.DATA }) {
@@ -139,9 +152,10 @@ class MobiComposeContent(
             setToolbarConfig(
                 when (currentScreen) {
                     MobiScreen.OVERVIEW     -> ToolbarConfig(title = pluginName, navigationIcon = overviewNavIcon, actions = settingsAction)
-                    MobiScreen.ACTIONS      -> ToolbarConfig(title = "action", navigationIcon = subScreenNavIcon, actions = {})
+                    MobiScreen.ACTIONS      -> ToolbarConfig(title = resourceHelper.gs(R.string.ui_a_title),
+                                                             navigationIcon = nvaIconBackFromActions, actions = {})
                     MobiScreen.DATA         -> ToolbarConfig(title = resourceHelper.gs(R.string.data_data),
-                                                             navigationIcon = subScreenNavIcon, actions = {})
+                                                             navigationIcon = nvaIconBackFromData, actions = {})
                     MobiScreen.DATA_NOTIFICATIONS -> ToolbarConfig(title = resourceHelper.gs(R.string.data_notifications),
                                                                    navigationIcon = navIconBackToData, actions = {})
                     MobiScreen.DATA_EVENTS -> ToolbarConfig(title = resourceHelper.gs(R.string.data_events),

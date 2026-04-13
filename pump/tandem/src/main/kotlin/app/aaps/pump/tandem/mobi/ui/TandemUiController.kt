@@ -3,6 +3,8 @@ package app.aaps.pump.tandem.mobi.ui
 import android.content.res.Configuration
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.NotificationManager
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
@@ -10,7 +12,9 @@ import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
@@ -22,7 +26,11 @@ class TandemUiController @Inject constructor(
     var aapsLogger: AAPSLogger,
     var tandemPumpStatus: TandemPumpStatus,
     var tandemPumpUtil: TandemPumpUtil,
-    var dbDataHandler: DbDataHandler
+    var preferences: Preferences,
+    var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction,
+    var dbDataHandler: DbDataHandler,
+    var notificationManager: NotificationManager,
+    var tandemPumpConnector: TandemPumpConnector
 )   {
 
 
@@ -33,6 +41,54 @@ class TandemUiController @Inject constructor(
 
     lateinit var tandemUICommunication: TandemUICommunication
 
+
+    fun createTandemUiCommunication() {
+
+        // actions
+        // this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
+        // this.tandemPumpUtil.preventConnect = true
+
+        tandemUICommunication = TandemUICommunication(dataStore = tandemDataStore,
+                                                      pumpStatus = tandemPumpStatus,
+                                                      pumpUtil = tandemPumpUtil,
+                                                      aapsLogger= aapsLogger,
+                                                      uiInteraction = uiInteraction,
+                                                      notificationManager = notificationManager)
+
+        this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
+        this.tandemPumpUtil.preventConnect = true
+
+
+    }
+
+    fun disposeTandemUiCommunication(disposeType: AdditionalConfigurationScreens) {
+        if (disposeType==AdditionalConfigurationScreens.Actions) {
+            aapsLogger.info(LTag.PUMP, "Data Activity was closed. Sending event to refresh.")
+
+            if (ds.reminderDateTimeUpdated.value == true) {
+                aapsLogger.error(TAG, "Reminder Date Time: ${ds.reminderDateTime.value}")
+
+                preferences.put(TandemLongNonPreferenceKey.SiteReminderDateTime, ds.reminderDateTime.value!!)
+                tandemPumpStatus.tandemSiteReminder = ds.reminderDateTime.value!!
+            }
+
+            // we might be able to specify more exactly what here happens but for now this is ok, see DataActivity and method refreshMainAppData
+            tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS,
+                                                    RefreshData.PUMP_INSULIN_LEVEL))
+
+        } else if (disposeType== AdditionalConfigurationScreens.Data) {
+            aapsLogger.info(LTag.PUMP, "Data Activity was closed. Sending event to refresh.")
+            tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.SEMAPHORE_EVENTS))
+        }
+
+        this.tandemUICommunication.tandemCommunicationManager = null
+        this.tandemPumpUtil.preventConnect = false
+    }
+
+    enum class AdditionalConfigurationScreens {
+        Actions,
+        Data
+    }
 
 
     fun sendPumpCommands(msgs: List<Message>): Boolean {
@@ -52,9 +108,18 @@ class TandemUiController @Inject constructor(
 
         aapsLogger.warn(TAG, "PumpCommands to Send [commands=${listText}]")
 
+        if (!::tandemUICommunication.isInitialized) {
+            createTandemUiCommunication()
+        } else {
+            if (this.tandemUICommunication.tandemCommunicationManager==null) {
+                this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
+                this.tandemPumpUtil.preventConnect = true
+            }
+        }
+
         // TODO tandemUICommunication
         for (msg in msgs) {
-            // tandemUICommunication.sendCommand(msg)
+            tandemUICommunication.sendCommand(msg)
         }
 
         return true
