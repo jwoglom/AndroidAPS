@@ -2,6 +2,7 @@ package app.aaps.pump.tandem.common.comm.history
 
 import android.content.Context
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.interfaces.Preferences
@@ -52,6 +53,7 @@ class HistoryRetrieverTest {
     @Mock lateinit var context: Context
     @Mock lateinit var tandemPumpConnector: TandemPumpConnector
     @Mock lateinit var uiInteraction: UiInteraction
+    @Mock lateinit var notificationManager: NotificationManager
 
 
     val aapsLogger = AAPSLoggerTest()
@@ -82,7 +84,8 @@ class HistoryRetrieverTest {
             rxBus = rxBus,
             context = context,
             tandemPumpConnector = tandemPumpConnector,
-               uiInteraction = uiInteraction
+            uiInteraction = uiInteraction,
+            notificationManager = notificationManager
         )
 
         this.unitToTestSpy = spy(this.unitToTest)
@@ -99,7 +102,7 @@ class HistoryRetrieverTest {
     }
 
 
-        @Test
+    @Test
     fun getNewestRange_WithMultipleMissedRanges() {
         val historySummaryDto = createHistorySummaryAndSetToClass()
 

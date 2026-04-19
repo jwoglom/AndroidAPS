@@ -99,6 +99,7 @@ class TandemPumpUtil @Inject constructor(
         rxBus.send(EventRefreshPumpData(data))
     }
 
+
     init {
         driverStatusInternal = PumpDriverState.Connecting
     }

@@ -9,13 +9,10 @@ import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
 import app.aaps.pump.tandem.common.database.data.TandemHistoryConverter
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.tandem.common.driver.config.TandemBLESelector
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.mobi.ui.ActionsActivity
-import app.aaps.pump.tandem.mobi.ui.DataActivity
 import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
 import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import app.aaps.pump.tandem.mobi.driver.TandemMobiPumpDriverConfiguration
@@ -45,7 +42,7 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributeTandemDataConverter(): TandemDataConverter
 
     // Configuration
-    @ContributesAndroidInjector abstract fun contributesTandemBLESelector(): TandemBLESelector
+    //@ContributesAndroidInjector abstract fun contributesTandemBLESelector(): TandemBLESelector
     @ContributesAndroidInjector abstract fun contributesAdaptiveIntentPreference(): app.aaps.pump.tandem.common.util.AdaptiveIntentPreference
 
     // Data
@@ -73,9 +70,9 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributesTandemMobiConnectionWizardActivity(): TandemMobiConnectionWizardActivity
 
 
-    // Compose UI Activities
-    @ContributesAndroidInjector abstract fun contributesActionsActivity(): ActionsActivity
-    @ContributesAndroidInjector abstract fun contributesDataActivity(): DataActivity
+    // Compose UI Activities 3.0 -> Compose
+    //@ContributesAndroidInjector abstract fun contributesActionsActivity(): ActionsActivity
+    //@ContributesAndroidInjector abstract fun contributesDataActivity(): DataActivity
 
 
     // AAPS 4.0 Compose

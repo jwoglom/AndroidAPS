@@ -27,7 +27,6 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.pump.common.driver.ui.PumpBLEConfigActivity
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.maint.TandemPairingManager
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
@@ -123,7 +122,7 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
         }
 
         // Create a dummy PumpBLEConfigActivity interface for the pairing manager
-        val dummyActivity = object : PumpBLEConfigActivity() {}
+       // val dummyActivity = object : PumpBLEConfigActivity() {}
 
         pairingManager = TandemPairingManager(
             context = this,
@@ -135,7 +134,7 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
             rxBus = rxBus,
             pumpStatus = pumpStatus,
             pumpSync = pumpSync,
-            activity = dummyActivity,
+            //activity = dummyActivity,
             pumpX2L = pumpX2L,
             aapsSchedulers = aapsSchedulers
         ).also { manager ->

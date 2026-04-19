@@ -2,7 +2,6 @@ package app.aaps.pump.medtronic.driver
 
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.pump.common.driver.PumpDriverConfiguration
-import app.aaps.pump.common.driver.ble.PumpBLESelector
 import app.aaps.pump.common.driver.db.PumpDriverDatabaseOperation
 import app.aaps.pump.common.driver.history.PumpHistoryDataProvider
 
@@ -10,10 +9,6 @@ import app.aaps.pump.common.driver.history.PumpHistoryDataProvider
 // and changes could be made to use this, which would deduplicate History and BLE Activity screens
 class MedtronicPumpDriverConfiguration: PumpDriverConfiguration {
 
-    override fun getPumpBLESelector(): PumpBLESelector? {
-        //TODO("Not yet implemented")
-        return null
-    }
 
     override fun getPumpHistoryDataProvider(): PumpHistoryDataProvider? {
         //TODO("Not yet implemented")

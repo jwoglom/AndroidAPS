@@ -1,7 +1,7 @@
 package app.aaps.pump.common.driver
 
 import app.aaps.core.data.pump.defs.PumpType
-import app.aaps.pump.common.driver.ble.PumpBLESelector
+
 import app.aaps.pump.common.driver.db.PumpDriverDatabaseOperation
 import app.aaps.pump.common.driver.db.PumpDriverDummyDatabaseOperation
 import app.aaps.pump.common.driver.history.PumpHistoryDataProvider
@@ -13,9 +13,9 @@ class PumpDriverDummyConfiguration : PumpDriverConfiguration {
 
     var pumpDriverDatabaseOperationHandler: PumpDriverDatabaseOperation = PumpDriverDummyDatabaseOperation()
 
-    override fun getPumpBLESelector(): PumpBLESelector? {
-        return null
-    }
+    // override fun getPumpBLESelector(): PumpBLESelector? {
+    //     return null
+    // }
 
     override fun getPumpHistoryDataProvider(): PumpHistoryDataProvider? {
         return null

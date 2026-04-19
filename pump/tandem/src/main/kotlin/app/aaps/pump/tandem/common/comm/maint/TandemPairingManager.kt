@@ -33,7 +33,6 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetRes
 //import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
-import app.aaps.pump.common.driver.ui.PumpBLEConfigActivity
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 
@@ -64,6 +63,7 @@ import com.jwoglom.pumpx2.pump.messages.builders.JpakeAuthBuilder
 //     1 - Eneter pin number
 //     2 - Show status of bonding (in case of error show error)
 // TODO(jwoglom): rename to TandemPumpPairingManager for consistency with parent class
+// TODO is this still used? PumpBLEConfigActivity was removed Andy Jwolglom?
 class TandemPairingManager constructor(
     context: Context,
     var aapsLogger: AAPSLogger,
@@ -75,7 +75,7 @@ class TandemPairingManager constructor(
     //var sp: SP,
     var pumpStatus: TandemPumpStatus,
     var pumpSync: PumpSync,
-    var activity: PumpBLEConfigActivity,
+    // var activity: PumpBLEConfigActivity,
     var pumpX2L: PumpX2L,
     var aapsSchedulers: AapsSchedulers
 ) : TandemPump(context, Optional.of(btAddress)) {
@@ -226,7 +226,7 @@ class TandemPairingManager constructor(
             showToast("Pairing with Tandem was SUCCESS.") // TODO TandemPairingManager N-5
 
             if (finishActivity) {
-                activity.finish()
+                //activity.finish()
             }
         }
 
