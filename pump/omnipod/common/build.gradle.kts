@@ -12,6 +12,7 @@ android {
 }
 
 dependencies {
+    implementation("com.github.weliem:blessed-kotlin:3.0.12")
     implementation(project(":core:data"))
     implementation(project(":core:interfaces"))
     implementation(project(":core:keys"))
