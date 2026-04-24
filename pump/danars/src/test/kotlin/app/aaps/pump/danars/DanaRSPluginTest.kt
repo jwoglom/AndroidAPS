@@ -2,14 +2,14 @@ package app.aaps.pump.danars
 
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
+import app.aaps.core.interfaces.pump.BlePreCheck
 import app.aaps.core.interfaces.pump.DetailedBolusInfoStorage
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.TemporaryBasalStorage
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.pump.dana.database.DanaHistoryDatabase
-import app.aaps.pump.dana.keys.DanaStringKey
-import com.google.common.truth.Truth.assertThat
+import app.aaps.pump.dana.keys.DanaStringNonKey
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -27,6 +27,7 @@ class DanaRSPluginTest : DanaRSTestBase() {
     @Mock lateinit var temporaryBasalStorage: TemporaryBasalStorage
     @Mock lateinit var pumpSync: PumpSync
     @Mock lateinit var danaHistoryDatabase: DanaHistoryDatabase
+    @Mock lateinit var blePreCheck: BlePreCheck
 
     private lateinit var danaRSPlugin: DanaRSPlugin
 
@@ -56,22 +57,16 @@ class DanaRSPluginTest : DanaRSTestBase() {
 
     @BeforeEach
     fun prepareMocks() {
-        whenever(preferences.get(DanaStringKey.RsName)).thenReturn("")
-        whenever(preferences.get(DanaStringKey.MacAddress)).thenReturn("")
+        whenever(preferences.get(DanaStringNonKey.RsName)).thenReturn("")
+        whenever(preferences.get(DanaStringNonKey.MacAddress)).thenReturn("")
         whenever(rh.gs(eq(app.aaps.core.ui.R.string.limitingbasalratio), anyOrNull(), anyOrNull())).thenReturn("limitingbasalratio")
         whenever(rh.gs(eq(app.aaps.core.ui.R.string.limitingpercentrate), anyOrNull(), anyOrNull())).thenReturn("limitingpercentrate")
 
         danaRSPlugin =
             DanaRSPlugin(
-                aapsLogger, rh, preferences, commandQueue, aapsSchedulers, rxBus, context, constraintChecker, profileFunction, danaPump, pumpSync, detailedBolusInfoStorage, temporaryBasalStorage,
-                fabricPrivacy, dateUtil, uiInteraction, danaHistoryDatabase, decimalFormatter, pumpEnactResultProvider
+                aapsLogger, rh, preferences, commandQueue, aapsSchedulers, rxBus, context, constraintChecker, danaPump, pumpSync, detailedBolusInfoStorage, temporaryBasalStorage,
+                fabricPrivacy, dateUtil, notificationManager, danaHistoryDatabase, decimalFormatter, pumpEnactResultProvider, blePreCheck, bolusProgressData
             )
     }
 
-    @Test
-    fun preferenceScreenTest() {
-        val screen = preferenceManager.createPreferenceScreen(context)
-        danaRSPlugin.addPreferenceScreen(preferenceManager, screen, context, null)
-        assertThat(screen.preferenceCount).isGreaterThan(0)
-    }
 }

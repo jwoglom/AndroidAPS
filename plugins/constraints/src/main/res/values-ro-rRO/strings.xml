@@ -10,6 +10,7 @@
     <string name="application_expired">Aplicația a expirat</string>
     <string name="running_invalid_version">S-a detectat rularea unei versiuni invalide. Buclă dezactivată!</string>
     <string name="versionavailable">Versiunea %1$s este disponibilă</string>
+    <string name="version_expire">Versiunea %1$s expiră la %2$s și se va trece în modul suspendare la hipoglicemie</string>
     <!-- Signature verifier -->
     <!-- BG Quality -->
     <string name="recalculated_data_used">Date recalculate utilizate</string>
@@ -27,7 +28,6 @@
     <string name="smbnotallowedinopenloopmode">SMB nu este permis în mod buclă deschisă</string>
     <string name="maxvalueinpreferences">valoare maximă în preferințe</string>
     <string name="hardlimit">limită fizică</string>
-    <string name="treatmentssafety_title">Setări siguranță tratament</string>
     <!-- Objectives -->
     <string name="completed_well_done">Finalizat cu succes. Bravo!</string>
     <string name="not_completed_yet">Încă incomplet</string>
@@ -37,11 +37,9 @@
     <string name="loopenabled">Buclă activată</string>
     <string name="apsselected">APS selectat</string>
     <string name="closedmodeenabled">Mod buclă închisă activat</string>
-    <string name="objectives_shortname">OBI</string>
-    <string name="description_objectives">Program de învăţare</string>
+    <string name="objectives_shortname">OBJ</string>
+    <string name="description_objectives">Program de învățare</string>
     <string name="doyouwantresetstart">Doriți să reîncepeți obiectivul? Vă puteți pierde progresul.</string>
-    <string name="objectives_next_button">Următor</string>
-    <string name="objectives_previous_button">Anterior</string>
     <string name="objectives_button_unfinish">Resetare stare finalizată</string>
     <string name="objectives_button_unstart">Resetare stare de început</string>
 </resources>

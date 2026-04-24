@@ -4,9 +4,9 @@ import app.aaps.core.interfaces.configuration.Config
 import app.aaps.pump.omnipod.common.bledriver.comm.Id
 import app.aaps.pump.omnipod.common.bledriver.comm.Ids
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.SessionEstablishmentException
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleConfirmError
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleConfirmSuccess
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendErrorSending
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmError
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmSuccess
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendErrorSending
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeCmdBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeDataBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageIO

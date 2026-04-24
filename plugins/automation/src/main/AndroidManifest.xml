@@ -9,16 +9,14 @@
         tools:ignore="BackgroundLocationPolicy" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <application>
         <service
             android:name=".services.LocationService"
-            android:foregroundServiceType="location"
-            android:exported="false" />
-
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="@string/key_google_apis_android" />
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
     </application>
 </manifest>

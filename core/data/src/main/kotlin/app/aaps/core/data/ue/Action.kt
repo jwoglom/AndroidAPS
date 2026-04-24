@@ -12,6 +12,11 @@ enum class Action(val colorGroup: ColorGroup) {
     EXTENDED_CARBS(ColorGroup.CarbTreatment),
     TEMP_BASAL(ColorGroup.BasalTreatment),
     TT(ColorGroup.TT),
+    NEW_INSULIN(ColorGroup.InsulinTreatment),
+    STORE_INSULIN(ColorGroup.InsulinTreatment),
+    CHANGE_PUMP_INSULIN(ColorGroup.InsulinTreatment),
+    CHANGE_INSULIN_CONCENTRATION(ColorGroup.InsulinTreatment),
+    INSULIN_REMOVED(ColorGroup.InsulinTreatment),
     NEW_PROFILE(ColorGroup.Profile),
     CLONE_PROFILE(ColorGroup.Profile),
     STORE_PROFILE(ColorGroup.Profile),
@@ -94,6 +99,8 @@ enum class Action(val colorGroup: ColorGroup) {
     RUNNING_MODE(ColorGroup.RunningMode),
     RUNNING_MODE_REMOVED(ColorGroup.RunningMode),
     RUNNING_MODE_UPDATED(ColorGroup.RunningMode),
+    SCENE_ACTIVATED(ColorGroup.Aaps),
+    SCENE_DEACTIVATED(ColorGroup.Aaps),
     UNKNOWN(ColorGroup.Aaps)
     ;
 

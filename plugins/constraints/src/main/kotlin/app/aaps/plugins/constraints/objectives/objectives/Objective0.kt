@@ -14,8 +14,8 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.plugins.constraints.R
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,7 +31,6 @@ class Objective0 @Inject constructor(
     private val iobCobCalculator: IobCobCalculator,
     private val passwordCheck: PasswordCheck,
 ) : Objective(preferences, rh, dateUtil, "config", R.string.objectives_0_objective, R.string.objectives_0_gate) {
-
 
     val tidepoolPlugin get() = activePlugin.getSpecificPluginsListByInterface(Tidepool::class.java).firstOrNull() as Tidepool?
 
@@ -52,7 +51,7 @@ class Objective0 @Inject constructor(
             }
 
             override fun shouldBeIgnored(): Boolean {
-                return !virtualPumpPlugin.isEnabled()
+                return !(virtualPumpPlugin as PluginBase).isEnabled()
             }
         })
         tasks.add(
@@ -74,23 +73,24 @@ class Objective0 @Inject constructor(
         })
         tasks.add(object : Task(this, R.string.apsselected) {
             override fun isCompleted(): Boolean {
-                val usedAPS = activePlugin.activeAPS
+                val usedAPS = activePlugin.activeAPS ?: return false
                 return (usedAPS as PluginBase).isEnabled()
             }
         })
         tasks.add(object : Task(this, app.aaps.core.ui.R.string.activate_profile) {
-            override fun isCompleted(): Boolean = persistenceLayer.getEffectiveProfileSwitchActiveAt(dateUtil.now()) != null
+            override fun isCompleted(): Boolean = runBlocking { persistenceLayer.getEffectiveProfileSwitchActiveAt(dateUtil.now()) } != null
         })
         tasks.add(
-            UITask(this, R.string.verify_master_password, "master_password") { context, task, callback ->
+            UITask(this, R.string.verify_master_password, "master_password") { context, task, callback, showMessage ->
                 if (preferences.get(StringKey.ProtectionMasterPassword) == "") {
-                    ToastUtils.errorToast(context, app.aaps.core.ui.R.string.master_password_not_set)
+                    showMessage(rh.gs(app.aaps.core.ui.R.string.master_password_not_set))
                 } else {
-                    passwordCheck.queryPassword(context, app.aaps.core.ui.R.string.master_password, StringKey.ProtectionMasterPassword,
-                                                ok = {
-                                                    task.answered = true
-                                                    callback.run()
-                                                })
+                    passwordCheck.queryPassword(
+                        context, app.aaps.core.keys.R.string.master_password, StringKey.ProtectionMasterPassword,
+                        ok = {
+                            task.answered = true
+                            callback.run()
+                        })
                 }
             }
         )

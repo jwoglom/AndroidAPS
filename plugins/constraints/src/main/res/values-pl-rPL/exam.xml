@@ -2,7 +2,6 @@
 <resources>
     <string name="dia_whatmeansdia">Co jest prawdą w przypadku DIA?</string>
     <string name="dia_label_exam">Czas działania insuliny (DIA)</string>
-    <string name="dia_profile">Powinieneś ustawić wartość dla DIA w swoim profilu.</string>
     <string name="dia_minimumis5h">Minimalna dopuszczalna wartość to 5 godzin.</string>
     <string name="dia_hint1">https://wiki.aaps.app/en/latest/SettingUpAaps/YourAapsProfile.html</string>
     <string name="dia_meaningisequaltodiapump">Jeśli jesteś zadowolony z wartości DIA, która była użyta w twojej pompie przed wdrożeniem AAPS, nie ma potrzeby jej zmiany gdy zaczniesz używać pętli.</string>
@@ -63,6 +62,7 @@
     <string name="basaltest_hint1">https://wiki.aaps.app/en/latest/SettingUpAaps/YourAapsProfile.html</string>
     <string name="prerequisites_label">Wymagania wstępne</string>
     <string name="prerequisites_what">Co jest niezbędne do ustawienia i używania AAPS?</string>
+    <string name="prerequisites_build">Możliwość zbudowania AAPS. Albo przez przeglądarkę lub na komputerze z zainstalowanym Android Studio.</string>
     <string name="prerequisites_pump">Kompatybilna pompa insulinowa, jeśli planujesz uruchomienie pętli zamkniętej.</string>
     <string name="prerequisites_nightscout">Nightscout, aby zachować dziennik wszystkich danych i przeglądać ustawienia.</string>
     <string name="prerequisites_beanandroiddeveloper">Doświadczenie w programowaniu lub edycji kodu.</string>
@@ -75,9 +75,7 @@
     <string name="prerequisites2_supportedcgm">Wspierany CGM i odpowiednia aplikacja, aby otrzymywać wartości glukozy we krwi na telefonie/urządzeniu.</string>
     <string name="prerequisites2_hint1">https://wiki.aaps.app/en/latest/Getting-Started/ComponentOverview.html</string>
     <string name="update_label">Aktualizowanie AAPS</string>
-    <string name="update_git">Musisz mieć zainstalowany i skonfigurowany Git na komputerze.</string>
     <string name="update_asap">Po pewnym czasie od premiery najnowszej wersji AAPS wcześniejsze wersje mogą zostać zdalnie ograniczone.</string>
-    <string name="update_keys">Powinieneś/powinnaś zapisać i zanotować lokalizację swojego klucza i użyć tego samego klucza do aktualizacji jak dla poprzedniej instalacji.</string>
     <string name="update_askfriend">Jeśli masz trudności z budową apk, możesz zainstalować apk zbudowany przez znajomego.</string>
     <string name="update_hint1">https://wiki.aaps.app/en/latest/Maintenance/UpdateToNewVersion.html</string>
     <string name="troubleshooting_label">Rozwiązywanie problemów</string>
@@ -96,6 +94,7 @@
     <string name="insulin_fiasp">Fiasp®</string>
     <string name="insulin_novorapid">NovoRapid ® /Novolog ®</string>
     <string name="insulin_humalog">Humalog®</string>
+    <string name="insulin_actrapid">Actrapid®/Humulin R®/\"zwykła\" insulina ludzka.</string>
     <string name="insulin_hint1">https://wiki.aaps.app/en/latest/SettingUpAaps/ConfigBuilder.html#insulin</string>
     <string name="sensitivity_label">Wtyczki wrażliwości</string>
     <string name="sensitivity_adjust">Wtyczki wrażliwości pozwalają AAPS dostosować się do tymczasowych lub krótkotrwałych zmian wrażliwości na insulinę (na przykład zmian hormonalnych lub problemów z wchłanianiem w miejscu wkłucia).</string>

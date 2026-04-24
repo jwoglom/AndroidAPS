@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.ksp)
-    id("kotlin-android")
+    alias(libs.plugins.compose.compiler)
     id("android-module-dependencies")
     id("test-module-dependencies")
     id("jacoco-module-dependencies")
@@ -22,11 +22,9 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:interfaces"))
     implementation(project(":core:keys"))
-    implementation(project(":core:libraries"))
     implementation(project(":core:objects"))
     implementation(project(":core:utils"))
     implementation(project(":core:ui"))
-    implementation(project(":core:validators"))
     implementation(project(":pump:common"))
     implementation(project(":shared:impl"))
 
@@ -34,6 +32,8 @@ dependencies {
     api(libs.androidx.room.runtime)
     api(libs.androidx.room.rxjava3)
     ksp(libs.androidx.room.compiler)
+
+    implementation(libs.androidx.hilt.navigation.compose)
 
     api(libs.com.squareup.okhttp3.okhttp)
     api(libs.com.squareup.retrofit2.retrofit)
@@ -43,5 +43,6 @@ dependencies {
     testImplementation(project(":core:objects"))
 
     ksp(libs.com.google.dagger.compiler)
+    ksp(libs.com.google.dagger.hilt.compiler)
     ksp(libs.com.google.dagger.android.processor)
 }

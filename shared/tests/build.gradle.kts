@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.ksp)
-    id("kotlin-android")
     id("android-module-dependencies")
     id("test-module-dependencies")
     id("jacoco-module-dependencies")
@@ -21,7 +20,6 @@ dependencies {
     implementation(project(":core:keys"))
     implementation(project(":core:ui"))
     implementation(project(":core:utils"))
-    implementation(project(":core:validators"))
     implementation(project(":implementation"))
     implementation(project(":plugins:aps"))
     implementation(project(":shared:impl"))

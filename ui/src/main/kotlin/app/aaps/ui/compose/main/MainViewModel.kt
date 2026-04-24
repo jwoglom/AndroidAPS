@@ -1,0 +1,814 @@
+package app.aaps.ui.compose.main
+
+import androidx.compose.runtime.Stable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import app.aaps.core.data.iob.InMemoryGlucoseValue
+import app.aaps.core.data.model.ActiveSceneState
+import app.aaps.core.data.model.RM
+import app.aaps.core.data.model.TT
+import app.aaps.core.data.time.T
+import app.aaps.core.data.ue.Action
+import app.aaps.core.data.ue.Sources
+import app.aaps.core.data.ue.ValueWithUnit
+import app.aaps.core.interfaces.aps.Loop
+import app.aaps.core.interfaces.automation.Automation
+import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.interfaces.configuration.ExternalOptions
+import app.aaps.core.interfaces.constraints.ConstraintsChecker
+import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.insulin.Insulin
+import app.aaps.core.interfaces.iob.IobCobCalculator
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.UserEntryLogger
+import app.aaps.core.interfaces.overview.graph.OverviewDataCache
+import app.aaps.core.interfaces.overview.graph.ProfileDisplayData
+import app.aaps.core.interfaces.overview.graph.RunningModeDisplayData
+import app.aaps.core.interfaces.overview.graph.TbrDisplayData
+import app.aaps.core.interfaces.overview.graph.TbrState
+import app.aaps.core.interfaces.overview.graph.TempTargetDisplayData
+import app.aaps.core.interfaces.overview.graph.TempTargetState
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.profile.LocalProfileManager
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.protection.ProtectionCheck
+import app.aaps.core.interfaces.protection.ProtectionResult
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.pump.Pump
+import app.aaps.core.interfaces.pump.defs.determineCorrectBolusStepSize
+import app.aaps.core.interfaces.queue.Callback
+import app.aaps.core.interfaces.queue.CommandQueue
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventShowDialog
+import app.aaps.core.interfaces.ui.IconsProvider
+import app.aaps.core.interfaces.ui.UiInteraction
+import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.StringNonKey
+import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.objects.constraints.ConstraintObject
+import app.aaps.core.objects.extensions.toStringFull
+import app.aaps.core.objects.runningMode.RunningModeGuard
+import app.aaps.core.objects.runningMode.TbrGate
+import app.aaps.core.objects.wizard.QuickWizard
+import app.aaps.core.objects.wizard.QuickWizardEntry
+import app.aaps.core.objects.wizard.QuickWizardMode
+import app.aaps.ui.compose.alertDialogs.AboutDialogData
+import app.aaps.ui.compose.quickLaunch.QuickLaunchResolver
+import app.aaps.ui.compose.quickLaunch.QuickLaunchSerializer
+import app.aaps.ui.compose.quickLaunch.ResolvedQuickLaunchItem
+import app.aaps.ui.compose.scenes.ActiveSceneManager
+import app.aaps.ui.compose.scenes.SceneExecutor
+import app.aaps.ui.compose.scenes.SceneRepository
+import app.aaps.ui.compose.tempTarget.toTTPresetsWithNameRes
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+import kotlin.math.abs
+
+@HiltViewModel
+@Stable
+class MainViewModel @Inject constructor(
+    private val activePlugin: ActivePlugin,
+    private val insulin: Insulin,
+    val config: Config,
+    val preferences: Preferences,
+    private val fabricPrivacy: FabricPrivacy,
+    private val iconsProvider: IconsProvider,
+    private val rh: ResourceHelper,
+    private val dateUtil: DateUtil,
+    private val overviewDataCache: OverviewDataCache,
+    private val iobCobCalculator: IobCobCalculator,
+    private val profileFunction: ProfileFunction,
+    private val constraintChecker: ConstraintsChecker,
+    private val quickWizard: QuickWizard,
+    private val automation: Automation,
+    private val persistenceLayer: PersistenceLayer,
+    private val localProfileManager: LocalProfileManager,
+    private val aapsLogger: AAPSLogger,
+    private val quickLaunchResolver: QuickLaunchResolver,
+    private val commandQueue: CommandQueue,
+    private val uiInteraction: UiInteraction,
+    private val uel: UserEntryLogger,
+    private val loop: Loop,
+    private val protectionCheck: ProtectionCheck,
+    private val sceneRepository: SceneRepository,
+    private val sceneExecutor: SceneExecutor,
+    private val activeSceneManager: ActiveSceneManager,
+    private val rxBus: RxBus,
+    private val runningModeGuard: RunningModeGuard
+) : ViewModel() {
+
+    // Event-driven state (drawer, dialogs, simple-mode preference). Imperative .update{} calls
+    // from user actions and preference observers land here.
+    private val _eventState = MutableStateFlow(EventState())
+
+    /** Toolbar items as a separate StateFlow to avoid unnecessary recompositions of the main UI */
+    private val _quickLaunchItems = MutableStateFlow<List<ResolvedQuickLaunchItem>>(emptyList())
+    val quickLaunchItems: StateFlow<List<ResolvedQuickLaunchItem>> = _quickLaunchItems.asStateFlow()
+
+    /** Pending confirmation dialog (automation/TT preset actions) */
+    private val _actionConfirmation = MutableStateFlow<ActionConfirmation?>(null)
+    val actionConfirmation: StateFlow<ActionConfirmation?> = _actionConfirmation.asStateFlow()
+
+    val versionName: String get() = config.VERSION_NAME
+    val appIcon: Int get() = iconsProvider.getIcon()
+    val calcProgressFlow: StateFlow<Int> = overviewDataCache.calcProgressFlow
+
+    // Ticker for time-based progress updates (every 30 seconds). Cold flow — only runs while
+    // the chipStateFlow it feeds has subscribers (via uiState's WhileSubscribed below).
+    private val progressTicker = flow {
+        while (true) {
+            emit(dateUtil.now())
+            delay(30_000L)
+        }
+    }
+
+    // Flow-derived chip state: ticker + cache flows + expiry detection. Cold.
+    private val chipStateFlow: Flow<ChipState> = combine(
+        overviewDataCache.tempTargetFlow,
+        overviewDataCache.profileFlow,
+        overviewDataCache.runningModeFlow,
+        overviewDataCache.tbrFlow,
+        progressTicker
+    ) { ttData, profileData, rmData, tbrData, now ->
+        buildChipState(ttData, profileData, rmData, tbrData, now)
+    }
+
+    /**
+     * Derived UI state. Combines event-driven state with ticker-derived chip state.
+     * `WhileSubscribed(5_000)` stops the upstream combine (and thus the progressTicker) 5s
+     * after the last observer disappears — real battery savings when the overview isn't
+     * on screen. 5s grace handles config changes (rotation, dark-mode) without thrashing.
+     */
+    val uiState: StateFlow<MainUiState> = combine(_eventState, chipStateFlow) { ev, chip ->
+        MainUiState(
+            isDrawerOpen = ev.isDrawerOpen,
+            isSimpleMode = ev.isSimpleMode,
+            showAboutDialog = ev.showAboutDialog,
+            showMaintenanceSheet = ev.showMaintenanceSheet,
+            showAuthFailedDialog = ev.showAuthFailedDialog,
+            isProfileLoaded = chip.isProfileLoaded,
+            profileName = chip.profileName,
+            profilePsId = chip.profilePsId,
+            isProfileModified = chip.isProfileModified,
+            profileProgress = chip.profileProgress,
+            tempTargetText = chip.tempTargetText,
+            tempTargetState = chip.tempTargetState,
+            tempTargetProgress = chip.tempTargetProgress,
+            tempTargetReason = chip.tempTargetReason,
+            tempTargetRecordId = chip.tempTargetRecordId,
+            runningMode = chip.runningMode,
+            runningModeText = chip.runningModeText,
+            runningModeProgress = chip.runningModeProgress,
+            runningModeRecordId = chip.runningModeRecordId,
+            tbrState = chip.tbrState,
+            quickWizardItems = chip.quickWizardItems
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainUiState())
+
+    init {
+        preferences.observe(BooleanKey.GeneralSimpleMode)
+            .onEach { simple -> _eventState.update { it.copy(isSimpleMode = simple) } }
+            .launchIn(viewModelScope)
+        observeQuickLaunch()
+    }
+
+    /**
+     * Pure transform from raw cache data + tick time to ChipState. Side-effect: calls
+     * cache.refresh*() when a row's `timestamp + duration` has passed, since DB-change
+     * observers don't emit on expiry.
+     */
+    private suspend fun buildChipState(
+        ttData: TempTargetDisplayData?,
+        profileData: ProfileDisplayData?,
+        rmData: RunningModeDisplayData?,
+        tbrData: TbrDisplayData?,
+        now: Long
+    ): ChipState {
+        // Detect expired chips and schedule a cache refresh. Duration >= 30 days is
+        // effectively permanent (e.g. loop disabled uses Int.MAX_VALUE minutes, or scene
+        // permanent TT uses Long.MAX_VALUE — avoid Long-overflow in expiry math).
+        val ttIsFinite = ttData != null && ttData.state == TempTargetState.ACTIVE
+            && ttData.duration > 0 && ttData.duration < T.days(30).msecs()
+        val ttExpired = ttIsFinite && now >= ttData.timestamp + ttData.duration
+        if (ttExpired) overviewDataCache.refreshTempTarget()
+
+        val profileExpired = profileData != null && profileData.duration > 0
+            && now >= profileData.timestamp + profileData.duration
+        if (profileExpired) overviewDataCache.refreshProfile()
+
+        val rmIsFinite = rmData != null && rmData.duration > 0 && rmData.duration < T.days(30).msecs()
+        val rmExpired = rmIsFinite && now >= rmData.timestamp + rmData.duration
+        if (rmExpired) overviewDataCache.refreshRunningMode()
+
+        val tbrExpired = tbrData != null && tbrData.state != TbrState.NONE && tbrData.duration > 0
+            && now >= tbrData.timestamp + tbrData.duration
+        if (tbrExpired) overviewDataCache.refreshTbr()
+
+        // TT progress and display text
+        val ttProgress = if (ttIsFinite && !ttExpired) {
+            val elapsed = now - ttData.timestamp
+            (elapsed.toFloat() / ttData.duration.toFloat()).coerceIn(0f, 1f)
+        } else 0f
+
+        val ttText = if (ttData != null && !ttExpired) {
+            if (ttIsFinite) {
+                "${ttData.targetRangeText} ${dateUtil.untilString(ttData.timestamp + ttData.duration, rh)}"
+            } else {
+                ttData.targetRangeText
+            }
+        } else ""
+
+        // Profile progress and display text
+        val profileProgress = if (profileData != null && profileData.duration > 0 && !profileExpired) {
+            val elapsed = now - profileData.timestamp
+            (elapsed.toFloat() / profileData.duration.toFloat()).coerceIn(0f, 1f)
+        } else 0f
+
+        val profileText = if (profileData != null && profileData.profileName.isNotEmpty()) {
+            if (profileData.duration > 0 && !profileExpired) {
+                "${profileData.profileName} ${dateUtil.untilString(profileData.timestamp + profileData.duration, rh)}"
+            } else {
+                profileData.profileName
+            }
+        } else ""
+
+        // Running mode progress and display text
+        val rmProgress = if (rmIsFinite && !rmExpired) {
+            val elapsed = now - rmData.timestamp
+            (elapsed.toFloat() / rmData.duration.toFloat()).coerceIn(0f, 1f)
+        } else 0f
+
+        val rmText = if (rmData != null) {
+            val modeName = getModeNameString(rmData.mode)
+            if (rmData.mode.mustBeTemporary() && rmIsFinite && !rmExpired) {
+                "$modeName ${dateUtil.untilString(rmData.timestamp + rmData.duration, rh)}"
+            } else {
+                modeName
+            }
+        } else ""
+
+        return ChipState(
+            isProfileLoaded = profileData?.isLoaded ?: false,
+            profileName = profileText,
+            profilePsId = profileData?.originalPsId ?: 0,
+            isProfileModified = profileData?.isModified ?: false,
+            profileProgress = profileProgress,
+            tempTargetText = ttText,
+            tempTargetState = if (ttExpired) TempTargetChipState.None
+            else ttData?.state?.toChipState() ?: TempTargetChipState.None,
+            tempTargetProgress = ttProgress,
+            tempTargetReason = if (ttExpired) null else ttData?.reason,
+            tempTargetRecordId = if (ttExpired) 0 else ttData?.recordId ?: 0,
+            runningMode = rmData?.mode ?: RM.Mode.DISABLED_LOOP,
+            runningModeText = rmText,
+            runningModeProgress = rmProgress,
+            runningModeRecordId = if (rmExpired) 0 else rmData?.recordId ?: 0,
+            tbrState = if (tbrExpired) TbrState.NONE else tbrData?.state ?: TbrState.NONE,
+            quickWizardItems = computeQuickWizardItems(rmData?.mode)
+        )
+    }
+
+    private suspend fun computeQuickWizardItems(runningMode: RM.Mode?): List<QuickWizardItem> {
+        val activeEntries = quickWizard.list().filter { it.isActive() }
+        if (activeEntries.isEmpty()) return emptyList()
+
+        val lastBG = iobCobCalculator.ads.lastBg()
+        val profile = profileFunction.getProfile()
+        val profileName = profileFunction.getProfileName()
+        val pump = activePlugin.activePump
+
+        return activeEntries.map { entry ->
+            when (entry.mode()) {
+                QuickWizardMode.INSULIN -> computeInsulinItem(entry, pump, runningMode)
+                QuickWizardMode.CARBS   -> computeCarbsItem(entry)
+                QuickWizardMode.WIZARD  -> computeWizardItem(entry, lastBG, profile, profileName, pump, runningMode)
+            }
+        }
+    }
+
+    private fun computeInsulinItem(entry: QuickWizardEntry, pump: Pump, runningMode: RM.Mode?): QuickWizardItem {
+        val buttonText = entry.buttonText()
+        val guid = entry.guid()
+        val detail = rh.gs(app.aaps.core.ui.R.string.format_insulin_units, entry.insulin())
+
+        val disabledReason = when {
+            !pump.isInitialized()                    -> rh.gs(app.aaps.core.ui.R.string.pump_not_initialized_profile_not_set)
+            pump.isSuspended()                       -> rh.gs(app.aaps.core.ui.R.string.pumpsuspended)
+            runningMode == RM.Mode.DISCONNECTED_PUMP -> rh.gs(app.aaps.core.ui.R.string.pump_disconnected)
+            else                                     -> null
+        }
+        if (disabledReason != null)
+            return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = disabledReason)
+
+        val insulinAfterConstraints = constraintChecker.applyBolusConstraints(ConstraintObject(entry.insulin(), aapsLogger)).value()
+        val minStep = pump.pumpDescription.pumpType.determineCorrectBolusStepSize(insulinAfterConstraints)
+        if (abs(insulinAfterConstraints - entry.insulin()) >= minStep)
+            return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(app.aaps.ui.R.string.insulin_constraint_violation))
+
+        return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, isEnabled = true)
+    }
+
+    private fun computeCarbsItem(entry: QuickWizardEntry): QuickWizardItem {
+        val buttonText = entry.buttonText()
+        val guid = entry.guid()
+        val detail = rh.gs(app.aaps.core.ui.R.string.format_carbs, entry.carbs())
+
+        val carbsAfterConstraints = constraintChecker.applyCarbsConstraints(ConstraintObject(entry.carbs(), aapsLogger)).value()
+        if (carbsAfterConstraints != entry.carbs())
+            return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(app.aaps.ui.R.string.carbs_constraint_violation))
+
+        return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, isEnabled = true)
+    }
+
+    private suspend fun computeWizardItem(
+        entry: QuickWizardEntry,
+        lastBG: InMemoryGlucoseValue?,
+        profile: Profile?,
+        profileName: String,
+        pump: Pump,
+        runningMode: RM.Mode?
+    ): QuickWizardItem {
+        val buttonText = entry.buttonText()
+        val guid = entry.guid()
+
+        val globalReason = when {
+            lastBG == null                           -> rh.gs(app.aaps.core.ui.R.string.wizard_no_actual_bg)
+            profile == null                          -> rh.gs(app.aaps.core.ui.R.string.noprofile)
+            !pump.isInitialized()                    -> rh.gs(app.aaps.core.ui.R.string.pump_not_initialized_profile_not_set)
+            pump.isSuspended()                       -> rh.gs(app.aaps.core.ui.R.string.pumpsuspended)
+            runningMode == RM.Mode.DISCONNECTED_PUMP -> rh.gs(app.aaps.core.ui.R.string.pump_disconnected)
+            else                                     -> null
+        }
+        if (globalReason != null)
+            return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, disabledReason = globalReason)
+
+        val wizard = entry.doCalc(profile!!, profileName, lastBG!!)
+        if (wizard.calculatedTotalInsulin <= 0.0)
+            return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, disabledReason = rh.gs(app.aaps.ui.R.string.wizard_no_insulin_required))
+
+        val detail = rh.gs(app.aaps.core.ui.R.string.format_carbs, entry.carbs()) +
+            " " + rh.gs(app.aaps.core.ui.R.string.format_insulin_units, wizard.calculatedTotalInsulin)
+
+        val carbsAfterConstraints = constraintChecker.applyCarbsConstraints(ConstraintObject(entry.carbs(), aapsLogger)).value()
+        if (carbsAfterConstraints != entry.carbs())
+            return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(app.aaps.ui.R.string.carbs_constraint_violation))
+        val minStep = pump.pumpDescription.pumpType.determineCorrectBolusStepSize(wizard.insulinAfterConstraints)
+        if (abs(wizard.insulinAfterConstraints - wizard.calculatedTotalInsulin) >= minStep)
+            return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(app.aaps.ui.R.string.insulin_constraint_violation))
+
+        return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, isEnabled = true)
+    }
+
+    /**
+     * Execute QuickWizard by GUID: re-validates at execution time and calls confirmAndExecute.
+     * Needs Activity context for the confirmation dialog.
+     */
+    fun executeQuickWizard(guid: String) {
+        viewModelScope.launch {
+            val entry = quickWizard.get(guid) ?: return@launch
+            if (!entry.isActive()) return@launch
+            when (entry.mode()) {
+                QuickWizardMode.WIZARD  -> executeQuickWizardMode(entry)
+                QuickWizardMode.INSULIN -> executeInsulinMode(entry)
+                QuickWizardMode.CARBS   -> executeCarbsMode(entry)
+            }
+        }
+    }
+
+    private suspend fun executeQuickWizardMode(entry: QuickWizardEntry) {
+        val bg = iobCobCalculator.ads.actualBg() ?: return
+        val profile = profileFunction.getProfile() ?: return
+        val profileName = profileFunction.getProfileName()
+        val wizard = entry.doCalc(profile, profileName, bg)
+        if (wizard.calculatedTotalInsulin > 0.0 && entry.carbs() > 0) {
+            wizard.confirmAndExecute(entry)
+        }
+    }
+
+    private fun executeInsulinMode(entry: QuickWizardEntry) {
+        val pump = activePlugin.activePump
+        if (!pump.isInitialized() || pump.isSuspended()) return
+
+        val insulin = entry.insulin()
+        val insulinAfterConstraints = constraintChecker.applyBolusConstraints(
+            ConstraintObject(insulin, aapsLogger)
+        ).value()
+        if (insulinAfterConstraints <= 0.0) return
+
+        val message = buildString {
+            append(rh.gs(app.aaps.core.ui.R.string.bolus) + ": ")
+            append(rh.gs(app.aaps.core.ui.R.string.format_insulin_units, insulinAfterConstraints))
+            if (abs(insulinAfterConstraints - insulin) > pump.pumpDescription.pumpType.determineCorrectBolusStepSize(insulinAfterConstraints)) {
+                append("<br/>")
+                append(rh.gs(app.aaps.core.ui.R.string.bolus_constraint_applied_warn, insulin, insulinAfterConstraints))
+            }
+        }
+
+        rxBus.send(
+            EventShowDialog.OkCancel(
+                title = entry.buttonText(),
+                message = message,
+                onOk = {
+                    if (!runningModeGuard.checkWithSnackbar(TbrGate.CommandKind.BOLUS)) {
+                        uel.log(
+                            Action.BOLUS, Sources.QuickWizard,
+                            entry.buttonText(),
+                            ValueWithUnit.Insulin(insulinAfterConstraints)
+                        )
+                        val detailedBolusInfo = DetailedBolusInfo().apply {
+                            eventType = app.aaps.core.data.model.TE.Type.CORRECTION_BOLUS
+                            this.insulin = insulinAfterConstraints
+                        }
+                        commandQueue.bolus(detailedBolusInfo, object : Callback() {
+                            override fun run() {
+                                if (!result.success) {
+                                    uiInteraction.runAlarm(result.comment, rh.gs(app.aaps.core.ui.R.string.treatmentdeliveryerror), app.aaps.core.ui.R.raw.boluserror)
+                                }
+                            }
+                        })
+                        entry.markAsUsed()
+                    }
+                }
+            )
+        )
+    }
+
+    private fun executeCarbsMode(entry: QuickWizardEntry) {
+        val carbs = entry.carbs()
+        if (carbs <= 0) return
+
+        val message = buildString {
+            append(rh.gs(app.aaps.core.ui.R.string.carbs) + ": ${carbs}g")
+        }
+
+        rxBus.send(
+            EventShowDialog.OkCancel(
+                title = entry.buttonText(),
+                message = message,
+                onOk = {
+                    uel.log(
+                        Action.CARBS, Sources.QuickWizard,
+                        entry.buttonText(),
+                        ValueWithUnit.Gram(carbs)
+                    )
+                    val detailedBolusInfo = DetailedBolusInfo().apply {
+                        eventType = app.aaps.core.data.model.TE.Type.CARBS_CORRECTION
+                        this.carbs = carbs.toDouble()
+                        carbsTimestamp = dateUtil.now()
+                    }
+                    commandQueue.bolus(detailedBolusInfo, object : Callback() {
+                        override fun run() {
+                            if (!result.success) {
+                                uiInteraction.runAlarm(result.comment, rh.gs(app.aaps.core.ui.R.string.treatmentdeliveryerror), app.aaps.core.ui.R.raw.boluserror)
+                            }
+                        }
+                    })
+                    entry.markAsUsed()
+                }
+            )
+        )
+    }
+
+    /**
+     * Get localized name string for running mode
+     */
+    private fun getModeNameString(mode: RM.Mode): String = when (mode) {
+        RM.Mode.CLOSED_LOOP       -> rh.gs(app.aaps.core.ui.R.string.closedloop)
+        RM.Mode.CLOSED_LOOP_LGS   -> rh.gs(app.aaps.core.ui.R.string.lowglucosesuspend)
+        RM.Mode.OPEN_LOOP         -> rh.gs(app.aaps.core.ui.R.string.openloop)
+        RM.Mode.DISABLED_LOOP     -> rh.gs(app.aaps.core.ui.R.string.disabled_loop)
+        RM.Mode.SUPER_BOLUS       -> rh.gs(app.aaps.core.ui.R.string.superbolus)
+        RM.Mode.DISCONNECTED_PUMP -> rh.gs(app.aaps.core.ui.R.string.pump_disconnected)
+        RM.Mode.SUSPENDED_BY_PUMP -> rh.gs(app.aaps.core.ui.R.string.pump_suspended)
+        RM.Mode.SUSPENDED_BY_USER -> rh.gs(app.aaps.core.ui.R.string.loopsuspended)
+        RM.Mode.SUSPENDED_BY_DST  -> rh.gs(app.aaps.core.ui.R.string.loop_suspended_by_dst)
+        RM.Mode.RESUME            -> rh.gs(app.aaps.core.ui.R.string.resumeloop)
+    }
+
+    // Map cache state to UI chip state
+    private fun TempTargetState.toChipState(): TempTargetChipState = when (this) {
+        TempTargetState.NONE     -> TempTargetChipState.None
+        TempTargetState.ACTIVE   -> TempTargetChipState.Active
+        TempTargetState.ADJUSTED -> TempTargetChipState.Adjusted
+    }
+
+    // Drawer state
+    fun openDrawer() {
+        _eventState.update { it.copy(isDrawerOpen = true) }
+    }
+
+    fun closeDrawer() {
+        _eventState.update { it.copy(isDrawerOpen = false) }
+    }
+
+    // About dialog state
+    fun setShowAboutDialog(show: Boolean) {
+        _eventState.update { it.copy(showAboutDialog = show) }
+    }
+
+    fun setShowMaintenanceSheet(show: Boolean) {
+        _eventState.update { it.copy(showMaintenanceSheet = show) }
+    }
+
+    fun setShowAuthFailedDialog(show: Boolean) {
+        _eventState.update { it.copy(showAuthFailedDialog = show) }
+    }
+
+    // Build about dialog data
+    fun buildAboutDialogData(appName: String): AboutDialogData {
+        var message = "Build: ${config.BUILD_VERSION}\n"
+        message += "Flavor: ${config.FLAVOR}${config.BUILD_TYPE}\n"
+        message += "${rh.gs(app.aaps.core.ui.R.string.configbuilder_nightscoutversion_label)} ${activePlugin.activeNsClient?.detectedNsVersion() ?: rh.gs(app.aaps.core.ui.R.string.not_available_full)}"
+        if (!fabricPrivacy.fabricEnabled()) message += "\n${rh.gs(app.aaps.core.ui.R.string.fabric_upload_disabled)}"
+        val enabledOptions = ExternalOptions.entries.filter { config.isEnabled(it) }
+        message += rh.gs(app.aaps.core.ui.R.string.about_link_urls)
+
+        return AboutDialogData(
+            title = "$appName ${config.VERSION}",
+            message = message,
+            icon = iconsProvider.getIcon(),
+            enabledOptions = enabledOptions
+        )
+    }
+
+    // ── Toolbar ──
+
+    private fun observeQuickLaunch() {
+        preferences.observe(StringNonKey.QuickLaunchActions)
+            .onEach { refreshQuickLaunch(it) }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Load toolbar actions from preferences, validate dynamic entries, and resolve display info.
+     * Call this on init and whenever relevant data changes (preferences, automations, profiles, etc.)
+     */
+    fun refreshQuickLaunch(json: String = preferences.get(StringNonKey.QuickLaunchActions)) {
+        val actions = QuickLaunchSerializer.fromJson(json)
+
+        // Validate dynamic actions and collect valid ones
+        val validated = actions.filter { action -> quickLaunchResolver.isValid(action) }
+
+        // If validation removed items, persist the cleaned list
+        if (validated.size != actions.size) {
+            preferences.put(StringNonKey.QuickLaunchActions, QuickLaunchSerializer.toJson(validated))
+        }
+
+        // Resolve display properties
+        _quickLaunchItems.update { validated.map { quickLaunchResolver.resolveItem(it) } }
+    }
+
+    fun requestAutomationConfirmation(automationId: String) {
+        val event = automation.findEventById(automationId) ?: return
+        val message = event.actionsDescription().joinToString("\n") { "• $it" }
+        _actionConfirmation.update {
+            ActionConfirmation(
+                title = event.title,
+                message = message,
+                onConfirmAction = ConfirmableAction.ExecuteAutomation(automationId)
+            )
+        }
+    }
+
+    fun requestTempTargetPresetConfirmation(presetId: String) {
+        val presets = preferences.get(StringNonKey.TempTargetPresets).toTTPresetsWithNameRes()
+        val preset = presets.find { it.id == presetId } ?: return
+        val name = preset.name ?: preset.nameRes?.let { rh.gs(it) } ?: "?"
+        val durationMin = (preset.duration / 60000L).toInt()
+        val message = "$name\n${rh.gs(app.aaps.core.ui.R.string.format_mins, durationMin)}"
+        _actionConfirmation.update {
+            ActionConfirmation(
+                title = rh.gs(app.aaps.core.ui.R.string.temp_target_management),
+                message = message,
+                onConfirmAction = ConfirmableAction.ActivateTempTargetPreset(presetId)
+            )
+        }
+    }
+
+    fun requestProfileConfirmation(profileName: String, percentage: Int, durationMinutes: Int) {
+        val details = buildString {
+            append(profileName)
+            if (percentage != 100) append("\n${rh.gs(app.aaps.ui.R.string.quick_launch_profile_confirm_pct, percentage)}")
+            if (durationMinutes > 0) append("\n${rh.gs(app.aaps.ui.R.string.quick_launch_profile_confirm_dur, durationMinutes)}")
+            else append("\n${rh.gs(app.aaps.ui.R.string.quick_launch_profile_permanent)}")
+        }
+        _actionConfirmation.update {
+            ActionConfirmation(
+                title = rh.gs(app.aaps.ui.R.string.activate_profile),
+                message = details,
+                onConfirmAction = ConfirmableAction.ActivateProfile(profileName, percentage, durationMinutes)
+            )
+        }
+    }
+
+    fun showTbrInfo() {
+        viewModelScope.launch {
+            val activeTb = persistenceLayer.getTemporaryBasalActiveAt(dateUtil.now())
+            val profile = profileFunction.getProfile()
+            val message = if (activeTb != null && profile != null)
+                activeTb.toStringFull(profile, dateUtil, rh)
+            else
+                rh.gs(app.aaps.ui.R.string.no_temp_basal_running)
+            rxBus.send(
+                EventShowDialog.Ok(
+                    title = rh.gs(app.aaps.core.ui.R.string.temp_basal),
+                    message = message
+                )
+            )
+        }
+    }
+
+    fun performLoopAccept() {
+        protectionCheck.requestProtection(ProtectionCheck.Protection.BOLUS) { result ->
+            if (result == ProtectionResult.GRANTED) {
+                viewModelScope.launch {
+                    val lastRun = loop.lastRun ?: return@launch
+                    if (lastRun.constraintsProcessed?.isChangeRequested == true) {
+                        uel.log(Action.ACCEPTS_TEMP_BASAL, Sources.Overview)
+                        loop.invoke("Accept temp button", false)
+                        loop.acceptChangeRequest()
+                    }
+                }
+            }
+        }
+    }
+
+    /** Expose active scene state for UI (banner, etc.) */
+    val activeSceneState: StateFlow<ActiveSceneState?> = activeSceneManager.activeSceneState
+
+    /** Whether the active scene has expired (duration ran out, non-duration actions reverted) */
+    val sceneExpired: StateFlow<Boolean> = activeSceneManager.expired
+
+    /** Dismiss the expired scene banner */
+    fun dismissExpiredScene() {
+        sceneExecutor.dismiss()
+    }
+
+    /** Format milliseconds to human-readable duration using DateUtil */
+    fun formatDuration(ms: Long): String = dateUtil.niceTimeScalar(ms, rh)
+
+    fun requestSceneConfirmation(sceneId: String) {
+        val scene = sceneRepository.getScene(sceneId) ?: return
+        val actionSummary = scene.actions.joinToString("\n") { action ->
+            when (action) {
+                is app.aaps.core.data.model.SceneAction.TempTarget      ->
+                    rh.gs(app.aaps.core.ui.R.string.scene_action_tt, "${action.targetMgdl} mg/dL")
+
+                is app.aaps.core.data.model.SceneAction.ProfileSwitch   ->
+                    rh.gs(app.aaps.core.ui.R.string.scene_action_profile, action.profileName, action.percentage)
+
+                is app.aaps.core.data.model.SceneAction.SmbToggle       ->
+                    if (action.enabled) rh.gs(app.aaps.core.ui.R.string.scene_action_smb_on)
+                    else rh.gs(app.aaps.core.ui.R.string.scene_action_smb_off)
+
+                is app.aaps.core.data.model.SceneAction.LoopModeChange  ->
+                    rh.gs(app.aaps.core.ui.R.string.scene_action_loop_mode, action.mode.name)
+
+                is app.aaps.core.data.model.SceneAction.CarePortalEvent ->
+                    rh.gs(app.aaps.core.ui.R.string.scene_action_careportal, action.type.text)
+            }
+        }
+        val message = "${scene.name}\n${scene.defaultDurationMinutes} min\n\n$actionSummary"
+        _actionConfirmation.update {
+            ActionConfirmation(
+                title = rh.gs(app.aaps.core.ui.R.string.scene),
+                message = message,
+                onConfirmAction = ConfirmableAction.ActivateScene(sceneId, scene.defaultDurationMinutes)
+            )
+        }
+    }
+
+    fun requestSceneDeactivation() {
+        val activeState = activeSceneManager.getActiveState() ?: return
+        val message = rh.gs(app.aaps.core.ui.R.string.scene_confirm_deactivate, activeState.scene.name)
+        _actionConfirmation.update {
+            ActionConfirmation(
+                title = rh.gs(app.aaps.core.ui.R.string.scene_deactivate),
+                message = message,
+                onConfirmAction = ConfirmableAction.DeactivateScene
+            )
+        }
+    }
+
+    fun dismissActionConfirmation() {
+        _actionConfirmation.update { null }
+    }
+
+    fun executeConfirmableAction(action: ConfirmableAction) = viewModelScope.launch {
+        _actionConfirmation.update { null }
+        when (action) {
+            is ConfirmableAction.ExecuteAutomation        -> {
+                val event = automation.findEventById(action.automationId) ?: return@launch
+                viewModelScope.launch { automation.processEvent(event) }
+            }
+
+            is ConfirmableAction.ActivateTempTargetPreset -> {
+                val presets = preferences.get(StringNonKey.TempTargetPresets).toTTPresetsWithNameRes()
+                val preset = presets.find { it.id == action.presetId } ?: return@launch
+                viewModelScope.launch {
+                    val tempTarget = TT(
+                        timestamp = dateUtil.now(),
+                        duration = preset.duration,
+                        reason = preset.reason,
+                        lowTarget = preset.targetValue,
+                        highTarget = preset.targetValue
+                    )
+                    persistenceLayer.insertAndCancelCurrentTemporaryTarget(
+                        temporaryTarget = tempTarget,
+                        action = Action.TT,
+                        source = Sources.TTDialog,
+                        note = null,
+                        listValues = listOf(
+                            ValueWithUnit.Mgdl(preset.targetValue),
+                            ValueWithUnit.Minute((preset.duration / 60000L).toInt())
+                        )
+                    )
+                }
+            }
+
+            is ConfirmableAction.ActivateProfile          -> {
+                val store = localProfileManager.profile ?: return@launch
+                profileFunction.createProfileSwitch(
+                    profileStore = store,
+                    profileName = action.profileName,
+                    durationInMinutes = action.durationMinutes,
+                    percentage = action.percentage,
+                    timeShiftInHours = 0,
+                    timestamp = dateUtil.now(),
+                    action = Action.PROFILE_SWITCH,
+                    source = Sources.ProfileSwitchDialog,
+                    note = null,
+                    listValues = listOf(
+                        ValueWithUnit.SimpleString(action.profileName),
+                        ValueWithUnit.Percent(action.percentage),
+                        ValueWithUnit.Minute(action.durationMinutes)
+                    ),
+                    iCfg = insulin.iCfg
+                )
+            }
+
+            is ConfirmableAction.ActivateScene            -> {
+                val scene = sceneRepository.getScene(action.sceneId) ?: return@launch
+                sceneExecutor.activate(scene, action.durationMinutes)
+            }
+
+            is ConfirmableAction.DeactivateScene          -> {
+                sceneExecutor.deactivate()
+            }
+        }
+    }
+
+}
+
+/**
+ * Event-driven subset of MainUiState: updated imperatively by user actions and preference
+ * observers. Kept in a MutableStateFlow because these fields are not derived from other flows.
+ */
+private data class EventState(
+    val isDrawerOpen: Boolean = false,
+    val isSimpleMode: Boolean = true,
+    val showAboutDialog: Boolean = false,
+    val showMaintenanceSheet: Boolean = false,
+    val showAuthFailedDialog: Boolean = false
+)
+
+/**
+ * Flow-derived subset of MainUiState: produced by combining the cache flows with the 30s
+ * progressTicker. Computed declaratively so the ticker auto-pauses via WhileSubscribed when
+ * uiState has no observers.
+ */
+private data class ChipState(
+    val isProfileLoaded: Boolean = false,
+    val profileName: String = "",
+    val profilePsId: Long = 0,
+    val isProfileModified: Boolean = false,
+    val profileProgress: Float = 0f,
+    val tempTargetText: String = "",
+    val tempTargetState: TempTargetChipState = TempTargetChipState.None,
+    val tempTargetProgress: Float = 0f,
+    val tempTargetReason: TT.Reason? = null,
+    val tempTargetRecordId: Long = 0,
+    val runningMode: RM.Mode = RM.Mode.DISABLED_LOOP,
+    val runningModeText: String = "",
+    val runningModeProgress: Float = 0f,
+    val runningModeRecordId: Long = 0,
+    val tbrState: TbrState = TbrState.NONE,
+    val quickWizardItems: List<QuickWizardItem> = emptyList()
+)

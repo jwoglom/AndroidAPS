@@ -2,8 +2,8 @@ package app.aaps.pump.omnipod.common.bledriver.comm.pair
 
 import app.aaps.pump.omnipod.common.bledriver.comm.Id
 import app.aaps.pump.omnipod.common.bledriver.comm.Ids
-import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.PodScanner
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleConfirmSuccess
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.scan.PodScanner
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeCmdBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeDataBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageIO

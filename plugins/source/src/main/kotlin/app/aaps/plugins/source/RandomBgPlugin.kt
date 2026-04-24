@@ -7,9 +7,6 @@ import android.os.HandlerThread
 import android.os.PowerManager
 import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
-import androidx.preference.PreferenceCategory
-import androidx.preference.PreferenceManager
-import androidx.preference.PreferenceScreen
 import app.aaps.core.data.model.CA
 import app.aaps.core.data.model.GV
 import app.aaps.core.data.model.IDs
@@ -20,9 +17,9 @@ import app.aaps.core.data.time.T
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
-import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.pump.VirtualPump
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -30,10 +27,12 @@ import app.aaps.core.interfaces.source.BgSource
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.ui.compose.icons.IcPluginRandomBg
+import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.core.utils.isRunningTest
-import app.aaps.core.validators.preferences.AdaptiveIntPreference
-import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
+import app.aaps.plugins.source.compose.BgSourceComposeContent
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import kotlinx.coroutines.runBlocking
 import java.security.SecureRandom
 import java.util.Calendar
 import java.util.GregorianCalendar
@@ -49,19 +48,25 @@ class RandomBgPlugin @Inject constructor(
     aapsLogger: AAPSLogger,
     private val persistenceLayer: PersistenceLayer,
     private val virtualPump: VirtualPump,
-    private val preferences: Preferences,
-    private val config: Config
-) : PluginBase(
+    preferences: Preferences,
+    config: Config,
+) : AbstractBgSourcePlugin(
     PluginDescription()
         .mainType(PluginType.BGSOURCE)
-        .fragmentClass(BGSourceFragment::class.java.name)
-        .pluginIcon(R.drawable.ic_dice)
-        .preferencesId(PluginDescription.PREFERENCE_SCREEN)
+        .composeContent { plugin ->
+            BgSourceComposeContent(
+                title = rh.gs(R.string.random_bg)
+            )
+        }
+        .icon(IcPluginRandomBg)
         .pluginName(R.string.random_bg)
         .shortName(R.string.random_bg_short)
         .preferencesVisibleInSimpleMode(false)
         .description(R.string.description_source_random_bg),
-    aapsLogger, rh
+    aapsLogger = aapsLogger,
+    rh = rh,
+    preferences = preferences,
+    config = config
 ), BgSource {
 
     @VisibleForTesting
@@ -91,8 +96,6 @@ class RandomBgPlugin @Inject constructor(
 
     private val disposable = CompositeDisposable()
 
-    override fun advancedFilteringSupported(): Boolean = true
-
     @SuppressLint("WakelockTimeout")
     override fun onStart() {
         super.onStart()
@@ -117,7 +120,7 @@ class RandomBgPlugin @Inject constructor(
     }
 
     override fun specialEnableCondition(): Boolean {
-        return isRunningTest() || virtualPump.isEnabled() && config.isEngineeringMode() || config.isUnfinishedMode()
+        return isRunningTest() || virtualPump.isEnabled() && config.isEngineeringMode() || config.isEnabled(ExternalOptions.UNFINISHED_MODE)
     }
 
     @SuppressLint("CheckResult")
@@ -141,8 +144,9 @@ class RandomBgPlugin @Inject constructor(
             trendArrow = TrendArrow.entries.shuffled().first(),
             sourceSensor = SourceSensor.RANDOM
         )
-        persistenceLayer.insertCgmSourceData(Sources.Random, glucoseValues, emptyList(), null)
-            .blockingGet()
+        runBlocking {
+            persistenceLayer.insertCgmSourceData(Sources.Random, glucoseValues, emptyList(), null)
+        }
 
         //  Generate carbs around once in 4 hours
         if (SecureRandom().nextDouble() <= 0.02) {
@@ -154,20 +158,18 @@ class RandomBgPlugin @Inject constructor(
                 notes = "Random carbs",
                 ids = IDs()
             )
-            persistenceLayer.insertOrUpdateCarbs(ca, Action.TREATMENT, Sources.CarbDialog, ca.notes).blockingGet()
+            runBlocking { persistenceLayer.insertOrUpdateCarbs(ca, Action.TREATMENT, Sources.CarbDialog, ca.notes) }
         }
     }
 
-    override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
-        if (requiredKey != null) return
-        val category = PreferenceCategory(context)
-        parent.addPreference(category)
-        category.apply {
-            key = "bg_source_upload_settings"
-            title = rh.gs(R.string.random_bg)
-            initialExpandedChildrenCount = 0
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.BgSourceUploadToNs, title = app.aaps.core.ui.R.string.do_ns_upload_title))
-            addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.BgSourceRandomInterval, title = R.string.bg_generation_interval_minutes))
-        }
-    }
+    override fun getPreferenceScreenContent() = PreferenceSubScreenDef(
+        key = "bg_source_upload_settings",
+        titleResId = R.string.random_bg,
+        items = listOf(
+            BooleanKey.BgSourceUploadToNs,
+            IntKey.BgSourceRandomInterval
+
+        ),
+        icon = pluginDescription.icon
+    )
 }

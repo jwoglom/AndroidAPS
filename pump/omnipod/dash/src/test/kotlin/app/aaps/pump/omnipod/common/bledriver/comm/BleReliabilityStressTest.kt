@@ -1,7 +1,7 @@
 package app.aaps.pump.omnipod.common.bledriver.comm
 
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleConfirmSuccess
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendSuccess
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmSuccess
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeCmdBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeDataBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageIO
@@ -202,7 +202,7 @@ class BleReliabilityStressTest {
 
         @Test
         fun `successful send after failed send shows no state contamination`() {
-            cmdBleIO.sendResult = app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendErrorSending("fail")
+            cmdBleIO.sendResult = app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendErrorSending("fail")
             val failMsg = createMessage(1)
             val failResult = messageIO.sendMessage(failMsg)
             assertThat(failResult).isInstanceOf(app.aaps.pump.omnipod.common.bledriver.comm.message.MessageSendErrorSending::class.java)

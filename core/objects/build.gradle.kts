@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.ksp)
-    id("kotlin-android")
     id("kotlin-parcelize")
     id("android-module-dependencies")
     id("all-open-dependencies")
@@ -26,8 +25,6 @@ dependencies {
     api(libs.kotlin.stdlib.jdk8)
     api(libs.com.google.android.material)
     api(libs.com.google.guava)
-    api(libs.androidx.activity)
-    api(libs.androidx.appcompat)
 
     api(libs.com.google.dagger.android)
     api(libs.com.google.dagger.android.support)
@@ -36,5 +33,6 @@ dependencies {
     api(libs.androidx.work.runtime)  // DataWorkerStorage
 
     ksp(libs.com.google.dagger.compiler)
+    ksp(libs.com.google.dagger.hilt.compiler)
     ksp(libs.com.google.dagger.android.processor)
 }

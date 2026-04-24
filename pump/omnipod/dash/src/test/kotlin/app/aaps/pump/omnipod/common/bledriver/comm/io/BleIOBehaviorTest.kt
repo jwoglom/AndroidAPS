@@ -3,8 +3,8 @@ package app.aaps.pump.omnipod.common.bledriver.comm.io
 import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandHello
 import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandRTS
 import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandSuccess
-import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.BleCharacteristicIO
-import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.CmdBleIO
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleCharacteristicIO
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.CmdBleIO
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName

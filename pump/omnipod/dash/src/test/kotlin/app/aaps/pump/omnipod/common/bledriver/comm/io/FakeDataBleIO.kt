@@ -1,6 +1,6 @@
 package app.aaps.pump.omnipod.common.bledriver.comm.io
 
-import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.DataBleIO
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.DataBleIO
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 

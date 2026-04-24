@@ -27,7 +27,6 @@
     <string name="smbnotallowedinopenloopmode">SMB er ikke tilladt i åben loop mode</string>
     <string name="maxvalueinpreferences">max værdi i præferencer</string>
     <string name="hardlimit">hård grænse</string>
-    <string name="treatmentssafety_title">Behandlings sikkerhed</string>
     <!-- Objectives -->
     <string name="completed_well_done">Fuldført, godt klaret!</string>
     <string name="not_completed_yet">Ikke afsluttet endnu</string>
@@ -40,8 +39,6 @@
     <string name="objectives_shortname">OBJ</string>
     <string name="description_objectives">Oplæringsprogram</string>
     <string name="doyouwantresetstart">Vil du nulstille objektiv start? Du kan miste dine fremskridt.</string>
-    <string name="objectives_next_button">Næste</string>
-    <string name="objectives_previous_button">Forrige</string>
     <string name="objectives_button_unfinish">Nulstil færdig tilstand</string>
     <string name="objectives_button_unstart">Nulstil startet tilstand</string>
 </resources>

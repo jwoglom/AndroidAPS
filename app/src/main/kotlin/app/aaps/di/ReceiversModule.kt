@@ -1,16 +1,21 @@
 package app.aaps.di
 
+import app.aaps.plugins.aps.loop.runningMode.RunningModeExpiryWorker
 import app.aaps.receivers.AutoStartReceiver
 import app.aaps.receivers.BTReceiver
 import app.aaps.receivers.ChargingStateReceiver
 import app.aaps.receivers.DataReceiver
 import app.aaps.receivers.KeepAliveWorker
+import app.aaps.receivers.SceneExpiryWorker
 import app.aaps.receivers.SmsReceiver
 import app.aaps.receivers.TimeDateOrTZChangeReceiver
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 
 @Module
+@InstallIn(SingletonComponent::class)
 @Suppress("unused")
 abstract class ReceiversModule {
 
@@ -19,6 +24,8 @@ abstract class ReceiversModule {
     @ContributesAndroidInjector abstract fun contributesChargingStateReceiver(): ChargingStateReceiver
     @ContributesAndroidInjector abstract fun contributesDataReceiver(): DataReceiver
     @ContributesAndroidInjector abstract fun contributesKeepAliveWorker(): KeepAliveWorker
+    @ContributesAndroidInjector abstract fun contributesRunningModeExpiryWorker(): RunningModeExpiryWorker
+    @ContributesAndroidInjector abstract fun contributesSceneExpiryWorker(): SceneExpiryWorker
     @ContributesAndroidInjector abstract fun contributesSmsReceiver(): SmsReceiver
     @ContributesAndroidInjector abstract fun contributesTimeDateOrTZChangeReceiver(): TimeDateOrTZChangeReceiver
 }

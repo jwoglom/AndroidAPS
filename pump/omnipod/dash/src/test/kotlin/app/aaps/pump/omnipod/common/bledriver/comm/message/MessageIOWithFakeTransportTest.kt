@@ -4,8 +4,8 @@ import app.aaps.pump.omnipod.common.bledriver.comm.Id
 import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandCTS
 import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandRTS
 import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandSuccess
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleConfirmSuccess
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendErrorSending
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmSuccess
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendErrorSending
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeCmdBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeDataBleIO
 import app.aaps.shared.tests.AAPSLoggerTest

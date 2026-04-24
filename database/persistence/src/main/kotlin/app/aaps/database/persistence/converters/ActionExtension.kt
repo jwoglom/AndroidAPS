@@ -99,6 +99,13 @@ fun UserEntry.Action.fromDb(): Action =
         UserEntry.Action.RUNNING_MODE                    -> Action.RUNNING_MODE
         UserEntry.Action.RUNNING_MODE_REMOVED            -> Action.RUNNING_MODE_REMOVED
         UserEntry.Action.RUNNING_MODE_UPDATED            -> Action.RUNNING_MODE_UPDATED
+        UserEntry.Action.NEW_INSULIN                     -> Action.NEW_INSULIN
+        UserEntry.Action.STORE_INSULIN                   -> Action.STORE_INSULIN
+        UserEntry.Action.INSULIN_REMOVED                 -> Action.INSULIN_REMOVED
+        UserEntry.Action.CHANGE_PUMP_INSULIN             -> Action.CHANGE_PUMP_INSULIN
+        UserEntry.Action.CHANGE_INSULIN_CONCENTRATION    -> Action.CHANGE_INSULIN_CONCENTRATION
+        UserEntry.Action.SCENE_ACTIVATED                 -> Action.SCENE_ACTIVATED
+        UserEntry.Action.SCENE_DEACTIVATED               -> Action.SCENE_DEACTIVATED
     }
 
 fun Action.toDb(): UserEntry.Action =
@@ -194,8 +201,15 @@ fun Action.toDb(): UserEntry.Action =
         Action.PLUGIN_ENABLED                  -> UserEntry.Action.PLUGIN_ENABLED
         Action.PLUGIN_DISABLED                 -> UserEntry.Action.PLUGIN_DISABLED
         Action.UNKNOWN                         -> UserEntry.Action.UNKNOWN
-        Action.RUNNING_MODE         -> UserEntry.Action.RUNNING_MODE
-        Action.RUNNING_MODE_REMOVED -> UserEntry.Action.RUNNING_MODE_REMOVED
-        Action.RUNNING_MODE_UPDATED -> UserEntry.Action.RUNNING_MODE_UPDATED
+        Action.RUNNING_MODE                    -> UserEntry.Action.RUNNING_MODE
+        Action.RUNNING_MODE_REMOVED            -> UserEntry.Action.RUNNING_MODE_REMOVED
+        Action.RUNNING_MODE_UPDATED            -> UserEntry.Action.RUNNING_MODE_UPDATED
+        Action.NEW_INSULIN                     -> UserEntry.Action.NEW_INSULIN
+        Action.STORE_INSULIN                   -> UserEntry.Action.STORE_INSULIN
+        Action.INSULIN_REMOVED                 -> UserEntry.Action.INSULIN_REMOVED
+        Action.CHANGE_PUMP_INSULIN             -> UserEntry.Action.CHANGE_PUMP_INSULIN
+        Action.CHANGE_INSULIN_CONCENTRATION    -> UserEntry.Action.CHANGE_INSULIN_CONCENTRATION
+        Action.SCENE_ACTIVATED                 -> UserEntry.Action.SCENE_ACTIVATED
+        Action.SCENE_DEACTIVATED               -> UserEntry.Action.SCENE_DEACTIVATED
     }
 

@@ -1,6 +1,6 @@
 package app.aaps.pump.omnipod.common.bledriver.comm.io
 
-import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.BleCharacteristicIO
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleCharacteristicIO
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit

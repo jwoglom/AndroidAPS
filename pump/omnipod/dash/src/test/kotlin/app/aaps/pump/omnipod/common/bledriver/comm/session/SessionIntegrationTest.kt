@@ -4,7 +4,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.Id
 import app.aaps.pump.omnipod.common.bledriver.comm.Ids
 import app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.EnDecrypt
 import app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.Nonce
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleConfirmSuccess
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeCmdBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeDataBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageIO
@@ -145,7 +145,7 @@ class SessionIntegrationTest {
 
         @Test
         fun `send fails with sending error on all retries`() {
-            cmdBleIO.sendResult = app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendErrorSending("fail")
+            cmdBleIO.sendResult = app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendErrorSending("fail")
             val result = session.sendCommand(createGetStatusCommand())
             assertThat(result).isInstanceOf(CommandSendErrorSending::class.java)
         }
@@ -217,9 +217,9 @@ class SessionIntegrationTest {
             // receiveMessage needs CTS + SUCCESS sends to succeed,
             // then sendMessage (ACK) needs RTS send to fail
             cmdBleIO.programSendResults(
-                app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendSuccess,   // CTS in receiveMessage
-                app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendSuccess,   // SUCCESS in receiveMessage
-                app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendErrorSending("ACK fail") // RTS in sendMessage
+                app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendSuccess,   // CTS in receiveMessage
+                app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendSuccess,   // SUCCESS in receiveMessage
+                app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendErrorSending("ACK fail") // RTS in sendMessage
             )
 
             val result = session.readAndAckResponse()

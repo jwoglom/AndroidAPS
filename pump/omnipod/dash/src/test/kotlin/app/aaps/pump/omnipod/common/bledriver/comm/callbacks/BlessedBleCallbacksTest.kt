@@ -1,15 +1,15 @@
 package app.aaps.pump.omnipod.common.bledriver.comm.callbacks
 
 import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandRTS
-import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.BleCharacteristicIO
-import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.CmdBleIO
-import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.DataBleIO
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleConfirmError
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleConfirmIncorrectData
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleConfirmSuccess
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendErrorConfirming
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendErrorSending
-import app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendSuccess
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleCharacteristicIO
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.CmdBleIO
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.DataBleIO
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmError
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmIncorrectData
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmSuccess
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendErrorConfirming
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendErrorSending
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeCmdBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.FakeDataBleIO
 import com.google.common.truth.Truth.assertThat

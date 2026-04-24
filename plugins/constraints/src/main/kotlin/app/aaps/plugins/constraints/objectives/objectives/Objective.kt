@@ -1,9 +1,6 @@
 package app.aaps.plugins.constraints.objectives.objectives
 
 import android.content.Context
-import android.text.util.Linkify
-import android.widget.CheckBox
-import android.widget.TextView
 import androidx.annotation.StringRes
 import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -23,6 +20,7 @@ abstract class Objective(
     @StringRes val objective: Int,
     @StringRes val gate: Int
 ) {
+
     var startedOn: Long = 0
         get() = preferences.get(ObjectivesLongComposedKey.Started, spName)
         set(value) {
@@ -116,7 +114,7 @@ abstract class Objective(
         }
     }
 
-    inner class UITask internal constructor(objective: Objective, @StringRes task: Int, private val spIdentifier: String, val code: (context: Context, task: UITask, callback: Runnable) -> Unit) : Task(objective, task) {
+    inner class UITask internal constructor(objective: Objective, @StringRes task: Int, private val spIdentifier: String, val code: (context: Context, task: UITask, callback: Runnable, showMessage: (String) -> Unit) -> Unit) : Task(objective, task) {
 
         var answered: Boolean = false
             set(value) {
@@ -160,34 +158,9 @@ abstract class Objective(
         }
     }
 
-    inner class Option internal constructor(@StringRes var option: Int, var isCorrect: Boolean) {
+    class Option internal constructor(@StringRes var option: Int, var isCorrect: Boolean)
 
-        private var cb: CheckBox? = null // TODO: change it, this will block releasing memory
+    class Hint internal constructor(@StringRes var hint: Int)
 
-        fun generate(context: Context): CheckBox {
-            cb = CheckBox(context)
-            cb?.setText(option)
-            return cb!!
-        }
-
-        fun evaluate(): Boolean {
-            val selection = cb!!.isChecked
-            return if (selection && isCorrect) true else !selection && !isCorrect
-        }
-    }
-
-    inner class Hint internal constructor(@StringRes var hint: Int) {
-
-        fun generate(context: Context): TextView {
-            val textView = TextView(context)
-            textView.setText(hint)
-            textView.autoLinkMask = Linkify.WEB_URLS
-            textView.linksClickable = true
-            textView.setLinkTextColor(rh.gac(context, com.google.android.material.R.attr.colorSecondary))
-            Linkify.addLinks(textView, Linkify.WEB_URLS)
-            return textView
-        }
-    }
-
-    inner class Learned internal constructor(@StringRes var learned: Int)
+    class Learned internal constructor(@StringRes var learned: Int)
 }
