@@ -33,6 +33,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.session.Session
 import app.aaps.pump.omnipod.common.bledriver.comm.session.SessionEstablisher
 import app.aaps.pump.omnipod.common.bledriver.comm.session.SessionKeys
 import app.aaps.pump.omnipod.common.bledriver.comm.session.SessionNegotiationResynchronization
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import app.aaps.pump.omnipod.common.bledriver.pod.state.OmnipodDashPodStateManager
 import java.util.concurrent.CountDownLatch
 
@@ -64,37 +65,76 @@ class Connection(
         _connectionWaitCond = connectionWaitCond
         podState.connectionAttempts++
         podState.bluetoothConnectionState = OmnipodDashPodStateManager.BluetoothConnectionState.CONNECTING
-        val autoConnect = false
-        var gatt = gattConnection
-        if (gatt == null) {
-            gatt = podDevice.connectGatt(context, autoConnect, bleCommCallbacks, BluetoothDevice.TRANSPORT_LE)
-            if (gatt == null) {
-                Thread.sleep(SLEEP_WHEN_FAILING_TO_CONNECT_GATT) // Do not retry too often
-                throw FailedToConnectException("connectGatt() returned null")
-            }
-            gattConnection = gatt
-        } else if (!gatt.connect()) {
-            throw FailedToConnectException("connect() returned false")
-        }
-        val before = SystemClock.elapsedRealtime()
-        if (waitForConnection(connectionWaitCond) !is Connected) {
-            podState.bluetoothConnectionState = OmnipodDashPodStateManager.BluetoothConnectionState.DISCONNECTED
-            _connectionWaitCond = null
-            throw FailedToConnectException(podDevice.address)
-        }
-        val waitedMs = SystemClock.elapsedRealtime() - before
-        val timeoutMs = connectionWaitCond.timeoutMs
-        if (timeoutMs != null) {
-            var newTimeout = timeoutMs - waitedMs
-            if (newTimeout < MIN_DISCOVERY_TIMEOUT_MS) {
-                newTimeout = MIN_DISCOVERY_TIMEOUT_MS
-            }
-            connectionWaitCond.timeoutMs = newTimeout
-        }
-        podState.bluetoothConnectionState = OmnipodDashPodStateManager.BluetoothConnectionState.CONNECTED
 
-        val discoverer = ServiceDiscoverer(aapsLogger, gatt, bleCommCallbacks, this)
-        val discovered = discoverer.discoverServices(connectionWaitCond)
+        DashMetrics.setLifecycle("connect")
+        val tConnectStart = System.nanoTime()
+        var connectOutcome: String? = null
+        var connectHciStatus: Int? = null
+        try {
+            val autoConnect = false
+            var gatt = gattConnection
+            if (gatt == null) {
+                gatt = podDevice.connectGatt(context, autoConnect, bleCommCallbacks, BluetoothDevice.TRANSPORT_LE)
+                if (gatt == null) {
+                    connectOutcome = "failed"
+                    Thread.sleep(SLEEP_WHEN_FAILING_TO_CONNECT_GATT) // Do not retry too often
+                    throw FailedToConnectException("connectGatt() returned null")
+                }
+                gattConnection = gatt
+            } else if (!gatt.connect()) {
+                connectOutcome = "failed"
+                throw FailedToConnectException("connect() returned false")
+            }
+            val before = SystemClock.elapsedRealtime()
+            if (waitForConnection(connectionWaitCond) !is Connected) {
+                connectOutcome = "timeout"
+                connectHciStatus = bleCommCallbacks.lastConnectionStatus?.takeIf { it != android.bluetooth.BluetoothGatt.GATT_SUCCESS }
+                podState.bluetoothConnectionState = OmnipodDashPodStateManager.BluetoothConnectionState.DISCONNECTED
+                _connectionWaitCond = null
+                throw FailedToConnectException(podDevice.address)
+            }
+            connectOutcome = "success"
+            val waitedMs = SystemClock.elapsedRealtime() - before
+            val timeoutMs = connectionWaitCond.timeoutMs
+            if (timeoutMs != null) {
+                var newTimeout = timeoutMs - waitedMs
+                if (newTimeout < MIN_DISCOVERY_TIMEOUT_MS) {
+                    newTimeout = MIN_DISCOVERY_TIMEOUT_MS
+                }
+                connectionWaitCond.timeoutMs = newTimeout
+            }
+            podState.bluetoothConnectionState = OmnipodDashPodStateManager.BluetoothConnectionState.CONNECTED
+        } finally {
+            DashMetrics.connectPhase(
+                durationMs = (System.nanoTime() - tConnectStart) / 1_000_000L,
+                outcome = connectOutcome ?: "failed",
+                hciStatusCode = connectHciStatus
+            )
+        }
+
+        DashMetrics.setLifecycle("discover")
+        val tDiscoverStart = System.nanoTime()
+        var discoverOutcome: String = "in_progress"
+        val discoverer = ServiceDiscoverer(aapsLogger, gattConnection!!, bleCommCallbacks, this)
+        val discovered = try {
+            val map = discoverer.discoverServices(connectionWaitCond)
+            discoverOutcome = if (map.containsKey(CharacteristicType.CMD) && map.containsKey(CharacteristicType.DATA)) "success"
+            else "characteristic_missing"
+            map
+        } catch (ex: Throwable) {
+            discoverOutcome = if (bleCommCallbacks.lastServicesDiscoveredStatus == null) "timeout" else "characteristic_missing"
+            throw ex
+        } finally {
+            val servicesCount = gattConnection?.services?.size ?: 0
+            DashMetrics.discoverPhase(
+                durationMs = (System.nanoTime() - tDiscoverStart) / 1_000_000L,
+                outcome = discoverOutcome,
+                servicesCount = servicesCount,
+                cmdCharFound = discoverOutcome == "success",
+                dataCharFound = discoverOutcome == "success"
+            )
+        }
+        val gatt = gattConnection!!
         val cmdBleIO = CmdBleIO(
             aapsLogger,
             discovered.getValue(CharacteristicType.CMD),
@@ -198,6 +238,20 @@ class Connection(
     // This will be called from a different thread !!!
     override fun onConnectionLost(status: Int) {
         aapsLogger.info(LTag.PUMPBTCOMM, "Lost connection with status: $status")
+        if (status != android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+            DashMetrics.unexpectedDisconnect(
+                hciStatus = status,
+                whereInLifecycle = null,
+                commandInFlight = null
+            )
+            DashMetrics.sessionEnd(
+                endReason = "unexpected_disconnect",
+                hciStatusAtDisconnect = status,
+                successfulConnections = podState.successfulConnections,
+                connectionAttempts = podState.connectionAttempts,
+                eapAkaSequenceNumber = podState.eapAkaSequenceNumber
+            )
+        }
         // Check if waiting for connection, if so, stop waiting
         _connectionWaitCond?.stopConnection?.let {
             if (it.count > 0) {
