@@ -208,27 +208,57 @@ class OmnipodDashBleManagerImpl @Inject constructor(
         }
 
     private fun establishSession(msgSeq: Byte) {
-        val conn = assertConnected()
+        DashMetrics.setLifecycle("session_setup")
+        val tStart = System.nanoTime()
+        var resyncCount = 0
+        var outcome: String = "success"
+        try {
+            val conn = assertConnected()
 
-        val ltk = assertPaired()
+            val ltk = assertPaired()
 
-        val eapSqn = podState.increaseEapAkaSequenceNumber()
+            val eapSqn = podState.increaseEapAkaSequenceNumber()
 
-        var newSqn = conn.establishSession(ltk, msgSeq, ids, eapSqn)
+            var newSqn = conn.establishSession(ltk, msgSeq, ids, eapSqn)
 
-        if (newSqn != null) {
-            DashMetrics.eapResync("first", EapSqn(eapSqn).toLong(), newSqn.toLong())
-            aapsLogger.info(LTag.PUMPBTCOMM, "Updating EAP SQN to: $newSqn")
-            podState.eapAkaSequenceNumber = newSqn.toLong()
-            val secondSqn = podState.increaseEapAkaSequenceNumber()
-            newSqn = conn.establishSession(ltk, msgSeq, ids, secondSqn)
             if (newSqn != null) {
-                DashMetrics.eapResync("second", EapSqn(secondSqn).toLong(), newSqn.toLong())
-                throw SessionEstablishmentException("Received resynchronization SQN for the second time")
+                resyncCount++
+                DashMetrics.eapResync("first", EapSqn(eapSqn).toLong(), newSqn.toLong())
+                aapsLogger.info(LTag.PUMPBTCOMM, "Updating EAP SQN to: $newSqn")
+                podState.eapAkaSequenceNumber = newSqn.toLong()
+                val secondSqn = podState.increaseEapAkaSequenceNumber()
+                newSqn = conn.establishSession(ltk, msgSeq, ids, secondSqn)
+                if (newSqn != null) {
+                    resyncCount++
+                    DashMetrics.eapResync("second", EapSqn(secondSqn).toLong(), newSqn.toLong())
+                    outcome = "resync_twice"
+                    throw SessionEstablishmentException("Received resynchronization SQN for the second time")
+                }
+                outcome = "resync_once"
+            }
+            podState.successfulConnections++
+            podState.commitEapAkaSequenceNumber()
+        } catch (ex: SessionEstablishmentException) {
+            if (outcome == "success") {
+                outcome = classifyEapAkaError(ex.message)
+            }
+            throw ex
+        } finally {
+            val durationMs = (System.nanoTime() - tStart) / 1_000_000L
+            DashMetrics.eapAkaPhase(durationMs, outcome, resyncCount)
+            if (outcome == "success" || outcome == "resync_once") {
+                DashMetrics.sessionReady((System.nanoTime() - (SessionContextHolder.current()?.tStartMonoNs ?: System.nanoTime())) / 1_000_000L)
             }
         }
-        podState.successfulConnections++
-        podState.commitEapAkaSequenceNumber()
+    }
+
+    private fun classifyEapAkaError(message: String?): String = when {
+        message == null                              -> "timeout"
+        message.contains("RES mismatch")             -> "res_mismatch"
+        message.contains("MacS mismatch")            -> "macs_mismatch"
+        message.contains("incorrect EAP identifier") -> "identifier_mismatch"
+        message.contains("Could not")                -> "timeout"
+        else                                         -> "error"
     }
 
     private fun assertPaired(): ByteArray {

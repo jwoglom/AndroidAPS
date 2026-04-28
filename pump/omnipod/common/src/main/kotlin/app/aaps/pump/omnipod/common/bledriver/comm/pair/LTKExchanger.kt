@@ -12,6 +12,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageIO
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessagePacket
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageSendSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.message.StringLengthPrefixEncoding.Companion.parseKeys
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import app.aaps.pump.omnipod.common.bledriver.pod.util.RandomByteGenerator
 import app.aaps.pump.omnipod.common.bledriver.pod.util.X25519KeyGenerator
 
@@ -28,41 +29,80 @@ internal class LTKExchanger(
 
     @Throws(PairingException::class)
     fun negotiateLTK(): PairResult {
-        val sp1sp2 = PairMessage(
-            sequenceNumber = seq,
-            source = ids.myId,
-            destination = podAddress,
-            keys = arrayOf(SP1, SP2),
-            payloads = arrayOf(ids.podId.address, sp2())
-        )
-        throwOnSendError(sp1sp2.messagePacket, SP1 + SP2)
+        DashMetrics.setLifecycle("pairing")
+
+        val tSp1Start = System.nanoTime()
+        var sp1Outcome = "success"
+        try {
+            val sp1sp2 = PairMessage(
+                sequenceNumber = seq,
+                source = ids.myId,
+                destination = podAddress,
+                keys = arrayOf(SP1, SP2),
+                payloads = arrayOf(ids.podId.address, sp2())
+            )
+            throwOnSendError(sp1sp2.messagePacket, SP1 + SP2)
+        } catch (ex: Throwable) {
+            sp1Outcome = "send_error"
+            throw ex
+        } finally {
+            DashMetrics.pairingPhase("sp1", (System.nanoTime() - tSp1Start) / 1_000_000L, sp1Outcome)
+        }
 
         seq++
-        val sps1 = PairMessage(
-            sequenceNumber = seq,
-            source = ids.myId,
-            destination = podAddress,
-            keys = arrayOf(SPS1),
-            payloads = arrayOf(keyExchange.pdmPublic + keyExchange.pdmNonce)
-        )
-        throwOnSendError(sps1.messagePacket, SPS1)
+        val tSps1Start = System.nanoTime()
+        var sps1Outcome = "success"
+        val podSps1: MessagePacket
+        try {
+            val sps1 = PairMessage(
+                sequenceNumber = seq,
+                source = ids.myId,
+                destination = podAddress,
+                keys = arrayOf(SPS1),
+                payloads = arrayOf(keyExchange.pdmPublic + keyExchange.pdmNonce)
+            )
+            throwOnSendError(sps1.messagePacket, SPS1)
 
-        val podSps1 = msgIO.receiveMessage() ?: throw PairingException("Could not read SPS1")
-        processSps1FromPod(podSps1)
+            val received = msgIO.receiveMessage()
+            if (received == null) {
+                sps1Outcome = "no_response"
+                throw PairingException("Could not read SPS1")
+            }
+            podSps1 = received
+            processSps1FromPod(podSps1)
+        } catch (ex: Throwable) {
+            if (sps1Outcome == "success") sps1Outcome = "exception"
+            throw ex
+        } finally {
+            DashMetrics.pairingPhase("sps1", (System.nanoTime() - tSps1Start) / 1_000_000L, sps1Outcome)
+        }
         // now we have all the data to generate: confPod, confPdm, ltk and noncePrefix
 
         seq++
-        val sps2 = PairMessage(
-            sequenceNumber = seq,
-            source = ids.myId,
-            destination = podAddress,
-            keys = arrayOf(SPS2),
-            payloads = arrayOf(keyExchange.pdmConf)
-        )
-        throwOnSendError(sps2.messagePacket, SPS2)
+        val tSps2Start = System.nanoTime()
+        var sps2Outcome = "success"
+        try {
+            val sps2 = PairMessage(
+                sequenceNumber = seq,
+                source = ids.myId,
+                destination = podAddress,
+                keys = arrayOf(SPS2),
+                payloads = arrayOf(keyExchange.pdmConf)
+            )
+            throwOnSendError(sps2.messagePacket, SPS2)
 
-        val podSps2 = msgIO.receiveMessage() ?: throw PairingException("Could not read SPS2")
-        validatePodSps2(podSps2)
+            val podSps2 = msgIO.receiveMessage()
+            if (podSps2 == null) {
+                sps2Outcome = "no_response"
+                throw PairingException("Could not read SPS2")
+            }
+            validatePodSps2(podSps2)
+        } catch (ex: Throwable) {
+            if (sps2Outcome == "success") sps2Outcome = "exception"
+            throw ex
+        } finally {
+            DashMetrics.pairingPhase("sps2", (System.nanoTime() - tSps2Start) / 1_000_000L, sps2Outcome)
+        }
         // No exception throwing after this point. It is possible that the pod saved the LTK
 
         seq++
