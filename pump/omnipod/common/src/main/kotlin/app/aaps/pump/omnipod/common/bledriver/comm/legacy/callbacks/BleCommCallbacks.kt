@@ -11,6 +11,7 @@ import app.aaps.core.utils.toHex
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.CharacteristicType.Companion.byValue
 import app.aaps.pump.omnipod.common.bledriver.comm.legacy.io.IncomingPackets
 import app.aaps.pump.omnipod.common.bledriver.comm.session.DisconnectHandler
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import java.util.UUID
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.CountDownLatch
@@ -34,13 +35,25 @@ class BleCommCallbacks(
         @Synchronized set
     private val writeQueue: BlockingQueue<WriteConfirmation> = LinkedBlockingQueue()
 
+    @Volatile
+    var lastConnectionStatus: Int? = null
+        private set
+
+    @Volatile
+    var lastServicesDiscoveredStatus: Int? = null
+        private set
+
     override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
         aapsLogger.debug(LTag.PUMPBTCOMM, "OnConnectionStateChange with status/state: $status/$newState")
         super.onConnectionStateChange(gatt, status, newState)
+        lastConnectionStatus = status
         if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
             connected.countDown()
         }
         if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                DashMetrics.gattError("connect", status.toString(), null)
+            }
             // If status == SUCCESS, it means that we initiated the disconnect.
             disconnectHandler.onConnectionLost(status)
         }
@@ -49,6 +62,10 @@ class BleCommCallbacks(
     override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
         aapsLogger.debug(LTag.PUMPBTCOMM, "OnServicesDiscovered with status: $status")
         super.onServicesDiscovered(gatt, status)
+        lastServicesDiscoveredStatus = status
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            DashMetrics.gattError("discover", status.toString(), null)
+        }
         if (status == BluetoothGatt.GATT_SUCCESS) {
             serviceDiscoveryComplete.countDown()
         }
@@ -111,6 +128,9 @@ class BleCommCallbacks(
             "OnCharacteristicWrite with char/status ${characteristic.uuid} /$status"
         )
         super.onCharacteristicWrite(gatt, characteristic, status)
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            DashMetrics.gattError("write", status.toString(), charTypeNameOf(characteristic))
+        }
 
         onWrite(status, characteristic.uuid, characteristic.value)
     }
@@ -143,6 +163,9 @@ class BleCommCallbacks(
                 descriptor.uuid.toString() + "/" +
                 status + "/"
         )
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            DashMetrics.gattError("descriptor", status.toString(), charTypeNameOf(descriptor.characteristic))
+        }
 
         onWrite(status, descriptor.uuid, descriptor.value)
     }
@@ -203,6 +226,15 @@ class BleCommCallbacks(
         if (writeQueue.isNotEmpty()) {
             aapsLogger.warn(LTag.PUMPBTCOMM, "Write queue should be empty, found: ${writeQueue.size}")
             writeQueue.clear()
+        }
+    }
+
+    private fun charTypeNameOf(characteristic: BluetoothGattCharacteristic?): String? {
+        val uuidStr = characteristic?.uuid?.toString() ?: return null
+        return try {
+            byValue(uuidStr).name
+        } catch (_: IllegalArgumentException) {
+            null
         }
     }
 

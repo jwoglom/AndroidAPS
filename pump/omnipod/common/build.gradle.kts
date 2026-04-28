@@ -12,6 +12,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.org.slf4j.api)
     implementation(project(":core:data"))
     implementation(project(":core:interfaces"))
     implementation(project(":core:keys"))

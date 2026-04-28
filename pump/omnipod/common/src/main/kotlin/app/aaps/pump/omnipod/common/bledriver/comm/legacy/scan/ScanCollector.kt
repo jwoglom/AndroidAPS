@@ -14,6 +14,13 @@ class ScanCollector(private val logger: AAPSLogger, private val podID: Long) : S
     private val found: ConcurrentHashMap<String, ScanResult> = ConcurrentHashMap()
     private var scanFailed = 0
 
+    @Volatile
+    var lastScanFailureCode: Int? = null
+        private set
+
+    val candidatesFound: Int get() = found.size
+
+
     override fun onScanResult(callbackType: Int, result: ScanResult) {
         // callbackType will be ALL
         logger.debug(LTag.PUMPBTCOMM, "Scan found: $result")
@@ -21,6 +28,7 @@ class ScanCollector(private val logger: AAPSLogger, private val podID: Long) : S
     }
 
     override fun onScanFailed(errorCode: Int) {
+        lastScanFailureCode = errorCode
         logger.warn(LTag.PUMPBTCOMM, "Scan failed with errorCode: $errorCode")
         super.onScanFailed(errorCode)
     }

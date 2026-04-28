@@ -19,6 +19,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandRTS
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.TimeUnit
 
@@ -38,6 +39,7 @@ open class BleIO(
         return try {
             val packet = incomingPackets.poll(timeoutMs, TimeUnit.MILLISECONDS)
             if (packet == null) {
+                DashMetrics.bleReadTimeout(type.name, timeoutMs)
                 aapsLogger.debug(LTag.PUMPBTCOMM, "Timeout reading $type packet")
             }
             packet
@@ -53,13 +55,18 @@ open class BleIO(
     @Suppress("ReturnCount", "DEPRECATION")
     override fun sendAndConfirmPacket(payload: ByteArray): BleSendResult {
         aapsLogger.debug(LTag.PUMPBTCOMM, "BleIO: Sending on $type: ${payload.toHex()}")
+        val tStart = System.nanoTime()
         val set = characteristic.setValue(payload)
         if (!set) {
+            DashMetrics.bleWrite(type.name, 0, "setValue_returned_false")
+            DashMetrics.gattError("write", "setValue_returned_false", type.name)
             return BleSendErrorSending("Could set setValue on $type")
         }
         bleCommCallbacks.flushConfirmationQueue()
         val sent = gatt.writeCharacteristic(characteristic)
         if (!sent) {
+            DashMetrics.bleWrite(type.name, 0, "writeCharacteristic_returned_false")
+            DashMetrics.gattError("write", "writeCharacteristic_returned_false", type.name)
             return BleSendErrorSending("Could not writeCharacteristic on $type")
         }
 
@@ -70,11 +77,15 @@ open class BleIO(
                 DEFAULT_IO_TIMEOUT_MS
             )
         ) {
-            is WriteConfirmationError   ->
+            is WriteConfirmationError   -> {
+                DashMetrics.bleWrite(type.name, (System.nanoTime() - tStart) / 1_000_000L, "confirm_error")
                 BleSendErrorConfirming(confirmation.msg)
+            }
 
-            is WriteConfirmationSuccess ->
+            is WriteConfirmationSuccess -> {
+                DashMetrics.bleWrite(type.name, (System.nanoTime() - tStart) / 1_000_000L, null)
                 BleSendSuccess
+            }
         }
     }
 
