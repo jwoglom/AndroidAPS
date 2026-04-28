@@ -21,6 +21,23 @@
         </encoder>
     </appender>
 
+    <!-- Dash BLE driver metrics: one JSON object per line, dedicated file -->
+    <appender name="dash-metrics-file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${EXT_FILES_DIR}/AndroidAPS-dash-metrics.jsonl</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${EXT_FILES_DIR}/AndroidAPS-dash-metrics._%d{yyyy-MM-dd}_%d{HH-mm-ss, aux}_.%i.jsonl.zip
+            </fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy
+                class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>5MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>120</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
     <appender name="logcat" class="ch.qos.logback.classic.android.LogcatAppender">
         <tagEncoder>
             <pattern>%logger{0}</pattern>
@@ -29,6 +46,12 @@
             <pattern>[%thread]: %msg%n</pattern>
         </encoder>
     </appender>
+
+    <!-- Route the dedicated dash-metrics logger only to its own appender; additivity=false
+         prevents double-write into the standard file/logcat appenders. -->
+    <logger name="dash-metrics" level="INFO" additivity="false">
+        <appender-ref ref="dash-metrics-file" />
+    </logger>
 
     <!-- Write INFO (and higher-level) messages to the log file -->
     <root level="DEBUG">

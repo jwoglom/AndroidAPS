@@ -7,6 +7,7 @@ import app.aaps.core.utils.toHex
 import app.aaps.pump.omnipod.common.bledriver.comm.io.CharacteristicType
 import app.aaps.pump.omnipod.common.bledriver.comm.io.CharacteristicType.Companion.byValue
 import app.aaps.pump.omnipod.common.bledriver.comm.io.IncomingPackets
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.BluetoothPeripheralCallback
 import com.welie.blessed.GattStatus
@@ -51,7 +52,10 @@ class BlessedBleCallbacks(
         characteristic: android.bluetooth.BluetoothGattCharacteristic,
         status: GattStatus
     ) {
-        if (status != GattStatus.SUCCESS) return
+        if (status != GattStatus.SUCCESS) {
+            DashMetrics.gattError("notify", status.name, runCatching { byValue(characteristic.uuid.toString()).name }.getOrNull())
+            return
+        }
         val characteristicType = try {
             byValue(characteristic.uuid.toString())
         } catch (e: IllegalArgumentException) {
@@ -68,6 +72,9 @@ class BlessedBleCallbacks(
         characteristic: android.bluetooth.BluetoothGattCharacteristic,
         status: GattStatus
     ) {
+        if (status != GattStatus.SUCCESS) {
+            DashMetrics.gattError("write", status.name, runCatching { byValue(characteristic.uuid.toString()).name }.getOrNull())
+        }
         onWrite(status, characteristic.uuid.toString(), value)
     }
 
@@ -77,6 +84,9 @@ class BlessedBleCallbacks(
         descriptor: BluetoothGattDescriptor,
         status: GattStatus
     ) {
+        if (status != GattStatus.SUCCESS) {
+            DashMetrics.gattError("descriptor", status.name, null)
+        }
         onWrite(status, descriptor.uuid.toString(), value)
     }
 

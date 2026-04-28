@@ -14,6 +14,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageSendSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageType
 import app.aaps.pump.omnipod.common.bledriver.comm.message.StringLengthPrefixEncoding
 import app.aaps.pump.omnipod.common.bledriver.comm.message.StringLengthPrefixEncoding.Companion.parseKeys
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import app.aaps.pump.omnipod.common.bledriver.pod.command.base.Command
 import app.aaps.pump.omnipod.common.bledriver.pod.response.Response
 
@@ -43,13 +44,17 @@ class Session(
 
         val msg = getCmdMessage(cmd)
         for (i in 0..MAX_TRIES) {
+            if (i > 0) DashMetrics.commandSendRetry(retryIndex = i, priorResultKind = "MessageSendErrorSending")
             aapsLogger.debug(LTag.PUMPBTCOMM, "Sending command(wrapped): ${msg.payload.toHex()}")
 
             when (val sendResult = msgIO.sendMessage(msg)) {
-                is MessageSendSuccess         ->
+                is MessageSendSuccess         -> {
+                    DashMetrics.rememberSendRetries(i)
                     return CommandSendSuccess
+                }
 
                 is MessageSendErrorConfirming -> {
+                    DashMetrics.rememberSendRetries(i)
                     aapsLogger.debug(LTag.PUMPBTCOMM, "Error confirming command: $sendResult")
                     return CommandSendErrorConfirming(sendResult.msg)
                 }
@@ -59,6 +64,7 @@ class Session(
             }
         }
 
+        DashMetrics.rememberSendRetries(MAX_TRIES)
         val errMsg = "Maximum number of tries reached. Could not send command"
         return CommandSendErrorSending(errMsg)
     }

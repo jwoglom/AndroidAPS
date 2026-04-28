@@ -20,6 +20,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.CmdBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.DataBleIO
 import app.aaps.pump.omnipod.common.bledriver.comm.io.IncomingPackets
 import app.aaps.pump.omnipod.common.bledriver.comm.message.MessageIO
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import app.aaps.pump.omnipod.common.bledriver.pod.state.OmnipodDashPodStateManager
 import com.welie.blessed.BluetoothCentralManager
 import com.welie.blessed.BluetoothCentralManagerCallback
@@ -50,6 +51,8 @@ class BlessedConnection(
     private var connectionSucceeded = false
     private val connectionStateRef = AtomicReference<ConnectionState>(NotConnected)
 
+    @Volatile var lastConnectFailHci: Int? = null
+
     private var _connectionWaitCond: ConnectionWaitCondition? = null
 
     @Volatile
@@ -79,6 +82,7 @@ class BlessedConnection(
 
             override fun onConnectionFailed(peripheral: BluetoothPeripheral, status: HciStatus) {
                 aapsLogger.warn(LTag.PUMPBTCOMM, "Blessed onConnectionFailed: $status")
+                lastConnectFailHci = status.value
                 connectionStateRef.set(NotConnected)
                 connectionLatch.countDown()
             }
@@ -100,33 +104,70 @@ class BlessedConnection(
                 null
             }
 
+        DashMetrics.setLifecycle("connect")
+        val tConnectStart = System.nanoTime()
         if (peripheralOrNull != null) {
             manager.connect(peripheralOrNull, blessedCallbacks)
             val connected = waitForConnection(connectionLatch, connectionWaitCond)
             if (!connected || !connectionSucceeded) {
+                val durationMs = (System.nanoTime() - tConnectStart) / 1_000_000L
+                DashMetrics.connectPhase(
+                    durationMs = durationMs,
+                    outcome = if (!connected) "timeout" else "failed",
+                    hciStatusCode = lastConnectFailHci
+                )
                 manager.cancelConnection(peripheralOrNull)
                 podState.bluetoothConnectionState = OmnipodDashPodStateManager.BluetoothConnectionState.DISCONNECTED
                 _connectionWaitCond = null
                 throw FailedToConnectException(podAddress)
             }
+            val durationMs = (System.nanoTime() - tConnectStart) / 1_000_000L
+            DashMetrics.connectPhase(
+                durationMs = durationMs,
+                outcome = "success",
+                hciStatusCode = null
+            )
         } else {
+            val durationMs = (System.nanoTime() - tConnectStart) / 1_000_000L
+            DashMetrics.connectPhase(
+                durationMs = durationMs,
+                outcome = "peripheral_null",
+                hciStatusCode = null
+            )
             throw FailedToConnectException("Could not get peripheral for $podAddress")
         }
 
         peripheral = peripheralOrNull
         podState.bluetoothConnectionState = OmnipodDashPodStateManager.BluetoothConnectionState.CONNECTED
 
+        DashMetrics.setLifecycle("discover")
+        val tDiscoverStart = System.nanoTime()
         val discoveryTimeout = connectionWaitCond.timeoutMs?.let { it - 2000 } ?: MIN_DISCOVERY_TIMEOUT_MS
-        if (!blessedCallbacks.waitForServiceDiscovery(maxOf(discoveryTimeout, MIN_DISCOVERY_TIMEOUT_MS))) {
+        val discovered = blessedCallbacks.waitForServiceDiscovery(maxOf(discoveryTimeout, MIN_DISCOVERY_TIMEOUT_MS))
+        if (!discovered) {
+            DashMetrics.discoverPhase(
+                durationMs = (System.nanoTime() - tDiscoverStart) / 1_000_000L,
+                outcome = "timeout",
+                servicesCount = peripheralOrNull.services.size,
+                cmdCharFound = null,
+                dataCharFound = null
+            )
             disconnect(true)
             throw FailedToConnectException("Service discovery timeout")
         }
 
         val serviceUuid = UUID.fromString("1a7e4024-e3ed-4464-8b7e-751e03d0dc5f")
-        val cmdChar = peripheralOrNull.getCharacteristic(serviceUuid, CharacteristicType.CMD.uuid)
-            ?: throw ConnectException("CMD characteristic not found")
-        val dataChar = peripheralOrNull.getCharacteristic(serviceUuid, CharacteristicType.DATA.uuid)
-            ?: throw ConnectException("DATA characteristic not found")
+        val cmdCharOrNull = peripheralOrNull.getCharacteristic(serviceUuid, CharacteristicType.CMD.uuid)
+        val dataCharOrNull = peripheralOrNull.getCharacteristic(serviceUuid, CharacteristicType.DATA.uuid)
+        DashMetrics.discoverPhase(
+            durationMs = (System.nanoTime() - tDiscoverStart) / 1_000_000L,
+            outcome = if (cmdCharOrNull != null && dataCharOrNull != null) "success" else "characteristic_missing",
+            servicesCount = peripheralOrNull.services.size,
+            cmdCharFound = cmdCharOrNull != null,
+            dataCharFound = dataCharOrNull != null
+        )
+        val cmdChar = cmdCharOrNull ?: throw ConnectException("CMD characteristic not found")
+        val dataChar = dataCharOrNull ?: throw ConnectException("DATA characteristic not found")
 
         val cmdBleIO: CmdBleIO = BlessedCmdBleIO(
             aapsLogger,
@@ -228,6 +269,18 @@ class BlessedConnection(
 
     override fun onConnectionLost(status: Int) {
         aapsLogger.info(LTag.PUMPBTCOMM, "Blessed connection lost with status: $status")
+        DashMetrics.unexpectedDisconnect(
+            hciStatus = status,
+            whereInLifecycle = null,
+            commandInFlight = null
+        )
+        DashMetrics.sessionEnd(
+            endReason = "unexpected_disconnect",
+            hciStatusAtDisconnect = status,
+            successfulConnections = podState.successfulConnections,
+            connectionAttempts = podState.connectionAttempts,
+            eapAkaSequenceNumber = podState.eapAkaSequenceNumber
+        )
         _connectionWaitCond?.stopConnection?.let {
             if (it.count > 0) it.countDown()
         }
