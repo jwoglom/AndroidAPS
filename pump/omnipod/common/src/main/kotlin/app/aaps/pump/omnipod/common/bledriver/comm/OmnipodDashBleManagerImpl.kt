@@ -34,9 +34,12 @@ import app.aaps.pump.omnipod.common.bledriver.comm.session.BlessedBondingHelper
 import app.aaps.pump.omnipod.common.bledriver.comm.session.BlessedConnection
 import app.aaps.pump.omnipod.common.bledriver.comm.session.ConnectionState
 import app.aaps.pump.omnipod.common.bledriver.comm.session.ConnectionWaitCondition
+import app.aaps.pump.omnipod.common.bledriver.comm.session.EapSqn
 import app.aaps.pump.omnipod.common.bledriver.comm.session.NotConnected
 import app.aaps.pump.omnipod.common.bledriver.comm.session.Session
 import app.aaps.pump.omnipod.common.bledriver.event.PodEvent
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
+import app.aaps.pump.omnipod.common.bledriver.metrics.SessionContextHolder
 import app.aaps.pump.omnipod.common.bledriver.pod.command.base.Command
 import app.aaps.pump.omnipod.common.bledriver.pod.response.Response
 import app.aaps.pump.omnipod.common.bledriver.pod.state.OmnipodDashPodStateManager
@@ -71,6 +74,11 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                 val session = assertSessionEstablished()
 
                 emitter.onNext(PodEvent.CommandSending(cmd))
+                DashMetrics.commandAttempt(
+                    commandType = cmd.commandType.name,
+                    seq = cmd.sequenceNumber.toInt(),
+                    expectedResponseType = responseType.simpleName
+                )
                 /*
                     if (Random.nextBoolean()) {
                         // XXX use this to test "failed to confirm" commands
@@ -81,6 +89,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
     */
                 when (session.sendCommand(cmd)) {
                     is CommandSendErrorSending -> {
+                        DashMetrics.commandResult("send_error_sending")
                         emitter.tryOnError(CouldNotSendCommandException())
                         return@create
                     }
@@ -91,6 +100,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                     is CommandSendErrorConfirming ->
                         emitter.onNext(PodEvent.CommandSendNotConfirmed(cmd))
                 }
+                DashMetrics.commandSendDone()
                 /*
                 if (Random.nextBoolean()) {
                     // XXX use this commands confirmed with success
@@ -98,19 +108,28 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                     return@create
                 }*/
                 when (val readResult = session.readAndAckResponse()) {
-                    is CommandReceiveSuccess ->
+                    is CommandReceiveSuccess -> {
+                        DashMetrics.commandResult("ok")
                         emitter.onNext(PodEvent.ResponseReceived(cmd, readResult.result))
+                    }
 
-                    is CommandAckError       ->
+                    is CommandAckError       -> {
+                        DashMetrics.commandResult("ack_error")
                         emitter.onNext(PodEvent.ResponseReceived(cmd, readResult.result))
+                    }
 
                     is CommandReceiveError   -> {
+                        DashMetrics.commandResult("receive_error")
                         emitter.tryOnError(MessageIOException("Could not read response: $readResult"))
                         return@create
                     }
                 }
                 emitter.onComplete()
             } catch (ex: Exception) {
+                if (SessionContextHolder.current()?.commandInFlight != null) {
+                    DashMetrics.commandResult("exception")
+                }
+                endMetricsSession("error_recovery")
                 disconnect(false)
                 emitter.tryOnError(ex)
             } finally {
@@ -148,6 +167,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                 throw BusyException()
             }
             try {
+                startMetricsSession("connect")
                 emitter.onNext(PodEvent.BluetoothConnecting)
 
                 val podAddress =
@@ -165,6 +185,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                 connection = conn
                 if (conn.connectionState() is Connected && conn.session != null) {
                     emitter.onNext(PodEvent.AlreadyConnected(podAddress))
+                    endMetricsSession("already_connected")
                     emitter.onComplete()
                     return@create
                 }
@@ -178,6 +199,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
 
                 emitter.onComplete()
             } catch (ex: Exception) {
+                endMetricsSession("error_recovery")
                 disconnect(false)
                 emitter.tryOnError(ex)
             } finally {
@@ -195,10 +217,13 @@ class OmnipodDashBleManagerImpl @Inject constructor(
         var newSqn = conn.establishSession(ltk, msgSeq, ids, eapSqn)
 
         if (newSqn != null) {
+            DashMetrics.eapResync("first", EapSqn(eapSqn).toLong(), newSqn.toLong())
             aapsLogger.info(LTag.PUMPBTCOMM, "Updating EAP SQN to: $newSqn")
             podState.eapAkaSequenceNumber = newSqn.toLong()
-            newSqn = conn.establishSession(ltk, msgSeq, ids, podState.increaseEapAkaSequenceNumber())
+            val secondSqn = podState.increaseEapAkaSequenceNumber()
+            newSqn = conn.establishSession(ltk, msgSeq, ids, secondSqn)
             if (newSqn != null) {
+                DashMetrics.eapResync("second", EapSqn(secondSqn).toLong(), newSqn.toLong())
                 throw SessionEstablishmentException("Received resynchronization SQN for the second time")
             }
         }
@@ -226,6 +251,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                 emitter.onComplete()
                 return@create
             }
+            startMetricsSession("pair")
             aapsLogger.info(LTag.PUMPBTCOMM, "Starting new pod activation")
 
             emitter.onNext(PodEvent.Scanning)
@@ -263,6 +289,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
             emitter.onNext(PodEvent.Connected)
             emitter.onComplete()
         } catch (ex: Exception) {
+            endMetricsSession("error_recovery")
             disconnect(false)
             emitter.tryOnError(ex)
         } finally {
@@ -271,8 +298,43 @@ class OmnipodDashBleManagerImpl @Inject constructor(
     }
 
     override fun disconnect(closeGatt: Boolean) {
+        DashMetrics.explicitDisconnect("external_request", closeGatt)
+        endMetricsSession("clean_finish")
         connection?.disconnect(closeGatt)
             ?: aapsLogger.info(LTag.PUMPBTCOMM, "Trying to disconnect a null connection")
+    }
+
+    private fun startMetricsSession(reason: String) {
+        val now = System.currentTimeMillis()
+        val priorSecs = SessionContextHolder.lastSessionEndEpochMs?.let { (now - it) / 1000L }
+        val podAgeMin = podState.activationTime?.let { (now - it) / 60_000L }
+        val battery = try {
+            val bm = context.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager?
+            bm?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        } catch (_: Throwable) {
+            null
+        }
+        DashMetrics.sessionStart(
+            reason = reason,
+            priorSecondsSinceLastSession = priorSecs,
+            btAdapterEnabled = bluetoothAdapter?.isEnabled,
+            priorSessionOutcome = SessionContextHolder.lastSessionEndReason,
+            podAgeMinutes = podAgeMin,
+            batteryLevelPct = battery?.takeIf { it in 0..100 },
+            appState = null,
+            podUniqueIdAtStart = podState.uniqueId,
+            bluetoothAddressAtStart = podState.bluetoothAddress
+        )
+    }
+
+    private fun endMetricsSession(reason: String, hciStatus: Int? = null) {
+        DashMetrics.sessionEnd(
+            endReason = reason,
+            hciStatusAtDisconnect = hciStatus,
+            successfulConnections = podState.successfulConnections,
+            connectionAttempts = podState.connectionAttempts,
+            eapAkaSequenceNumber = podState.eapAkaSequenceNumber
+        )
     }
 
     override fun removeBond() {
