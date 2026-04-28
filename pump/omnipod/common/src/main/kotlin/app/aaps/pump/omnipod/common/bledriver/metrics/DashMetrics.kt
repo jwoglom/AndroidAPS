@@ -1,0 +1,367 @@
+package app.aaps.pump.omnipod.common.bledriver.metrics
+
+object DashMetrics {
+
+    fun sessionStart(
+        reason: String,
+        priorSecondsSinceLastSession: Long?,
+        btAdapterEnabled: Boolean?,
+        priorSessionOutcome: String?,
+        podAgeMinutes: Long?,
+        batteryLevelPct: Int?,
+        appState: String?,
+        podUniqueIdAtStart: Long?,
+        bluetoothAddressAtStart: String?
+    ): SessionContext? {
+        if (!MetricsConfig.METRICS_ENABLED) return null
+        val ctx = SessionContext()
+        ctx.fillPodHashIfMissing(podUniqueIdAtStart)
+        ctx.fillMacHashIfMissing(bluetoothAddressAtStart)
+        ctx.lifecycle = "starting"
+        SessionContextHolder.set(ctx)
+        val e = base(ctx, "session_start")
+        e["reason"] = reason
+        e["prior_seconds_since_last_session"] = priorSecondsSinceLastSession
+        e["bt_adapter_enabled"] = btAdapterEnabled
+        e["prior_session_outcome"] = priorSessionOutcome
+        e["pod_age_minutes"] = podAgeMinutes
+        e["battery_level_pct"] = batteryLevelPct
+        e["app_state"] = appState
+        MetricsWriter.write(e)
+        return ctx
+    }
+
+    fun scanPhase(
+        durationMs: Long,
+        candidatesFound: Int,
+        foundPodRssi: Int?,
+        scanFailureReason: String?
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "scan_phase")
+        e["duration_ms"] = durationMs
+        e["candidates_found"] = candidatesFound
+        e["found_pod_rssi"] = foundPodRssi
+        e["scan_failure_reason"] = scanFailureReason
+        MetricsWriter.write(e)
+    }
+
+    fun bondPhase(
+        priorBondState: String?,
+        durationMs: Long,
+        outcome: String,
+        useBondingPref: Boolean
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "bond_phase")
+        e["prior_bond_state"] = priorBondState
+        e["duration_ms"] = durationMs
+        e["outcome"] = outcome
+        e["use_bonding_pref"] = useBondingPref
+        MetricsWriter.write(e)
+    }
+
+    fun connectPhase(
+        durationMs: Long,
+        outcome: String,
+        hciStatusCode: Int?
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "connect_phase")
+        e["duration_ms"] = durationMs
+        e["outcome"] = outcome
+        e["hci_status_code"] = hciStatusCode
+        e["hci_status_name"] = hciStatusCode?.let { HciStatusNames.lookup(it) }
+        MetricsWriter.write(e)
+    }
+
+    fun discoverPhase(
+        durationMs: Long,
+        outcome: String,
+        servicesCount: Int?,
+        cmdCharFound: Boolean?,
+        dataCharFound: Boolean?
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "discover_phase")
+        e["duration_ms"] = durationMs
+        e["outcome"] = outcome
+        e["services_count"] = servicesCount
+        e["cmd_char_found"] = cmdCharFound
+        e["data_char_found"] = dataCharFound
+        MetricsWriter.write(e)
+    }
+
+    fun eapAkaPhase(
+        durationMs: Long,
+        outcome: String,
+        resyncCount: Int
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "eap_aka_phase")
+        e["duration_ms"] = durationMs
+        e["outcome"] = outcome
+        e["resync_count"] = resyncCount
+        MetricsWriter.write(e)
+    }
+
+    fun sessionReady(totalSetupMs: Long) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        ctx.lifecycle = "idle"
+        val e = base(ctx, "session_ready")
+        e["total_setup_ms"] = totalSetupMs
+        MetricsWriter.write(e)
+    }
+
+    fun sessionEnd(
+        endReason: String,
+        hciStatusAtDisconnect: Int?,
+        successfulConnections: Int?,
+        connectionAttempts: Int?,
+        eapAkaSequenceNumber: Long?
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        if (!ctx.endEmitted.compareAndSet(false, true)) return
+        val totalMs = (System.nanoTime() - ctx.tStartMonoNs) / 1_000_000L
+        val e = base(ctx, "session_end")
+        e["total_duration_ms"] = totalMs
+        e["commands_sent"] = ctx.cmdSent.get()
+        e["commands_failed"] = ctx.cmdFailed.get()
+        e["end_reason"] = endReason
+        e["hci_status_at_disconnect"] = hciStatusAtDisconnect
+        e["hci_status_at_disconnect_name"] = hciStatusAtDisconnect?.let { HciStatusNames.lookup(it) }
+        e["successful_connections"] = successfulConnections
+        e["connection_attempts"] = connectionAttempts
+        e["eap_aka_sequence_number"] = eapAkaSequenceNumber
+        MetricsWriter.write(e)
+        SessionContextHolder.clearAfterEnd(endReason)
+    }
+
+    fun commandAttempt(commandType: String, seq: Int, expectedResponseType: String?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        ctx.commandInFlight = commandType
+        ctx.tCmdStartMonoNs = System.nanoTime()
+        ctx.tSendDoneMonoNs = null
+        ctx.lifecycle = "cmd"
+        val e = base(ctx, "command_attempt")
+        e["command_type"] = commandType
+        e["seq"] = seq
+        e["expected_response_type"] = expectedResponseType
+        MetricsWriter.write(e)
+    }
+
+    fun commandSendRetry(retryIndex: Int, priorResultKind: String) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "command_send_retry")
+        e["retry_index"] = retryIndex
+        e["prior_result_kind"] = priorResultKind
+        MetricsWriter.write(e)
+    }
+
+    fun commandSendDone() {
+        val ctx = SessionContextHolder.current() ?: return
+        ctx.tSendDoneMonoNs = System.nanoTime()
+    }
+
+    fun commandResult(outcome: String) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val cmdStart = ctx.tCmdStartMonoNs
+        val sendDone = ctx.tSendDoneMonoNs
+        val now = System.nanoTime()
+        val totalMs = cmdStart?.let { (now - it) / 1_000_000L }
+        val sendMs = if (cmdStart != null && sendDone != null) (sendDone - cmdStart) / 1_000_000L else null
+        val receiveMs = if (sendDone != null) (now - sendDone) / 1_000_000L else null
+        if (outcome == "ok") ctx.cmdSent.incrementAndGet() else ctx.cmdFailed.incrementAndGet()
+        val e = base(ctx, "command_result")
+        e["command_type"] = ctx.commandInFlight
+        e["outcome"] = outcome
+        e["total_ms"] = totalMs
+        e["send_ms"] = sendMs
+        e["receive_ms"] = receiveMs
+        e["retries_used"] = ctx.lastSendRetries
+        MetricsWriter.write(e)
+        ctx.commandInFlight = null
+        ctx.tCmdStartMonoNs = null
+        ctx.tSendDoneMonoNs = null
+        ctx.lifecycle = "idle"
+    }
+
+    fun nakReceived(
+        nakErrorType: String?,
+        alarmType: String?,
+        podStatus: String?,
+        secNakSyncCount: Int?
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "nak_received")
+        e["command_type"] = ctx.commandInFlight
+        e["nak_error_type"] = nakErrorType
+        e["alarm_type"] = alarmType
+        e["pod_status"] = podStatus
+        e["sec_nak_sync_count"] = secNakSyncCount
+        MetricsWriter.write(e)
+    }
+
+    fun messageSend(packetsCount: Int, totalPayloadBytes: Int, ms: Long, outcome: String) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "message_send")
+        e["packets_count"] = packetsCount
+        e["total_payload_bytes"] = totalPayloadBytes
+        e["ms"] = ms
+        e["outcome"] = outcome
+        MetricsWriter.write(e)
+    }
+
+    fun messageReceive(packetsCount: Int, totalPayloadBytes: Int, ms: Long, outcome: String, outOfOrderCount: Int) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "message_receive")
+        e["packets_count"] = packetsCount
+        e["total_payload_bytes"] = totalPayloadBytes
+        e["ms"] = ms
+        e["outcome"] = outcome
+        e["out_of_order_count"] = outOfOrderCount
+        MetricsWriter.write(e)
+    }
+
+    fun crcMismatch(direction: String, packetIndex: Int?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "crc_mismatch")
+        e["direction"] = direction
+        e["packet_index"] = packetIndex
+        MetricsWriter.write(e)
+    }
+
+    fun nackPacket(direction: String, packetIndex: Int?, reason: String?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "nack_packet")
+        e["direction"] = direction
+        e["packet_index"] = packetIndex
+        e["reason"] = reason
+        MetricsWriter.write(e)
+    }
+
+    fun rtsCtsFailure(which: String, context: String?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "rts_cts_failure")
+        e["which"] = which
+        e["context"] = context
+        MetricsWriter.write(e)
+    }
+
+    fun bleWrite(charType: String, ackMs: Long, gattStatusOnError: String?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "ble_write")
+        e["char"] = charType
+        e["ack_ms"] = ackMs
+        e["gatt_status_on_error"] = gattStatusOnError
+        MetricsWriter.write(e)
+    }
+
+    fun bleReadTimeout(charType: String, waitedMs: Long) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "ble_read_timeout")
+        e["char"] = charType
+        e["waited_ms"] = waitedMs
+        MetricsWriter.write(e)
+    }
+
+    fun gattError(op: String, status: String, charType: String?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "gatt_error")
+        e["op"] = op
+        e["status"] = status
+        e["char"] = charType
+        MetricsWriter.write(e)
+    }
+
+    fun unexpectedDisconnect(
+        hciStatus: Int?,
+        whereInLifecycle: String?,
+        commandInFlight: String?
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "unexpected_disconnect")
+        e["hci_status"] = hciStatus
+        e["hci_status_name"] = HciStatusNames.lookup(hciStatus)
+        e["where_in_lifecycle"] = whereInLifecycle ?: ctx.lifecycle
+        e["command_in_flight"] = commandInFlight ?: ctx.commandInFlight
+        MetricsWriter.write(e)
+    }
+
+    fun explicitDisconnect(reason: String, closeGatt: Boolean) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "explicit_disconnect")
+        e["reason"] = reason
+        e["close_gatt"] = closeGatt
+        MetricsWriter.write(e)
+    }
+
+    fun pairingPhase(subPhase: String, durationMs: Long, outcome: String) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "pairing_phase")
+        e["sub_phase"] = subPhase
+        e["duration_ms"] = durationMs
+        e["outcome"] = outcome
+        MetricsWriter.write(e)
+    }
+
+    fun eapResync(firstOrSecond: String, oldSqn: Long?, newSqn: Long?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "eap_resync")
+        e["first_or_second"] = firstOrSecond
+        e["old_sqn"] = oldSqn
+        e["new_sqn"] = newSqn
+        MetricsWriter.write(e)
+    }
+
+    fun fillPodHashIfMissing(uniqueId: Long?) {
+        SessionContextHolder.current()?.fillPodHashIfMissing(uniqueId)
+    }
+
+    fun fillMacHashIfMissing(address: String?) {
+        SessionContextHolder.current()?.fillMacHashIfMissing(address)
+    }
+
+    fun rememberSendRetries(retries: Int) {
+        SessionContextHolder.current()?.lastSendRetries = retries
+    }
+
+    fun setLifecycle(name: String) {
+        SessionContextHolder.current()?.lifecycle = name
+    }
+
+    private fun base(ctx: SessionContext, eventName: String): LinkedHashMap<String, Any?> {
+        val e = LinkedHashMap<String, Any?>(16)
+        e["ts"] = System.currentTimeMillis()
+        e["mono_ns"] = System.nanoTime()
+        e["session_id"] = ctx.sessionId
+        e["driver"] = MetricsConfig.DRIVER_VARIANT
+        e["event"] = eventName
+        e["pod"] = ctx.podHash
+        e["mac"] = ctx.macHash
+        return e
+    }
+}
