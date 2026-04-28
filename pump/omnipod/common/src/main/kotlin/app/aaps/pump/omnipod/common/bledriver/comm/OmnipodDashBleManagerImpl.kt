@@ -129,8 +129,9 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                 if (SessionContextHolder.current()?.commandInFlight != null) {
                     DashMetrics.commandResult("exception")
                 }
+                DashMetrics.explicitDisconnect("error_recovery", false)
                 endMetricsSession("error_recovery")
-                disconnect(false)
+                disconnectInternal(false)
                 emitter.tryOnError(ex)
             } finally {
                 busy.set(false)
@@ -199,8 +200,9 @@ class OmnipodDashBleManagerImpl @Inject constructor(
 
                 emitter.onComplete()
             } catch (ex: Exception) {
+                DashMetrics.explicitDisconnect("error_recovery", false)
                 endMetricsSession("error_recovery")
-                disconnect(false)
+                disconnectInternal(false)
                 emitter.tryOnError(ex)
             } finally {
                 busy.set(false)
@@ -319,8 +321,9 @@ class OmnipodDashBleManagerImpl @Inject constructor(
             emitter.onNext(PodEvent.Connected)
             emitter.onComplete()
         } catch (ex: Exception) {
+            DashMetrics.explicitDisconnect("error_recovery", false)
             endMetricsSession("error_recovery")
-            disconnect(false)
+            disconnectInternal(false)
             emitter.tryOnError(ex)
         } finally {
             busy.set(false)
@@ -330,6 +333,10 @@ class OmnipodDashBleManagerImpl @Inject constructor(
     override fun disconnect(closeGatt: Boolean) {
         DashMetrics.explicitDisconnect("external_request", closeGatt)
         endMetricsSession("clean_finish")
+        disconnectInternal(closeGatt)
+    }
+
+    private fun disconnectInternal(closeGatt: Boolean) {
         connection?.disconnect(closeGatt)
             ?: aapsLogger.info(LTag.PUMPBTCOMM, "Trying to disconnect a null connection")
     }

@@ -269,6 +269,18 @@ class BlessedConnection(
 
     override fun onConnectionLost(status: Int) {
         aapsLogger.info(LTag.PUMPBTCOMM, "Blessed connection lost with status: $status")
+        DashMetrics.unexpectedDisconnect(
+            hciStatus = status,
+            whereInLifecycle = null,
+            commandInFlight = null
+        )
+        DashMetrics.sessionEnd(
+            endReason = "unexpected_disconnect",
+            hciStatusAtDisconnect = status,
+            successfulConnections = podState.successfulConnections,
+            connectionAttempts = podState.connectionAttempts,
+            eapAkaSequenceNumber = podState.eapAkaSequenceNumber
+        )
         _connectionWaitCond?.stopConnection?.let {
             if (it.count > 0) it.countDown()
         }

@@ -11,6 +11,7 @@ import app.aaps.core.utils.toHex
 import app.aaps.pump.omnipod.common.bledriver.comm.callbacks.BlessedBleCallbacks
 import app.aaps.pump.omnipod.common.bledriver.comm.command.BleCommandRTS
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.ConnectException
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.WriteType
 import java.util.concurrent.BlockingQueue
@@ -33,6 +34,7 @@ open class BlessedBleIO(
             val packet = incomingPackets.poll(timeoutMs, TimeUnit.MILLISECONDS)
             if (packet == null) {
                 aapsLogger.debug(LTag.PUMPBTCOMM, "Timeout reading $type packet")
+                DashMetrics.bleReadTimeout(type.name, timeoutMs)
             }
             packet
         } catch (e: InterruptedException) {
@@ -44,11 +46,14 @@ open class BlessedBleIO(
     override fun sendAndConfirmPacket(payload: ByteArray): BleSendResult {
         aapsLogger.debug(LTag.PUMPBTCOMM, "BlessedBleIO: Sending on $type: ${payload.toHex()}")
         blessedCallbacks.flushConfirmationQueue()
+        val tStart = System.nanoTime()
         val sent = peripheral.writeCharacteristic(characteristic, payload, WriteType.WITH_RESPONSE)
         if (!sent) {
+            DashMetrics.bleWrite(type.name, (System.nanoTime() - tStart) / 1_000_000L, "writeCharacteristic_returned_false")
+            DashMetrics.gattError("write", "writeCharacteristic_returned_false", type.name)
             return BleSendErrorSending("Could not writeCharacteristic on $type")
         }
-        return when (val confirmation = blessedCallbacks.confirmWrite(
+        val result = when (val confirmation = blessedCallbacks.confirmWrite(
             payload,
             characteristic.uuid.toString(),
             BleCharacteristicIO.DEFAULT_IO_TIMEOUT_MS
@@ -56,6 +61,13 @@ open class BlessedBleIO(
             is WriteConfirmationError -> BleSendErrorConfirming(confirmation.msg)
             is WriteConfirmationSuccess -> BleSendSuccess
         }
+        val ackMs = (System.nanoTime() - tStart) / 1_000_000L
+        if (result is BleSendErrorConfirming) {
+            DashMetrics.bleWrite(type.name, ackMs, result.msg)
+        } else {
+            DashMetrics.bleWrite(type.name, ackMs, null)
+        }
+        return result
     }
 
     override fun flushIncomingQueue(): Boolean {
