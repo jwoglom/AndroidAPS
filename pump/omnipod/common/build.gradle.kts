@@ -13,6 +13,7 @@ android {
 
 dependencies {
     implementation("com.github.weliem:blessed-kotlin:3.0.12")
+    implementation(libs.org.slf4j.api)
     implementation(project(":core:data"))
     implementation(project(":core:interfaces"))
     implementation(project(":core:keys"))
