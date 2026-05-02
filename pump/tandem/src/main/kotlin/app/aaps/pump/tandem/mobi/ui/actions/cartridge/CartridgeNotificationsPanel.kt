@@ -16,7 +16,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,10 +29,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.mobi.ui.util.NotificationDismissPills
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Inline pill ("✓ No active Pump notifications.") for the empty state. */
 @Composable
@@ -63,11 +75,6 @@ fun CartridgeNotificationsPanel(
     }
 }
 
-/**
- * Modal blocking the workflow when pump notifications are active. Title becomes
- * the action; AlertBanner inside renders the dismissible alert/alarm rows. Back
- * press / scrim are blocked so the screen-level BackHandler decides what to do.
- */
 @Composable
 fun CartridgeNotificationsBlockingDialog(
     notifications: List<Any>,
@@ -75,6 +82,23 @@ fun CartridgeNotificationsBlockingDialog(
     refreshScope: CoroutineScope,
     resourceHelper: ResourceHelper,
 ) {
+    val incompleteAlertBodies = linkedMapOf(
+        AlertStatusResponse.AlertResponseType.INCOMPLETE_CARTRIDGE_CHANGE_ALERT to R.string.cc_incomplete_change_dialog_body,
+        AlertStatusResponse.AlertResponseType.INCOMPLETE_FILL_TUBING_ALERT to R.string.ft_incomplete_fill_dialog_body,
+        AlertStatusResponse.AlertResponseType.INCOMPLETE_FILL_CANNULA_ALERT to R.string.fc_incomplete_fill_dialog_body,
+    )
+    val matchedAlert = incompleteAlertBodies.keys.firstOrNull { it in notifications }
+    if (matchedAlert != null) {
+        IncompleteWorkflowConfirmDialog(
+            alert = matchedAlert,
+            bodyRes = incompleteAlertBodies.getValue(matchedAlert),
+            sendPumpCommands = sendPumpCommands,
+            refreshScope = refreshScope,
+            resourceHelper = resourceHelper,
+        )
+        return
+    }
+
     AlertDialog(
         onDismissRequest = {},
         properties = DialogProperties(
@@ -103,5 +127,55 @@ fun CartridgeNotificationsBlockingDialog(
             )
         },
         confirmButton = {},
+    )
+}
+
+@Composable
+private fun IncompleteWorkflowConfirmDialog(
+    alert: AlertStatusResponse.AlertResponseType,
+    bodyRes: Int,
+    sendPumpCommands: (List<Message>) -> Boolean,
+    refreshScope: CoroutineScope,
+    resourceHelper: ResourceHelper,
+) {
+    var dismissing by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = {},
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+        ),
+        icon = {
+            Icon(
+                Icons.Filled.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+            )
+        },
+        text = {
+            Text(
+                text = resourceHelper.gs(bodyRes),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !dismissing,
+                onClick = {
+                    dismissing = true
+                    refreshScope.launch {
+                        sendPumpCommands(listOf(
+                            DismissNotificationRequest(
+                                DismissNotificationRequest.NotificationType.ALERT,
+                                alert.bitmask().toLong()
+                            )
+                        ))
+                        delay(500)
+                        sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+                        dismissing = false
+                    }
+                }
+            ) { Text(resourceHelper.gs(Rco.string.ok)) }
+        },
     )
 }

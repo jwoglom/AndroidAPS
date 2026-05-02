@@ -143,6 +143,9 @@
     <string name="ca_step_x_of_y">Step %1$d of %2$d</string>
     <string name="ca_notifications_panel_title">Pump notifications</string>
     <string name="ca_dismiss_notifications_title">Dismiss notifications before continuing</string>
+    <string name="ft_incomplete_fill_dialog_body">Fill tubing not yet complete. Press OK to continue filling the tubing.</string>
+    <string name="cc_incomplete_change_dialog_body">Cartridge change not yet complete. Press OK to continue changing the cartridge.</string>
+    <string name="fc_incomplete_fill_dialog_body">Fill cannula not yet complete. Press OK to continue filling the cannula.</string>
     <string name="ca_notifications_none">No active Pump notifications.</string>
     <string name="ca_notifications_refresh">Refresh notifications</string>
     <string name="ca_notifications_checking">Checking for notifications…</string>
