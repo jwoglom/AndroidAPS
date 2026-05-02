@@ -206,7 +206,7 @@
 
     <!-- UI Cartridge Actions:Fill Tubing -->
     <string name="ft_title">Fill Tubing</string>
-    <string name="ft_complete">Successfully filled tubing. Press button \'Done\' to exit.</string>
+    <string name="ft_complete">You can now connect the infusion site to your body and then fill the cannula.</string>
     <string name="ft_restart_text">Restarting tubing fill...</string>
     <string name="ft_hold_pump_button">Hold down the pump button to fill insulin through the tubing.</string>
     <string name="ft_no_filled_insulin">You haven\'t filled any insulin through the tubing yet.</string>

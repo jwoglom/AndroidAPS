@@ -239,11 +239,6 @@ fun ChangeCartridgeScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
             } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                Text(
-                    text = resourceHelper.gs(R.string.ca_next_step_heading),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = resourceHelper.gs(R.string.cc_can_remove_cart),

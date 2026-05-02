@@ -260,11 +260,6 @@ fun FillTubingScreen(
                 }
             } else if (inFillTubingMode.value == true) {
                 if (fillTubingState.value == null) {
-                    Text(
-                        text = resourceHelper.gs(R.string.ca_next_step_heading),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = resourceHelper.gs(R.string.ft_hold_pump_button),
@@ -297,11 +292,6 @@ fun FillTubingScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 } else if (fillTubingState.value?.buttonDown == false) {
-                    Text(
-                        text = resourceHelper.gs(R.string.ca_next_step_heading),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Status sub-line
