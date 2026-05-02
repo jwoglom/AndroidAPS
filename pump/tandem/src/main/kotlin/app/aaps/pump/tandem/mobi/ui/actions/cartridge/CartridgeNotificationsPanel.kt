@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.mobi.ui.util.AlertBanner
+import app.aaps.pump.tandem.mobi.ui.util.NotificationDismissPills
 import com.jwoglom.pumpx2.pump.messages.Message
 import kotlinx.coroutines.CoroutineScope
 
@@ -96,11 +96,10 @@ fun CartridgeNotificationsBlockingDialog(
             )
         },
         text = {
-            AlertBanner(
+            NotificationDismissPills(
                 notifications = notifications,
                 sendPumpCommands = sendPumpCommands,
                 refreshScope = refreshScope,
-                resourceHelper = resourceHelper,
             )
         },
         confirmButton = {},
