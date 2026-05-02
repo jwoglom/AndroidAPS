@@ -38,6 +38,7 @@ import androidx.lifecycle.Observer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -189,16 +190,40 @@ fun FillCannulaScreen(
                     .padding(16.dp)
             ) {
                 if (fillCannulaState.value != null) {
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_status_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
-                        Text(text = resourceHelper.gs(R.string.fc_complete))
+                        Text(
+                            text = resourceHelper.gs(R.string.fc_complete),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     } else {
-                        Text(text = resourceHelper.gs(R.string.fc_filling_with, cannulaFillAmount))
-                        Text("\n\n")
-                        Text(text = resourceHelper.gs(R.string.fc_filling_state, fillCannulaState.value?.stateId))
+                        Text(
+                            text = resourceHelper.gs(R.string.fc_filling_with, cannulaFillAmount),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.fc_filling_state, fillCannulaState.value?.stateId),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 } else if (pumpRunningState.value == PumpRunningState.Suspended) {
-                    Text(text = resourceHelper.gs(R.string.fc_cannula_fill_amount))
-                    Text("\n\n")
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_before_you_start_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.fc_cannula_fill_amount),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                     DecimalOutlinedText(
                         title = resourceHelper.gs(R.string.fc_fill_amount),
                         value = cannulaFillAmountStr,
@@ -219,11 +244,22 @@ fun FillCannulaScreen(
                         }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.fc_quick_amount_heading),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf("0.1" to "0.1U", "0.3" to "0.3U", "0.5" to "0.5U", "1.0" to "1.0U").forEach { (value, label) ->
+                        listOf(
+                            "0.1" to resourceHelper.gs(R.string.fc_quick_amount_0_1),
+                            "0.3" to resourceHelper.gs(R.string.fc_quick_amount_0_3),
+                            "0.5" to resourceHelper.gs(R.string.fc_quick_amount_0_5),
+                            "1.0" to resourceHelper.gs(R.string.fc_quick_amount_1_0)
+                        ).forEach { (value, label) ->
                             Button(
                                 onClick = {
                                     cannulaFillAmountStr = value
@@ -238,11 +274,20 @@ fun FillCannulaScreen(
                             }
                         }
                     }
-                    Text("\n")
                 } else {
-                    Text(text = resourceHelper.gs(R.string.ca_before_stop_delivery,
-                                                  resourceHelper.gs(R.string.fc_action)))
-                    Text("\n")
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_before_you_start_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(
+                            R.string.ca_before_stop_delivery,
+                            resourceHelper.gs(R.string.fc_action)
+                        ),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 }
             }
 

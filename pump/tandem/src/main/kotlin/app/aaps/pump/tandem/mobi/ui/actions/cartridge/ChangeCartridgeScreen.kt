@@ -40,6 +40,7 @@ import androidx.lifecycle.Observer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -192,28 +193,83 @@ fun ChangeCartridgeScreen(
                     .padding(16.dp)
             ) {
                 if (detectingCartridgeState.value != null) {
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_status_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (detectingCartridgeState.value?.isComplete == true) {
-                        Text(text = resourceHelper.gs(R.string.cc_complete))
-                        Text("\n")
-                        Text(text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"))
+                        Text(
+                            text = resourceHelper.gs(R.string.cc_complete),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     } else {
-                        Text(text = resourceHelper.gs(R.string.cc_detect_insulin_cart))
-                        Text("\n")
-                        Text(text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"))
+                        Text(
+                            text = resourceHelper.gs(R.string.cc_detect_insulin_cart),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_progress_heading),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                    Text(text = resourceHelper.gs(R.string.cc_can_remove_cart))
-                    Text("\n")
-                    Text(text = resourceHelper.gs(R.string.cc_when_inserted_press))
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_next_step_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.cc_can_remove_cart),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.cc_when_inserted_press),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 } else if (inChangeCartridgeMode.value == true) {
-                    Text(text = resourceHelper.gs(R.string.cc_preparing_cc))
-                    Text("\n")
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_status_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.cc_preparing_cc),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 } else if (pumpRunningState.value == PumpRunningState.Suspended) {
-                    Text(text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site, resourceHelper.gs(R.string.cc_btn_begin)))
-                    Text("\n")
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_before_you_start_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site, resourceHelper.gs(R.string.cc_btn_begin)),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 } else {
-                    Text(text = resourceHelper.gs(R.string.ca_before_stop_delivery, resourceHelper.gs(R.string.cc_action)))
-                    Text("\n")
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_before_you_start_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_before_stop_delivery, resourceHelper.gs(R.string.cc_action)),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 }
             }
 

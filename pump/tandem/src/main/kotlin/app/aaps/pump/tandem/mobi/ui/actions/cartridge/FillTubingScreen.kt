@@ -38,6 +38,7 @@ import androidx.lifecycle.Observer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -181,45 +182,124 @@ fun FillTubingScreen(
                     .padding(16.dp)
             ) {
                 if (exitFillTubingState.value != null) {
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_status_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
                         if (willRestartFill) {
-                            Text(text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site,
-                                                          resourceHelper.gs(R.string.ft_btn_restart)))
-                            Text("\n")
+                            Text(
+                                text = resourceHelper.gs(
+                                    R.string.ca_disconnect_pump_from_site,
+                                    resourceHelper.gs(R.string.ft_btn_restart)
+                                ),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
                         } else {
-                            Text(text = resourceHelper.gs(R.string.ft_complete))
+                            Text(
+                                text = resourceHelper.gs(R.string.ft_complete),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
                         }
                     } else {
                         if (willRestartFill) {
-                            Text(text = resourceHelper.gs(R.string.ft_restart_text))
+                            Text(
+                                text = resourceHelper.gs(R.string.ft_restart_text),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
                         } else {
-                            Text(text = resourceHelper.gs(R.string.ft_finalizing_wait))
+                            Text(
+                                text = resourceHelper.gs(R.string.ft_finalizing_wait),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
                         }
-                        Text(text = "\n\n")
-                        Text(text = resourceHelper.gs(R.string.ft_finalizing_status_NOT_COMPLETE))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.ft_finalizing_status_NOT_COMPLETE),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 } else if (inFillTubingMode.value == true) {
                     if (fillTubingState.value == null) {
-                        Text(text = resourceHelper.gs(R.string.ft_hold_pump_button))
-                        Text(text = "\n\n")
-                        Text(text = resourceHelper.gs(R.string.ft_no_filled_insulin))
+                        Text(
+                            text = resourceHelper.gs(R.string.ca_next_step_heading),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.ft_hold_pump_button),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.ft_no_filled_insulin),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     } else if (fillTubingState.value?.buttonDown == true) {
-                        Text(text = resourceHelper.gs(R.string.ft_filling))
+                        Text(
+                            text = resourceHelper.gs(R.string.ca_status_heading),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.ft_filling),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     } else if (fillTubingState.value?.buttonDown == false) {
-                        Text(text = resourceHelper.gs(R.string.ft_stopped_fill_1))
-                        Text(text = "\n\n")
-                        Text(text = resourceHelper.gs(R.string.ft_continue_filling))
-                        Text(text = "\n\n")
-                        Text(text = resourceHelper.gs(R.string.ft_continue_filling_2))
+                        Text(
+                            text = resourceHelper.gs(R.string.ca_next_step_heading),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.ft_stopped_fill_1),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.ft_continue_filling),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.ft_continue_filling_2),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     }
                 } else if (pumpRunningState.value == PumpRunningState.Suspended) {
-                    Text(text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site,
-                                                  resourceHelper.gs(R.string.ft_btn_begin)))
-                    Text("\n")
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_before_you_start_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(
+                            R.string.ca_disconnect_pump_from_site,
+                            resourceHelper.gs(R.string.ft_btn_begin)
+                        ),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 } else {
-                    Text(text = resourceHelper.gs(R.string.ca_before_stop_delivery,
-                                                  resourceHelper.gs(R.string.ft_action)))
-                    Text("\n")
+                    Text(
+                        text = resourceHelper.gs(R.string.ca_before_you_start_heading),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(
+                            R.string.ca_before_stop_delivery,
+                            resourceHelper.gs(R.string.ft_action)
+                        ),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 }
             }
 

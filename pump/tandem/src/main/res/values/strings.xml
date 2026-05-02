@@ -124,6 +124,10 @@
     <string name="ca_label">Cartridge Setup</string>
     <string name="ca_disconnect_pump_from_site">Disconnect your pump from your body/site and press \'%1$s\' button below.</string>
     <string name="ca_before_stop_delivery">Before %1$s, stop delivery of insulin.</string>
+    <string name="ca_status_heading">Status</string>
+    <string name="ca_next_step_heading">Next step</string>
+    <string name="ca_before_you_start_heading">Before you start</string>
+    <string name="ca_progress_heading">Progress</string>
 
     <string name="ca_stop_start_insulin">Stop / Start Insulin</string>
     <string name="ca_start_insulin">Start Insulin</string>
@@ -188,6 +192,11 @@
     <string name="fc_cannula_fill_amount">Enter the cannula fill amount (U):</string>
     <string name="fc_fill_amount">Fill amount</string>
     <string name="fc_btn_fill_cannula_u">Fill %1$.1fU Cannula</string>
+    <string name="fc_quick_amount_heading">Quick amounts</string>
+    <string name="fc_quick_amount_0_1">0.1U</string>
+    <string name="fc_quick_amount_0_3">0.3U</string>
+    <string name="fc_quick_amount_0_5">0.5U</string>
+    <string name="fc_quick_amount_1_0">1.0U</string>
 
 
 
