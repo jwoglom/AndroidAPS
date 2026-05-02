@@ -248,9 +248,7 @@ fun CartridgeActions(
         }
     }
 
-    BackHandler(enabled = shouldWarnOnExit) {
-        showIncompleteExitDialog = true
-    }
+    BackHandler { requestExit() }
 
     if (showIncompleteExitDialog) {
         AlertDialog(

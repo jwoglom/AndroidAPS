@@ -140,9 +140,7 @@ fun FillCannulaScreen(
         }
     }
 
-    BackHandler(enabled = isInActiveMode) {
-        showCancelDialog = true
-    }
+    BackHandler { requestCancelOrBack() }
 
     if (showCancelDialog) {
         AlertDialog(

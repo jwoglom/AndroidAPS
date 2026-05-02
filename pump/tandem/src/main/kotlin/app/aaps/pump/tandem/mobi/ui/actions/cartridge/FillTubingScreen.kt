@@ -127,9 +127,7 @@ fun FillTubingScreen(
         }
     }
 
-    BackHandler(enabled = isInActiveMode) {
-        showCancelDialog = true
-    }
+    BackHandler { requestCancelOrBack() }
 
     if (showCancelDialog) {
         AlertDialog(
