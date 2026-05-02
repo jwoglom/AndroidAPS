@@ -3,6 +3,8 @@ package app.aaps.pump.tandem.common.comm.maint
 import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.text.InputType
 import android.widget.EditText
@@ -84,10 +86,6 @@ class TandemPairingManager constructor(
     val TAG: LTag = LTag.PUMPBTCOMM
 
     var bluetoothHandler: TandemBluetoothHandler? = null
-    var finishActivity = false
-
-    @Volatile
-    var pairingCompleted: Boolean = false
 
     private var pairingCodeToUse: String? = null
     private var pairingStartTime: Long = 0
@@ -98,8 +96,6 @@ class TandemPairingManager constructor(
         aapsLogger.info(TAG, "start Pairing")
 
         aapsLogger.info(TAG, "TANDEM-PAIR-DBG: start Pairing")
-
-        pairingCompleted = false
 
         createBluetoothHandler()
 
@@ -120,12 +116,7 @@ class TandemPairingManager constructor(
     }
 
     fun shutdownPairingManager() {
-        if (pairingCompleted) {
-            aapsLogger.info(TAG, "shutdownPairingManager: pairing succeeded, handing BLE handler off to main service")
-            bluetoothHandler = null
-        } else {
-            stopBluetoothHandler()
-        }
+        stopBluetoothHandler()
     }
 
     fun showToast(text:String) {
@@ -153,17 +144,8 @@ class TandemPairingManager constructor(
 
     fun stopBluetoothHandler() {
         aapsLogger.info(TAG, "TANDEM-PAIR-DBG: stopBluetoothHandler pairing")
-
-        bluetoothHandler?.let {
-            synchronized (it) {
-                try {
-                    it.stop()
-                } catch (e: IllegalArgumentException) {
-                    aapsLogger.error(TAG, "Ignoring IllegalArgumentException during stopBluetoothHandler (BLE library bug)", e)
-                }
-                bluetoothHandler = null
-            }
-        }
+        tandemPumpUtil.forceResetBluetoothHandler(bluetoothHandler)
+        bluetoothHandler = null
     }
 
     // Pair Status
@@ -205,37 +187,34 @@ class TandemPairingManager constructor(
         } else if (message is PumpVersionResponse) {
             aapsLogger.info(TAG, "TANDEM-PAIR-DBG: got PumpVersionResponse")
 
-            preferences.put(TandemIntPreferenceKey.PumpPairStatus, 100)
-            pairingCompleted = true
             val pumpVersionResponse = message
-
             aapsLogger.info(TAG, "PumpVersionResponse: ${pumpVersionResponse}")
 
-            //sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + pumpVersionResponse.serialNum)
+            // Persist pump identity first, but do NOT flip PumpPairStatus to 100
+            // or fire EventPumpConnectionParametersChanged yet — those trigger
+            // TandemService.connect() which would race the still-alive pairing
+            // BluetoothHandler singleton. We tear that down first, then notify.
             preferences.put(TandemStringPreferenceKey.PumpSerial, "" + pumpVersionResponse.serialNum)
-            //sp.putString(TandemPumpConst.Prefs.PumpVersionResponse, pumpUtil.gson.toJson(message))
             preferences.put(TandemStringPreferenceKey.PumpVersionResponse, tandemPumpUtil.gson.toJson(message))
-
             pumpStatus.serialNumber = pumpVersionResponse.serialNum.toLong()
 
-            pumpSync.connectNewPump()
+            // Hop off the BLE callback thread before tearing down the central
+            // (stop() closes the BluetoothCentralManager currently dispatching us).
+            Handler(Looper.getMainLooper()).post {
+                stopBluetoothHandler()
 
-            finalPairingStatus()
+                preferences.put(TandemIntPreferenceKey.PumpPairStatus, 100)
 
-            rxBus.send(EventPumpConnectionParametersChanged())
+                pumpSync.connectNewPump()
+                finalPairingStatus()
+                rxBus.send(EventPumpConnectionParametersChanged())
 
-            // Send pairing success event with pump details
-            val pumpName = preferences.get(TandemStringPreferenceKey.PumpName)
-            rxBus.send(EventTandemPairingStatus.PairingSuccess(
-                pumpSerial = pumpVersionResponse.serialNum.toString(),
-                pumpName = pumpName,
-                pumpApiVersion = pumpStatus.tandemPumpFirmware
-            ))
-
-            showToast("Pairing with Tandem was SUCCESS.") // TODO TandemPairingManager N-5
-
-            if (finishActivity) {
-                //activity.finish()
+                val pumpName = preferences.get(TandemStringPreferenceKey.PumpName)
+                rxBus.send(EventTandemPairingStatus.PairingSuccess(
+                    pumpSerial = pumpVersionResponse.serialNum.toString(),
+                    pumpName = pumpName,
+                    pumpApiVersion = pumpStatus.tandemPumpFirmware
+                ))
             }
         }
 
@@ -489,11 +468,11 @@ class TandemPairingManager constructor(
     fun clearPairingData() {
         aapsLogger.info(TAG, "Clearing pairing data for re-pairing")
 
-        // Tear down any live BLE handler — we're resetting pairing state
-        stopBluetoothHandler()
-
-        // Reset pairing flags
-        pairingCompleted = false
+        // NOTE: deliberately do NOT stop the BLE handler here. Retry / rescan
+        // flows run on the same TandemPairingManager (same TandemPump identity),
+        // so the existing handler can be reused. Tearing it down and creating
+        // a fresh one leaves orphan handlers with pending reconnect runnables
+        // that compete for the pump after pairing finishes.
 
         // Clear preferences
         preferences.put(TandemIntPreferenceKey.PumpPairStatus, -1)

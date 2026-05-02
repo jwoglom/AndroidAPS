@@ -229,12 +229,16 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         aapsLogger.info(TAG, "disconnectFromPump")
 
         val c = getCommunicationManager()
-        return if (c == null) {
+        if (c == null) {
             aapsLogger.warn(TAG, "disconnectFromPump: nothing to do, communication manager already destroyed")
-            false
-        } else {
-            c.disconnect()
+            return false
         }
+        val result = c.disconnect()
+        // Release the cached manager/address so the next connect builds a fresh one.
+        // Without this, a subsequent wizard-driven re-pair reuses the torn-down instance.
+        tandemCommunicationManager = null
+        btAddressUsed = null
+        return result
     }
 
 
