@@ -37,7 +37,6 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -180,7 +179,6 @@ fun CartridgeActions(
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
-    var hasAutoResumed by rememberSaveable { mutableStateOf(false) }
     var showIncompleteExitDialog by remember { mutableStateOf(false) }
 
     fun refresh() = refreshScope.launch {
@@ -219,32 +217,6 @@ fun CartridgeActions(
         }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
-    }
-
-    // Auto-resume into the active sub-screen exactly once per entry
-    LaunchedEffect(loadStatus.value) {
-        if (hasAutoResumed) return@LaunchedEffect
-        val ls = loadStatus.value ?: return@LaunchedEffect
-        if (!ls.isLoadingActive) return@LaunchedEffect
-        when (ls.loadState) {
-            LoadStatusResponse.LoadState.CHANGE_CARTRIDGE,
-            LoadStatusResponse.LoadState.LOAD_CARTRIDGE -> {
-                hasAutoResumed = true
-                aapsLogger.info(TAG, "auto-resuming into ChangeCartridge from loadState=${ls.loadState}")
-                navigateToChangeCartridge()
-            }
-            LoadStatusResponse.LoadState.PRIME_TUBING -> {
-                hasAutoResumed = true
-                aapsLogger.info(TAG, "auto-resuming into FillTubing from loadState=${ls.loadState}")
-                navigateToFillTubing()
-            }
-            LoadStatusResponse.LoadState.PRIME_CANNULA -> {
-                hasAutoResumed = true
-                aapsLogger.info(TAG, "auto-resuming into FillCannula from loadState=${ls.loadState}")
-                navigateToFillCannula()
-            }
-            else -> Unit
-        }
     }
 
     val changeCartridgeMenu = changeCartridgeAvailability(loadStatus.value, resourceHelper)
@@ -331,7 +303,6 @@ fun CartridgeActions(
                         done = CompletedCartridgeAction.CHANGE_CARTRIDGE in (completedActions.value ?: emptySet()),
                         onClick = {
                             refreshScope.launch {
-                                hasAutoResumed = true
                                 ds.enterChangeCartridgeState.value = null
                                 ds.detectingCartridgeState.value = null
                                 sendPumpCommands(listOf(TimeSinceResetRequest()))
@@ -349,7 +320,6 @@ fun CartridgeActions(
                         done = CompletedCartridgeAction.FILL_TUBING in (completedActions.value ?: emptySet()),
                         onClick = {
                             refreshScope.launch {
-                                hasAutoResumed = true
                                 ds.fillTubingState.value = null
                                 ds.exitFillTubingState.value = null
                                 ds.inFillTubingMode.value = false
@@ -368,7 +338,6 @@ fun CartridgeActions(
                         done = CompletedCartridgeAction.FILL_CANNULA in (completedActions.value ?: emptySet()),
                         onClick = {
                             refreshScope.launch {
-                                hasAutoResumed = true
                                 ds.fillCannulaState.value = null
                                 sendPumpCommands(listOf(TimeSinceResetRequest()))
                                 navigateToFillCannula()

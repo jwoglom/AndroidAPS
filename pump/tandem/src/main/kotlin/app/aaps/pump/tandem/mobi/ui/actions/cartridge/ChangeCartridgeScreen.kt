@@ -73,6 +73,7 @@ fun ChangeCartridgeScreen(
     var showCancelDialog by remember { mutableStateOf(false) }
     var showSuspendDialog by remember { mutableStateOf(false) }
     var isSuspending by remember { mutableStateOf(false) }
+    var isStartingChangeCartridge by remember { mutableStateOf(false) }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "reloading ChangeCartridgeScreen with force")
@@ -337,11 +338,21 @@ fun ChangeCartridgeScreen(
                 PrimaryActionButton(
                     text = resourceHelper.gs(R.string.cc_btn_begin),
                     onClick = {
+                        isStartingChangeCartridge = true
+                        sendPumpCommand(EnterChangeCartridgeModeRequest())
                         refreshScope.launch {
-                            sendPumpCommand(EnterChangeCartridgeModeRequest())
+                            // Wait up to 5s for the pump to either ack (in*Mode → true)
+                            // or for unsuccessfulAlert to surface a notification.
+                            // Either way, drop the spinner so the user isn't stuck.
+                            repeat(5) {
+                                if (inChangeCartridgeMode.value == true) return@repeat
+                                withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                            }
+                            isStartingChangeCartridge = false
                         }
                     },
-                    enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications
+                    enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
+                    loading = isStartingChangeCartridge
                 )
             }
         }

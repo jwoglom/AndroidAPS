@@ -78,6 +78,7 @@ fun FillTubingScreen(
     var willRestartFill by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
     var hasDisplayedFlow by remember { mutableStateOf(false) }
+    var isStartingFillTubing by remember { mutableStateOf(false) }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "reloading FillTubingScreen with force")
@@ -399,11 +400,18 @@ fun FillTubingScreen(
                 PrimaryActionButton(
                     text = resourceHelper.gs(R.string.ft_btn_begin),
                     onClick = {
+                        isStartingFillTubing = true
+                        sendPumpCommands(listOf(EnterFillTubingModeRequest()))
                         refreshScope.launch {
-                            sendPumpCommands(listOf(EnterFillTubingModeRequest()))
+                            repeat(5) {
+                                if (inFillTubingMode.value == true) return@repeat
+                                withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                            }
+                            isStartingFillTubing = false
                         }
                     },
-                    enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications
+                    enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
+                    loading = isStartingFillTubing
                 )
             }
         }
