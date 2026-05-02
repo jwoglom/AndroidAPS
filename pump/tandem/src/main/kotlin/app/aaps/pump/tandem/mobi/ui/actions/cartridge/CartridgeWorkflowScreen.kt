@@ -18,6 +18,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -27,9 +28,11 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 
 /**
@@ -133,6 +136,34 @@ fun PrimaryActionButton(
             Text(text = text, style = MaterialTheme.typography.titleMedium)
         }
     }
+}
+
+/**
+ * Wizard-style "Step N of M" indicator with a [LinearProgressIndicator].
+ * Pass via [CartridgeWorkflowScreen]'s `stepIndicator` slot.
+ */
+@Composable
+fun WizardStepIndicator(
+    currentStep: Int,
+    totalSteps: Int,
+    resourceHelper: ResourceHelper,
+) {
+    val progress = if (totalSteps > 0) currentStep.toFloat() / totalSteps else 0f
+    Spacer(modifier = Modifier.height(8.dp))
+    LinearProgressIndicator(
+        progress = { progress },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = resourceHelper.gs(R.string.ca_step_x_of_y, currentStep, totalSteps),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier.padding(horizontal = 16.dp)
+    )
+    Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Composable

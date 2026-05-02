@@ -15,6 +15,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,7 +45,6 @@ import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
-import app.aaps.pump.tandem.mobi.ui.util.AlertBanner
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -77,6 +77,7 @@ fun FillTubingScreen(
     var refreshing by remember { mutableStateOf(true) }
     var willRestartFill by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
+    var hasDisplayedFlow by remember { mutableStateOf(false) }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "reloading FillTubingScreen with force")
@@ -151,6 +152,14 @@ fun FillTubingScreen(
         )
     }
 
+    val totalSteps = 4
+    val currentStep = when {
+        exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED -> 4
+        exitFillTubingState.value != null -> 3
+        inFillTubingMode.value == true -> 2
+        else -> 1
+    }
+
     CartridgeWorkflowScreen(
         title = resourceHelper.gs(R.string.ft_title),
         innerPadding = innerPadding,
@@ -159,14 +168,21 @@ fun FillTubingScreen(
         onBack = ::requestCancelOrBack,
         resourceHelper = resourceHelper,
         showHeader = showHeader,
+        stepIndicator = {
+            WizardStepIndicator(
+                currentStep = currentStep,
+                totalSteps = totalSteps,
+                resourceHelper = resourceHelper,
+            )
+        },
         header = {
+            CartridgeNotificationsPanel(
+                notifications = notifications,
+                sendPumpCommands = sendPumpCommands,
+                refreshScope = refreshScope,
+                resourceHelper = resourceHelper,
+            )
             if (hasActiveNotifications) {
-                AlertBanner(
-                    notifications = notifications,
-                    sendPumpCommands = sendPumpCommands,
-                    refreshScope = refreshScope,
-                    resourceHelper = resourceHelper
-                )
                 Text(
                     text = resourceHelper.gs(R.string.ca_notifications_block_warning),
                     color = MaterialTheme.colorScheme.error,
@@ -235,15 +251,25 @@ fun FillTubingScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 } else if (fillTubingState.value?.buttonDown == true) {
+                    hasDisplayedFlow = true
                     Text(
                         text = resourceHelper.gs(R.string.ca_status_heading),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = resourceHelper.gs(R.string.ft_filling),
                         style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.ft_keep_holding_button),
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 } else if (fillTubingState.value?.buttonDown == false) {
                     Text(
@@ -252,6 +278,11 @@ fun FillTubingScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.ft_release_confirm_prompt),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = resourceHelper.gs(R.string.ft_stopped_fill_1),
                         style = MaterialTheme.typography.bodyLarge
@@ -351,7 +382,7 @@ fun FillTubingScreen(
                                     sendPumpCommands(listOf(ExitFillTubingModeRequest()))
                                 }
                             },
-                            enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                            enabled = pumpRunningState.value == PumpRunningState.Suspended && hasDisplayedFlow,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp)

@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,7 +45,6 @@ import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
-import app.aaps.pump.tandem.mobi.ui.util.AlertBanner
 import app.aaps.pump.tandem.mobi.ui.util.DecimalOutlinedText
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
@@ -224,6 +224,13 @@ fun FillCannulaScreen(
         )
     }
 
+    val totalSteps = 3
+    val currentStep = when {
+        fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED -> 3
+        fillCannulaState.value != null -> 2
+        else -> 1
+    }
+
     CartridgeWorkflowScreen(
         title = resourceHelper.gs(R.string.fc_title),
         innerPadding = innerPadding,
@@ -232,14 +239,21 @@ fun FillCannulaScreen(
         onBack = ::requestCancelOrBack,
         resourceHelper = resourceHelper,
         showHeader = showHeader,
+        stepIndicator = {
+            WizardStepIndicator(
+                currentStep = currentStep,
+                totalSteps = totalSteps,
+                resourceHelper = resourceHelper,
+            )
+        },
         header = {
+            CartridgeNotificationsPanel(
+                notifications = notifications,
+                sendPumpCommands = sendPumpCommands,
+                refreshScope = refreshScope,
+                resourceHelper = resourceHelper,
+            )
             if (hasActiveNotifications) {
-                AlertBanner(
-                    notifications = notifications,
-                    sendPumpCommands = sendPumpCommands,
-                    refreshScope = refreshScope,
-                    resourceHelper = resourceHelper
-                )
                 Text(
                     text = resourceHelper.gs(R.string.ca_notifications_block_warning),
                     color = MaterialTheme.colorScheme.error,
@@ -302,6 +316,19 @@ fun FillCannulaScreen(
                             }
                         }
                     }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Slider(
+                    value = (cannulaFillAmount ?: 0.0).toFloat(),
+                    onValueChange = { v ->
+                        // Round to 0.1 step
+                        val rounded = (Math.round(v * 10).toDouble() / 10.0)
+                        cannulaFillAmount = if (allowedCannulaFillAmount(rounded)) rounded else null
+                        cannulaFillAmountStr = "%.1f".format(rounded)
+                    },
+                    valueRange = 0f..3.0f,
+                    steps = 29,
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(

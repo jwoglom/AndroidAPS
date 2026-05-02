@@ -139,6 +139,13 @@
     <string name="ca_disabled_change_in_progress">Complete the active cartridge change first.</string>
     <string name="ca_disabled_fill_tubing_in_progress">Complete the active tubing fill first.</string>
     <string name="ca_disabled_fill_cannula_in_progress">Complete the active cannula fill first.</string>
+    <string name="ca_step_x_of_y">Step %1$d of %2$d</string>
+    <string name="ca_notifications_panel_title">Pump notifications</string>
+    <string name="ca_notifications_none">No active notifications.</string>
+    <string name="ca_notifications_refresh">Refresh notifications</string>
+    <string name="ca_notifications_checking">Checking for notifications…</string>
+    <string name="ft_keep_holding_button">Keep holding the pump button — releasing stops the fill.</string>
+    <string name="ft_release_confirm_prompt">Pump button released. Do you see insulin at the cannula?</string>
     <string name="cc_cancel_confirm_title">Cancel cartridge change?</string>
     <string name="cc_cancel_confirm_body">The cartridge change will be cancelled and the pump will exit cartridge change mode.</string>
     <string name="ft_cancel_confirm_title">Cancel tubing fill?</string>

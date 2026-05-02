@@ -39,7 +39,6 @@ import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
-import app.aaps.pump.tandem.mobi.ui.util.AlertBanner
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -183,6 +182,15 @@ fun ChangeCartridgeScreen(
         )
     }
 
+    val totalSteps = 4
+    val currentStep = when {
+        detectingCartridgeState.value?.isComplete == true -> 4
+        detectingCartridgeState.value != null -> 3
+        enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE -> 2
+        inChangeCartridgeMode.value == true -> 1
+        else -> 1
+    }
+
     CartridgeWorkflowScreen(
         title = resourceHelper.gs(R.string.cc_title),
         innerPadding = innerPadding,
@@ -191,14 +199,21 @@ fun ChangeCartridgeScreen(
         onBack = ::requestCancelOrBack,
         resourceHelper = resourceHelper,
         showHeader = showHeader,
+        stepIndicator = {
+            WizardStepIndicator(
+                currentStep = currentStep,
+                totalSteps = totalSteps,
+                resourceHelper = resourceHelper,
+            )
+        },
         header = {
+            CartridgeNotificationsPanel(
+                notifications = notifications,
+                sendPumpCommands = sendPumpCommands,
+                refreshScope = refreshScope,
+                resourceHelper = resourceHelper,
+            )
             if (hasActiveNotifications) {
-                AlertBanner(
-                    notifications = notifications,
-                    sendPumpCommands = sendPumpCommands,
-                    refreshScope = refreshScope,
-                    resourceHelper = resourceHelper
-                )
                 Text(
                     text = resourceHelper.gs(R.string.ca_notifications_block_warning),
                     color = MaterialTheme.colorScheme.error,
