@@ -50,6 +50,7 @@ import app.aaps.shared.tests.AAPSLoggerTest
 import app.aaps.pump.tandem.R
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -252,7 +253,8 @@ fun CartridgeActions(
 
 val cartridgeActionsCommands = listOf(
     HomeScreenMirrorRequest(),
-    TimeSinceResetRequest()
+    TimeSinceResetRequest(),
+    LoadStatusRequest()
 )
 
 

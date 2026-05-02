@@ -22,6 +22,7 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingMod
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.PumpingStateStreamResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
@@ -61,6 +62,7 @@ class TandemUIDataStore {
     val fillTubingState = MutableLiveData<FillTubingStateStreamResponse>()
     val exitFillTubingState = MutableLiveData<ExitFillTubingModeStateStreamResponse>()
     val fillCannulaState = MutableLiveData<FillCannulaStateStreamResponse>()
+    val loadStatus = MutableLiveData<LoadStatusResponse>()
     //val pumpingState = MutableLiveData<PumpingStateStreamResponse>()
 
 

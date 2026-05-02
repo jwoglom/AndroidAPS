@@ -36,6 +36,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
@@ -200,6 +201,9 @@ class TandemUICommunication @Inject constructor (
             }
             is FillCannulaStateStreamResponse -> {
                 dataStore.fillCannulaState.value = message
+            }
+            is LoadStatusResponse -> {
+                dataStore.loadStatus.value = message
             }
             // is PumpingStateStreamResponse -> {
             //     dataStore.pumpingState.value = message

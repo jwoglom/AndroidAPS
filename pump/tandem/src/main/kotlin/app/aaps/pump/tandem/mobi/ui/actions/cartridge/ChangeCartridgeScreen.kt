@@ -49,6 +49,7 @@ import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartridgeModeStateStreamResponse
 import kotlinx.coroutines.Dispatchers
@@ -328,7 +329,8 @@ fun ChangeCartridgeScreen(
 
 val changeCartridgeScreenCommands = listOf(
     HomeScreenMirrorRequest(),
-    TimeSinceResetRequest()
+    TimeSinceResetRequest(),
+    LoadStatusRequest()
 )
 
 @Preview(showBackground = true)
