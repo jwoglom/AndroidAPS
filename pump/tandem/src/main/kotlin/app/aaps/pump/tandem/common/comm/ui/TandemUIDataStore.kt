@@ -4,6 +4,7 @@ import androidx.lifecycle.MutableLiveData
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
+import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse
@@ -83,6 +84,7 @@ class TandemUIDataStore {
 
     // Used by the Debug Commands screen: most recently received message overall.
     val debugLastReceivedMessage = MutableLiveData<Message?>()
+    val debugLastTandemError = MutableLiveData<TandemError?>()
 
     // val batteryPercent = MutableLiveData<Int>()
     // val cartridgeRemainingUnits = MutableLiveData<Int>()

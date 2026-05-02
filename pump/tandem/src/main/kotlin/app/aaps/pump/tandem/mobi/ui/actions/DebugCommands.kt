@@ -48,7 +48,9 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
+import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
 import com.jwoglom.pumpx2.pump.messages.util.MessageHelpers
 import kotlinx.coroutines.delay
 import java.lang.reflect.Constructor
@@ -68,6 +70,7 @@ fun DebugCommands(
     val ds = LocalTandemDataStore.current
     val clipboard: ClipboardManager = LocalClipboardManager.current
     val lastReceived by ds.debugLastReceivedMessage.observeAsState()
+    val lastTandemError by ds.debugLastTandemError.observeAsState()
 
     var pickerClass by remember { mutableStateOf<Class<out Message>?>(null) }
     var pickerChoices by remember { mutableStateOf<List<Constructor<out Message>>>(emptyList()) }
@@ -87,6 +90,12 @@ fun DebugCommands(
             capturedResponse = resp
         }
     }
+    LaunchedEffect(awaitingRequest, lastTandemError) {
+        if (awaitingRequest == null) return@LaunchedEffect
+        val err = lastTandemError ?: return@LaunchedEffect
+        val errResp = err.errorResponse ?: return@LaunchedEffect
+        capturedResponse = errResp
+    }
     LaunchedEffect(awaitingRequest) {
         if (awaitingRequest != null) {
             awaitingTimedOut = false
@@ -99,6 +108,7 @@ fun DebugCommands(
         try {
             val message = constructor.newInstance(*args.toTypedArray())
             ds.debugLastReceivedMessage.value = null
+            ds.debugLastTandemError.value = null
             capturedResponse = null
             awaitingTimedOut = false
             awaitingRequest = message
@@ -318,8 +328,18 @@ private fun ResponseDialog(
     onCopy: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val title = "${request.javaClass.simpleName} → ${response?.javaClass?.simpleName ?: if (timedOut) "(timeout)" else "..."}"
+    val title = response?.javaClass?.simpleName ?: request.javaClass.simpleName
     val body: String = when {
+        response is ErrorResponse -> buildString {
+            appendLine("From ${request.javaClass.simpleName}")
+            appendLine()
+            appendLine("Pump rejected the request.")
+            appendLine()
+            appendLine("errorCode=${response.errorCode}")
+            appendLine("requestCodeId=${response.requestCodeId}")
+            appendLine()
+            append(response.toString())
+        }
         response != null -> response.toString()
         timedOut         -> "No response within 10s. Pump may not have replied yet — leave open if it might still arrive."
         else             -> "Waiting for response… (${elapsedMs / 1000}s)"

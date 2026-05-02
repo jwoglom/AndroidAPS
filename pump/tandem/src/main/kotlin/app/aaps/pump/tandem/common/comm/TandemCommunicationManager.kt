@@ -455,6 +455,7 @@ class TandemCommunicationManager(
 
     override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
         aapsLogger.error(TAG, "CF: Pump Critical Error: ${reason}")
+        dataStore.debugLastTandemError.postValue(reason)
 
         // When a status response message has code non-zero
         // This can occur just because a precondition isn't met
