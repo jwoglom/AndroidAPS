@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,6 +23,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -84,6 +87,7 @@ fun FillTubingScreen(
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
     var willRestartFill by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "reloading FillTubingScreen with force")
@@ -147,6 +151,43 @@ fun FillTubingScreen(
             }
         })
 
+        val isInActiveMode = inFillTubingMode.value == true || exitFillTubingState.value != null
+        val hasActiveNotifications = notifications.isNotEmpty()
+
+        fun requestCancelOrBack() {
+            if (isInActiveMode) {
+                showCancelDialog = true
+            } else {
+                navigateBack()
+            }
+        }
+
+        BackHandler(enabled = isInActiveMode) {
+            showCancelDialog = true
+        }
+
+        if (showCancelDialog) {
+            AlertDialog(
+                onDismissRequest = { showCancelDialog = false },
+                title = { Text(resourceHelper.gs(R.string.ft_cancel_confirm_title)) },
+                text = { Text(resourceHelper.gs(R.string.ft_cancel_confirm_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showCancelDialog = false
+                        refreshScope.launch {
+                            sendPumpCommands(listOf(ExitFillTubingModeRequest()))
+                            navigateBack()
+                        }
+                    }) { Text(resourceHelper.gs(R.string.common_cancel)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCancelDialog = false }) {
+                        Text(resourceHelper.gs(R.string.common_continue))
+                    }
+                }
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -159,19 +200,25 @@ fun FillTubingScreen(
             if (showHeader) {
                 HeaderLineWithBackButton(
                     text = resourceHelper.gs(R.string.ft_title),
-                    onBackClick = navigateBack,
+                    onBackClick = ::requestCancelOrBack,
                     resourceHelper = resourceHelper
                 )
                 HorizontalDivider()
             }
 
             // Alert/Alarm banner - display at top if any exist
-            if (notifications.isNotEmpty()) {
+            if (hasActiveNotifications) {
                 AlertBanner(
                     notifications = notifications,
                     sendPumpCommands = sendPumpCommands,
                     refreshScope = refreshScope,
                     resourceHelper = resourceHelper
+                )
+                Text(
+                    text = resourceHelper.gs(R.string.ca_notifications_block_warning),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
@@ -408,7 +455,7 @@ fun FillTubingScreen(
                                 sendPumpCommands(listOf(EnterFillTubingModeRequest()))
                             }
                         },
-                        enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                        enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),

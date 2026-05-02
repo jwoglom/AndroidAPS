@@ -14,11 +14,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -61,6 +65,7 @@ import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.EnterChangeCartridgeModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ExitChangeCartridgeModeRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
@@ -85,6 +90,9 @@ fun ChangeCartridgeScreen(
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
+    var showCancelDialog by remember { mutableStateOf(false) }
+    var showSuspendDialog by remember { mutableStateOf(false) }
+    var isSuspending by remember { mutableStateOf(false) }
 
     fun fetchData() {
         sendPumpCommands(changeCartridgeScreenCommands)
@@ -158,6 +166,74 @@ fun ChangeCartridgeScreen(
             sendPumpCommands(listOf(msg))
         }
 
+        val isInActiveMode = inChangeCartridgeMode.value == true &&
+            detectingCartridgeState.value?.isComplete != true
+        val hasActiveNotifications = notifications.isNotEmpty()
+
+        fun requestCancelOrBack() {
+            if (isInActiveMode) {
+                showCancelDialog = true
+            } else {
+                navigateBack()
+            }
+        }
+
+        BackHandler(enabled = isInActiveMode) {
+            showCancelDialog = true
+        }
+
+        if (showCancelDialog) {
+            AlertDialog(
+                onDismissRequest = { showCancelDialog = false },
+                title = { Text(resourceHelper.gs(R.string.cc_cancel_confirm_title)) },
+                text = { Text(resourceHelper.gs(R.string.cc_cancel_confirm_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showCancelDialog = false
+                        refreshScope.launch {
+                            sendPumpCommand(ExitChangeCartridgeModeRequest())
+                            navigateBack()
+                        }
+                    }) { Text(resourceHelper.gs(R.string.common_cancel)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCancelDialog = false }) {
+                        Text(resourceHelper.gs(R.string.common_continue))
+                    }
+                }
+            )
+        }
+
+        if (showSuspendDialog) {
+            AlertDialog(
+                onDismissRequest = { showSuspendDialog = false },
+                title = { Text(resourceHelper.gs(R.string.ca_suspend_confirm_title)) },
+                text = { Text(resourceHelper.gs(R.string.ca_suspend_confirm_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showSuspendDialog = false
+                        isSuspending = true
+                        sendPumpCommand(SuspendPumpingRequest())
+                        refreshScope.launch {
+                            repeat(5) {
+                                if (pumpRunningState.value == PumpRunningState.Suspended) {
+                                    return@repeat
+                                }
+                                withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                                sendPumpCommand(HomeScreenMirrorRequest())
+                            }
+                            isSuspending = false
+                        }
+                    }) { Text(resourceHelper.gs(R.string.ca_btn_suspend_insulin)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSuspendDialog = false }) {
+                        Text(resourceHelper.gs(R.string.common_cancel))
+                    }
+                }
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -170,19 +246,25 @@ fun ChangeCartridgeScreen(
             if (showHeader) {
                 HeaderLineWithBackButton(
                     text = resourceHelper.gs(R.string.cc_title),
-                    onBackClick = navigateBack,
+                    onBackClick = ::requestCancelOrBack,
                     resourceHelper = resourceHelper
                 )
                 HorizontalDivider()
             }
 
             // Alert/Alarm banner - display at top if any exist
-            if (notifications.isNotEmpty()) {
+            if (hasActiveNotifications) {
                 AlertBanner(
                     notifications = notifications,
                     sendPumpCommands = sendPumpCommands,
                     refreshScope = refreshScope,
                     resourceHelper = resourceHelper
+                )
+                Text(
+                    text = resourceHelper.gs(R.string.ca_notifications_block_warning),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
@@ -322,13 +404,32 @@ fun ChangeCartridgeScreen(
                         )
                     }
                 } else if (inChangeCartridgeMode.value != true) {
+                    if (pumpRunningState.value != PumpRunningState.Suspended) {
+                        OutlinedButton(
+                            onClick = { showSuspendDialog = true },
+                            enabled = !isSuspending && !hasActiveNotifications,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                        ) {
+                            if (isSuspending) {
+                                CircularProgressIndicator()
+                            } else {
+                                Text(
+                                    text = resourceHelper.gs(R.string.ca_btn_suspend_insulin),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                     Button(
                         onClick = {
                             refreshScope.launch {
                                 sendPumpCommand(EnterChangeCartridgeModeRequest())
                             }
                         },
-                        enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                        enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),

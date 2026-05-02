@@ -45,6 +45,7 @@
     <!-- UI Common -->
     <string name="common_percent_complete">%1$s %% complete</string>
     <string name="common_cancel">Cancel</string>
+    <string name="common_continue">Continue</string>
     <string name="common_done">Done</string>
     <string name="common_back">Back</string>
 
@@ -128,6 +129,19 @@
     <string name="ca_next_step_heading">Next step</string>
     <string name="ca_before_you_start_heading">Before you start</string>
     <string name="ca_progress_heading">Progress</string>
+    <string name="ca_btn_suspend_insulin">Suspend Insulin</string>
+    <string name="ca_btn_resume_insulin">Resume Insulin Delivery</string>
+    <string name="ca_suspend_confirm_title">Suspend insulin delivery?</string>
+    <string name="ca_suspend_confirm_body">This will stop all insulin delivery until you resume.</string>
+    <string name="ca_resume_confirm_title">Resume insulin delivery?</string>
+    <string name="ca_resume_confirm_body">Insulin delivery will resume.</string>
+    <string name="ca_notifications_block_warning">Resolve pump notifications before starting.</string>
+    <string name="cc_cancel_confirm_title">Cancel cartridge change?</string>
+    <string name="cc_cancel_confirm_body">The cartridge change will be cancelled and the pump will exit cartridge change mode.</string>
+    <string name="ft_cancel_confirm_title">Cancel tubing fill?</string>
+    <string name="ft_cancel_confirm_body">The tubing fill will be cancelled and the pump will exit fill tubing mode.</string>
+    <string name="fc_cancel_confirm_title">Cancel cannula fill?</string>
+    <string name="fc_cancel_confirm_body">The cannula fill will be cancelled.</string>
 
     <string name="ca_stop_start_insulin">Stop / Start Insulin</string>
     <string name="ca_start_insulin">Start Insulin</string>
