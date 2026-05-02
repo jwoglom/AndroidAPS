@@ -23,6 +23,7 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateS
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.PumpingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
+import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CompletedCartridgeAction
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
@@ -63,6 +64,10 @@ class TandemUIDataStore {
     val exitFillTubingState = MutableLiveData<ExitFillTubingModeStateStreamResponse>()
     val fillCannulaState = MutableLiveData<FillCannulaStateStreamResponse>()
     val loadStatus = MutableLiveData<LoadStatusResponse>()
+    // Per-visit set of cartridge actions the user has finished within the current
+    // CartridgeActions screen tree. Cleared by CartridgeActions itself when it
+    // is popped off the back stack.
+    val completedCartridgeActions = MutableLiveData<Set<CompletedCartridgeAction>>(emptySet())
     //val pumpingState = MutableLiveData<PumpingStateStreamResponse>()
 
 

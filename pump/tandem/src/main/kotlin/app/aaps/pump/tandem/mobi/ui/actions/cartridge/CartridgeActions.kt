@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 
@@ -26,6 +27,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -37,9 +39,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -112,6 +117,7 @@ private fun GatedMenuItem(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     availability: MenuAvailability,
+    done: Boolean,
     onClick: () -> Unit,
 ) {
     val alpha = if (availability.enabled) 1f else 0.45f
@@ -136,6 +142,15 @@ private fun GatedMenuItem(
             leadingContent = {
                 Icon(icon, contentDescription = null)
             },
+            trailingContent = if (done) {
+                {
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF2E7D32) // Material Green 800
+                    )
+                }
+            } else null,
             modifier = if (availability.enabled) Modifier.clickable { onClick() } else Modifier,
         )
     }
@@ -184,6 +199,22 @@ fun CartridgeActions(
     }
 
     val loadStatus = ds.loadStatus.observeAsState()
+    val completedActions = ds.completedCartridgeActions.observeAsState()
+
+    // Reset the per-visit completion set when this screen leaves the back stack.
+    // ON_DESTROY fires when CartridgeActions is popped (user backed out of the
+    // cartridge actions tree); navigating forward into a sub-screen only fires
+    // ON_STOP, so completion checkmarks survive forward/back nav within the tree.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_DESTROY) {
+                ds.completedCartridgeActions.value = emptySet()
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
 
     // Auto-resume into the active sub-screen exactly once per entry
     LaunchedEffect(loadStatus.value) {
@@ -254,6 +285,7 @@ fun CartridgeActions(
                         title = resourceHelper.gs(R.string.cc_title),
                         icon = Icons.Filled.Settings,
                         availability = changeCartridgeMenu,
+                        done = CompletedCartridgeAction.CHANGE_CARTRIDGE in (completedActions.value ?: emptySet()),
                         onClick = {
                             refreshScope.launch {
                                 hasAutoResumed = true
@@ -271,6 +303,7 @@ fun CartridgeActions(
                         title = resourceHelper.gs(R.string.ft_title),
                         icon = Icons.Filled.Settings,
                         availability = fillTubingMenu,
+                        done = CompletedCartridgeAction.FILL_TUBING in (completedActions.value ?: emptySet()),
                         onClick = {
                             refreshScope.launch {
                                 hasAutoResumed = true
@@ -289,6 +322,7 @@ fun CartridgeActions(
                         title = resourceHelper.gs(R.string.fc_title),
                         icon = Icons.Filled.Settings,
                         availability = fillCannulaMenu,
+                        done = CompletedCartridgeAction.FILL_CANNULA in (completedActions.value ?: emptySet()),
                         onClick = {
                             refreshScope.launch {
                                 hasAutoResumed = true

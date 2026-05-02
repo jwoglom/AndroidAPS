@@ -308,6 +308,9 @@ fun ChangeCartridgeScreen(
                 PrimaryActionButton(
                     text = resourceHelper.gs(R.string.common_done),
                     onClick = {
+                        ds.completedCartridgeActions.value =
+                            (ds.completedCartridgeActions.value ?: emptySet()) +
+                                CompletedCartridgeAction.CHANGE_CARTRIDGE
                         ds.loadStatus.value = null
                         refreshScope.launch { navigateBack() }
                     }

@@ -212,6 +212,9 @@ fun FillCannulaScreen(
                             sendPumpCommand(HomeScreenMirrorRequest())
                         }
                         isResuming = false
+                        ds.completedCartridgeActions.value =
+                            (ds.completedCartridgeActions.value ?: emptySet()) +
+                                CompletedCartridgeAction.FILL_CANNULA
                         ds.loadStatus.value = null
                         navigateBack()
                     }
@@ -397,6 +400,9 @@ fun FillCannulaScreen(
                         SecondaryActionButton(
                             text = resourceHelper.gs(R.string.common_done),
                             onClick = {
+                                ds.completedCartridgeActions.value =
+                                    (ds.completedCartridgeActions.value ?: emptySet()) +
+                                        CompletedCartridgeAction.FILL_CANNULA
                                 ds.loadStatus.value = null
                                 navigateBack()
                             },

@@ -345,6 +345,9 @@ fun FillTubingScreen(
                         PrimaryActionButton(
                             text = resourceHelper.gs(R.string.common_done),
                             onClick = {
+                                ds.completedCartridgeActions.value =
+                                    (ds.completedCartridgeActions.value ?: emptySet()) +
+                                        CompletedCartridgeAction.FILL_TUBING
                                 ds.loadStatus.value = null
                                 navigateBack()
                             },
