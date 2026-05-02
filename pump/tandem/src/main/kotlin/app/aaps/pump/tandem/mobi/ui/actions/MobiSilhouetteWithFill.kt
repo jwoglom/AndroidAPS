@@ -16,9 +16,9 @@ import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 
 private const val VIEWBOX = 128f
 private const val WINDOW_LEFT = 46.17f
-private const val WINDOW_TOP = 56.58f
-private const val WINDOW_WIDTH = 36.31f
-private const val WINDOW_HEIGHT = 37.93f
+private const val WINDOW_TOP = 69.7f
+private const val WINDOW_WIDTH = 33.23f
+private const val WINDOW_HEIGHT = 21.69f
 
 val InsulinFillColor = Color(0xFF03A9F4) // Material Light Blue 500
 
@@ -30,11 +30,6 @@ fun MobiSilhouetteWithFill(
 ) {
     val clamped = fillFraction.coerceIn(0f, 1f)
     Box(modifier = modifier.aspectRatio(1f)) {
-        Image(
-            painter = painterResource(R.drawable.mobi),
-            contentDescription = null,
-            modifier = Modifier.matchParentSize(),
-        )
         Canvas(modifier = Modifier.matchParentSize()) {
             val winLeft = size.width * (WINDOW_LEFT / VIEWBOX)
             val winTop = size.height * (WINDOW_TOP / VIEWBOX)
@@ -47,6 +42,11 @@ fun MobiSilhouetteWithFill(
                 size = Size(winWidth, fillHeight),
             )
         }
+        Image(
+            painter = painterResource(R.drawable.mobi_with_clear_cartridge),
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+        )
     }
 }
 
