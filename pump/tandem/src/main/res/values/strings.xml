@@ -146,6 +146,8 @@
     <string name="ca_notifications_checking">Checking for notifications…</string>
     <string name="ft_keep_holding_button">Keep holding the pump button — releasing stops the fill.</string>
     <string name="ft_release_confirm_prompt">Pump button released. Do you see insulin at the cannula?</string>
+    <string name="ca_incomplete_load_warning_title">Cartridge fill not complete</string>
+    <string name="ca_incomplete_load_warning_body">You haven\'t completed the cartridge fill process, so insulin delivery can\'t begin. To return to fill your tubing/cannula, press Cancel.</string>
     <string name="cc_cancel_confirm_title">Cancel cartridge change?</string>
     <string name="cc_cancel_confirm_body">The cartridge change will be cancelled and the pump will exit cartridge change mode.</string>
     <string name="ft_cancel_confirm_title">Cancel tubing fill?</string>
