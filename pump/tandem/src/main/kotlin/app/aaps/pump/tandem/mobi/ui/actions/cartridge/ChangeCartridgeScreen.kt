@@ -205,22 +205,9 @@ fun ChangeCartridgeScreen(
                 resourceHelper = resourceHelper,
             )
         },
-        header = {
-            CartridgeNotificationsPanel(
-                notifications = notifications,
-                sendPumpCommands = sendPumpCommands,
-                refreshScope = refreshScope,
-                resourceHelper = resourceHelper,
-            )
-            if (hasActiveNotifications) {
-                Text(
-                    text = resourceHelper.gs(R.string.ca_notifications_block_warning),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-        },
+        notifications = notifications,
+        sendPumpCommands = sendPumpCommands,
+        refreshScope = refreshScope,
         body = {
             if (detectingCartridgeState.value != null) {
                 Text(

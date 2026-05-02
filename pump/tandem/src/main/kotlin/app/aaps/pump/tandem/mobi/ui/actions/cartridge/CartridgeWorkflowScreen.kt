@@ -34,8 +34,9 @@ import androidx.compose.ui.zIndex
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
+import com.jwoglom.pumpx2.pump.messages.Message
+import kotlinx.coroutines.CoroutineScope
 
-/** Shared layout shell for the cartridge action workflow screens. */
 @Composable
 fun CartridgeWorkflowScreen(
     title: String,
@@ -44,9 +45,11 @@ fun CartridgeWorkflowScreen(
     onRefresh: () -> Unit,
     onBack: () -> Unit,
     resourceHelper: ResourceHelper,
+    notifications: List<Any>,
+    sendPumpCommands: (List<Message>) -> Boolean,
+    refreshScope: CoroutineScope,
     showHeader: Boolean = true,
     stepIndicator: @Composable () -> Unit = {},
-    header: @Composable () -> Unit = {},
     body: @Composable ColumnScope.() -> Unit,
     actions: @Composable ColumnScope.() -> Unit,
 ) {
@@ -85,7 +88,9 @@ fun CartridgeWorkflowScreen(
                 HorizontalDivider()
             }
             stepIndicator()
-            header()
+            if (notifications.isEmpty()) {
+                CartridgeNotificationsPanel(resourceHelper = resourceHelper)
+            }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -100,6 +105,14 @@ fun CartridgeWorkflowScreen(
                 content = actions,
             )
         }
+    }
+    if (notifications.isNotEmpty()) {
+        CartridgeNotificationsBlockingDialog(
+            notifications = notifications,
+            sendPumpCommands = sendPumpCommands,
+            refreshScope = refreshScope,
+            resourceHelper = resourceHelper,
+        )
     }
 }
 

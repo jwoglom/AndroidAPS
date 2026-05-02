@@ -142,6 +142,7 @@
     <string name="ca_disabled_load_then_fill_tubing">Cartridge change complete — fill the tubing next.</string>
     <string name="ca_step_x_of_y">Step %1$d of %2$d</string>
     <string name="ca_notifications_panel_title">Pump notifications</string>
+    <string name="ca_dismiss_notifications_title">Dismiss notifications before continuing</string>
     <string name="ca_notifications_none">No active Pump notifications.</string>
     <string name="ca_notifications_refresh">Refresh notifications</string>
     <string name="ca_notifications_checking">Checking for notifications…</string>
