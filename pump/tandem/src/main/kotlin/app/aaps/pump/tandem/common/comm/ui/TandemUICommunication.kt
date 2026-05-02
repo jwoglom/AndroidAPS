@@ -35,6 +35,7 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateSt
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
@@ -204,6 +205,13 @@ class TandemUICommunication @Inject constructor (
             }
             is LoadStatusResponse -> {
                 dataStore.loadStatus.value = message
+                // Reconcile mode flags from the source of truth.
+                val active = message.isLoadingActive
+                val ls = message.loadState
+                val inChange = active && (ls == LoadStatusResponse.LoadState.CHANGE_CARTRIDGE || ls == LoadStatusResponse.LoadState.LOAD_CARTRIDGE)
+                val inTubing = active && ls == LoadStatusResponse.LoadState.PRIME_TUBING
+                if (dataStore.inChangeCartridgeMode.value != inChange) dataStore.inChangeCartridgeMode.value = inChange
+                if (dataStore.inFillTubingMode.value != inTubing) dataStore.inFillTubingMode.value = inTubing
             }
             // is PumpingStateStreamResponse -> {
             //     dataStore.pumpingState.value = message
@@ -211,6 +219,7 @@ class TandemUICommunication @Inject constructor (
             is EnterChangeCartridgeModeResponse -> {
                 if (!message.isStatusOK) {
                     unsuccessfulAlert(message.messageName())
+                    sendCommand(LoadStatusRequest())
                 } else {
                     dataStore.inChangeCartridgeMode.value = true
                 }
@@ -218,6 +227,7 @@ class TandemUICommunication @Inject constructor (
             is ExitChangeCartridgeModeResponse -> {
                 if (message.status != 0) {
                     unsuccessfulAlert(message.messageName())
+                    sendCommand(LoadStatusRequest())
                 } else {
                     dataStore.inChangeCartridgeMode.value = false
                 }
@@ -225,6 +235,7 @@ class TandemUICommunication @Inject constructor (
             is EnterFillTubingModeResponse -> {
                 if (!message.isStatusOK) {
                     unsuccessfulAlert(message.messageName())
+                    sendCommand(LoadStatusRequest())
                 } else {
                     dataStore.inFillTubingMode.value = true
                 }
@@ -232,6 +243,7 @@ class TandemUICommunication @Inject constructor (
             is ExitFillTubingModeResponse -> {
                 if (!message.isStatusOK) {
                     unsuccessfulAlert(message.messageName())
+                    sendCommand(LoadStatusRequest())
                 } else {
                     dataStore.inFillTubingMode.value = false
                 }

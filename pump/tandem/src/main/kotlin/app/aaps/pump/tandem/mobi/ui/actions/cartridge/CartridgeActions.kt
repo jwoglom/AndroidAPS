@@ -204,20 +204,6 @@ fun CartridgeActions(
     val loadStatus = ds.loadStatus.observeAsState()
     val completedActions = ds.completedCartridgeActions.observeAsState()
 
-    // Sync local mode flags from the pump's LoadStatusResponse. Setting back
-    // to false is owned by the Exit*ModeResponse handlers.
-    LaunchedEffect(loadStatus.value) {
-        val ls = loadStatus.value ?: return@LaunchedEffect
-        if (!ls.isLoadingActive) return@LaunchedEffect
-        when (ls.loadState) {
-            LoadStatusResponse.LoadState.CHANGE_CARTRIDGE,
-            LoadStatusResponse.LoadState.LOAD_CARTRIDGE ->
-                if (ds.inChangeCartridgeMode.value != true) ds.inChangeCartridgeMode.value = true
-            LoadStatusResponse.LoadState.PRIME_TUBING ->
-                if (ds.inFillTubingMode.value != true) ds.inFillTubingMode.value = true
-            else -> Unit
-        }
-    }
 
     // Clear per-visit completion set on pop (forward nav only emits ON_STOP).
     val lifecycle = LocalLifecycleOwner.current.lifecycle
