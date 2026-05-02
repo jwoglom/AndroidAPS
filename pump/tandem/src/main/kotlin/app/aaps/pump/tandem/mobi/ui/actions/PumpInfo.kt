@@ -1,5 +1,6 @@
 package app.aaps.pump.tandem.mobi.ui.actions
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +35,8 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
              navigateBack: () -> Unit,
              tandemPumpStatus: TandemPumpStatus? = null,
              resourceHelper: ResourceHelper,
-             showHeader: Boolean = true
+             showHeader: Boolean = true,
+             navigateToDebugCommands: () -> Unit = {}
              ) {
 
     val pumpInfo = LocalTandemDataStore.current.pumpVersionResponse.value
@@ -60,7 +63,13 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
             }
 
             item {
-                PumpInfoRow(label= resourceHelper.gs(R.string.pump_serial_number), "${pumpInfo?.serialNum}")
+                PumpInfoRow(
+                    label = resourceHelper.gs(R.string.pump_serial_number),
+                    value = "${pumpInfo?.serialNum}",
+                    rowModifier = Modifier.pointerInput(Unit) {
+                        detectTapGestures(onDoubleTap = { navigateToDebugCommands() })
+                    }
+                )
             }
 
             item {
@@ -99,12 +108,13 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
 
 
 @Composable
-fun PumpInfoRow(label: String, value: String) {
+fun PumpInfoRow(label: String, value: String, rowModifier: Modifier = Modifier) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(46.dp)
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 20.dp)
+            .then(rowModifier),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

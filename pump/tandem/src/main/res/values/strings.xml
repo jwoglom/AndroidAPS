@@ -110,6 +110,9 @@
     <string name="pi_pump_model">Pump Model</string>
     <string name="pi_pump_sw">Pump Software</string>
 
+    <!-- UI Configuration::PumpInfo::Debug Commands -->
+    <string name="debug_commands_title">Debug Commands</string>
+
 
     <!-- UI Configuration::Actions -->
     <string name="ui_a_title">Actions</string>

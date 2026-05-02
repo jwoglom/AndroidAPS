@@ -43,6 +43,7 @@ import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
+import app.aaps.pump.tandem.mobi.ui.actions.DebugCommands
 import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.ChangeCartridgeScreen
@@ -170,6 +171,22 @@ class ActionsActivity : DaggerAppCompatActivity() {
                                             tandemPumpStatus = tandemPumpStatus,
                                             navigateBack = {
                                                 selectedItem = ActionsLandingSection.ACTIONS
+                                            },
+                                            navigateToDebugCommands = {
+                                                selectedItem = ActionsLandingSection.DEBUG_COMMANDS
+                                            },
+                                        )
+                                    }
+
+
+                                    ActionsLandingSection.DEBUG_COMMANDS -> {
+                                        DebugCommands(
+                                            innerPadding = innerPadding,
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
+                                            resourceHelper = resourceHelper,
+                                            aapsLogger = aapsLogger,
+                                            navigateBack = {
+                                                selectedItem = ActionsLandingSection.PUMP_INFO
                                             },
                                         )
                                     }
@@ -317,6 +334,7 @@ enum class ActionsLandingSection(val label: String, val icon: ImageVector) {
     FILL_TUBING("Fill Tubing", Icons.Filled.Create),
     FILL_CANNULA("Fill Cannula", Icons.Filled.Create),
     PUMP_INFO("Pump Info", Icons.Filled.Create),
+    DEBUG_COMMANDS("Debug Commands", Icons.Filled.Create),
     SITE_REMINDER("Site Reminder", Icons.Filled.Create)
     ;
 }
