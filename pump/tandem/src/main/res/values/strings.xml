@@ -148,6 +148,12 @@
     <string name="ft_keep_holding_button">Keep holding the pump button — releasing stops the fill.</string>
     <string name="ft_release_confirm_prompt">Pump button released. Do you see insulin at the cannula?</string>
     <string name="ft_disconnect_confirm_title">Is your pump disconnected from your body?</string>
+    <string name="ft_status_filling_stopped">Filling stopped</string>
+    <string name="ft_yes_label">Yes</string>
+    <string name="ft_yes_action">Tap \"Complete Fill\" below.</string>
+    <string name="ft_no_label">No</string>
+    <string name="ft_no_action">Hold the pump button again to keep filling.</string>
+    <string name="ft_motor_warning">If holding the pump button does not move the motor, tap \"Restart Fill\" instead.</string>
     <string name="ca_incomplete_load_warning_title">Cartridge fill not complete</string>
     <string name="ca_incomplete_load_warning_body">You haven\'t completed the cartridge fill process, so insulin delivery can\'t begin. To return to fill your tubing/cannula, press Cancel.</string>
     <string name="cc_cancel_confirm_title">Cancel cartridge change?</string>
