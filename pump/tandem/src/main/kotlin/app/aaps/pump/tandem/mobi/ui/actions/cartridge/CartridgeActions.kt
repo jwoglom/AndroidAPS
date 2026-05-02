@@ -77,6 +77,8 @@ private fun changeCartridgeAvailability(
 ): MenuAvailability {
     if (loadStatus?.isLoadingActive != true) return MenuAvailability(true)
     return when (loadStatus.loadState) {
+        LoadStatusResponse.LoadState.LOAD_CARTRIDGE ->
+            MenuAvailability(false, resourceHelper.gs(R.string.ca_disabled_load_then_fill_tubing))
         LoadStatusResponse.LoadState.PRIME_TUBING ->
             MenuAvailability(false, resourceHelper.gs(R.string.ca_disabled_fill_tubing_in_progress))
         LoadStatusResponse.LoadState.PRIME_CANNULA ->
@@ -91,8 +93,7 @@ private fun fillTubingAvailability(
 ): MenuAvailability {
     if (loadStatus?.isLoadingActive != true) return MenuAvailability(true)
     return when (loadStatus.loadState) {
-        LoadStatusResponse.LoadState.CHANGE_CARTRIDGE,
-        LoadStatusResponse.LoadState.LOAD_CARTRIDGE ->
+        LoadStatusResponse.LoadState.CHANGE_CARTRIDGE ->
             MenuAvailability(false, resourceHelper.gs(R.string.ca_disabled_change_in_progress))
         LoadStatusResponse.LoadState.PRIME_CANNULA ->
             MenuAvailability(false, resourceHelper.gs(R.string.ca_disabled_fill_cannula_in_progress))

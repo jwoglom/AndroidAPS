@@ -51,7 +51,6 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRe
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartridgeModeStateStreamResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -103,15 +102,6 @@ fun ChangeCartridgeScreen(
     val inChangeCartridgeMode = ds.inChangeCartridgeMode.observeAsState()
     val enterChangeCartridgeState = ds.enterChangeCartridgeState.observeAsState()
     val detectingCartridgeState = ds.detectingCartridgeState.observeAsState()
-    val loadStatus = ds.loadStatus.observeAsState()
-
-    // Pump already in load mode pre-existing — skip the "Preparing..." splash.
-    val pumpAlreadyInLoadMode = loadStatus.value?.let {
-        it.isLoadingActive && (it.loadState == LoadStatusResponse.LoadState.CHANGE_CARTRIDGE ||
-            it.loadState == LoadStatusResponse.LoadState.LOAD_CARTRIDGE)
-    } == true
-    val isReadyToInsert = enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE ||
-        (pumpAlreadyInLoadMode && enterChangeCartridgeState.value == null && detectingCartridgeState.value == null)
 
     val notifications = remember { mutableStateListOf<Any>() }
     ds.notificationBundle.observe(LocalLifecycleOwner.current, Observer {
@@ -195,7 +185,7 @@ fun ChangeCartridgeScreen(
     val currentStep = when {
         detectingCartridgeState.value?.isComplete == true -> 4
         detectingCartridgeState.value != null -> 3
-        isReadyToInsert -> 2
+        enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE -> 2
         inChangeCartridgeMode.value == true -> 1
         else -> 1
     }
@@ -261,7 +251,7 @@ fun ChangeCartridgeScreen(
                     text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"),
                     style = MaterialTheme.typography.bodyMedium
                 )
-            } else if (isReadyToInsert) {
+            } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
                 Text(
                     text = resourceHelper.gs(R.string.ca_next_step_heading),
                     style = MaterialTheme.typography.titleMedium,
@@ -324,7 +314,7 @@ fun ChangeCartridgeScreen(
                         refreshScope.launch { navigateBack() }
                     }
                 )
-            } else if (isReadyToInsert) {
+            } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
                 PrimaryActionButton(
                     text = resourceHelper.gs(R.string.cc_btn_cart_inserted),
                     onClick = {

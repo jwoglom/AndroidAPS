@@ -208,7 +208,7 @@ class TandemUICommunication @Inject constructor (
                 // Reconcile mode flags from the source of truth.
                 val active = message.isLoadingActive
                 val ls = message.loadState
-                val inChange = active && (ls == LoadStatusResponse.LoadState.CHANGE_CARTRIDGE || ls == LoadStatusResponse.LoadState.LOAD_CARTRIDGE)
+                val inChange = active && ls == LoadStatusResponse.LoadState.CHANGE_CARTRIDGE
                 val inTubing = active && ls == LoadStatusResponse.LoadState.PRIME_TUBING
                 if (dataStore.inChangeCartridgeMode.value != inChange) dataStore.inChangeCartridgeMode.value = inChange
                 if (dataStore.inFillTubingMode.value != inTubing) dataStore.inFillTubingMode.value = inTubing
