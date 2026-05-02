@@ -1,18 +1,16 @@
 package app.aaps.pump.tandem.mobi.ui.actions
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.foundation.Image
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 
@@ -22,12 +20,13 @@ private const val WINDOW_TOP = 56.58f
 private const val WINDOW_WIDTH = 36.31f
 private const val WINDOW_HEIGHT = 37.93f
 
+val InsulinFillColor = Color(0xFF03A9F4) // Material Light Blue 500
+
 @Composable
 fun MobiSilhouetteWithFill(
     fillFraction: Float,
     modifier: Modifier = Modifier,
-    fillColor: Color = MaterialTheme.colorScheme.primary,
-    silhouetteTint: Color? = null,
+    fillColor: Color = InsulinFillColor,
 ) {
     val clamped = fillFraction.coerceIn(0f, 1f)
     Box(modifier = modifier.aspectRatio(1f)) {
@@ -35,7 +34,6 @@ fun MobiSilhouetteWithFill(
             painter = painterResource(R.drawable.mobi),
             contentDescription = null,
             modifier = Modifier.matchParentSize(),
-            colorFilter = silhouetteTint?.let { ColorFilter.tint(it) },
         )
         Canvas(modifier = Modifier.matchParentSize()) {
             val winLeft = size.width * (WINDOW_LEFT / VIEWBOX)

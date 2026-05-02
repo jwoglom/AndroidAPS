@@ -85,7 +85,6 @@ fun PumpStatusHeader(resourceHelper: ResourceHelper) {
             MobiSilhouetteWithFill(
                 fillFraction = fillFraction,
                 modifier = Modifier.size(96.dp),
-                silhouetteTint = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(
@@ -100,6 +99,7 @@ fun PumpStatusHeader(resourceHelper: ResourceHelper) {
                 LinearProgressIndicator(
                     progress = { fillFraction },
                     modifier = Modifier.fillMaxWidth(),
+                    color = InsulinFillColor,
                 )
                 if (cartridgeEmpty) {
                     StatusLine(
