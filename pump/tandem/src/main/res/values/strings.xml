@@ -123,6 +123,13 @@
 
     <!-- UI Actions::Cartridge Actions -->
     <string name="ca_label">Cartridge Setup</string>
+    <string name="ps_cartridge_units">Cartridge   %1$d / %2$d U</string>
+    <string name="ps_cartridge_empty">Cartridge empty</string>
+    <string name="ps_workflow_changing">Changing cartridge…</string>
+    <string name="ps_workflow_filling_tubing">Filling tubing…</string>
+    <string name="ps_workflow_filling_cannula">Filling cannula…</string>
+    <string name="ps_insulin_delivering">Insulin delivering</string>
+    <string name="ps_insulin_suspended">Insulin suspended</string>
     <string name="ca_disconnect_pump_from_site">Disconnect your pump from your body/site and press \'%1$s\' button below.</string>
     <string name="ca_before_stop_delivery">Before %1$s, stop delivery of insulin.</string>
     <string name="ca_status_heading">Status</string>

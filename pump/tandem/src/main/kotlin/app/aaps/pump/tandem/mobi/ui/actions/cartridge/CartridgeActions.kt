@@ -52,6 +52,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
+import app.aaps.pump.tandem.mobi.ui.actions.PumpStatusHeader
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.mobi.ui.util.Line
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
@@ -62,6 +63,7 @@ import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
@@ -291,6 +293,10 @@ fun CartridgeActions(
                 }
 
                 item {
+                    PumpStatusHeader(resourceHelper = resourceHelper)
+                }
+
+                item {
                     GatedMenuItem(
                         title = resourceHelper.gs(R.string.cc_title),
                         icon = Icons.Filled.Settings,
@@ -374,7 +380,8 @@ fun CartridgeActions(
 val cartridgeActionsCommands = listOf(
     HomeScreenMirrorRequest(),
     TimeSinceResetRequest(),
-    LoadStatusRequest()
+    LoadStatusRequest(),
+    InsulinStatusRequest()
 )
 
 

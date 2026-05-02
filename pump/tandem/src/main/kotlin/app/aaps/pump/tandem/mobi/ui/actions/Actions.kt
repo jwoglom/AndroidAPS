@@ -65,6 +65,8 @@ import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -183,6 +185,9 @@ fun Actions(
                     item {
                         HeaderLine(resourceHelper.gs(R.string.ui_a_title))
                     }
+                }
+                item {
+                    PumpStatusHeader(resourceHelper = resourceHelper)
                 }
                 item {
                     ListItem(
@@ -392,7 +397,9 @@ fun Actions(
 }
 val actionsCommands = listOf(
     HomeScreenMirrorRequest(),
-    TempRateRequest()
+    TempRateRequest(),
+    InsulinStatusRequest(),
+    LoadStatusRequest()
 )
 
 val actionsFields = listOf(

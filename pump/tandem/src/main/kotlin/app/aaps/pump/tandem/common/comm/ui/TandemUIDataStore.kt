@@ -12,6 +12,7 @@ import com.jwoglom.pumpx2.pump.messages.response.control.RemoteCarbEntryResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BolusCalcDataSnapshotResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBGResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusAbstractResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
@@ -64,6 +65,7 @@ class TandemUIDataStore {
     val exitFillTubingState = MutableLiveData<ExitFillTubingModeStateStreamResponse>()
     val fillCannulaState = MutableLiveData<FillCannulaStateStreamResponse>()
     val loadStatus = MutableLiveData<LoadStatusResponse>()
+    val insulinStatus = MutableLiveData<InsulinStatusResponse>()
     // Per-visit completion set; cleared on CartridgeActions exit.
     val completedCartridgeActions = MutableLiveData<Set<CompletedCartridgeAction>>(emptySet())
     //val pumpingState = MutableLiveData<PumpingStateStreamResponse>()
