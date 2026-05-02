@@ -35,16 +35,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 
-/**
- * Shared layout shell for the Tandem cartridge action workflows
- * (ChangeCartridgeScreen / FillTubingScreen / FillCannulaScreen).
- *
- * Slots:
- * - [stepIndicator] — optional Phase 4 wizard progress (renders below header)
- * - [header] — alert/alarm banner + warning row, rendered above the body
- * - [body] — status text content, scrollable, padded
- * - [actions] — pinned at bottom, padded
- */
+/** Shared layout shell for the cartridge action workflow screens. */
 @Composable
 fun CartridgeWorkflowScreen(
     title: String,
@@ -138,10 +129,7 @@ fun PrimaryActionButton(
     }
 }
 
-/**
- * Wizard-style "Step N of M" indicator with a [LinearProgressIndicator].
- * Pass via [CartridgeWorkflowScreen]'s `stepIndicator` slot.
- */
+/** "Step N of M" indicator for [CartridgeWorkflowScreen]'s `stepIndicator` slot. */
 @Composable
 fun WizardStepIndicator(
     currentStep: Int,

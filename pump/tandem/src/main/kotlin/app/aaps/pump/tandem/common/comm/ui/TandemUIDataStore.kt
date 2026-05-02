@@ -64,9 +64,7 @@ class TandemUIDataStore {
     val exitFillTubingState = MutableLiveData<ExitFillTubingModeStateStreamResponse>()
     val fillCannulaState = MutableLiveData<FillCannulaStateStreamResponse>()
     val loadStatus = MutableLiveData<LoadStatusResponse>()
-    // Per-visit set of cartridge actions the user has finished within the current
-    // CartridgeActions screen tree. Cleared by CartridgeActions itself when it
-    // is popped off the back stack.
+    // Per-visit completion set; cleared on CartridgeActions exit.
     val completedCartridgeActions = MutableLiveData<Set<CompletedCartridgeAction>>(emptySet())
     //val pumpingState = MutableLiveData<PumpingStateStreamResponse>()
 

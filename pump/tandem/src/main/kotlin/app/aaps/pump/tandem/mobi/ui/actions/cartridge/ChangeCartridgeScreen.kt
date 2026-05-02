@@ -341,9 +341,7 @@ fun ChangeCartridgeScreen(
                         isStartingChangeCartridge = true
                         sendPumpCommand(EnterChangeCartridgeModeRequest())
                         refreshScope.launch {
-                            // Wait up to 5s for the pump to either ack (in*Mode → true)
-                            // or for unsuccessfulAlert to surface a notification.
-                            // Either way, drop the spinner so the user isn't stuck.
+                            // 5s watchdog so the spinner doesn't stick.
                             repeat(5) {
                                 if (inChangeCartridgeMode.value == true) return@repeat
                                 withContext(Dispatchers.IO) { Thread.sleep(1000) }

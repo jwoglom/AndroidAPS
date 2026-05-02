@@ -204,10 +204,22 @@ fun CartridgeActions(
     val loadStatus = ds.loadStatus.observeAsState()
     val completedActions = ds.completedCartridgeActions.observeAsState()
 
-    // Reset the per-visit completion set when this screen leaves the back stack.
-    // ON_DESTROY fires when CartridgeActions is popped (user backed out of the
-    // cartridge actions tree); navigating forward into a sub-screen only fires
-    // ON_STOP, so completion checkmarks survive forward/back nav within the tree.
+    // Sync local mode flags from the pump's LoadStatusResponse. Setting back
+    // to false is owned by the Exit*ModeResponse handlers.
+    LaunchedEffect(loadStatus.value) {
+        val ls = loadStatus.value ?: return@LaunchedEffect
+        if (!ls.isLoadingActive) return@LaunchedEffect
+        when (ls.loadState) {
+            LoadStatusResponse.LoadState.CHANGE_CARTRIDGE,
+            LoadStatusResponse.LoadState.LOAD_CARTRIDGE ->
+                if (ds.inChangeCartridgeMode.value != true) ds.inChangeCartridgeMode.value = true
+            LoadStatusResponse.LoadState.PRIME_TUBING ->
+                if (ds.inFillTubingMode.value != true) ds.inFillTubingMode.value = true
+            else -> Unit
+        }
+    }
+
+    // Clear per-visit completion set on pop (forward nav only emits ON_STOP).
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
@@ -223,9 +235,7 @@ fun CartridgeActions(
     val fillTubingMenu = fillTubingAvailability(loadStatus.value, resourceHelper)
     val fillCannulaMenu = fillCannulaAvailability(loadStatus.value, resourceHelper)
 
-    // Block exit if user changed the cartridge but didn't follow through with
-    // a tubing fill — the cartridge fill process is incomplete and insulin
-    // delivery can't safely resume.
+    // Block exit if cartridge changed but tubing not yet filled.
     val completedSet = completedActions.value ?: emptySet()
     val shouldWarnOnExit = CompletedCartridgeAction.CHANGE_CARTRIDGE in completedSet &&
         CompletedCartridgeAction.FILL_TUBING !in completedSet

@@ -41,14 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Card-wrapped pump notifications panel for the cartridge action workflows.
- * - Shows a header with title and a refresh button.
- * - Renders [AlertBanner] for active alerts/alarms (dismissal already handled there).
- * - Shows a positive empty-state ("No active notifications") with a green check
- *   when nothing is active.
- * - Shows a spinner while a refresh request is in flight.
- */
+/** Pump notifications panel: card with refresh, AlertBanner when populated, green-check empty state. */
 @Composable
 fun CartridgeNotificationsPanel(
     notifications: List<Any>,
