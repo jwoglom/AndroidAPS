@@ -85,6 +85,7 @@ fun CartridgeNotificationsBlockingDialog(
     val incompleteAlertBodies = linkedMapOf(
         AlertStatusResponse.AlertResponseType.INCOMPLETE_CARTRIDGE_CHANGE_ALERT to R.string.cc_incomplete_change_dialog_body,
         AlertStatusResponse.AlertResponseType.INCOMPLETE_FILL_TUBING_ALERT to R.string.ft_incomplete_fill_dialog_body,
+        AlertStatusResponse.AlertResponseType.FILL_TUBING_STILL_IN_PROGRESS to R.string.ft_incomplete_fill_dialog_body,
         AlertStatusResponse.AlertResponseType.INCOMPLETE_FILL_CANNULA_ALERT to R.string.fc_incomplete_fill_dialog_body,
     )
     val matchedAlert = incompleteAlertBodies.keys.firstOrNull { it in notifications }
