@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,6 +45,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
+import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
@@ -79,6 +83,7 @@ fun FillTubingScreen(
     var showCancelDialog by remember { mutableStateOf(false) }
     var hasDisplayedFlow by remember { mutableStateOf(false) }
     var isStartingFillTubing by remember { mutableStateOf(false) }
+    var showDisconnectConfirmDialog by remember { mutableStateOf(false) }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "reloading FillTubingScreen with force")
@@ -146,6 +151,33 @@ fun FillTubingScreen(
             dismissButton = {
                 TextButton(onClick = { showCancelDialog = false }) {
                     Text(resourceHelper.gs(R.string.common_continue))
+                }
+            }
+        )
+    }
+
+    if (showDisconnectConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisconnectConfirmDialog = false },
+            icon = { Icon(Icons.Filled.Warning, contentDescription = null) },
+            title = { Text(resourceHelper.gs(R.string.ft_disconnect_confirm_title)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDisconnectConfirmDialog = false
+                    isStartingFillTubing = true
+                    sendPumpCommands(listOf(EnterFillTubingModeRequest()))
+                    refreshScope.launch {
+                        repeat(5) {
+                            if (inFillTubingMode.value == true) return@repeat
+                            withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                        }
+                        isStartingFillTubing = false
+                    }
+                }) { Text(resourceHelper.gs(Rco.string.yes)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDisconnectConfirmDialog = false }) {
+                    Text(resourceHelper.gs(Rco.string.no))
                 }
             }
         )
@@ -397,17 +429,7 @@ fun FillTubingScreen(
             } else {
                 PrimaryActionButton(
                     text = resourceHelper.gs(R.string.ft_btn_begin),
-                    onClick = {
-                        isStartingFillTubing = true
-                        sendPumpCommands(listOf(EnterFillTubingModeRequest()))
-                        refreshScope.launch {
-                            repeat(5) {
-                                if (inFillTubingMode.value == true) return@repeat
-                                withContext(Dispatchers.IO) { Thread.sleep(1000) }
-                            }
-                            isStartingFillTubing = false
-                        }
-                    },
+                    onClick = { showDisconnectConfirmDialog = true },
                     enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
                     loading = isStartingFillTubing
                 )
