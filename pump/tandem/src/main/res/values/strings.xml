@@ -136,6 +136,9 @@
     <string name="ca_resume_confirm_title">Resume insulin delivery?</string>
     <string name="ca_resume_confirm_body">Insulin delivery will resume.</string>
     <string name="ca_notifications_block_warning">Resolve pump notifications before starting.</string>
+    <string name="ca_disabled_change_in_progress">Complete the active cartridge change first.</string>
+    <string name="ca_disabled_fill_tubing_in_progress">Complete the active tubing fill first.</string>
+    <string name="ca_disabled_fill_cannula_in_progress">Complete the active cannula fill first.</string>
     <string name="cc_cancel_confirm_title">Cancel cartridge change?</string>
     <string name="cc_cancel_confirm_body">The cartridge change will be cancelled and the pump will exit cartridge change mode.</string>
     <string name="ft_cancel_confirm_title">Cancel tubing fill?</string>
