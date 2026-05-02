@@ -116,6 +116,7 @@ class TandemUICommunication @Inject constructor (
 
         aapsLogger.debug(TAG , "TUC: Message received: ${message.javaClass.name}")
         dataStore.pumpLastMessageTimestamp.value = Instant.now()
+        dataStore.debugLastReceivedMessage.postValue(message)
 
 
         if (NotificationBundle.isNotificationResponse(message)) {

@@ -81,6 +81,9 @@ class TandemUIDataStore {
     val pumpLastMessageTimestamp = MutableLiveData<Instant>()
     //val pumpConnectionStatus = MutableLiveData<String>()
 
+    // Used by the Debug Commands screen: most recently received message overall.
+    val debugLastReceivedMessage = MutableLiveData<Message?>()
+
     // val batteryPercent = MutableLiveData<Int>()
     // val cartridgeRemainingUnits = MutableLiveData<Int>()
     // val cartridgeRemainingEstimate = MutableLiveData<Boolean>()

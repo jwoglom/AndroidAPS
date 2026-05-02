@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -23,22 +25,32 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.util.MessageHelpers
+import kotlinx.coroutines.delay
 import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 import java.time.Instant
@@ -53,6 +65,9 @@ fun DebugCommands(
     showHeader: Boolean = true,
 ) {
     val context = LocalContext.current
+    val ds = LocalTandemDataStore.current
+    val clipboard: ClipboardManager = LocalClipboardManager.current
+    val lastReceived by ds.debugLastReceivedMessage.observeAsState()
 
     var pickerClass by remember { mutableStateOf<Class<out Message>?>(null) }
     var pickerChoices by remember { mutableStateOf<List<Constructor<out Message>>>(emptyList()) }
@@ -60,7 +75,49 @@ fun DebugCommands(
     var argDialogClass by remember { mutableStateOf<Class<out Message>?>(null) }
     var argDialogConstructor by remember { mutableStateOf<Constructor<out Message>?>(null) }
 
-    val requestMessages = remember {
+    var awaitingRequest by remember { mutableStateOf<Message?>(null) }
+    var awaitingSince by remember { mutableStateOf(0L) }
+    var capturedResponse by remember { mutableStateOf<Message?>(null) }
+    var awaitingTimedOut by remember { mutableStateOf(false) }
+
+    LaunchedEffect(awaitingRequest, lastReceived) {
+        val req = awaitingRequest ?: return@LaunchedEffect
+        val resp = lastReceived ?: return@LaunchedEffect
+        if (resp.opCode() == req.responseOpCode) {
+            capturedResponse = resp
+        }
+    }
+    LaunchedEffect(awaitingRequest) {
+        if (awaitingRequest != null) {
+            awaitingTimedOut = false
+            delay(10_000)
+            if (capturedResponse == null) awaitingTimedOut = true
+        }
+    }
+
+    fun sendAndAwait(constructor: Constructor<out Message>, args: List<Any>) {
+        try {
+            val message = constructor.newInstance(*args.toTypedArray())
+            ds.debugLastReceivedMessage.value = null
+            capturedResponse = null
+            awaitingTimedOut = false
+            awaitingRequest = message
+            awaitingSince = System.currentTimeMillis()
+            val ok = sendPumpCommands(listOf(message))
+            if (!ok) {
+                Toast.makeText(context, "Send failed (pump not connected?)", Toast.LENGTH_SHORT).show()
+                awaitingRequest = null
+            }
+        } catch (e: InvocationTargetException) {
+            aapsLogger.error(LTag.PUMP, "DebugCommands send failed", e)
+            Toast.makeText(context, "Constructor failed: ${e.targetException?.message}", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.PUMP, "DebugCommands send failed", e)
+            Toast.makeText(context, "Send failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val groupedMessages = remember {
         MessageHelpers.getAllPumpRequestMessages()
             .filter { m ->
                 !m.startsWith("authentication.") &&
@@ -70,7 +127,10 @@ fun DebugCommands(
                     !m.contains("Nonexistent", ignoreCase = true)
             }
             .sorted()
+            .groupBy { it.substringBefore('.', missingDelimiterValue = "other") }
+            .toSortedMap()
     }
+    val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
 
     fun openMessage(messageName: String) {
         try {
@@ -99,7 +159,7 @@ fun DebugCommands(
                     Toast.makeText(context, "No usable constructor for ${messageClass.simpleName}", Toast.LENGTH_SHORT).show()
                     return
                 }
-                sendConstructed(context, sendPumpCommands, aapsLogger, noArg, emptyList())
+                sendAndAwait(noArg, emptyList())
                 return
             }
 
@@ -111,7 +171,7 @@ fun DebugCommands(
             if (choices.size == 1) {
                 val only = choices.first()
                 if (only.parameterCount == 0) {
-                    sendConstructed(context, sendPumpCommands, aapsLogger, only, emptyList())
+                    sendAndAwait(only, emptyList())
                 } else {
                     argDialogClass = messageClass
                     argDialogConstructor = only
@@ -142,14 +202,31 @@ fun DebugCommands(
             }
         }
 
-        items(requestMessages, key = { it }) { name ->
-            ListItem(
-                headlineContent = { Text(name.substringAfterLast('.')) },
-                supportingContent = { Text(name) },
-                leadingContent = { Icon(Icons.Filled.Build, contentDescription = null) },
-                modifier = Modifier.clickable { openMessage(name) },
-            )
-            HorizontalDivider()
+        groupedMessages.forEach { (group, messages) ->
+            item(key = "header-$group") {
+                val expanded = expandedGroups[group] == true
+                ListItem(
+                    headlineContent = { Text("$group  (${messages.size})") },
+                    leadingContent = {
+                        Icon(
+                            if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable { expandedGroups[group] = !expanded },
+                )
+                HorizontalDivider()
+            }
+            if (expandedGroups[group] == true) {
+                items(messages, key = { "$group/$it" }) { name ->
+                    ListItem(
+                        headlineContent = { Text(name.substringAfterLast('.')) },
+                        leadingContent = { Icon(Icons.Filled.Build, contentDescription = null) },
+                        modifier = Modifier.clickable { openMessage(name) },
+                    )
+                    HorizontalDivider()
+                }
+            }
         }
     }
 
@@ -171,7 +248,7 @@ fun DebugCommands(
                                 pickerClass = null
                                 pickerChoices = emptyList()
                                 if (ctor.parameterCount == 0) {
-                                    sendConstructed(context, sendPumpCommands, aapsLogger, ctor, emptyList())
+                                    sendAndAwait(ctor, emptyList())
                                 } else {
                                     argDialogClass = pickerCls
                                     argDialogConstructor = ctor
@@ -207,10 +284,63 @@ fun DebugCommands(
             onSend = { args ->
                 argDialogClass = null
                 argDialogConstructor = null
-                sendConstructed(context, sendPumpCommands, aapsLogger, argCtor, args)
+                sendAndAwait(argCtor, args)
             },
         )
     }
+
+    val req = awaitingRequest
+    if (req != null) {
+        ResponseDialog(
+            request = req,
+            response = capturedResponse,
+            timedOut = awaitingTimedOut,
+            elapsedMs = System.currentTimeMillis() - awaitingSince,
+            onCopy = { text ->
+                clipboard.setText(AnnotatedString(text))
+                Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = {
+                awaitingRequest = null
+                capturedResponse = null
+                awaitingTimedOut = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun ResponseDialog(
+    request: Message,
+    response: Message?,
+    timedOut: Boolean,
+    elapsedMs: Long,
+    onCopy: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val title = "${request.javaClass.simpleName} → ${response?.javaClass?.simpleName ?: if (timedOut) "(timeout)" else "..."}"
+    val body: String = when {
+        response != null -> response.toString()
+        timedOut         -> "No response within 10s. Pump may not have replied yet — leave open if it might still arrive."
+        else             -> "Waiting for response… (${elapsedMs / 1000}s)"
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(body)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+        dismissButton = {
+            if (response != null) {
+                TextButton(onClick = { onCopy(body) }) { Text("Copy") }
+            }
+        },
+    )
 }
 
 @Composable
@@ -271,30 +401,6 @@ private fun ConstructorArgumentDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
-}
-
-private fun sendConstructed(
-    context: android.content.Context,
-    sendPumpCommands: (List<Message>) -> Boolean,
-    aapsLogger: AAPSLogger,
-    constructor: Constructor<out Message>,
-    args: List<Any>,
-) {
-    try {
-        val message = constructor.newInstance(*args.toTypedArray())
-        val ok = sendPumpCommands(listOf(message))
-        Toast.makeText(
-            context,
-            if (ok) "Sent ${message.javaClass.simpleName}" else "Send failed (pump not connected?)",
-            Toast.LENGTH_SHORT,
-        ).show()
-    } catch (e: InvocationTargetException) {
-        aapsLogger.error(LTag.PUMP, "DebugCommands send failed", e)
-        Toast.makeText(context, "Constructor failed: ${e.targetException?.message}", Toast.LENGTH_LONG).show()
-    } catch (e: Exception) {
-        aapsLogger.error(LTag.PUMP, "DebugCommands send failed", e)
-        Toast.makeText(context, "Send failed: ${e.message}", Toast.LENGTH_LONG).show()
-    }
 }
 
 private fun formatDebugConstructorSignature(

@@ -29,6 +29,7 @@ import app.aaps.pump.tandem.mobi.ui.ActionsLandingSection
 import app.aaps.pump.tandem.mobi.ui.DataLandingSection
 import app.aaps.pump.tandem.mobi.ui.TandemUiController
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
+import app.aaps.pump.tandem.mobi.ui.actions.DebugCommands
 import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.ChangeCartridgeScreen
@@ -56,6 +57,7 @@ private enum class MobiScreen {
     ACTIONS_FILL_TUBING,
     ACTIONS_FILL_CANNULA,
     ACTIONS_PUMP_INFO,
+    ACTIONS_DEBUG_COMMANDS,
     ACTIONS_SITE_REMINDER
 
 }
@@ -133,6 +135,12 @@ class MobiComposeContent(
             }
         }
 
+        val navIconBackToPumpInfo: @Composable () -> Unit = {
+            IconButton(onClick = { currentScreen = MobiScreen.ACTIONS_PUMP_INFO }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
+            }
+        }
+
         val navIconBackToCartridgeActions: @Composable () -> Unit = {
             IconButton(onClick = { currentScreen = MobiScreen.ACTIONS }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
@@ -166,6 +174,8 @@ class MobiComposeContent(
                                                                           navigationIcon = navIconBackToActions, actions = {})
                     MobiScreen.ACTIONS_PUMP_INFO -> ToolbarConfig(title = resourceHelper.gs(R.string.pi_title),
                                                                   navigationIcon = navIconBackToActions, actions = {})
+                    MobiScreen.ACTIONS_DEBUG_COMMANDS -> ToolbarConfig(title = resourceHelper.gs(R.string.debug_commands_title),
+                                                                       navigationIcon = navIconBackToPumpInfo, actions = {})
                     MobiScreen.ACTIONS_CHANGE_CARTRIDGE -> ToolbarConfig(title = resourceHelper.gs(R.string.cc_title),
                                                                          navigationIcon = navIconBackToCartridgeActions, actions = {})
                     MobiScreen.ACTIONS_FILL_TUBING -> ToolbarConfig(title = resourceHelper.gs(R.string.ft_title),
@@ -278,6 +288,21 @@ class MobiComposeContent(
                     showHeader = false,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS
+                    },
+                    navigateToDebugCommands = {
+                        currentScreen = MobiScreen.ACTIONS_DEBUG_COMMANDS
+                    },
+                )
+            }
+
+            MobiScreen.ACTIONS_DEBUG_COMMANDS -> {
+                DebugCommands(
+                    sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
+                    resourceHelper = resourceHelper,
+                    aapsLogger = aapsLogger,
+                    showHeader = false,
+                    navigateBack = {
+                        currentScreen = MobiScreen.ACTIONS_PUMP_INFO
                     },
                 )
             }
