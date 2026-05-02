@@ -4,6 +4,7 @@ package app.aaps.pump.tandem.mobi.ui.actions.cartridge
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,10 +12,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -29,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -42,6 +49,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
+import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
@@ -83,6 +91,7 @@ fun FillCannulaScreen(
     var showCancelDialog by remember { mutableStateOf(false) }
     var showSuspendDialog by remember { mutableStateOf(false) }
     var showResumeDialog by remember { mutableStateOf(false) }
+    var showExitWithoutResumeDialog by remember { mutableStateOf(false) }
     var isSuspending by remember { mutableStateOf(false) }
     var isResuming by remember { mutableStateOf(false) }
 
@@ -226,6 +235,40 @@ fun FillCannulaScreen(
         )
     }
 
+    if (showExitWithoutResumeDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitWithoutResumeDialog = false },
+            icon = {
+                Icon(
+                    Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
+            text = {
+                Text(
+                    text = resourceHelper.gs(R.string.fc_exit_without_resume_body),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitWithoutResumeDialog = false
+                    ds.completedCartridgeActions.value =
+                        (ds.completedCartridgeActions.value ?: emptySet()) +
+                            CompletedCartridgeAction.FILL_CANNULA
+                    ds.loadStatus.value = null
+                    navigateBack()
+                }) { Text(resourceHelper.gs(R.string.fc_btn_exit_anyway)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitWithoutResumeDialog = false }) {
+                    Text(resourceHelper.gs(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
     val totalSteps = 3
     val currentStep = when {
         fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED -> 3
@@ -252,29 +295,47 @@ fun FillCannulaScreen(
         sendPumpCommands = sendPumpCommands,
         refreshScope = refreshScope,
         body = {
-            if (fillCannulaState.value != null) {
+            if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = Color(0xFF2E7D32)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.fc_complete),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = resourceHelper.gs(R.string.fc_setup_complete_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else if (fillCannulaState.value != null) {
                 Text(
                     text = resourceHelper.gs(R.string.ca_status_heading),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
-                    Text(
-                        text = resourceHelper.gs(R.string.fc_complete),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                } else {
-                    Text(
-                        text = resourceHelper.gs(R.string.fc_filling_with, cannulaFillAmount),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = resourceHelper.gs(R.string.fc_filling_state, fillCannulaState.value?.stateId),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                Text(
+                    text = resourceHelper.gs(R.string.fc_filling_with, cannulaFillAmount),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = resourceHelper.gs(R.string.fc_filling_state, fillCannulaState.value?.stateId),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             } else if (pumpRunningState.value == PumpRunningState.Suspended) {
                 Text(
                     text = resourceHelper.gs(R.string.ca_before_you_start_heading),
@@ -369,33 +430,17 @@ fun FillCannulaScreen(
         actions = {
             if (fillCannulaState.value != null) {
                 if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        PrimaryActionButton(
-                            text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
-                            onClick = { showResumeDialog = true },
-                            enabled = pumpRunningState.value == PumpRunningState.Suspended,
-                            loading = isResuming,
-                            modifier = Modifier
-                                .weight(1.5f)
-                                .height(56.dp)
-                        )
-                        SecondaryActionButton(
-                            text = resourceHelper.gs(R.string.common_done),
-                            onClick = {
-                                ds.completedCartridgeActions.value =
-                                    (ds.completedCartridgeActions.value ?: emptySet()) +
-                                        CompletedCartridgeAction.FILL_CANNULA
-                                ds.loadStatus.value = null
-                                navigateBack()
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
-                        )
-                    }
+                    PrimaryActionButton(
+                        text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
+                        onClick = { showResumeDialog = true },
+                        enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                        loading = isResuming,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SecondaryActionButton(
+                        text = resourceHelper.gs(R.string.common_done),
+                        onClick = { showExitWithoutResumeDialog = true },
+                    )
                 }
             } else {
                 if (pumpRunningState.value != PumpRunningState.Suspended) {
