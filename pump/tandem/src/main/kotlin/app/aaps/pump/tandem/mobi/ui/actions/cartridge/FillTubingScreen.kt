@@ -90,6 +90,7 @@ fun FillTubingScreen(
     var showCancelDialog by remember { mutableStateOf(false) }
     var hasDisplayedFlow by remember { mutableStateOf(false) }
     var isStartingFillTubing by remember { mutableStateOf(false) }
+    var isCompletingFillTubing by remember { mutableStateOf(false) }
     var showDisconnectConfirmDialog by remember { mutableStateOf(false) }
 
     fun refresh() = refreshScope.launch {
@@ -167,7 +168,12 @@ fun FillTubingScreen(
         AlertDialog(
             onDismissRequest = { showDisconnectConfirmDialog = false },
             icon = { Icon(Icons.Filled.Warning, contentDescription = null) },
-            title = { Text(resourceHelper.gs(R.string.ft_disconnect_confirm_title)) },
+            text = {
+                Text(
+                    text = resourceHelper.gs(R.string.ft_disconnect_confirm_title),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     showDisconnectConfirmDialog = false
@@ -468,11 +474,18 @@ fun FillTubingScreen(
                         PrimaryActionButton(
                             text = resourceHelper.gs(R.string.ft_btn_complete),
                             onClick = {
+                                isCompletingFillTubing = true
+                                sendPumpCommands(listOf(ExitFillTubingModeRequest()))
                                 refreshScope.launch {
-                                    sendPumpCommands(listOf(ExitFillTubingModeRequest()))
+                                    repeat(5) {
+                                        if (exitFillTubingState.value != null) return@repeat
+                                        withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                                    }
+                                    isCompletingFillTubing = false
                                 }
                             },
                             enabled = pumpRunningState.value == PumpRunningState.Suspended && hasDisplayedFlow,
+                            loading = isCompletingFillTubing,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp)
