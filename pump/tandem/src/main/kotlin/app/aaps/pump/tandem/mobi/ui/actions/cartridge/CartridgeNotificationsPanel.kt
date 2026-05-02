@@ -69,32 +69,6 @@ fun CartridgeNotificationsPanel(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 8.dp, end = 8.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = resourceHelper.gs(R.string.ca_notifications_panel_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            if (checking) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            IconButton(onClick = ::refreshNotifications, enabled = !checking) {
-                Icon(
-                    Icons.Filled.Refresh,
-                    contentDescription = resourceHelper.gs(R.string.ca_notifications_refresh)
-                )
-            }
-        }
         if (notifications.isEmpty()) {
             Row(
                 modifier = Modifier
@@ -113,10 +87,37 @@ fun CartridgeNotificationsPanel(
                         resourceHelper.gs(R.string.ca_notifications_checking)
                     else
                         resourceHelper.gs(R.string.ca_notifications_none),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 8.dp, end = 8.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = resourceHelper.gs(R.string.ca_notifications_panel_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                if (checking) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                IconButton(onClick = ::refreshNotifications, enabled = !checking) {
+                    Icon(
+                        Icons.Filled.Refresh,
+                        contentDescription = resourceHelper.gs(R.string.ca_notifications_refresh)
+                    )
+                }
+            }
             AlertBanner(
                 notifications = notifications,
                 sendPumpCommands = sendPumpCommands,
