@@ -344,7 +344,10 @@ fun FillTubingScreen(
                     } else {
                         PrimaryActionButton(
                             text = resourceHelper.gs(R.string.common_done),
-                            onClick = { navigateBack() },
+                            onClick = {
+                                ds.loadStatus.value = null
+                                navigateBack()
+                            },
                             enabled = pumpRunningState.value == PumpRunningState.Suspended
                         )
                     }

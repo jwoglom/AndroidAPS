@@ -212,6 +212,7 @@ fun FillCannulaScreen(
                             sendPumpCommand(HomeScreenMirrorRequest())
                         }
                         isResuming = false
+                        ds.loadStatus.value = null
                         navigateBack()
                     }
                 }) { Text(resourceHelper.gs(R.string.ca_btn_resume_insulin)) }
@@ -395,7 +396,10 @@ fun FillCannulaScreen(
                         )
                         SecondaryActionButton(
                             text = resourceHelper.gs(R.string.common_done),
-                            onClick = { navigateBack() },
+                            onClick = {
+                                ds.loadStatus.value = null
+                                navigateBack()
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp)

@@ -307,7 +307,10 @@ fun ChangeCartridgeScreen(
             if (detectingCartridgeState.value?.isComplete == true) {
                 PrimaryActionButton(
                     text = resourceHelper.gs(R.string.common_done),
-                    onClick = { refreshScope.launch { navigateBack() } }
+                    onClick = {
+                        ds.loadStatus.value = null
+                        refreshScope.launch { navigateBack() }
+                    }
                 )
             } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
                 PrimaryActionButton(

@@ -256,6 +256,7 @@ fun CartridgeActions(
                         availability = changeCartridgeMenu,
                         onClick = {
                             refreshScope.launch {
+                                hasAutoResumed = true
                                 ds.enterChangeCartridgeState.value = null
                                 ds.detectingCartridgeState.value = null
                                 sendPumpCommands(listOf(TimeSinceResetRequest()))
@@ -272,6 +273,7 @@ fun CartridgeActions(
                         availability = fillTubingMenu,
                         onClick = {
                             refreshScope.launch {
+                                hasAutoResumed = true
                                 ds.fillTubingState.value = null
                                 ds.exitFillTubingState.value = null
                                 ds.inFillTubingMode.value = false
@@ -289,6 +291,7 @@ fun CartridgeActions(
                         availability = fillCannulaMenu,
                         onClick = {
                             refreshScope.launch {
+                                hasAutoResumed = true
                                 ds.fillCannulaState.value = null
                                 sendPumpCommands(listOf(TimeSinceResetRequest()))
                                 navigateToFillCannula()
