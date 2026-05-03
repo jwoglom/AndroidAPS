@@ -29,7 +29,7 @@ class PumpUnavailableException(val availability: PumpAvailability, val opName: S
  * Single-dispatcher pump op queue with four-tier priority and per-tier rate limiting.
  *
  * Architecture: one dedicated single-thread executor owns BLE I/O. Submission [Priority]
- * determines insertion point — CRITICAL > USER_INITIATED > SYSTEM_INITIATED > BACKGROUND,
+ * determines insertion point — CRITICAL > USER_INITIATED > DEFAULT > BACKGROUND,
  * FIFO within each tier. Status reads with a [PumpOp.coalesceKey] are deduped at submit time.
  *
  * Each tier may have an optional [RateLimit]; by default only [Priority.BACKGROUND] is rate

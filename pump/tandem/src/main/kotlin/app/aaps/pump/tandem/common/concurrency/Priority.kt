@@ -17,16 +17,16 @@ enum class Priority {
     CRITICAL,
 
     /**
-     * UI-driven ops (taps, refresh, settings change). Ahead of [SYSTEM_INITIATED] background work
-     * so the UI never waits behind a queued AAPS loop cycle. Behind [CRITICAL].
+     * UI-driven ops (taps, refresh, settings change). Ahead of [DEFAULT] so a user tap never
+     * waits behind a queued AAPS loop cycle. Behind [CRITICAL].
      */
     USER_INITIATED,
 
     /**
-     * Background ops dispatched by AAPS — Loop bolus/TBR, profile sync, scheduled status pulls.
-     * Below USER_INITIATED, above BACKGROUND.
+     * Default tier for ops without a more specific priority — AAPS Loop bolus/TBR, profile sync,
+     * scheduled status pulls. Below [USER_INITIATED], above [BACKGROUND].
      */
-    SYSTEM_INITIATED,
+    DEFAULT,
 
     /**
      * Lowest-priority maintenance work — history log fetches, audit pulls. Runs only when no

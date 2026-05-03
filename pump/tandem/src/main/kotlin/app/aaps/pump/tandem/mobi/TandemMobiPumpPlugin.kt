@@ -728,7 +728,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         try {
             pumpOps.submit(
                 BlockingPumpOp(name, maxDuration, requiresDeliveryEnabled = true, block = block),
-                Priority.SYSTEM_INITIATED
+                Priority.DEFAULT
             ).await()
         } catch (e: PumpUnavailableException) {
             aapsLogger.warn(LTag.PUMP, "$name: ${e.message}")
