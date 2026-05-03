@@ -6,9 +6,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
-import app.aaps.pump.tandem.common.concurrency.BlockingPumpOp
-import app.aaps.pump.tandem.common.concurrency.Priority
-import app.aaps.pump.tandem.common.concurrency.PumpOpQueue
+import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
@@ -24,7 +22,6 @@ import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import java.time.LocalDateTime
 import java.time.ZoneId
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.seconds
 
 class TandemUiController @Inject constructor(
     var aapsLogger: AAPSLogger,
@@ -35,7 +32,7 @@ class TandemUiController @Inject constructor(
     var dbDataHandler: DbDataHandler,
     var notificationManager: NotificationManager,
     var tandemPumpConnector: TandemPumpConnector,
-    var pumpOps: PumpOpQueue
+    var tandemDispatcher: TandemDispatcher
 )   {
 
 
@@ -127,14 +124,9 @@ class TandemUiController @Inject constructor(
         // completes once the wire send fires; responses arrive asynchronously via the listener
         // path (TandemUICommunication.onReceiveMessage).
         for (msg in msgs) {
-            pumpOps.submit(
-                BlockingPumpOp(
-                    name = "ui:${msg.javaClass.simpleName}",
-                    maxDuration = 10.seconds,
-                    requiresDeliveryEnabled = false  // most UI sends are status reads / ack
-                ) { tandemUICommunication.sendCommand(msg) },
-                Priority.USER_INITIATED
-            )
+            tandemDispatcher.submitUser("ui:${msg.javaClass.simpleName}") {
+                tandemUICommunication.sendCommand(msg)
+            }
         }
 
         return true

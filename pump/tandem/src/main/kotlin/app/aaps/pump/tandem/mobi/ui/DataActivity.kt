@@ -46,11 +46,8 @@ import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
-import app.aaps.pump.tandem.common.concurrency.BlockingPumpOp
-import app.aaps.pump.tandem.common.concurrency.Priority
-import app.aaps.pump.tandem.common.concurrency.PumpOpQueue
+import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import kotlin.time.Duration.Companion.seconds
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
 import app.aaps.pump.tandem.mobi.ui.data.DataDisplayMain
 import app.aaps.pump.tandem.mobi.ui.data.History
@@ -77,7 +74,7 @@ class DataActivity : DaggerAppCompatActivity() {
     @Inject lateinit var dbDataHandler: DbDataHandler
     @Inject lateinit var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction
     @Inject lateinit var notificationManager: NotificationManager
-    @Inject lateinit var pumpOps: PumpOpQueue
+    @Inject lateinit var tandemDispatcher: TandemDispatcher
 
 
     var sectionState: DataLandingSection = DataLandingSection.DATA
@@ -234,14 +231,9 @@ class DataActivity : DaggerAppCompatActivity() {
         aapsLogger.debug(TAG, "PumpCommands to Send [commands=${listText}]")
 
         for (msg in msgs) {
-            pumpOps.submit(
-                BlockingPumpOp(
-                    name = "ui:${msg.javaClass.simpleName}",
-                    maxDuration = 10.seconds,
-                    requiresDeliveryEnabled = false
-                ) { tandemUICommunication.sendCommand(msg) },
-                Priority.USER_INITIATED
-            )
+            tandemDispatcher.submitUser("ui:${msg.javaClass.simpleName}") {
+                tandemUICommunication.sendCommand(msg)
+            }
         }
 
         return true
