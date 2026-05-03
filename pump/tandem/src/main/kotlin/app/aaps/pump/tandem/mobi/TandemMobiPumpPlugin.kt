@@ -701,10 +701,12 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isBusy(): Boolean {
-        // Queue activity only — availability state is intentionally NOT folded in here.
-        // Mutating ops handle availability via fast-fail at dispatch, not by stalling AAPS's
-        // command queue on isBusy(). preventConnect retained as a narrow "don't auto-reconnect"
-        // gate (see plan §2.9 / Phase B.3).
+        // Two orthogonal "don't dispatch right now" signals:
+        //  - pumpOps.isBusy(): an op is queued or in flight on PumpOpQueue's single dispatcher.
+        //  - tandemPumpUtil.preventConnect: a UI screen owns the connection (cartridge change,
+        //    Actions, Data) and AAPS auto-reconnect should stand down for its lifetime.
+        // PumpAvailability is intentionally NOT folded in here — mutating ops handle availability
+        // via fast-fail at dispatch, not by stalling AAPS's command queue on isBusy().
         val isBusy = pumpOps.isBusy() || tandemPumpUtil.preventConnect
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isBusy: $isBusy")
         return isBusy
