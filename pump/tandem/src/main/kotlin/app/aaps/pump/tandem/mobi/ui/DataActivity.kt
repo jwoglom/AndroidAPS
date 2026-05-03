@@ -207,14 +207,12 @@ class DataActivity : DaggerAppCompatActivity() {
     override fun onResume() {
         super.onResume()
         this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-        this.tandemPumpUtil.preventConnect = true
     }
 
 
     override fun onStop() {
         super.onStop()
         this.tandemUICommunication.tandemCommunicationManager = null
-        this.tandemPumpUtil.preventConnect = false
     }
 
 

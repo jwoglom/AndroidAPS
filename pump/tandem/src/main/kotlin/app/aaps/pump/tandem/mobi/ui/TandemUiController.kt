@@ -48,11 +48,6 @@ class TandemUiController @Inject constructor(
 
 
     fun createTandemUiCommunication() {
-
-        // actions
-        // this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-        // this.tandemPumpUtil.preventConnect = true
-
         tandemUICommunication = TandemUICommunication(dataStore = tandemDataStore,
                                                       pumpStatus = tandemPumpStatus,
                                                       pumpUtil = tandemPumpUtil,
@@ -61,9 +56,16 @@ class TandemUiController @Inject constructor(
                                                       notificationManager = notificationManager)
 
         this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-        this.tandemPumpUtil.preventConnect = true
+    }
 
-
+    /**
+     * Suppresses AAPS auto-reconnect for the duration of a long-running pump-owning UI workflow.
+     * Only cartridge change (and its sub-steps fill-tubing / fill-cannula) sets this — quick
+     * read-only browsing in Actions / Data does not, since those sends are serialized through
+     * [PumpOpQueue] at USER_INITIATED priority and AAPS Loop can safely interleave.
+     */
+    fun setCartridgeChangeMode(active: Boolean) {
+        tandemPumpUtil.preventConnect = active
     }
 
     fun disposeTandemUiCommunication(disposeType: AdditionalConfigurationScreens) {
@@ -87,7 +89,6 @@ class TandemUiController @Inject constructor(
         }
 
         this.tandemUICommunication.tandemCommunicationManager = null
-        this.tandemPumpUtil.preventConnect = false
     }
 
     enum class AdditionalConfigurationScreens {
@@ -118,7 +119,6 @@ class TandemUiController @Inject constructor(
         } else {
             if (this.tandemUICommunication.tandemCommunicationManager==null) {
                 this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-                this.tandemPumpUtil.preventConnect = true
             }
         }
 

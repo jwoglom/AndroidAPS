@@ -287,7 +287,6 @@ class ActionsActivity : DaggerAppCompatActivity() {
     override fun onResume() {
         super.onResume()
         this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-        this.tandemPumpUtil.preventConnect = true
     }
 
 
@@ -295,7 +294,6 @@ class ActionsActivity : DaggerAppCompatActivity() {
     override fun onStop() {
         super.onStop()
         this.tandemUICommunication.tandemCommunicationManager = null
-        this.tandemPumpUtil.preventConnect = false
     }
 
 

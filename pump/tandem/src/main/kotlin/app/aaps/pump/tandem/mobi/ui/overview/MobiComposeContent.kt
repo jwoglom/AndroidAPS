@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +83,18 @@ class MobiComposeContent(
 
         // Navigation state
         var currentScreen by remember { mutableStateOf(MobiScreen.OVERVIEW) }
+
+        // Suppress AAPS auto-reconnect only while the user is in the cartridge-change workflow
+        // (cartridge change owns the pump comm channel for a long, stateful, multi-step
+        // operation). Browsing Actions / Data does not — those sends are serialized by
+        // PumpOpQueue at USER_INITIATED priority and AAPS Loop can safely interleave.
+        val inCartridgeFlow = currentScreen == MobiScreen.ACTIONS_CHANGE_CARTRIDGE ||
+            currentScreen == MobiScreen.ACTIONS_FILL_TUBING ||
+            currentScreen == MobiScreen.ACTIONS_FILL_CANNULA
+        DisposableEffect(inCartridgeFlow) {
+            tandemUiController.setCartridgeChangeMode(inCartridgeFlow)
+            onDispose { if (inCartridgeFlow) tandemUiController.setCartridgeChangeMode(false) }
+        }
 
         // Dialogs
         var showUnpairDialog by remember { mutableStateOf(false) }
