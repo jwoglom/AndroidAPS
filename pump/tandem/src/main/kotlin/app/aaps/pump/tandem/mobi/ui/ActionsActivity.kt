@@ -52,9 +52,13 @@ import app.aaps.pump.tandem.mobi.ui.actions.cartridge.FillTubingScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.SiteReminder
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.shared.tests.AAPSLoggerTest
+import app.aaps.pump.tandem.common.concurrency.BlockingPumpOp
+import app.aaps.pump.tandem.common.concurrency.Priority
+import app.aaps.pump.tandem.common.concurrency.PumpOpQueue
 import com.jwoglom.pumpx2.pump.messages.Message
 import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 
 class ActionsActivity : DaggerAppCompatActivity() {
@@ -68,6 +72,7 @@ class ActionsActivity : DaggerAppCompatActivity() {
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction
     @Inject lateinit var notificationManager: NotificationManager
+    @Inject lateinit var pumpOps: PumpOpQueue
 
 
     var sectionState: ActionsLandingSection = ActionsLandingSection.ACTIONS
@@ -312,7 +317,14 @@ class ActionsActivity : DaggerAppCompatActivity() {
         aapsLogger.warn(TAG, "PumpCommands to Send [commands=${listText}]")
 
         for (msg in msgs) {
-            tandemUICommunication.sendCommand(msg)
+            pumpOps.submit(
+                BlockingPumpOp(
+                    name = "ui:${msg.javaClass.simpleName}",
+                    maxDuration = 10.seconds,
+                    requiresDeliveryEnabled = false
+                ) { tandemUICommunication.sendCommand(msg) },
+                Priority.USER_INITIATED
+            )
         }
 
         return true

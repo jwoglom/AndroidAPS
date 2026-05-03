@@ -6,6 +6,9 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
+import app.aaps.pump.tandem.common.concurrency.BlockingPumpOp
+import app.aaps.pump.tandem.common.concurrency.Priority
+import app.aaps.pump.tandem.common.concurrency.PumpOpQueue
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
@@ -21,6 +24,7 @@ import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import java.time.LocalDateTime
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 class TandemUiController @Inject constructor(
     var aapsLogger: AAPSLogger,
@@ -30,7 +34,8 @@ class TandemUiController @Inject constructor(
     var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction,
     var dbDataHandler: DbDataHandler,
     var notificationManager: NotificationManager,
-    var tandemPumpConnector: TandemPumpConnector
+    var tandemPumpConnector: TandemPumpConnector,
+    var pumpOps: PumpOpQueue
 )   {
 
 
@@ -117,9 +122,19 @@ class TandemUiController @Inject constructor(
             }
         }
 
-        // TODO tandemUICommunication
+        // Each UI-initiated wire send is queued at USER_INITIATED priority — jumps ahead of
+        // background AAPS-loop work so the user's tap doesn't wait. Fire-and-forget: the op
+        // completes once the wire send fires; responses arrive asynchronously via the listener
+        // path (TandemUICommunication.onReceiveMessage).
         for (msg in msgs) {
-            tandemUICommunication.sendCommand(msg)
+            pumpOps.submit(
+                BlockingPumpOp(
+                    name = "ui:${msg.javaClass.simpleName}",
+                    maxDuration = 10.seconds,
+                    requiresDeliveryEnabled = false  // most UI sends are status reads / ack
+                ) { tandemUICommunication.sendCommand(msg) },
+                Priority.USER_INITIATED
+            )
         }
 
         return true
