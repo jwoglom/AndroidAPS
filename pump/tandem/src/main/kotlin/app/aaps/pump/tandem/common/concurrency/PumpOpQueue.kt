@@ -16,7 +16,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.ArrayDeque
+import java.util.EnumMap
 import java.util.concurrent.Executors
 import kotlin.time.Duration
 
@@ -25,20 +27,32 @@ class PumpUnavailableException(val availability: PumpAvailability, val opName: S
     RuntimeException("Pump op '$opName' rejected: availability=$availability")
 
 /**
- * Single-dispatcher pump op queue with three-tier priority.
+ * Single-dispatcher pump op queue with four-tier priority and per-tier rate limiting.
  *
  * Architecture: one dedicated single-thread executor owns BLE I/O. Submission [Priority]
- * determines insertion point — [Priority.CRITICAL] ahead of [Priority.USER_INITIATED] ahead of
- * [Priority.SYSTEM_INITIATED], FIFO within each tier. Status reads with a [PumpOp.coalesceKey]
- * are deduped at submit time.
+ * determines insertion point — CRITICAL > USER_INITIATED > SYSTEM_INITIATED > BACKGROUND,
+ * FIFO within each tier. Status reads with a [PumpOp.coalesceKey] are deduped at submit time.
+ *
+ * Each tier may have an optional [RateLimit]; by default only [Priority.BACKGROUND] is rate
+ * limited (see [defaultRateLimits]) so history-log-style maintenance work cannot saturate the
+ * wire. When the head-of-queue tier is rate-gated the dispatcher sleeps until either a token
+ * becomes available or a higher-priority op is submitted (which preempts via [wakeup]).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PumpOpQueue(
     private val logger: AAPSLogger,
     private val availability: PumpAvailabilityState,
     private val commSuspend: CommSuspendGate,
-    private val sender: Sender? = null
+    private val sender: Sender? = null,
+    rateLimits: Map<Priority, RateLimit> = defaultRateLimits()
 ) {
+
+    companion object {
+        /** Default: BACKGROUND throttled at 1 msg/s, burst 2. Other tiers unrate-limited. */
+        fun defaultRateLimits(): Map<Priority, RateLimit> = mapOf(
+            Priority.BACKGROUND to RateLimit(rps = 1.0, burst = 2)
+        )
+    }
 
     /**
      * Wire sender abstraction. In production this delegates to TandemCommunicationManager.
@@ -55,9 +69,11 @@ class PumpOpQueue(
     )
 
     private val lock = Any()
-    private val criticalQueue = ArrayDeque<Entry<*>>()
-    private val userQueue = ArrayDeque<Entry<*>>()
-    private val systemQueue = ArrayDeque<Entry<*>>()
+    private val queues: EnumMap<Priority, ArrayDeque<Entry<*>>> =
+        EnumMap<Priority, ArrayDeque<Entry<*>>>(Priority::class.java).also { map ->
+            Priority.values().forEach { map[it] = ArrayDeque() }
+        }
+    private val limiters: Map<Priority, TokenBucket> = rateLimits.mapValues { TokenBucket(it.value) }
     /** coalesceKey -> Deferred of the pending op, so duplicate submits can share its result. */
     private val pendingByKey = HashMap<String, CompletableDeferred<*>>()
     private var inFlight: Entry<*>? = null
@@ -78,7 +94,7 @@ class PumpOpQueue(
     }
 
     fun isBusy(): Boolean = synchronized(lock) {
-        inFlight != null || criticalQueue.isNotEmpty() || userQueue.isNotEmpty() || systemQueue.isNotEmpty()
+        inFlight != null || queues.values.any { it.isNotEmpty() }
     }
 
     fun <T> submit(op: PumpOp<T>, priority: Priority): Deferred<T> {
@@ -94,36 +110,56 @@ class PumpOpQueue(
             }
             val deferred = CompletableDeferred<T>()
             val entry = Entry(op, priority, deferred)
-            when (priority) {
-                Priority.CRITICAL         -> criticalQueue.addLast(entry)
-                Priority.USER_INITIATED   -> userQueue.addLast(entry)
-                Priority.SYSTEM_INITIATED -> systemQueue.addLast(entry)
-            }
+            queues[priority]!!.addLast(entry)
             if (key != null) pendingByKey[key] = deferred
-            logger.debug(
-                LTag.PUMP,
-                "PumpOpQueue: submitted '${op.name}' priority=$priority " +
-                    "(critical=${criticalQueue.size}, user=${userQueue.size}, system=${systemQueue.size})"
-            )
+            logger.debug(LTag.PUMP, "PumpOpQueue: submitted '${op.name}' priority=$priority ${snapshotSizes()}")
             wakeup.trySend(Unit)
             return deferred
         }
     }
 
+    private fun snapshotSizes(): String =
+        queues.entries.joinToString(", ", "(", ")") { "${it.key}=${it.value.size}" }
+
+    private sealed class Pick {
+        data class Ready(val entry: Entry<*>) : Pick()
+        /** Head-of-queue tier is rate-limited; wait this many ms (or shorter, on wakeup). */
+        data class WaitMs(val ms: Long) : Pick()
+        /** All queues empty. */
+        data object Idle : Pick()
+    }
+
     private suspend fun dispatchLoop() {
         while (true) {
-            val entry = nextEntry() ?: run {
-                wakeup.receive()
-                continue
+            when (val pick = pickNext()) {
+                is Pick.Ready  -> runEntry(pick.entry)
+                is Pick.WaitMs -> withTimeoutOrNull(pick.ms) { wakeup.receive() }
+                is Pick.Idle   -> wakeup.receive()
             }
-            runEntry(entry)
         }
     }
 
-    private fun nextEntry(): Entry<*>? = synchronized(lock) {
-        val next = criticalQueue.pollFirst() ?: userQueue.pollFirst() ?: systemQueue.pollFirst()
-        if (next != null) inFlight = next
-        next
+    private fun pickNext(): Pick = synchronized(lock) {
+        for (p in Priority.values()) {
+            val q = queues[p]!!
+            if (q.isEmpty()) continue
+            val limiter = limiters[p]
+            if (limiter == null) {
+                val e = q.pollFirst()
+                inFlight = e
+                return Pick.Ready(e)
+            }
+            val waitMs = limiter.tryAcquire()
+            if (waitMs == 0L) {
+                val e = q.pollFirst()
+                inFlight = e
+                return Pick.Ready(e)
+            }
+            // Head priority is rate-gated; do NOT fall through to lower priorities (would invert
+            // priority ordering). Wait for either a token or a higher-priority submission.
+            return Pick.WaitMs(waitMs)
+        }
+        return Pick.Idle
     }
 
     private suspend fun <T> runEntry(entry: Entry<T>) {

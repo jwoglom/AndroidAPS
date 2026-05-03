@@ -24,7 +24,14 @@ enum class Priority {
 
     /**
      * Background ops dispatched by AAPS — Loop bolus/TBR, profile sync, scheduled status pulls.
-     * Tail of the queue.
+     * Below USER_INITIATED, above BACKGROUND.
      */
-    SYSTEM_INITIATED
+    SYSTEM_INITIATED,
+
+    /**
+     * Lowest-priority maintenance work — history log fetches, audit pulls. Runs only when no
+     * higher-priority op is queued. Subject to the queue's per-priority rate limit (default
+     * configured for BACKGROUND only) so a long history sync cannot saturate the wire.
+     */
+    BACKGROUND
 }
