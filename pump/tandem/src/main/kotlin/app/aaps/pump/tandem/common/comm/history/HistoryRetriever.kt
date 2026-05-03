@@ -14,6 +14,9 @@ import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
+import app.aaps.pump.tandem.common.concurrency.BlockingPumpOp
+import app.aaps.pump.tandem.common.concurrency.Priority
+import app.aaps.pump.tandem.common.concurrency.PumpOpQueue
 import app.aaps.pump.tandem.common.data.history.HistoryRange
 import app.aaps.pump.tandem.common.data.history.HistoryRequestInfo
 import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
@@ -39,6 +42,7 @@ import java.util.stream.Collectors
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.collections.mutableListOf
+import kotlin.time.Duration.Companion.seconds
 
 /*
     How this works:
@@ -72,8 +76,8 @@ class HistoryRetriever @Inject constructor(
     var context: Context,
     val dbDataHandler: DbDataHandler,
     val uiInteraction: UiInteraction,
-    val notificationManager: NotificationManager
-
+    val notificationManager: NotificationManager,
+    val pumpOps: PumpOpQueue
 ) {
 
     companion object  {
@@ -281,7 +285,27 @@ class HistoryRetriever @Inject constructor(
 
         startProgress()
 
-        communication.sendCommand(HistoryLogStatusRequest())
+        submitHistoryRequest("historyLogStatus") {
+            communication.sendCommand(HistoryLogStatusRequest())
+        }
+    }
+
+    /**
+     * Routes a single history-log wire send through [pumpOps] at [Priority.BACKGROUND]. The
+     * actual response arrives asynchronously via the listener callback path, so the op completes
+     * as soon as the wire send fires — it does not await the response. The token-bucket rate
+     * limit on BACKGROUND throttles the *submit* rate (i.e. how often new chunks kick off);
+     * higher-priority ops preempt waiting BACKGROUND submits.
+     */
+    private fun submitHistoryRequest(name: String, send: () -> Unit) {
+        pumpOps.submit(
+            BlockingPumpOp(
+                name = name,
+                maxDuration = 10.seconds,
+                requiresDeliveryEnabled = false  // history reads must work even when delivery is gated
+            ) { send() },
+            Priority.BACKGROUND
+        )
     }
 
 
@@ -607,7 +631,10 @@ class HistoryRetriever @Inject constructor(
         currentRequest = queue.removeFirst()
         persistResumeUpperBound(currentRequest!!.endSequence)
         aapsLogger.info(TAG, "HST: executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
-        this.communication.sendCommand(HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs))
+        val req = HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs)
+        submitHistoryRequest("historyLogChunk[${currentRequest!!.startSequence}-${currentRequest!!.endSequence}]") {
+            this.communication.sendCommand(req)
+        }
     }
 
 
