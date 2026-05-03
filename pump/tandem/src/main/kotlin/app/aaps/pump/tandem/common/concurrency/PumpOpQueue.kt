@@ -139,6 +139,12 @@ class PumpOpQueue(
     }
 
     private fun pickNext(): Pick = synchronized(lock) {
+        // Whole-queue pause when the pump signals comm-suspended. Applies regardless of priority
+        // — even CRITICAL ops can't usefully send while the pump's BT buffer is full.
+        val pauseRemaining = commSuspend.remainingPauseMs()
+        if (pauseRemaining > 0 && queues.values.any { it.isNotEmpty() }) {
+            return Pick.WaitMs(pauseRemaining)
+        }
         for (p in Priority.values()) {
             val q = queues[p]!!
             if (q.isEmpty()) continue

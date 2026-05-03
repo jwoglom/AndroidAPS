@@ -34,6 +34,15 @@ class CommSuspendGate(
         pausedUntilMs = 0L
     }
 
+    /**
+     * @return ms remaining on the active pause, or 0 if the gate is currently open. Cheap;
+     *   intended for use from the queue's dispatch loop inside `synchronized(lock)`.
+     */
+    fun remainingPauseMs(): Long {
+        val remaining = pausedUntilMs - timeSource()
+        return if (remaining > 0) remaining else 0L
+    }
+
     /** Suspend until the gate is open. Returns immediately if no pause is active. */
     suspend fun await() {
         while (true) {
