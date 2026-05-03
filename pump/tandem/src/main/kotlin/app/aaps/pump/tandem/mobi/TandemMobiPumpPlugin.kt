@@ -55,8 +55,15 @@ import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.common.sync.PumpSyncStorage
 import app.aaps.pump.common.utils.ProfileUtil
+import app.aaps.pump.tandem.common.concurrency.BlockingPumpOp
+import app.aaps.pump.tandem.common.concurrency.Priority
+import app.aaps.pump.tandem.common.concurrency.PumpOpQueue
+import app.aaps.pump.tandem.common.concurrency.PumpUnavailableException
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import app.aaps.pump.common.R as Rc
 
 import app.aaps.pump.common.defs.*
@@ -132,6 +139,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     val qualifyingEventHandler: QualifyingEventHandler,
     dateUtil: DateUtil,
     val pumpConnectionManager: TandemPumpConnectionManager,
+    val pumpOps: PumpOpQueue,
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,
@@ -691,24 +699,36 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isBusy(): Boolean {
-        //if (displayConnectionMessages) aapsLogger.error(LTag.PUMP, logPrefix + "isBusy")
-        val isBusy = busy || tandemPumpUtil.preventConnect
+        // Queue activity only — availability state is intentionally NOT folded in here.
+        // Mutating ops handle availability via fast-fail at dispatch, not by stalling AAPS's
+        // command queue on isBusy(). preventConnect retained as a narrow "don't auto-reconnect"
+        // gate (see plan §2.9 / Phase B.3).
+        val isBusy = pumpOps.isBusy() || tandemPumpUtil.preventConnect
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isBusy: $isBusy")
         return isBusy
-
-
-        // if (busy || tandemPumpUtil.preventConnect) {
-        //     if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy: true")
-        //     return true
-        // } else {
-        //     if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy: false")
-        //
-        //     return false
-        // }
     }
 
-    var busy = false
-    //var secondRun = false
+    /**
+     * Submit a mutating op via [pumpOps] and block for its result. On
+     * [PumpUnavailableException] (delivery gated by [PumpAvailabilityState]), produce a
+     * descriptive failed [PumpEnactResult] via [unavailable] so AAPS can re-request next cycle.
+     */
+    private fun <T : PumpEnactResult> submitMutating(
+        name: String,
+        maxDuration: Duration,
+        unavailable: (PumpUnavailableException) -> T,
+        block: () -> T
+    ): T = runBlocking {
+        try {
+            pumpOps.submit(
+                BlockingPumpOp(name, maxDuration, requiresDeliveryEnabled = true, block = block),
+                Priority.SYSTEM_INITIATED
+            ).await()
+        } catch (e: PumpUnavailableException) {
+            aapsLogger.warn(LTag.PUMP, "$name: ${e.message}")
+            unavailable(e)
+        }
+    }
 
     override fun getPumpStatus(reason: String) {
         var needRefresh = false
@@ -1239,7 +1259,18 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
+    override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult = submitMutating(
+        name = "deliverBolus",
+        maxDuration = 10.minutes,
+        unavailable = { e ->
+            PumpEnactResultObject(rh).success(false).enacted(false)
+                .comment(rh.gs(Rc.string.pump_cmd_err_bolus_could_not_be_delivered) + " (${e.availability})")
+        }
+    ) {
+        deliverBolusBody(detailedBolusInfo)
+    }
+
+    private fun deliverBolusBody(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, logPrefix + "deliverBolus - " + BolusDeliveryType.DeliveryPrepared)
         return if (detailedBolusInfo.insulin > pumpStatus.reservoirRemainingUnits) {
             PumpEnactResultObject(rh) //
@@ -1329,7 +1360,22 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     override fun stopBolusDelivering() {
+        // CRITICAL — must run during the gating bolus workflow.
+        runBlocking {
+            try {
+                pumpOps.submit(
+                    BlockingPumpOp("stopBolusDelivering", 30.seconds, requiresDeliveryEnabled = false) {
+                        stopBolusDeliveringBody()
+                    },
+                    Priority.CRITICAL
+                ).await()
+            } catch (t: Throwable) {
+                aapsLogger.error(LTag.PUMP, "stopBolusDelivering failed: ${t.message}", t)
+            }
+        }
+    }
 
+    private fun stopBolusDeliveringBody() {
         aapsLogger.error(TAG, "stopBolusDelivering")
 
         if (bolusDeliveryType==BolusDeliveryType.Delivering ||
@@ -1359,9 +1405,21 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     // if enforceNew===true current temp basal is canceled and new TBR set (duration is prolonged),
     // if false and the same rate is requested enacted=false and success=true is returned and TBR is not changed
-    @Synchronized
     override fun setTempBasalPercent(percent: Int, durationInMinutes: Int,
                                      enforceNew: Boolean, tbrType: TemporaryBasalType
+    ): PumpEnactResult = submitMutating(
+        name = "setTempBasalPercent",
+        maxDuration = 2.minutes,
+        unavailable = { e ->
+            PumpEnactResultObject(rh).success(false).enacted(false)
+                .comment(rh.gs(Rc.string.pump_cmd_err_tbr_could_not_be_delivered) + " (${e.availability})")
+        }
+    ) {
+        setTempBasalPercentBody(percent, durationInMinutes, enforceNew, tbrType)
+    }
+
+    private fun setTempBasalPercentBody(percent: Int, durationInMinutes: Int,
+                                        enforceNew: Boolean, tbrType: TemporaryBasalType
     ): PumpEnactResult {
         setRefreshButtonEnabled(false)
 
@@ -1436,17 +1494,19 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int,
                                       enforceNew: Boolean, tbrType: TemporaryBasalType
-    ): PumpEnactResult {
+    ): PumpEnactResult = submitMutating(
+        name = "setTempBasalAbsolute",
+        maxDuration = 2.minutes,
+        unavailable = { e ->
+            PumpEnactResultObject(rh).success(false).enacted(false)
+                .comment(rh.gs(Rc.string.pump_cmd_err_tbr_could_not_be_delivered) + " (${e.availability})")
+        }
+    ) {
         aapsLogger.info(LTag.PUMP, "TBR setTempBasalAbsolute called with a rate of $absoluteRate for $durationInMinutes min [enforce=$enforceNew,tbrType=${tbrType.name}].")
-
         val unroundedPercentage = ((absoluteRate / baseBasalRate.cU) * 100).toInt()
-
         aapsLogger.info(LTag.PUMP, "TBR abs=$absoluteRate,base=${pumpStatus.basalProfileForHour},percent: $unroundedPercentage")
-
-        return this.setTempBasalPercent(unroundedPercentage,
-                                        durationInMinutes = durationInMinutes,
-                                        enforceNew = enforceNew,
-                                        tbrType = tbrType)
+        // Already inside a queued op — call body directly to avoid nested submit (deadlock).
+        setTempBasalPercentBody(unroundedPercentage, durationInMinutes, enforceNew, tbrType)
     }
 
 
@@ -1486,7 +1546,18 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult {
+    override fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult = submitMutating(
+        name = "cancelTempBasal",
+        maxDuration = 1.minutes,
+        unavailable = { e ->
+            PumpEnactResultObject(rh).success(false).enacted(false)
+                .comment(rh.gs(Rc.string.pump_cmd_err_cant_cancel_tbr) + " (${e.availability})")
+        }
+    ) {
+        cancelTempBasalBody(enforceNew)
+    }
+
+    private fun cancelTempBasalBody(enforceNew: Boolean): PumpEnactResult {
         return try {
             aapsLogger.info(TAG, "TBR cancelTempBasal - started")
             setRefreshButtonEnabled(false)
@@ -1581,7 +1652,18 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult {
+    override fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult = submitMutating(
+        name = "setNewBasalProfile",
+        maxDuration = 2.minutes,
+        unavailable = { e ->
+            PumpEnactResultObject(rh).success(false).enacted(false)
+                .comment(rh.gs(Rc.string.pump_cmd_err_basal_profile_could_not_be_set) + " (${e.availability})")
+        }
+    ) {
+        setNewBasalProfileBody(profile)
+    }
+
+    private fun setNewBasalProfileBody(profile: PumpProfile): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, "setNewBasalProfile - start")
         return try {
             setRefreshButtonEnabled(false)

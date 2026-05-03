@@ -21,11 +21,14 @@ abstract class PumpOp<T> {
     abstract val maxDuration: Duration
 
     /**
-     * If true, the dispatcher gates this op on [PumpAvailability]. Mutating ops (bolus, temp basal,
-     * profile, cartridge workflows) set this to true and fast-fail when availability is not
-     * [PumpAvailability.DeliveryEnabled]. Pure status reads set this to false.
+     * If true, the dispatcher gates this op on [PumpAvailability]: when availability is not
+     * [PumpAvailability.DeliveryEnabled] the op is fast-failed before its [run] is called.
+     *
+     * Mutating ops in normal flow (bolus, temp basal, profile) set this to true. Status reads
+     * and emergency overrides — bolus cancel, alarm acknowledgement — set this to false because
+     * they need to execute *during* the workflow that disabled delivery.
      */
-    abstract val requiresDelivery: Boolean
+    abstract val requiresDeliveryEnabled: Boolean
 
     /**
      * For status reads, ops with the same [coalesceKey] that are already pending in the queue at

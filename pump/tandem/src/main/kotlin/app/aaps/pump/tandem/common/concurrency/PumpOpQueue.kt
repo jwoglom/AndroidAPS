@@ -25,19 +25,19 @@ class PumpUnavailableException(val availability: PumpAvailability, val opName: S
     RuntimeException("Pump op '$opName' rejected: availability=$availability")
 
 /**
- * Single-dispatcher pump op queue with origin priority.
+ * Single-dispatcher pump op queue with three-tier priority.
  *
- * Architecture: one dedicated single-thread executor owns BLE I/O. Submission origin
- * ([Origin.USER] vs [Origin.AAPS]) determines insertion point — USER ops jump ahead of all
- * AAPS-queued background work; FIFO within each origin section. Status reads with a
- * [PumpOp.coalesceKey] are deduped at submit time.
+ * Architecture: one dedicated single-thread executor owns BLE I/O. Submission [Priority]
+ * determines insertion point — [Priority.CRITICAL] ahead of [Priority.USER_INITIATED] ahead of
+ * [Priority.SYSTEM_INITIATED], FIFO within each tier. Status reads with a [PumpOp.coalesceKey]
+ * are deduped at submit time.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PumpOpQueue(
     private val logger: AAPSLogger,
     private val availability: PumpAvailabilityState,
     private val commSuspend: CommSuspendGate,
-    private val sender: Sender
+    private val sender: Sender? = null
 ) {
 
     /**
@@ -50,13 +50,14 @@ class PumpOpQueue(
 
     private class Entry<T>(
         val op: PumpOp<T>,
-        val origin: Origin,
+        val priority: Priority,
         val deferred: CompletableDeferred<T>
     )
 
     private val lock = Any()
+    private val criticalQueue = ArrayDeque<Entry<*>>()
     private val userQueue = ArrayDeque<Entry<*>>()
-    private val aapsQueue = ArrayDeque<Entry<*>>()
+    private val systemQueue = ArrayDeque<Entry<*>>()
     /** coalesceKey -> Deferred of the pending op, so duplicate submits can share its result. */
     private val pendingByKey = HashMap<String, CompletableDeferred<*>>()
     private var inFlight: Entry<*>? = null
@@ -77,10 +78,10 @@ class PumpOpQueue(
     }
 
     fun isBusy(): Boolean = synchronized(lock) {
-        inFlight != null || userQueue.isNotEmpty() || aapsQueue.isNotEmpty()
+        inFlight != null || criticalQueue.isNotEmpty() || userQueue.isNotEmpty() || systemQueue.isNotEmpty()
     }
 
-    fun <T> submit(op: PumpOp<T>, origin: Origin): Deferred<T> {
+    fun <T> submit(op: PumpOp<T>, priority: Priority): Deferred<T> {
         val key = op.coalesceKey
         synchronized(lock) {
             if (key != null) {
@@ -92,15 +93,17 @@ class PumpOpQueue(
                 }
             }
             val deferred = CompletableDeferred<T>()
-            val entry = Entry(op, origin, deferred)
-            when (origin) {
-                Origin.USER -> userQueue.addLast(entry)
-                Origin.AAPS -> aapsQueue.addLast(entry)
+            val entry = Entry(op, priority, deferred)
+            when (priority) {
+                Priority.CRITICAL         -> criticalQueue.addLast(entry)
+                Priority.USER_INITIATED   -> userQueue.addLast(entry)
+                Priority.SYSTEM_INITIATED -> systemQueue.addLast(entry)
             }
             if (key != null) pendingByKey[key] = deferred
             logger.debug(
                 LTag.PUMP,
-                "PumpOpQueue: submitted '${op.name}' origin=$origin (user=${userQueue.size}, aaps=${aapsQueue.size})"
+                "PumpOpQueue: submitted '${op.name}' priority=$priority " +
+                    "(critical=${criticalQueue.size}, user=${userQueue.size}, system=${systemQueue.size})"
             )
             wakeup.trySend(Unit)
             return deferred
@@ -118,7 +121,7 @@ class PumpOpQueue(
     }
 
     private fun nextEntry(): Entry<*>? = synchronized(lock) {
-        val next = userQueue.pollFirst() ?: aapsQueue.pollFirst()
+        val next = criticalQueue.pollFirst() ?: userQueue.pollFirst() ?: systemQueue.pollFirst()
         if (next != null) inFlight = next
         next
     }
@@ -127,7 +130,7 @@ class PumpOpQueue(
         val op = entry.op
         val deferred = entry.deferred
         try {
-            if (op.requiresDelivery && !availability.current.allowsDelivery) {
+            if (op.requiresDeliveryEnabled && !availability.current.allowsDelivery) {
                 logger.warn(
                     LTag.PUMP,
                     "PumpOpQueue: fast-failing '${op.name}' — availability=${availability.current}"
@@ -155,9 +158,10 @@ class PumpOpQueue(
     /** Per-op context. Created fresh per op so the [PumpOp.name] is captured for logs. */
     private inner class Ctx(private val op: PumpOp<*>) : PumpOpContext {
         override suspend fun send(request: Message, forceSend: Boolean): Message? {
+            val s = sender ?: error("PumpOpQueue.Sender not configured; ctx.send() unavailable")
             return wireMutex.withLock {
                 commSuspend.await()
-                sender.sendOnWire(request, forceSend)
+                s.sendOnWire(request, forceSend)
             }
         }
 
