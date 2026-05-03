@@ -57,6 +57,7 @@ import app.aaps.pump.common.sync.PumpSyncStorage
 import app.aaps.pump.common.utils.ProfileUtil
 import app.aaps.pump.tandem.common.concurrency.BlockingPumpOp
 import app.aaps.pump.tandem.common.concurrency.Priority
+import app.aaps.pump.tandem.common.concurrency.PumpAvailabilitySync
 import app.aaps.pump.tandem.common.concurrency.PumpOpQueue
 import app.aaps.pump.tandem.common.concurrency.PumpUnavailableException
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
@@ -140,6 +141,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     dateUtil: DateUtil,
     val pumpConnectionManager: TandemPumpConnectionManager,
     val pumpOps: PumpOpQueue,
+    @Suppress("unused") val pumpAvailabilitySync: PumpAvailabilitySync, // eager-construct so observers attach
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,

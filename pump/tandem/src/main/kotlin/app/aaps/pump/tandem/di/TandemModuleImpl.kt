@@ -20,7 +20,7 @@ open class TandemModuleImpl {
     @Provides
     @Singleton
     fun providePumpAvailabilityState(logger: AAPSLogger): PumpAvailabilityState =
-        PumpAvailabilityState(logger).also { it.startWatchdog() }
+        PumpAvailabilityState(logger)
 
     @Provides
     @Singleton

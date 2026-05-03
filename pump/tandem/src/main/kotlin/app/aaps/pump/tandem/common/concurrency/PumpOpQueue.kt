@@ -20,7 +20,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.ArrayDeque
 import java.util.EnumMap
 import java.util.concurrent.Executors
-import kotlin.time.Duration
 
 /** Thrown into a fast-failing op's Deferred when delivery is gated by [PumpAvailability]. */
 class PumpUnavailableException(val availability: PumpAvailability, val opName: String) :
@@ -192,7 +191,7 @@ class PumpOpQueue(
     }
 
     /** Per-op context. Created fresh per op so the [PumpOp.name] is captured for logs. */
-    private inner class Ctx(private val op: PumpOp<*>) : PumpOpContext {
+    private inner class Ctx(@Suppress("unused") private val op: PumpOp<*>) : PumpOpContext {
         override suspend fun send(request: Message, forceSend: Boolean): Message? {
             val s = sender ?: error("PumpOpQueue.Sender not configured; ctx.send() unavailable")
             return wireMutex.withLock {
@@ -200,13 +199,6 @@ class PumpOpQueue(
                 s.sendOnWire(request, forceSend)
             }
         }
-
-        override suspend fun <R> withAvailability(
-            state: PumpAvailability,
-            maxDuration: Duration,
-            reason: String,
-            block: suspend () -> R
-        ): R = availability.withAvailability(state, maxDuration, "${op.name}:$reason", block)
     }
 
     fun shutdown() {

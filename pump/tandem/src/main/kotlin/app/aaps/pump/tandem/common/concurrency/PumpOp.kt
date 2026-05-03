@@ -3,6 +3,7 @@ package app.aaps.pump.tandem.common.concurrency
 import com.jwoglom.pumpx2.pump.messages.Message
 import kotlin.time.Duration
 
+
 /**
  * A unit of pump work dispatched serially by [PumpOpQueue].
  *
@@ -41,10 +42,9 @@ abstract class PumpOp<T> {
 }
 
 /**
- * The narrow surface a [PumpOp] uses to talk to the pump.
- *
- * Restricted to the operations ops legitimately need: send a single message and read/write
- * availability for the body of a compound workflow. Ops never touch BLE state directly.
+ * The narrow surface a [PumpOp] uses to talk to the pump. Restricted to a single message send.
+ * Ops never touch BLE state or availability directly — availability is observation-driven, set by
+ * response handlers in the comm layer.
  */
 interface PumpOpContext {
 
@@ -54,12 +54,4 @@ interface PumpOpContext {
      * contract).
      */
     suspend fun send(request: Message, forceSend: Boolean = false): Message?
-
-    /** Run [block] with availability pinned to [state]; restored in finally. */
-    suspend fun <R> withAvailability(
-        state: PumpAvailability,
-        maxDuration: Duration,
-        reason: String,
-        block: suspend () -> R
-    ): R
 }
