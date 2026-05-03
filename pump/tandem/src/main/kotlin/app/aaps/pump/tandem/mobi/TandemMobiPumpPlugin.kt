@@ -715,6 +715,22 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     /**
+     * Submit a non-mutating read / config-write through [pumpOps] at [Priority.DEFAULT] and block
+     * for the result. Routes the call through the queue's single dispatcher so it can't race with
+     * a queued bolus / TBR / profile op at the operation level (i.e. interleave its messages
+     * between two messages of a multi-step delivery handshake).
+     *
+     * `requiresDeliveryEnabled = false` since reads and config writes (max-bolus, set-time, etc.)
+     * are independent of insulin delivery state.
+     */
+    private fun <T> submitDefault(name: String, block: () -> T): T = runBlocking {
+        pumpOps.submit(
+            BlockingPumpOp(name, 30.seconds, requiresDeliveryEnabled = false, block = block),
+            Priority.DEFAULT
+        ).await()
+    }
+
+    /**
      * Submit a mutating op via [pumpOps] and block for its result. On
      * [PumpUnavailableException] (delivery gated by [PumpAvailabilityState]), produce a
      * descriptive failed [PumpEnactResult] via [unavailable] so AAPS can re-request next cycle.
@@ -811,7 +827,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     PumpDataRefreshType.PumpTime         -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_PumpTime")
-                        pumpConnectionManager.getTime()
+                        submitDefault("getTime") { pumpConnectionManager.getTime() }
                         if (checkTimeAndOptionallySetTime(readTime = true)) {
                             resetDisplay = true
                         }
@@ -827,7 +843,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     PumpDataRefreshType.BatteryStatus -> {
                         aapsLogger.error(LTag.PUMP, "Refresh_BatteryStatus")
-                        pumpConnectionManager.getBatteryLevel()
+                        submitDefault("getBatteryLevel") { pumpConnectionManager.getBatteryLevel() }
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Battery))
                         //refreshTypesNeededToReschedule.add(key)
                         resetTime = true
@@ -841,14 +857,16 @@ class TandemMobiPumpPlugin @Inject constructor(
                     // this is for simple status refresh (only PumpStatus without Alerts/Alarms or history
                     PumpDataRefreshType.Custom_1 -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_Custom_1 (simple pump status after UI)")
-                        pumpConnectionManager.getPumpStatus()
+                        submitDefault("getPumpStatus") { pumpConnectionManager.getPumpStatus() }
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
                     }
 
                     PumpDataRefreshType.Custom_2 -> {
                         aapsLogger.error(LTag.PUMP, "Refresh_Custom_2 - Set QuickBolus settings on pump")
-                        pumpConnectionManager.executeCustomCommand(command = TandemCustomCommand.SET_QUICK_BOLUS,
-                                                                   data = this.newQuickBolusType)
+                        submitDefault("setQuickBolus") {
+                            pumpConnectionManager.executeCustomCommand(command = TandemCustomCommand.SET_QUICK_BOLUS,
+                                                                       data = this.newQuickBolusType)
+                        }
 
                         val stringQuickBolus = rh.gs(this.newQuickBolusType!!.friendlyName)
 
@@ -860,7 +878,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     PumpDataRefreshType.RemainingInsulin -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_RemainingInsulin")
-                        pumpConnectionManager.getRemainingInsulin()
+                        submitDefault("getRemainingInsulin") { pumpConnectionManager.getRemainingInsulin() }
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Reservoir))
 
                         //resetDisplay = true
@@ -973,7 +991,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     private fun getFullPumpStatus(readHistory: Boolean) {
         aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus")
-        pumpConnectionManager.getPumpStatus()
+        submitDefault("getPumpStatus") { pumpConnectionManager.getPumpStatus() }
 
         readNotificationsForSemaphore()
 
@@ -992,7 +1010,9 @@ class TandemMobiPumpPlugin @Inject constructor(
         var notificationFound = false
 
         for (command in commandList) {
-            val customCommandResponse = pumpConnectionManager.executeCustomCommand(command)
+            val customCommandResponse = submitDefault("getNotifications:$command") {
+                pumpConnectionManager.executeCustomCommand(command)
+            }
 
             if (customCommandResponse.isSuccess) {
                 val valueOfResponse = customCommandResponse.value
@@ -1051,12 +1071,12 @@ class TandemMobiPumpPlugin @Inject constructor(
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
 
         // remaining insulin (>50 = 4h; 50-20 = 1h; 15m) -
-        pumpConnectionManager.getRemainingInsulin()
+        submitDefault("getRemainingInsulin") { pumpConnectionManager.getRemainingInsulin() }
         scheduleNextRefresh(PumpDataRefreshType.RemainingInsulin, 1)
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Reservoir))
 
         // remaining power (1h) -
-        pumpConnectionManager.getBatteryLevel()
+        submitDefault("getBatteryLevel") { pumpConnectionManager.getBatteryLevel() }
         scheduleNextRefresh(PumpDataRefreshType.BatteryStatus, 2)
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Battery))
 
@@ -1065,11 +1085,13 @@ class TandemMobiPumpPlugin @Inject constructor(
         this.pumpStatus.tandemSiteReminder = if (reminder>0) null else reminder
 
         // configuration (once and then if history shows config changes)
-        pumpConnectionManager.getConfiguration()
+        submitDefault("getConfiguration") { pumpConnectionManager.getConfiguration() }
         checkThatSettingsAreEnforced()
 
         // pump info
-        pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_PUMP_INFO)
+        submitDefault("getPumpInfo") {
+            pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_PUMP_INFO)
+        }
 
         // get TBR (if needed)
         if (pumpStatus.pumpStatusMirror==null || pumpStatus.pumpStatusMirror!!.isTemporaryBasalRunning()) {
@@ -1083,11 +1105,11 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
 
         // get last bolus
-        pumpConnectionManager.getBolus()
+        submitDefault("getBolus") { pumpConnectionManager.getBolus() }
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Bolus))
 
         // get basal profile
-        pumpConnectionManager.getBasalProfile()
+        submitDefault("getBasalProfile") { pumpConnectionManager.getBasalProfile() }
 
         pumpStatus.setLastCommunicationToNow()
         setRefreshButtonEnabled(true)
@@ -1184,7 +1206,9 @@ class TandemMobiPumpPlugin @Inject constructor(
             aapsLogger.debug(TAG, "Current Max Bolus: ${maxBolus}, Required: $maxBolusRequired")
 
             if (maxBolus != maxBolusRequired) {
-                pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BOLUS, maxBolusRequired)
+                submitDefault("setMaxBolus") {
+                    pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BOLUS, maxBolusRequired)
+                }
                 changedItems.add("Max Bolus")
             }
 
@@ -1200,14 +1224,18 @@ class TandemMobiPumpPlugin @Inject constructor(
             aapsLogger.debug(TAG, "Current Max Basal: ${maxBasalInt}, Required: $maxBasalRequired")
 
             if (maxBasalInt != maxBasalRequired) {
-                pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BASAL, maxBasalRequired)
+                submitDefault("setMaxBasal") {
+                    pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BASAL, maxBasalRequired)
+                }
                 changedItems.add("Max Basal")
             }
 
             val controlIQEnabled = (pumpStatus.settings!![TandemPumpSettingType.CONTROL_IQ_ENABLED]) as Boolean
 
             if (controlIQEnabled) {
-                pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_CONTROL_IQ, false)
+                submitDefault("setControlIQ") {
+                    pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_CONTROL_IQ, false)
+                }
                 changedItems.add("Control IQ")
             }
 
@@ -1225,7 +1253,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         aapsLogger.info(LTag.PUMP, logPrefix + "checkTimeAndOptionallySetTime - Start")
 
         if (readTime) {
-            pumpConnectionManager.getTime()
+            submitDefault("getTime") { pumpConnectionManager.getTime() }
         }
 
         try {
@@ -1244,7 +1272,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                         tandemPumpUtil.sendNotification(TandemNotificationType.TimeDifferenceTooBig, 60, diff)
                     } else {
 
-                        val time = pumpConnectionManager.setTime()
+                        val time = submitDefault("setTime") { pumpConnectionManager.setTime() }
 
                         if (time.isSuccess) {
                             tandemPumpUtil.sendNotification(TandemNotificationType.DateTimeUpdated)
