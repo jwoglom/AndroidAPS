@@ -7,7 +7,7 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
-import app.aaps.pump.tandem.common.concurrency.PumpOpQueue
+import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.data.history.HistoryRange
 import app.aaps.pump.tandem.common.data.history.HistoryRequestInfo
 import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
@@ -55,7 +55,7 @@ class HistoryRetrieverTest {
     @Mock lateinit var tandemPumpConnector: TandemPumpConnector
     @Mock lateinit var uiInteraction: UiInteraction
     @Mock lateinit var notificationManager: NotificationManager
-    @Mock lateinit var pumpOps: PumpOpQueue
+    @Mock lateinit var tandemDispatcher: TandemDispatcher
 
 
     val aapsLogger = AAPSLoggerTest()
@@ -88,7 +88,7 @@ class HistoryRetrieverTest {
             tandemPumpConnector = tandemPumpConnector,
             uiInteraction = uiInteraction,
             notificationManager = notificationManager,
-            pumpOps = pumpOps
+            tandemDispatcher = tandemDispatcher
         )
 
         this.unitToTestSpy = spy(this.unitToTest)
