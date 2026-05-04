@@ -2,11 +2,11 @@ package app.aaps.pump.tandem.common.concurrency
 
 import app.aaps.shared.tests.AAPSLoggerTest
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.fail
+import org.junit.jupiter.api.Test
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -97,7 +97,7 @@ class PumpOpQueueTest {
             assertEquals(PumpAvailability.DeliveryDisabled, e.availability)
             assertEquals("deliverBolus", e.opName)
         }
-        assertEquals("op.run must not be called when fast-failed", 0, ran.get())
+        assertEquals(0, ran.get(), "op.run must not be called when fast-failed")
         q.shutdown()
     }
 
@@ -137,9 +137,9 @@ class PumpOpQueueTest {
         while (System.currentTimeMillis() < deadline && (!order.contains("bg-1") || !order.contains("user"))) {
             Thread.sleep(20)
         }
-        assertTrue("bg-1 should have run: $order", order.contains("bg-1"))
-        assertTrue("user should have run: $order", order.contains("user"))
-        assertFalse("bg-2 should still be rate-gated: $order", order.contains("bg-2"))
+        assertTrue(order.contains("bg-1"), "bg-1 should have run: $order")
+        assertTrue(order.contains("user"), "user should have run: $order")
+        assertFalse(order.contains("bg-2"), "bg-2 should still be rate-gated: $order")
         q.shutdown()
     }
 }

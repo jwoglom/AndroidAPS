@@ -22,27 +22,33 @@ import com.google.gson.GsonBuilder
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlarmActivatedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
-import org.junit.Assert
-import org.junit.Before
-import org.junit.FixMethodOrder
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.MethodSorters
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestMethodOrder
+import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
-import org.mockito.junit.MockitoJUnitRunner
+import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.junit.jupiter.MockitoSettings
+import org.mockito.quality.Strictness
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
+import app.aaps.pump.tandem.common.concurrency.PumpDispatcherScope
+import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import java.util.GregorianCalendar
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-@RunWith(MockitoJUnitRunner::class)
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@ExtendWith(MockitoExtension::class)
+@MockitoSettings(strictness = Strictness.LENIENT)  // matches the old MockitoJUnitRunner default
+@TestMethodOrder(MethodOrderer.MethodName::class)
 class HistoryRetrieverTest {
 
     @Mock lateinit var tandemUICommunication: TandemUICommunication
@@ -66,7 +72,7 @@ class HistoryRetrieverTest {
 
     val gsonRegular: Gson = GsonBuilder().create()
 
-    @Before
+    @BeforeEach
     fun setUp() {
         MockitoAnnotations.openMocks(this)
 
@@ -90,6 +96,28 @@ class HistoryRetrieverTest {
             notificationManager = notificationManager,
             tandemDispatcher = tandemDispatcher
         )
+        // Tests call internal methods directly (processChunkComplete, etc.) without going through
+        // downloadHistory(), which is what would otherwise replace `communication` with a freshly
+        // constructed instance. Bind the mock here so verify(tandemUICommunication).sendCommand(...)
+        // observes the wire calls those internal methods make.
+        this.unitToTest.communication = tandemUICommunication
+
+        // Real production code routes wire sends through tandemDispatcher.submitBackground { ... }.
+        // The default Mockito mock swallows the lambda; stub it to invoke the block inline with a
+        // fake scope so the verify(tandemUICommunication).sendCommand(...) assertions reach what
+        // the production code is actually doing.
+        val fakeScope = object : PumpDispatcherScope {
+            override val pumpConnectionManager: TandemPumpConnectionManager
+                get() = error("not used in HistoryRetriever tests")
+            override val tandemUICommunication: TandemUICommunication
+                get() = this@HistoryRetrieverTest.tandemUICommunication
+        }
+        doAnswer { invocation ->
+            @Suppress("UNCHECKED_CAST")
+            val block = invocation.arguments.last() as PumpDispatcherScope.() -> Unit
+            fakeScope.block()
+            Unit
+        }.whenever(tandemDispatcher).submitBackground(any(), any(), any())
 
         this.unitToTestSpy = spy(this.unitToTest)
     }

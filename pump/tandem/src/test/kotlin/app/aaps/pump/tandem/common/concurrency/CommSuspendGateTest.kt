@@ -4,8 +4,8 @@ import app.aaps.shared.tests.AAPSLoggerTest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CommSuspendGateTest {
@@ -25,6 +25,6 @@ class CommSuspendGateTest {
         gate.await()
         val elapsed = testScheduler.currentTime - start
         // Original pause had 800ms remaining; the shorter follow-up was ignored.
-        assertTrue("elapsed=$elapsed (should be ~800ms)", elapsed in 800L..900L)
+        assertTrue(elapsed in 800L..900L, "elapsed=$elapsed (should be ~800ms)")
     }
 }
