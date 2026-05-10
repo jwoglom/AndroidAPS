@@ -475,7 +475,6 @@ fun AlertBanner(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header
             Text(
                 text = "Dismiss notifications before continuing",
                 style = MaterialTheme.typography.titleMedium,
@@ -483,135 +482,22 @@ fun AlertBanner(
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-
-            // Display alarms first (more critical)
             displayAlarms.forEach { alarm ->
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "ALARM",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = alarm.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                    IconButton(
-                        onClick = { dismissAlarm(alarm) },
-                        modifier = Modifier.size(24.dp),
-                        enabled = dismissingItem != alarm
-                    ) {
-                        if (dismissingItem == alarm) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = "Dismiss",
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
+                NotificationDismissPill(
+                    label = "ALARM",
+                    name = alarm.name,
+                    isDismissing = dismissingItem == alarm,
+                    onDismiss = { dismissAlarm(alarm) },
+                )
             }
-        }
-
-            // Display alerts
             displayAlerts.forEach { alert ->
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "ALERT",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = alert.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                    IconButton(
-                        onClick = { dismissAlert(alert) },
-                        modifier = Modifier.size(24.dp),
-                        enabled = dismissingItem != alert
-                    ) {
-                        if (dismissingItem == alert) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = "Dismiss",
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
+                NotificationDismissPill(
+                    label = "ALERT",
+                    name = alert.name,
+                    isDismissing = dismissingItem == alert,
+                    onDismiss = { dismissAlert(alert) },
+                )
             }
-        }
-
             if (remainingCount > 0) {
                 Text(
                     text = "+ $remainingCount more notification${if (remainingCount > 1) "s" else ""}",
@@ -620,6 +506,151 @@ fun AlertBanner(
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
+        }
+    }
+}
+
+/** Single dismissible alert/alarm row. Reusable inside or outside [AlertBanner]. */
+@Composable
+fun NotificationDismissPill(
+    label: String,
+    name: String,
+    isDismissing: Boolean,
+    onDismiss: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Column {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(24.dp),
+                enabled = !isDismissing
+            ) {
+                if (isDismissing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = "Dismiss",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Render dismissible pills for the alerts/alarms in [notifications], no surrounding Card. */
+@Composable
+fun NotificationDismissPills(
+    notifications: List<Any>,
+    sendPumpCommands: (List<Message>) -> Boolean,
+    refreshScope: CoroutineScope,
+) {
+    val alarms = notifications.filterIsInstance<AlarmResponseType>()
+    val alerts = notifications.filterIsInstance<AlertResponseType>()
+
+    var dismissingItem by remember { mutableStateOf<Any?>(null) }
+
+    fun dismissAlert(alert: AlertResponseType) {
+        dismissingItem = alert
+        refreshScope.launch {
+            sendPumpCommands(listOf(
+                DismissNotificationRequest(
+                    DismissNotificationRequest.NotificationType.ALERT,
+                    alert.bitmask().toLong()
+                )
+            ))
+            delay(500)
+            sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+            dismissingItem = null
+        }
+    }
+
+    fun dismissAlarm(alarm: AlarmResponseType) {
+        dismissingItem = alarm
+        refreshScope.launch {
+            sendPumpCommands(listOf(
+                DismissNotificationRequest(
+                    DismissNotificationRequest.NotificationType.ALARM,
+                    alarm.bitmask().toLong()
+                )
+            ))
+            delay(500)
+            sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+            dismissingItem = null
+        }
+    }
+
+    val totalCount = alerts.size + alarms.size
+    val displayAlarms = alarms.take(3)
+    val displayAlerts = if (displayAlarms.size < 3) alerts.take(3 - displayAlarms.size) else emptyList()
+    val remainingCount = totalCount - displayAlarms.size - displayAlerts.size
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        displayAlarms.forEach { alarm ->
+            NotificationDismissPill(
+                label = "ALARM",
+                name = alarm.name,
+                isDismissing = dismissingItem == alarm,
+                onDismiss = { dismissAlarm(alarm) },
+            )
+        }
+        displayAlerts.forEach { alert ->
+            NotificationDismissPill(
+                label = "ALERT",
+                name = alert.name,
+                isDismissing = dismissingItem == alert,
+                onDismiss = { dismissAlert(alert) },
+            )
+        }
+        if (remainingCount > 0) {
+            Text(
+                text = "+ $remainingCount more notification${if (remainingCount > 1) "s" else ""}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
     }
 }

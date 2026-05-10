@@ -46,6 +46,7 @@ import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
 import app.aaps.pump.tandem.mobi.ui.data.DataDisplayMain
@@ -73,6 +74,7 @@ class DataActivity : DaggerAppCompatActivity() {
     @Inject lateinit var dbDataHandler: DbDataHandler
     @Inject lateinit var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction
     @Inject lateinit var notificationManager: NotificationManager
+    @Inject lateinit var tandemDispatcher: TandemDispatcher
 
 
     var sectionState: DataLandingSection = DataLandingSection.DATA
@@ -202,14 +204,12 @@ class DataActivity : DaggerAppCompatActivity() {
     override fun onResume() {
         super.onResume()
         this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-        this.tandemPumpUtil.preventConnect = true
     }
 
 
     override fun onStop() {
         super.onStop()
         this.tandemUICommunication.tandemCommunicationManager = null
-        this.tandemPumpUtil.preventConnect = false
     }
 
 
@@ -231,7 +231,9 @@ class DataActivity : DaggerAppCompatActivity() {
         aapsLogger.debug(TAG, "PumpCommands to Send [commands=${listText}]")
 
         for (msg in msgs) {
-            tandemUICommunication.sendCommand(msg)
+            tandemDispatcher.submitUser("ui:${msg.javaClass.simpleName}") {
+                tandemUICommunication.sendCommand(msg)
+            }
         }
 
         return true

@@ -2,31 +2,19 @@
 
 package app.aaps.pump.tandem.mobi.ui.actions.cartridge
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.pullToRefresh
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -35,34 +23,32 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.lifecycle.Observer
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
+import androidx.lifecycle.Observer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
-import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
-import app.aaps.pump.tandem.mobi.ui.util.AlertBanner
-import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.EnterChangeCartridgeModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ExitChangeCartridgeModeRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartridgeModeStateStreamResponse
 import kotlinx.coroutines.Dispatchers
@@ -84,216 +70,276 @@ fun ChangeCartridgeScreen(
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
-
-    fun fetchData() {
-        sendPumpCommands(changeCartridgeScreenCommands)
-    }
+    var showCancelDialog by remember { mutableStateOf(false) }
+    var showSuspendDialog by remember { mutableStateOf(false) }
+    var isSuspending by remember { mutableStateOf(false) }
+    var isStartingChangeCartridge by remember { mutableStateOf(false) }
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "reloading ChangeCartridgeScreen with force")
         refreshing = true
-
         sendPumpCommands(changeCartridgeScreenCommands)
-
-        withContext(Dispatchers.IO) {
-            Thread.sleep(250)
-        }
-
+        withContext(Dispatchers.IO) { Thread.sleep(250) }
         refreshing = false
     }
-
-    val pullRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(intervalOf(60)) {
         aapsLogger.info(TAG, "reloading ChangeCartridgeScreen from interval")
         refresh()
     }
 
-    // Poll for alerts and alarms immediately on screen open
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "Initial alert/alarm poll on ChangeCartridgeScreen")
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
     }
 
-    // Poll for alerts and alarms every 10 seconds while on the Change Cartridge screen
     LaunchedEffect(intervalOf(10)) {
         aapsLogger.info(TAG, "Periodic alert/alarm poll on ChangeCartridgeScreen")
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
     }
 
-    // Note: notification bundle is managed globally, so we don't clear it here
+    val pumpRunningState = ds.pumpRunningState.observeAsState()
+    val inChangeCartridgeMode = ds.inChangeCartridgeMode.observeAsState()
+    val enterChangeCartridgeState = ds.enterChangeCartridgeState.observeAsState()
+    val detectingCartridgeState = ds.detectingCartridgeState.observeAsState()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pullToRefresh(
-                isRefreshing = refreshing,
-                state = pullRefreshState,
-                onRefresh = { refresh() })
-    ) {
-        PullToRefreshDefaults.Indicator(
-            isRefreshing = refreshing,
-            state = pullRefreshState,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .zIndex(10f)
-        )
-
-        val pumpRunningState = ds.pumpRunningState.observeAsState()
-        val inChangeCartridgeMode = ds.inChangeCartridgeMode.observeAsState()
-        val enterChangeCartridgeState = ds.enterChangeCartridgeState.observeAsState()
-        val detectingCartridgeState = ds.detectingCartridgeState.observeAsState()
-
-        // Observe notification bundle for alerts/alarms
-        val notifications = remember { mutableStateListOf<Any>() }
-        ds.notificationBundle.observe(LocalLifecycleOwner.current, Observer {
-            ds.notificationBundle.value?.let {
-                notifications.clear()
-                notifications.addAll(it.get().toTypedArray())
-            }
-        })
-
-        fun sendPumpCommand(msg: Message) {
-            sendPumpCommands(listOf(msg))
+    val notifications = remember { mutableStateListOf<Any>() }
+    ds.notificationBundle.observe(LocalLifecycleOwner.current, Observer {
+        ds.notificationBundle.value?.let {
+            notifications.clear()
+            notifications.addAll(it.get().toTypedArray())
         }
+    })
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = innerPadding.calculateTopPadding(),
-                    bottom = innerPadding.calculateBottomPadding()
-                )
-        ) {
-            if (showHeader) {
-                HeaderLineWithBackButton(
-                    text = resourceHelper.gs(R.string.cc_title),
-                    onBackClick = navigateBack,
-                    resourceHelper = resourceHelper
-                )
-                HorizontalDivider()
-            }
+    fun sendPumpCommand(msg: Message) {
+        sendPumpCommands(listOf(msg))
+    }
 
-            // Alert/Alarm banner - display at top if any exist
-            if (notifications.isNotEmpty()) {
-                AlertBanner(
-                    notifications = notifications,
-                    sendPumpCommands = sendPumpCommands,
-                    refreshScope = refreshScope,
-                    resourceHelper = resourceHelper
-                )
-            }
+    val isInActiveMode = inChangeCartridgeMode.value == true &&
+        detectingCartridgeState.value?.isComplete != true
+    val hasActiveNotifications = notifications.isNotEmpty()
 
-            // Status text
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                if (detectingCartridgeState.value != null) {
-                    if (detectingCartridgeState.value?.isComplete == true) {
-                        Text(text = resourceHelper.gs(R.string.cc_complete))
-                        Text("\n")
-                        Text(text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"))
-                    } else {
-                        Text(text = resourceHelper.gs(R.string.cc_detect_insulin_cart))
-                        Text("\n")
-                        Text(text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"))
-                    }
-                } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                    Text(text = resourceHelper.gs(R.string.cc_can_remove_cart))
-                    Text("\n")
-                    Text(text = resourceHelper.gs(R.string.cc_when_inserted_press))
-                } else if (inChangeCartridgeMode.value == true) {
-                    Text(text = resourceHelper.gs(R.string.cc_preparing_cc))
-                    Text("\n")
-                } else if (pumpRunningState.value == PumpRunningState.Suspended) {
-                    Text(text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site, resourceHelper.gs(R.string.cc_btn_begin)))
-                    Text("\n")
-                } else {
-                    Text(text = resourceHelper.gs(R.string.ca_before_stop_delivery, resourceHelper.gs(R.string.cc_action)))
-                    Text("\n")
-                }
-            }
-
-            // Spacer to push button to bottom
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Action button at bottom
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                if (detectingCartridgeState.value?.isComplete == true) {
-                    // Cartridge change complete
-                    Button(
-                        onClick = {
-                            refreshScope.launch {
-                                navigateBack()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Text(
-                            text = resourceHelper.gs(R.string.common_done),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                    Button(
-                        onClick = {
-                            refreshScope.launch {
-                                sendPumpCommand(ExitChangeCartridgeModeRequest())
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Text(
-                            text = resourceHelper.gs(R.string.cc_btn_cart_inserted),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                } else if (inChangeCartridgeMode.value != true) {
-                    Button(
-                        onClick = {
-                            refreshScope.launch {
-                                sendPumpCommand(EnterChangeCartridgeModeRequest())
-                            }
-                        },
-                        enabled = pumpRunningState.value == PumpRunningState.Suspended,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Text(
-                            text = resourceHelper.gs(R.string.cc_btn_begin),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                }
-            }
+    fun requestCancelOrBack() {
+        if (isInActiveMode) {
+            showCancelDialog = true
+        } else {
+            navigateBack()
         }
     }
+
+    BackHandler { requestCancelOrBack() }
+
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text(resourceHelper.gs(R.string.cc_cancel_confirm_title)) },
+            text = { Text(resourceHelper.gs(R.string.cc_cancel_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCancelDialog = false
+                    refreshScope.launch {
+                        sendPumpCommand(ExitChangeCartridgeModeRequest())
+                        navigateBack()
+                    }
+                }) { Text(resourceHelper.gs(R.string.common_cancel)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) {
+                    Text(resourceHelper.gs(R.string.common_continue))
+                }
+            }
+        )
+    }
+
+    if (showSuspendDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuspendDialog = false },
+            title = { Text(resourceHelper.gs(R.string.ca_suspend_confirm_title)) },
+            text = { Text(resourceHelper.gs(R.string.ca_suspend_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSuspendDialog = false
+                    isSuspending = true
+                    sendPumpCommand(SuspendPumpingRequest())
+                    refreshScope.launch {
+                        repeat(5) {
+                            if (pumpRunningState.value == PumpRunningState.Suspended) {
+                                return@repeat
+                            }
+                            withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                            sendPumpCommand(HomeScreenMirrorRequest())
+                        }
+                        isSuspending = false
+                    }
+                }) { Text(resourceHelper.gs(R.string.ca_btn_suspend_insulin)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSuspendDialog = false }) {
+                    Text(resourceHelper.gs(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
+    val totalSteps = 4
+    val currentStep = when {
+        detectingCartridgeState.value?.isComplete == true -> 4
+        detectingCartridgeState.value != null -> 3
+        enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE -> 2
+        inChangeCartridgeMode.value == true -> 1
+        else -> 1
+    }
+
+    CartridgeWorkflowScreen(
+        title = resourceHelper.gs(R.string.cc_title),
+        innerPadding = innerPadding,
+        refreshing = refreshing,
+        onRefresh = { refresh() },
+        onBack = ::requestCancelOrBack,
+        resourceHelper = resourceHelper,
+        showHeader = showHeader,
+        stepIndicator = {
+            WizardStepIndicator(
+                currentStep = currentStep,
+                totalSteps = totalSteps,
+                resourceHelper = resourceHelper,
+            )
+        },
+        notifications = notifications,
+        sendPumpCommands = sendPumpCommands,
+        refreshScope = refreshScope,
+        body = {
+            if (detectingCartridgeState.value != null) {
+                Text(
+                    text = resourceHelper.gs(R.string.ca_status_heading),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                if (detectingCartridgeState.value?.isComplete == true) {
+                    Text(
+                        text = resourceHelper.gs(R.string.cc_complete),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                } else {
+                    Text(
+                        text = resourceHelper.gs(R.string.cc_detect_insulin_cart),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = resourceHelper.gs(R.string.ca_progress_heading),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = resourceHelper.gs(R.string.common_percent_complete, "${detectingCartridgeState.value?.percentComplete}"),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = resourceHelper.gs(R.string.cc_can_remove_cart),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = resourceHelper.gs(R.string.cc_when_inserted_press),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            } else if (inChangeCartridgeMode.value == true) {
+                Text(
+                    text = resourceHelper.gs(R.string.ca_status_heading),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = resourceHelper.gs(R.string.cc_preparing_cc),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            } else if (pumpRunningState.value == PumpRunningState.Suspended) {
+                Text(
+                    text = resourceHelper.gs(R.string.ca_before_you_start_heading),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = resourceHelper.gs(R.string.ca_disconnect_pump_from_site, resourceHelper.gs(R.string.cc_btn_begin)),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            } else {
+                Text(
+                    text = resourceHelper.gs(R.string.ca_before_you_start_heading),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = resourceHelper.gs(R.string.ca_before_stop_delivery, resourceHelper.gs(R.string.cc_action)),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        },
+        actions = {
+            if (detectingCartridgeState.value?.isComplete == true) {
+                PrimaryActionButton(
+                    text = resourceHelper.gs(R.string.common_done),
+                    onClick = {
+                        ds.completedCartridgeActions.value =
+                            setOf(CompletedCartridgeAction.CHANGE_CARTRIDGE)
+                        ds.loadStatus.value = null
+                        refreshScope.launch { navigateBack() }
+                    }
+                )
+            } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
+                PrimaryActionButton(
+                    text = resourceHelper.gs(R.string.cc_btn_cart_inserted),
+                    onClick = {
+                        refreshScope.launch {
+                            sendPumpCommand(ExitChangeCartridgeModeRequest())
+                        }
+                    }
+                )
+            } else if (inChangeCartridgeMode.value != true) {
+                if (pumpRunningState.value != PumpRunningState.Suspended) {
+                    SecondaryActionButton(
+                        text = resourceHelper.gs(R.string.ca_btn_suspend_insulin),
+                        onClick = { showSuspendDialog = true },
+                        enabled = !hasActiveNotifications,
+                        loading = isSuspending
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                PrimaryActionButton(
+                    text = resourceHelper.gs(R.string.cc_btn_begin),
+                    onClick = {
+                        isStartingChangeCartridge = true
+                        sendPumpCommand(EnterChangeCartridgeModeRequest())
+                        refreshScope.launch {
+                            // 5s watchdog so the spinner doesn't stick.
+                            repeat(5) {
+                                if (inChangeCartridgeMode.value == true) return@repeat
+                                withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                            }
+                            isStartingChangeCartridge = false
+                        }
+                    },
+                    enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
+                    loading = isStartingChangeCartridge
+                )
+            }
+        }
+    )
 }
 
 val changeCartridgeScreenCommands = listOf(
     HomeScreenMirrorRequest(),
-    TimeSinceResetRequest()
+    TimeSinceResetRequest(),
+    LoadStatusRequest()
 )
 
 @Preview(showBackground = true)

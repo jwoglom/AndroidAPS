@@ -114,8 +114,27 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
             .setReportDelay(0)
             .build()
 
+        val scanner = bleScanner
+        if (scanner == null) {
+            aapsLogger.error(LTag.PUMP, "BLE scanner unavailable (Bluetooth off or not initialized)")
+            _state.update { it.copy(
+                isScanning = false,
+                scanError = "Bluetooth is unavailable. Please enable Bluetooth and try again."
+            )}
+            return
+        }
+
         // Start scan with 15-second timeout
-        bleScanner?.startScan(listOf(filter), settings, callback)
+        try {
+            scanner.startScan(listOf(filter), settings, callback)
+        } catch (e: SecurityException) {
+            aapsLogger.error(LTag.PUMP, "Missing BLUETOOTH_SCAN permission for BLE scan", e)
+            _state.update { it.copy(
+                isScanning = false,
+                scanError = "Missing BLUETOOTH_SCAN permission. Please grant Bluetooth permissions and try again."
+            )}
+            return
+        }
 
         viewModelScope.launch {
             delay(15000) // 15 second timeout
@@ -144,9 +163,21 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
         )}
     }
 
+    fun onBlePermissionDenied() {
+        aapsLogger.error(LTag.PUMP, "Bluetooth scan permission denied by user")
+        _state.update { it.copy(
+            isScanning = false,
+            scanError = "Bluetooth permissions are required to scan for pumps. Please grant them in app settings."
+        )}
+    }
+
     fun stopDeviceScan() {
         aapsLogger.info(LTag.PUMP, "Stopping BLE device scan")
-        scanCallback?.let { bleScanner?.stopScan(it) }
+        try {
+            scanCallback?.let { bleScanner?.stopScan(it) }
+        } catch (e: SecurityException) {
+            aapsLogger.error(LTag.PUMP, "Missing BLUETOOTH_SCAN permission for stopScan", e)
+        }
         _state.update { it.copy(isScanning = false) }
     }
 
@@ -267,6 +298,7 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
 
     fun onRetryPairing() {
         aapsLogger.info(LTag.PUMP, "Retrying pairing with same PIN")
+        pairingManager?.clearPairingData()
         _state.update { it.copy(pairingError = null) }
         startPairing(_state.value.enteredPIN)
     }
@@ -278,6 +310,7 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
 
     fun onCancelAndRescan() {
         aapsLogger.info(LTag.PUMP, "User wants to rescan for devices")
+        pairingManager?.clearPairingData()
         _state.update { it.copy(
             enteredPIN = "",
             pairingError = null,

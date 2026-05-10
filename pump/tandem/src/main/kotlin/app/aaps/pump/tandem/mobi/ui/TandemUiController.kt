@@ -6,6 +6,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
+import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
@@ -30,7 +31,8 @@ class TandemUiController @Inject constructor(
     var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction,
     var dbDataHandler: DbDataHandler,
     var notificationManager: NotificationManager,
-    var tandemPumpConnector: TandemPumpConnector
+    var tandemPumpConnector: TandemPumpConnector,
+    var tandemDispatcher: TandemDispatcher
 )   {
 
 
@@ -43,11 +45,6 @@ class TandemUiController @Inject constructor(
 
 
     fun createTandemUiCommunication() {
-
-        // actions
-        // this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-        // this.tandemPumpUtil.preventConnect = true
-
         tandemUICommunication = TandemUICommunication(dataStore = tandemDataStore,
                                                       pumpStatus = tandemPumpStatus,
                                                       pumpUtil = tandemPumpUtil,
@@ -56,9 +53,16 @@ class TandemUiController @Inject constructor(
                                                       notificationManager = notificationManager)
 
         this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-        this.tandemPumpUtil.preventConnect = true
+    }
 
-
+    /**
+     * Suppresses AAPS auto-reconnect for the duration of a long-running pump-owning UI workflow.
+     * Only cartridge change (and its sub-steps fill-tubing / fill-cannula) sets this — quick
+     * read-only browsing in Actions / Data does not, since those sends are serialized through
+     * [PumpOpQueue] at USER_INITIATED priority and AAPS Loop can safely interleave.
+     */
+    fun setCartridgeChangeMode(active: Boolean) {
+        tandemPumpUtil.preventConnect = active
     }
 
     fun disposeTandemUiCommunication(disposeType: AdditionalConfigurationScreens) {
@@ -82,7 +86,6 @@ class TandemUiController @Inject constructor(
         }
 
         this.tandemUICommunication.tandemCommunicationManager = null
-        this.tandemPumpUtil.preventConnect = false
     }
 
     enum class AdditionalConfigurationScreens {
@@ -113,13 +116,17 @@ class TandemUiController @Inject constructor(
         } else {
             if (this.tandemUICommunication.tandemCommunicationManager==null) {
                 this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-                this.tandemPumpUtil.preventConnect = true
             }
         }
 
-        // TODO tandemUICommunication
+        // Each UI-initiated wire send is queued at USER_INITIATED priority — jumps ahead of
+        // background AAPS-loop work so the user's tap doesn't wait. Fire-and-forget: the op
+        // completes once the wire send fires; responses arrive asynchronously via the listener
+        // path (TandemUICommunication.onReceiveMessage).
         for (msg in msgs) {
-            tandemUICommunication.sendCommand(msg)
+            tandemDispatcher.submitUser("ui:${msg.javaClass.simpleName}") {
+                tandemUICommunication.sendCommand(msg)
+            }
         }
 
         return true

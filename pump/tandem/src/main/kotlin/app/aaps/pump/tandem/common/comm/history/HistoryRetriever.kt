@@ -14,6 +14,7 @@ import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
+import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.data.history.HistoryRange
 import app.aaps.pump.tandem.common.data.history.HistoryRequestInfo
 import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
@@ -72,8 +73,8 @@ class HistoryRetriever @Inject constructor(
     var context: Context,
     val dbDataHandler: DbDataHandler,
     val uiInteraction: UiInteraction,
-    val notificationManager: NotificationManager
-
+    val notificationManager: NotificationManager,
+    val tandemDispatcher: TandemDispatcher
 ) {
 
     companion object  {
@@ -281,7 +282,26 @@ class HistoryRetriever @Inject constructor(
 
         startProgress()
 
-        communication.sendCommand(HistoryLogStatusRequest())
+        submitHistoryRequest("historyLogStatus") {
+            communication.sendCommand(HistoryLogStatusRequest())
+        }
+    }
+
+    /**
+     * Routes a single history-log wire send through [tandemDispatcher] at
+     * [app.aaps.pump.tandem.common.concurrency.Priority.BACKGROUND]. The response arrives
+     * asynchronously via the listener callback path, so the op completes as soon as the wire
+     * send fires — it does not await the response. The token-bucket rate limit on BACKGROUND
+     * throttles the *submit* rate (i.e. how often new chunks kick off); higher-priority ops
+     * preempt waiting BACKGROUND submits.
+     *
+     * Uses the local [communication] (HistoryRetriever's own TandemUICommunication instance,
+     * which has its `historyRetriever` field set to forward responses back here) rather than
+     * the dispatcher's `sendUiCommand` extension — that one targets the singleton instance,
+     * which doesn't know about this retriever.
+     */
+    private fun submitHistoryRequest(name: String, send: () -> Unit) {
+        tandemDispatcher.submitBackground(name) { send() }
     }
 
 
@@ -607,7 +627,10 @@ class HistoryRetriever @Inject constructor(
         currentRequest = queue.removeFirst()
         persistResumeUpperBound(currentRequest!!.endSequence)
         aapsLogger.info(TAG, "HST: executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
-        this.communication.sendCommand(HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs))
+        val req = HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs)
+        submitHistoryRequest("historyLogChunk[${currentRequest!!.startSequence}-${currentRequest!!.endSequence}]") {
+            this.communication.sendCommand(req)
+        }
     }
 
 

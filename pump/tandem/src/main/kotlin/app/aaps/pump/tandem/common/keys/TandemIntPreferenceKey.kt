@@ -37,7 +37,6 @@ enum class TandemIntPreferenceKey(
 
     PumpPairStatus(key = "pref_tandem_pair_status",
                    defaultValue = -1,
-                   titleResId = R.string.tandem_pump_pair_status,
-                   engineeringModeOnly = true)
+                   titleResId = R.string.tandem_pump_pair_status)
 
 }

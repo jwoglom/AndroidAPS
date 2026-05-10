@@ -43,6 +43,7 @@ import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
+import app.aaps.pump.tandem.mobi.ui.actions.DebugCommands
 import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.ChangeCartridgeScreen
@@ -51,6 +52,7 @@ import app.aaps.pump.tandem.mobi.ui.actions.cartridge.FillTubingScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.SiteReminder
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.shared.tests.AAPSLoggerTest
+import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import com.jwoglom.pumpx2.pump.messages.Message
 import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
@@ -67,6 +69,7 @@ class ActionsActivity : DaggerAppCompatActivity() {
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction
     @Inject lateinit var notificationManager: NotificationManager
+    @Inject lateinit var tandemDispatcher: TandemDispatcher
 
 
     var sectionState: ActionsLandingSection = ActionsLandingSection.ACTIONS
@@ -171,6 +174,22 @@ class ActionsActivity : DaggerAppCompatActivity() {
                                             navigateBack = {
                                                 selectedItem = ActionsLandingSection.ACTIONS
                                             },
+                                            navigateToDebugCommands = {
+                                                selectedItem = ActionsLandingSection.DEBUG_COMMANDS
+                                            },
+                                        )
+                                    }
+
+
+                                    ActionsLandingSection.DEBUG_COMMANDS -> {
+                                        DebugCommands(
+                                            innerPadding = innerPadding,
+                                            sendPumpCommands = { messages -> sendPumpCommands(messages) },
+                                            resourceHelper = resourceHelper,
+                                            aapsLogger = aapsLogger,
+                                            navigateBack = {
+                                                selectedItem = ActionsLandingSection.PUMP_INFO
+                                            },
                                         )
                                     }
 
@@ -265,7 +284,6 @@ class ActionsActivity : DaggerAppCompatActivity() {
     override fun onResume() {
         super.onResume()
         this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
-        this.tandemPumpUtil.preventConnect = true
     }
 
 
@@ -273,7 +291,6 @@ class ActionsActivity : DaggerAppCompatActivity() {
     override fun onStop() {
         super.onStop()
         this.tandemUICommunication.tandemCommunicationManager = null
-        this.tandemPumpUtil.preventConnect = false
     }
 
 
@@ -295,7 +312,9 @@ class ActionsActivity : DaggerAppCompatActivity() {
         aapsLogger.warn(TAG, "PumpCommands to Send [commands=${listText}]")
 
         for (msg in msgs) {
-            tandemUICommunication.sendCommand(msg)
+            tandemDispatcher.submitUser("ui:${msg.javaClass.simpleName}") {
+                tandemUICommunication.sendCommand(msg)
+            }
         }
 
         return true
@@ -317,6 +336,7 @@ enum class ActionsLandingSection(val label: String, val icon: ImageVector) {
     FILL_TUBING("Fill Tubing", Icons.Filled.Create),
     FILL_CANNULA("Fill Cannula", Icons.Filled.Create),
     PUMP_INFO("Pump Info", Icons.Filled.Create),
+    DEBUG_COMMANDS("Debug Commands", Icons.Filled.Create),
     SITE_REMINDER("Site Reminder", Icons.Filled.Create)
     ;
 }

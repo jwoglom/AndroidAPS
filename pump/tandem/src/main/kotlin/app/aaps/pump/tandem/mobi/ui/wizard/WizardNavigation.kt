@@ -1,9 +1,16 @@
 package app.aaps.pump.tandem.mobi.ui.wizard
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -32,7 +39,6 @@ fun WizardNavHost(
     viewModel: TandemMobiConnectionWizardViewModel,
     startDestination: String = WizardRoutes.INTRODUCTION,
     onFinish: () -> Unit,
-    onFinishAndRestart: () -> Unit,
     onCreatePairingManager: (String) -> Unit,
     onRequestPumpDisconnect: () -> Unit
 ) {
@@ -74,12 +80,37 @@ fun WizardNavHost(
 
         // Device List Screen
         composable(WizardRoutes.DEVICE_LIST) {
+            val context = LocalContext.current
+            val requiredBlePermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+            } else {
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            val permissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestMultiplePermissions()
+            ) { granted ->
+                if (granted.values.all { it }) {
+                    viewModel.startDeviceScan()
+                } else {
+                    viewModel.onBlePermissionDenied()
+                }
+            }
+            val startScanWithPermission: () -> Unit = {
+                val allGranted = requiredBlePermissions.all { perm ->
+                    ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
+                }
+                if (allGranted) {
+                    viewModel.startDeviceScan()
+                } else {
+                    permissionLauncher.launch(requiredBlePermissions)
+                }
+            }
             DeviceListScreen(
                 scannedDevices = state.scannedDevices,
                 isScanning = state.isScanning,
                 currentlySelectedAddress = state.deviceAddress,
                 currentlySelectedName = state.deviceName,
-                onStartScan = viewModel::startDeviceScan,
+                onStartScan = startScanWithPermission,
                 onStopScan = viewModel::stopDeviceScan,
                 onDeviceSelected = { device ->
                     viewModel.onDeviceSelectedFromList(device)
@@ -157,7 +188,7 @@ fun WizardNavHost(
                 pumpSerial = state.pairedPumpSerial,
                 pumpName = state.pairedPumpName,
                 pumpApiVersion = state.pairedPumpApiVersion,
-                onFinish = onFinishAndRestart
+                onFinish = onFinish
             )
         }
     }

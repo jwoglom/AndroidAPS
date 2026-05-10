@@ -30,15 +30,14 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.maint.TandemPairingManager
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import androidx.compose.runtime.collectAsState
 import app.aaps.pump.common.events.EventPumpForceDisconnect
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
-import kotlin.system.exitProcess
 
 /**
  * Jetpack Compose-based wizard for pairing Tandem Mobi pump
@@ -80,7 +79,7 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
         val isRePairing = intent.getBooleanExtra(EXTRA_IS_RE_PAIRING, false)
         if (isRePairing) {
             needsPairingReset = true
-            viewModel.startRePairing()
+            tearDownExistingPump(onDone = { viewModel.startRePairing() })
         }
 
         // Determine start destination based on existing pairing
@@ -101,7 +100,6 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
                     viewModel = viewModel,
                     startDestination = startDestination,
                     onFinish = { finish() },
-                    onFinishAndRestart = { showRestartDialogAndRestart() },
                     onCreatePairingManager = { address -> createPairingManager(address) },
                     onRequestPumpDisconnect = { handleExistingPumpRemoval() }
                 )
@@ -157,40 +155,37 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
      * Handle removal of existing pump: disconnect and clear pairing data
      */
     private fun handleExistingPumpRemoval() {
-        aapsLogger.info(LTag.PUMP, "Disconnecting existing pump and clearing pairing data")
-
-        // Send event to disconnect the pump via the service
-        rxBus.send(EventPumpForceDisconnect())
-
-        // Give the disconnect event time to be processed, then clear all pairing data
-        Handler(Looper.getMainLooper()).postDelayed({
-            // Clear ALL pairing data using TandemPumpUtil
-            tandemPumpUtil.clearAllPairingData()
-
-            // Mark that we need to reset pairing
+        tearDownExistingPump(onDone = {
             needsPairingReset = true
-            // Note: State is reset by viewModel.onConfirmRemoveExistingPump() with isRePairing=false
-
-            aapsLogger.info(LTag.PUMP, "Existing pump removed, ready for new pairing")
-        }, 1000) // Increased to 1 second to ensure disconnect completes
+            // Note: wizard state is reset by viewModel.onConfirmRemoveExistingPump() with isRePairing=false
+        })
     }
 
     /**
-     * Show restart dialog and restart AndroidAPS after user confirms
+     * Full teardown of any previously-paired pump: disconnect the live BLE session,
+     * remove the Android-level BT bond, and clear AAPS / pumpx2 pairing state.
+     * Shared between the "remove existing pump" flow and the EXTRA_IS_RE_PAIRING entry.
      */
-    private fun showRestartDialogAndRestart() {
-        aapsLogger.info(LTag.PUMP, "Pairing complete, showing restart dialog")
+    private fun tearDownExistingPump(onDone: () -> Unit) {
+        aapsLogger.info(LTag.PUMP, "Tearing down existing pump session")
 
-        MaterialAlertDialogBuilder(this, app.aaps.core.ui.R.style.DialogTheme)
-            .setMessage(resourceHelper.gs(R.string.tandem_wizard_restart_message))
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                aapsLogger.info(LTag.PUMP, "User confirmed restart, restarting AndroidAPS")
-                Handler(Looper.getMainLooper()).postDelayed({
-                    exitProcess(0)
-                }, 500)
-            }
-            .setCancelable(false)
-            .show()
+        // Capture the address BEFORE clearAllPairingData wipes it.
+        val oldAddress = preferences.get(TandemStringPreferenceKey.PumpAddress)
+
+        // Ask the service to disconnect first. This routes through
+        // TandemPumpConnector.disconnectFromPump → TandemCommunicationManager.disconnect
+        // → TandemPumpUtil.forceResetBluetoothHandler (neutralize + cancel + stop + null singleton),
+        // and nulls the connector's cached manager/address.
+        rxBus.send(EventPumpForceDisconnect())
+
+        // Let the disconnect propagate through the rx chain, then remove the OS bond
+        // and clear prefs / PumpState / pumpStatus.
+        Handler(Looper.getMainLooper()).postDelayed({
+            tandemPumpUtil.removeAndroidBond(oldAddress)
+            tandemPumpUtil.clearAllPairingData()
+            aapsLogger.info(LTag.PUMP, "Existing pump torn down, ready for new pairing")
+            onDone()
+        }, 1000)
     }
 
     companion object {
@@ -204,7 +199,6 @@ private fun WizardContent(
     viewModel: TandemMobiConnectionWizardViewModel,
     startDestination: String,
     onFinish: () -> Unit,
-    onFinishAndRestart: () -> Unit,
     onCreatePairingManager: (String) -> Unit,
     onRequestPumpDisconnect: () -> Unit
 ) {
@@ -235,7 +229,6 @@ private fun WizardContent(
                 viewModel = viewModel,
                 startDestination = startDestination,
                 onFinish = onFinish,
-                onFinishAndRestart = onFinishAndRestart,
                 onCreatePairingManager = onCreatePairingManager,
                 onRequestPumpDisconnect = onRequestPumpDisconnect
             )

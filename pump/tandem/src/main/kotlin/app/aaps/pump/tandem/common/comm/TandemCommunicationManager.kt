@@ -143,10 +143,13 @@ class TandemCommunicationManager(
 
         aapsLogger.info(TAG, "disconnect()")
 
-        if (bluetoothHandler!=null) {
-            bluetoothHandler!!.stop()
-            //connected = false
-        }
+        // Fully tear down the BLE handler: cancel any live peripheral
+        // connection, stop the central, and null the pumpx2 singleton so the
+        // next connect() builds a fresh handler. blessed's close() alone does
+        // not disconnect already-connected peripherals.
+        pumpUtil.forceResetBluetoothHandler(bluetoothHandler)
+        bluetoothHandler = null
+
         connected = false
         operationMode = OperationMode.None
 
@@ -154,7 +157,6 @@ class TandemCommunicationManager(
             tandemDataStore.pumpConnected.value = false
         }
 
-        // inConnectMode = false
         return connected
     }
 
@@ -283,9 +285,8 @@ class TandemCommunicationManager(
         errorConnecting = false
         connected = false
 
-        if (bluetoothHandler != null) {
-            bluetoothHandler!!.stop()
-        }
+        pumpUtil.forceResetBluetoothHandler(bluetoothHandler)
+        bluetoothHandler = null
         operationMode = OperationMode.None
 
         val reconnectResult = connect()
@@ -454,6 +455,7 @@ class TandemCommunicationManager(
 
     override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
         aapsLogger.error(TAG, "CF: Pump Critical Error: ${reason}")
+        dataStore.debugLastTandemError.postValue(reason)
 
         // When a status response message has code non-zero
         // This can occur just because a precondition isn't met

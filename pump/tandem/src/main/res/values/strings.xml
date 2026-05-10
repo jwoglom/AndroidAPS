@@ -45,6 +45,7 @@
     <!-- UI Common -->
     <string name="common_percent_complete">%1$s %% complete</string>
     <string name="common_cancel">Cancel</string>
+    <string name="common_continue">Continue</string>
     <string name="common_done">Done</string>
     <string name="common_back">Back</string>
 
@@ -109,6 +110,9 @@
     <string name="pi_pump_model">Pump Model</string>
     <string name="pi_pump_sw">Pump Software</string>
 
+    <!-- UI Configuration::PumpInfo::Debug Commands -->
+    <string name="debug_commands_title">Debug Commands</string>
+
 
     <!-- UI Configuration::Actions -->
     <string name="ui_a_title">Actions</string>
@@ -122,8 +126,59 @@
 
     <!-- UI Actions::Cartridge Actions -->
     <string name="ca_label">Cartridge Setup</string>
+    <string name="ps_cartridge_units">Cartridge   %1$d / %2$d U</string>
+    <string name="ps_cartridge_empty">Cartridge empty</string>
+    <string name="ps_workflow_changing">Changing cartridge…</string>
+    <string name="ps_workflow_filling_tubing">Filling tubing…</string>
+    <string name="ps_workflow_filling_cannula">Filling cannula…</string>
+    <string name="ps_insulin_delivering">Insulin delivery enabled</string>
+    <string name="ps_insulin_suspended">Insulin delivery suspended</string>
     <string name="ca_disconnect_pump_from_site">Disconnect your pump from your body/site and press \'%1$s\' button below.</string>
     <string name="ca_before_stop_delivery">Before %1$s, stop delivery of insulin.</string>
+    <string name="ca_status_heading">Status</string>
+    <string name="ca_next_step_heading">Next step</string>
+    <string name="ca_before_you_start_heading">Before you start</string>
+    <string name="ca_progress_heading">Progress</string>
+    <string name="ca_btn_suspend_insulin">Suspend Insulin</string>
+    <string name="ca_btn_resume_insulin">Resume Insulin Delivery</string>
+    <string name="ca_suspend_confirm_title">Suspend insulin delivery?</string>
+    <string name="ca_suspend_confirm_body">This will stop all insulin delivery until you resume.</string>
+    <string name="ca_resume_confirm_title">Resume insulin delivery?</string>
+    <string name="ca_resume_confirm_body">Insulin delivery will resume.</string>
+    <string name="ca_notifications_block_warning">Resolve pump notifications before starting.</string>
+    <string name="ca_disabled_change_in_progress">Complete the active cartridge change first.</string>
+    <string name="ca_disabled_fill_tubing_in_progress">Complete the active tubing fill first.</string>
+    <string name="ca_disabled_fill_cannula_in_progress">Complete the active cannula fill first.</string>
+    <string name="ca_disabled_load_then_fill_tubing">Cartridge change complete — fill the tubing next.</string>
+    <string name="ca_step_x_of_y">Step %1$d of %2$d</string>
+    <string name="ca_notifications_panel_title">Pump notifications</string>
+    <string name="ca_dismiss_notifications_title">Dismiss notifications before continuing</string>
+    <string name="ft_incomplete_fill_dialog_body">Fill tubing not yet complete. Press OK to continue filling the tubing.</string>
+    <string name="cc_incomplete_change_dialog_body">Cartridge change not yet complete. Press OK to continue changing the cartridge.</string>
+    <string name="fc_incomplete_fill_dialog_body">Fill cannula not yet complete. Press OK to continue filling the cannula.</string>
+    <string name="fc_setup_complete_body">Cartridge setup is complete. Insulin delivery is suspended.</string>
+    <string name="fc_exit_without_resume_body">Insulin is still suspended. Exit without resuming?</string>
+    <string name="fc_btn_exit_anyway">Exit anyway</string>
+    <string name="ca_notifications_none">No active Pump notifications.</string>
+    <string name="ca_notifications_refresh">Refresh notifications</string>
+    <string name="ca_notifications_checking">Checking for notifications…</string>
+    <string name="ft_keep_holding_button">Keep holding the pump button — releasing stops the fill.</string>
+    <string name="ft_release_confirm_prompt">Pump button released. Do you see insulin at the cannula?</string>
+    <string name="ft_disconnect_confirm_title">Is your pump disconnected from your body?</string>
+    <string name="ft_status_filling_stopped">Filling stopped</string>
+    <string name="ft_yes_label">Yes</string>
+    <string name="ft_yes_action">Tap \"Complete Fill\" below.</string>
+    <string name="ft_no_label">No</string>
+    <string name="ft_no_action">Hold the pump button again to keep filling.</string>
+    <string name="ft_motor_warning">If holding the pump button does not move the motor, tap \"Restart Fill\" instead.</string>
+    <string name="ca_incomplete_load_warning_title">Cartridge fill not complete</string>
+    <string name="ca_incomplete_load_warning_body">You haven\'t completed the cartridge fill process, so insulin delivery can\'t begin. To return to fill your tubing/cannula, press Cancel.</string>
+    <string name="cc_cancel_confirm_title">Cancel cartridge change?</string>
+    <string name="cc_cancel_confirm_body">The cartridge change will be cancelled and the pump will exit cartridge change mode.</string>
+    <string name="ft_cancel_confirm_title">Cancel tubing fill?</string>
+    <string name="ft_cancel_confirm_body">The tubing fill will be cancelled and the pump will exit fill tubing mode.</string>
+    <string name="fc_cancel_confirm_title">Cancel cannula fill?</string>
+    <string name="fc_cancel_confirm_body">The cannula fill will be cancelled.</string>
 
     <string name="ca_stop_start_insulin">Stop / Start Insulin</string>
     <string name="ca_start_insulin">Start Insulin</string>
@@ -164,7 +219,7 @@
 
     <!-- UI Cartridge Actions:Fill Tubing -->
     <string name="ft_title">Fill Tubing</string>
-    <string name="ft_complete">Successfully filled tubing. Press button \'Done\' to exit.</string>
+    <string name="ft_complete">You can now connect the infusion site to your body and then fill the cannula.</string>
     <string name="ft_restart_text">Restarting tubing fill...</string>
     <string name="ft_hold_pump_button">Hold down the pump button to fill insulin through the tubing.</string>
     <string name="ft_no_filled_insulin">You haven\'t filled any insulin through the tubing yet.</string>
@@ -188,6 +243,11 @@
     <string name="fc_cannula_fill_amount">Enter the cannula fill amount (U):</string>
     <string name="fc_fill_amount">Fill amount</string>
     <string name="fc_btn_fill_cannula_u">Fill %1$.1fU Cannula</string>
+    <string name="fc_quick_amount_heading">Quick amounts</string>
+    <string name="fc_quick_amount_0_1">0.1U</string>
+    <string name="fc_quick_amount_0_3">0.3U</string>
+    <string name="fc_quick_amount_0_5">0.5U</string>
+    <string name="fc_quick_amount_1_0">1.0U</string>
 
 
 
@@ -407,9 +467,6 @@
     <string name="tandem_wizard_existing_pump_message">To pair a new pump, the existing pump must be disconnected. No other data in AndroidAPS will be removed. Do you want to continue?</string>
     <string name="tandem_wizard_existing_pump_continue">Continue</string>
     <string name="tandem_wizard_existing_pump_cancel">Cancel</string>
-
-    <!-- Restart dialog -->
-    <string name="tandem_wizard_restart_message">AndroidAPS will restart to re-initialize the Mobi pump driver.</string>
 
 
     <!-- OLD Ones past this line -->

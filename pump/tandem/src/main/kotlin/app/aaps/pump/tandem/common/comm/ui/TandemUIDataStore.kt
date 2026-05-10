@@ -4,6 +4,7 @@ import androidx.lifecycle.MutableLiveData
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
+import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse
@@ -12,6 +13,7 @@ import com.jwoglom.pumpx2.pump.messages.response.control.RemoteCarbEntryResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BolusCalcDataSnapshotResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBGResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusAbstractResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
@@ -22,6 +24,8 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingMod
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.PumpingStateStreamResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
+import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CompletedCartridgeAction
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
@@ -61,6 +65,10 @@ class TandemUIDataStore {
     val fillTubingState = MutableLiveData<FillTubingStateStreamResponse>()
     val exitFillTubingState = MutableLiveData<ExitFillTubingModeStateStreamResponse>()
     val fillCannulaState = MutableLiveData<FillCannulaStateStreamResponse>()
+    val loadStatus = MutableLiveData<LoadStatusResponse>()
+    val insulinStatus = MutableLiveData<InsulinStatusResponse>()
+    // Per-visit completion set; cleared on CartridgeActions exit.
+    val completedCartridgeActions = MutableLiveData<Set<CompletedCartridgeAction>>(emptySet())
     //val pumpingState = MutableLiveData<PumpingStateStreamResponse>()
 
 
@@ -73,6 +81,10 @@ class TandemUIDataStore {
     val pumpLastConnectionTimestamp = MutableLiveData<Instant>()
     val pumpLastMessageTimestamp = MutableLiveData<Instant>()
     //val pumpConnectionStatus = MutableLiveData<String>()
+
+    // Used by the Debug Commands screen: most recently received message overall.
+    val debugLastReceivedMessage = MutableLiveData<Message?>()
+    val debugLastTandemError = MutableLiveData<TandemError?>()
 
     // val batteryPercent = MutableLiveData<Int>()
     // val cartridgeRemainingUnits = MutableLiveData<Int>()
