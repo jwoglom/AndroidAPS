@@ -8,8 +8,8 @@ import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.PumpProfile
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
-import app.aaps.core.interfaces.rx.events.EventOverviewBolusStopDeliveryEnabled
+// import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
+// import app.aaps.core.interfaces.rx.events.EventOverviewBolusStopDeliveryEnabled
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.data.BasalProfileDto
@@ -384,7 +384,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         // 5. when bolus status switches to ALREADY_DELIVERED_OR_INVALID, then you can call LastBolusStatusV2Request() and should see the same bolus id referenced and the amount which was delivered. if anything else goes wrong (like an occlusion) you'll get a pump alarm
 
         // TODO logs
-        rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = false))
+        // rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = false))  // TODO dev4
 
         // EventOverviewBolusProgress.t = EventOverviewBolusProgress.Treatment(insulin = 0.0,
         //                                                                     carbs = 0,
@@ -519,7 +519,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                     } else if (bolusStatusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING) {
 
                         if (!startedDelivering) {
-                            rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = true))
+                            // rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = true))  // TODO dev4
                             startedDelivering = true
                         }
 
@@ -612,7 +612,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         aapsLogger.info(TAG, "Sending Bolus Event: status=${status}, progress=${percent}")
 
-        rxBus.send(EventOverviewBolusProgress(status = status, percent = percent, id = id))
+        // rxBus.send(EventOverviewBolusProgress(status = status, percent = percent, id = id)) // TODO dev4
 
     }
 

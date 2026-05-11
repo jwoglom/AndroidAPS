@@ -1,27 +1,23 @@
 package app.aaps.ui.compose.profileHelper
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,7 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -56,23 +51,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.aaps.core.graph.profile.ProfileCompareContent
+import app.aaps.core.graph.profile.buildBasalRows
+import app.aaps.core.graph.profile.buildIcRows
+import app.aaps.core.graph.profile.buildIsfRows
+import app.aaps.core.graph.profile.buildTargetRows
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.ui.compose.AapsTopAppBar
 import app.aaps.core.ui.compose.NumberInputRow
+import app.aaps.core.ui.compose.bottomBarSafeArea
 import app.aaps.core.ui.compose.clearFocusOnTap
 import app.aaps.core.ui.compose.navigation.ElementType
-import app.aaps.core.ui.compose.navigation.color
-import app.aaps.core.ui.compose.navigation.icon
 import app.aaps.core.ui.compose.navigation.labelResId
 import app.aaps.ui.R
-import app.aaps.ui.compose.profileManagement.ProfileCompareContent
-import app.aaps.ui.compose.profileManagement.buildBasalRows
-import app.aaps.ui.compose.profileManagement.buildIcRows
-import app.aaps.ui.compose.profileManagement.buildIsfRows
-import app.aaps.ui.compose.profileManagement.buildTargetRows
 import app.aaps.ui.compose.profileManagement.viewmodels.ProfileHelperViewModel
 import app.aaps.ui.compose.stats.TddStatsCompose
-import java.text.DecimalFormat
 
 /**
  * Enumeration of available profile calculation/source types.
@@ -92,13 +85,11 @@ fun ProfileHelperScreen(
     viewModel: ProfileHelperViewModel,
     onBackClick: () -> Unit
 ) {
-    val context = LocalContext.current
+    LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
 
     var selectedTab by remember { mutableIntStateOf(0) }
-    var showProfileTypeMenu0 by remember { mutableStateOf(false) }
-    var showProfileTypeMenu1 by remember { mutableStateOf(false) }
 
     val profileTypes = remember {
         mutableStateListOf(
@@ -148,16 +139,11 @@ fun ProfileHelperScreen(
         selectedTab = selectedTab,
         onTabSelected = { selectedTab = it },
         profileTypes = profileTypes,
-        showProfileTypeMenu0 = showProfileTypeMenu0,
-        onShowProfileTypeMenu0Change = { showProfileTypeMenu0 = it },
-        showProfileTypeMenu1 = showProfileTypeMenu1,
-        onShowProfileTypeMenu1Change = { showProfileTypeMenu1 = it },
         onProfileTypeChange = { index, type -> profileTypes[index] = type },
         isCompareTabValid = isCompareTabValid,
         showCloneAction = showCloneAction,
         onCloneClick = {
             viewModel.copyToLocal(
-                context,
                 ages[cloneIndex],
                 tdds[cloneIndex],
                 weights[cloneIndex],
@@ -181,7 +167,6 @@ fun ProfileHelperScreen(
                 ProfileCompareContent(
                     profile1 = sealed1,
                     profile2 = sealed2,
-                    shortHourUnit = viewModel.rh.gs(app.aaps.core.interfaces.R.string.shorthour),
                     icsRows = buildIcRows(sealed1, sealed2, viewModel.dateUtil),
                     icUnits = viewModel.rh.gs(app.aaps.core.ui.R.string.profile_carbs_per_unit),
                     isfsRows = buildIsfRows(sealed1, sealed2, viewModel.profileUtil, viewModel.dateUtil),
@@ -234,7 +219,18 @@ fun ProfileHelperScreen(
                     }
 
                     ProfileType.CURRENT                                -> {
-                        CurrentProfileContent(profileName = state.currentProfileName, modifier = Modifier.padding(16.dp))
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = stringResource(R.string.active_profile),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Text(
+                                text = state.currentProfileName,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
                     }
 
                     ProfileType.AVAILABLE_PROFILE                      -> {
@@ -303,10 +299,6 @@ private fun ProfileHelperContent(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
     profileTypes: List<ProfileType>,
-    showProfileTypeMenu0: Boolean,
-    onShowProfileTypeMenu0Change: (Boolean) -> Unit,
-    showProfileTypeMenu1: Boolean,
-    onShowProfileTypeMenu1Change: (Boolean) -> Unit,
     onProfileTypeChange: (Int, ProfileType) -> Unit,
     isCompareTabValid: Boolean,
     showCloneAction: Boolean,
@@ -316,24 +308,19 @@ private fun ProfileHelperContent(
     comparisonContent: @Composable () -> Unit,
     profileTabContent: @Composable (Int) -> Unit,
 ) {
+    val tabTitles = listOf(
+        stringResource(R.string.profile_tab_1),
+        stringResource(R.string.profile_tab_2),
+        stringResource(R.string.comparation)
+    )
+
     Scaffold(
         topBar = {
             AapsTopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = ElementType.PROFILE_HELPER.icon(),
-                            contentDescription = null,
-                            tint = ElementType.PROFILE_HELPER.color(),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.padding(start = 8.dp))
-                        Text(stringResource(ElementType.PROFILE_HELPER.labelResId()))
-                    }
-                },
+                title = { Text(stringResource(ElementType.PROFILE_HELPER.labelResId())) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(app.aaps.core.ui.R.string.back))
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(app.aaps.core.ui.R.string.close))
                     }
                 },
                 actions = {}
@@ -341,11 +328,14 @@ private fun ProfileHelperContent(
         },
         bottomBar = {
             Button(
-                onClick = onCloneClick,
+                onClick = {
+                    focusManager.clearFocus()
+                    onCloneClick()
+                },
                 enabled = showCloneAction,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .imePadding()
+                    .bottomBarSafeArea()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Icon(
@@ -372,105 +362,19 @@ private fun ProfileHelperContent(
         ) {
             Surface(tonalElevation = 2.dp) {
                 PrimaryTabRow(selectedTabIndex = selectedTab) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { onTabSelected(0) },
-                        text = {
-                            Box {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text(getProfileTypeDisplayName(profileTypes[0]))
-                                    IconButton(
-                                        onClick = { onShowProfileTypeMenu0Change(true) },
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.ArrowDropDown,
-                                            contentDescription = "Select profile type",
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                                DropdownMenu(
-                                    expanded = showProfileTypeMenu0,
-                                    onDismissRequest = { onShowProfileTypeMenu0Change(false) }
-                                ) {
-                                    listOf(
-                                        ProfileType.MOTOL_DEFAULT to stringResource(R.string.motol_default_profile),
-                                        ProfileType.DPV_DEFAULT to stringResource(R.string.dpv_default_profile),
-                                        ProfileType.CURRENT to stringResource(R.string.current_profile),
-                                        ProfileType.AVAILABLE_PROFILE to stringResource(R.string.available_profile),
-                                        ProfileType.PROFILE_SWITCH to stringResource(app.aaps.core.ui.R.string.careportal_profileswitch)
-                                    ).forEach { (type, label) ->
-                                        DropdownMenuItem(
-                                            text = { Text(label) },
-                                            onClick = {
-                                                onProfileTypeChange(0, type)
-                                                onShowProfileTypeMenu0Change(false)
-                                            }
-                                        )
-                                    }
-                                }
+                    tabTitles.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { onTabSelected(index) },
+                            enabled = index != 2 || isCompareTabValid,
+                            text = {
+                                Text(
+                                    text = title,
+                                    color = if (index == 2 && !isCompareTabValid) MaterialTheme.colorScheme.error else LocalContentColor.current
+                                )
                             }
-                        }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { onTabSelected(1) },
-                        text = {
-                            Box {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text(getProfileTypeDisplayName(profileTypes[1]))
-                                    IconButton(
-                                        onClick = { onShowProfileTypeMenu1Change(true) },
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.ArrowDropDown,
-                                            contentDescription = "Select profile type",
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                                DropdownMenu(
-                                    expanded = showProfileTypeMenu1,
-                                    onDismissRequest = { onShowProfileTypeMenu1Change(false) }
-                                ) {
-                                    listOf(
-                                        ProfileType.MOTOL_DEFAULT to stringResource(R.string.motol_default_profile),
-                                        ProfileType.DPV_DEFAULT to stringResource(R.string.dpv_default_profile),
-                                        ProfileType.CURRENT to stringResource(R.string.current_profile),
-                                        ProfileType.AVAILABLE_PROFILE to stringResource(R.string.available_profile),
-                                        ProfileType.PROFILE_SWITCH to stringResource(app.aaps.core.ui.R.string.careportal_profileswitch)
-                                    ).forEach { (type, label) ->
-                                        DropdownMenuItem(
-                                            text = { Text(label) },
-                                            onClick = {
-                                                onProfileTypeChange(1, type)
-                                                onShowProfileTypeMenu1Change(false)
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    )
-                    Tab(
-                        selected = selectedTab == 2,
-                        onClick = { onTabSelected(2) },
-                        enabled = isCompareTabValid,
-                        text = {
-                            Text(
-                                text = stringResource(R.string.comparation),
-                                color = if (!isCompareTabValid) MaterialTheme.colorScheme.error else LocalContentColor.current
-                            )
-                        }
-                    )
+                        )
+                    }
                 }
             }
 
@@ -479,10 +383,72 @@ private fun ProfileHelperContent(
             if (selectedTab == 2) {
                 comparisonContent()
             } else {
+                // Profile type dropdown
+                ElevatedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+                ) {
+                    ProfileTypeDropdown(
+                        selectedType = profileTypes[selectedTab],
+                        onTypeSelected = { onProfileTypeChange(selectedTab, it) },
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 profileTabContent(selectedTab)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileTypeDropdown(
+    selectedType: ProfileType,
+    onTypeSelected: (ProfileType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val profileTypeOptions = listOf(
+        ProfileType.MOTOL_DEFAULT to stringResource(R.string.motol_default_profile),
+        ProfileType.DPV_DEFAULT to stringResource(R.string.dpv_default_profile),
+        ProfileType.CURRENT to stringResource(R.string.current_profile),
+        ProfileType.AVAILABLE_PROFILE to stringResource(R.string.available_profile),
+        ProfileType.PROFILE_SWITCH to stringResource(app.aaps.core.ui.R.string.careportal_profileswitch)
+    )
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = getProfileTypeDisplayName(selectedType),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.profile_type)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            profileTypeOptions.forEach { (type, label) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        onTypeSelected(type)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
@@ -540,20 +506,6 @@ fun DefaultProfileContent(
             valueRange = 32.0..37.0,
             step = 1.0,
             unitLabelResId = app.aaps.core.keys.R.string.units_percent
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CurrentProfileContent(profileName: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(text = stringResource(R.string.active_profile), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 12.dp))
-        OutlinedTextField(
-            value = profileName, onValueChange = {}, readOnly = true, enabled = false,
-            label = { Text(stringResource(R.string.current_profile)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(disabledTextColor = MaterialTheme.colorScheme.onSurface, disabledBorderColor = MaterialTheme.colorScheme.outline, disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant)
         )
     }
 }
@@ -619,10 +571,6 @@ private fun ProfileHelperMotolPreview() {
             selectedTab = 0,
             onTabSelected = {},
             profileTypes = listOf(ProfileType.MOTOL_DEFAULT, ProfileType.CURRENT),
-            showProfileTypeMenu0 = false,
-            onShowProfileTypeMenu0Change = {},
-            showProfileTypeMenu1 = false,
-            onShowProfileTypeMenu1Change = {},
             onProfileTypeChange = { _, _ -> },
             isCompareTabValid = false,
             showCloneAction = false,
@@ -666,10 +614,6 @@ private fun ProfileHelperCurrentPreview() {
             selectedTab = 1,
             onTabSelected = {},
             profileTypes = listOf(ProfileType.MOTOL_DEFAULT, ProfileType.CURRENT),
-            showProfileTypeMenu0 = false,
-            onShowProfileTypeMenu0Change = {},
-            showProfileTypeMenu1 = false,
-            onShowProfileTypeMenu1Change = {},
             onProfileTypeChange = { _, _ -> },
             isCompareTabValid = true,
             showCloneAction = true,
@@ -684,10 +628,10 @@ private fun ProfileHelperCurrentPreview() {
                         .padding(horizontal = 16.dp),
                     elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
                 ) {
-                    CurrentProfileContent(
-                        profileName = "Profile 1",
-                        modifier = Modifier.padding(16.dp)
-                    )
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Active Profile", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
+                        Text("Profile 1", style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
             }
         )
@@ -710,17 +654,6 @@ private fun DefaultProfileContentPreview() {
             showPct = true,
             showWeight = false,
             showTdd = true,
-            modifier = Modifier.padding(16.dp)
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun CurrentProfileContentPreview() {
-    MaterialTheme {
-        CurrentProfileContent(
-            profileName = "Profile 1",
             modifier = Modifier.padding(16.dp)
         )
     }

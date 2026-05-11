@@ -4,8 +4,10 @@ import android.content.Context
 import app.aaps.core.interfaces.configuration.ConfigBuilder
 import app.aaps.core.interfaces.constraints.Constraint
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
+import app.aaps.core.interfaces.insulin.ConcentrationHelper
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.profile.ProfileStore
+import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.DetailedBolusInfoStorage
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.TemporaryBasalStorage
@@ -69,6 +71,7 @@ import org.mockito.kotlin.whenever
 class BLECommIntegrationTest : TestBase() {
 
     @Mock lateinit var rh: ResourceHelper
+    @Mock lateinit var ch: ConcentrationHelper
     @Mock lateinit var context: Context
     @Mock lateinit var danaRSMessageHashTable: DanaRSMessageHashTable
     @Mock lateinit var danaRSPlugin: DanaRSPlugin
@@ -396,7 +399,7 @@ class BLECommIntegrationTest : TestBase() {
         bleComm.sendMessage(startPacket)
 
         // Stop the bolus
-        val stopPacket = DanaRSPacketBolusSetStepBolusStop(aapsLogger, rxBus, rh, danaPump)
+        val stopPacket = DanaRSPacketBolusSetStepBolusStop(aapsLogger, BolusProgressData(ch, rh), rh, danaPump)
         bleComm.sendMessage(stopPacket)
 
         assertThat(stopPacket.isReceived).isTrue()

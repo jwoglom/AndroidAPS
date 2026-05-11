@@ -9,9 +9,9 @@ import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationId
 import app.aaps.core.interfaces.profile.Profile
-import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.PumpEnactResult
+import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.queue.Command
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.rx.events.EventInitializationChanged
@@ -194,7 +194,7 @@ class DanaRKoreanExecutionService : AbstractDanaRExecutionService() {
 
     override fun bolus(detailedBolusInfo: DetailedBolusInfo): Boolean {
         if (!isConnected) return false
-        if (BolusProgressData.stopPressed) return false
+        if (bolusProgressData.isStopPressed) return false
         danaPump.bolusingDetailedBolusInfo = detailedBolusInfo
         danaPump.bolusDone = false
         val start = MsgBolusStart(injector, detailedBolusInfo.insulin)
@@ -206,7 +206,7 @@ class DanaRKoreanExecutionService : AbstractDanaRExecutionService() {
             if (!danaPump.bolusStopped) {
                 mSerialIOThread?.sendMessage(start)
             } else {
-                BolusProgressData.delivered = 0.0
+                bolusProgressData.updateProgress(bolusProgressData.state.value?.percent ?: 0, bolusProgressData.state.value?.status ?: "", PumpInsulin(0.0))
                 return false
             }
             while (!danaPump.bolusStopped && !start.failed && !connectionBroken) {

@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,15 +25,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.aaps.core.ui.compose.AapsCard
 import app.aaps.core.ui.compose.AapsTopAppBar
+import app.aaps.core.ui.compose.dialogs.OkCancelDialog
 import app.aaps.ui.R
 import app.aaps.ui.compose.stats.viewmodels.StatsViewModel
 
@@ -50,8 +53,13 @@ fun StatsScreen(
     viewModel: StatsViewModel,
     onNavigateBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.loadAllStats()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -96,7 +104,7 @@ fun StatsScreen(
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         if (state.tddExpanded && !state.tddLoading) {
-                            FilledTonalButton(onClick = { viewModel.recalculateTdd(context) }) {
+                            FilledTonalButton(onClick = { viewModel.showRecalculateDialog() }) {
                                 Text(text = stringResource(R.string.recalculate))
                             }
                         }
@@ -248,7 +256,7 @@ fun StatsScreen(
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         if (state.activityExpanded && !state.activityLoading) {
-                            FilledTonalButton(onClick = { viewModel.resetActivityStats(context) }) {
+                            FilledTonalButton(onClick = { viewModel.showResetActivityDialog() }) {
                                 Text(text = stringResource(app.aaps.core.ui.R.string.reset))
                             }
                         }
@@ -309,16 +317,15 @@ fun StatsScreen(
                     }
 
                     AnimatedVisibility(visible = state.tddCycleExpanded) {
-                        when {
-                            state.tddCycleLoading -> Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
+                        Column {
+                            // Progress indicator (visible while still loading)
+                            if (state.tddCycleLoading) {
                                 Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     LinearProgressIndicator(
                                         progress = { state.tddCycleProgress },
@@ -336,18 +343,21 @@ fun StatsScreen(
                                 }
                             }
 
-                            state.tddCyclePatternData != null -> TddCyclePatternCompose(
-                                data = state.tddCyclePatternData!!,
-                                offset = state.tddCycleOffset,
-                                onOffsetChange = { viewModel.updateCycleOffset(it) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            else -> Text(
-                                text = stringResource(R.string.not_enough_data_for_cycles),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            // Graph (shown as soon as data is available, even while loading continues)
+                            if (state.tddCyclePatternData != null) {
+                                TddCyclePatternCompose(
+                                    data = state.tddCyclePatternData!!,
+                                    offset = state.tddCycleOffset,
+                                    onOffsetChange = { viewModel.updateCycleOffset(it) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else if (!state.tddCycleLoading) {
+                                Text(
+                                    text = stringResource(R.string.not_enough_data_for_cycles),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -373,5 +383,21 @@ fun StatsScreen(
                 }
             }
         }
+    }
+
+    if (state.showRecalculateDialog) {
+        OkCancelDialog(
+            message = stringResource(R.string.do_you_want_recalculate_tdd_stats),
+            onConfirm = { viewModel.confirmRecalculateTdd() },
+            onDismiss = { viewModel.dismissRecalculateDialog() }
+        )
+    }
+
+    if (state.showResetActivityDialog) {
+        OkCancelDialog(
+            message = stringResource(R.string.do_you_want_reset_stats),
+            onConfirm = { viewModel.confirmResetActivityStats() },
+            onDismiss = { viewModel.dismissResetActivityDialog() }
+        )
     }
 }

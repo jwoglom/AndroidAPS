@@ -2,7 +2,7 @@ package app.aaps.pump.danar.comm
 
 import app.aaps.core.interfaces.configuration.ConfigBuilder
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
-import app.aaps.core.interfaces.insulin.ConcentrationHelper
+import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.DetailedBolusInfoStorage
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.queue.CommandQueue
@@ -34,13 +34,13 @@ open class DanaRTestBase : TestBaseWithProfile() {
     @Mock lateinit var danaHistoryRecordDao: DanaHistoryRecordDao
     @Mock lateinit var uiInteraction: UiInteraction
 
+    val bolusProgressData by lazy { BolusProgressData(ch, rh) }
+
     @BeforeEach
     fun setup() {
         danaPump = DanaPump(aapsLogger, preferences, dateUtil, decimalFormatter, profileStoreProvider)
         doNothing().whenever(danaRKoreanPlugin).setPluginEnabledBlocking(anyOrNull(), anyBoolean())
         doNothing().whenever(danaRPlugin).setPluginEnabledBlocking(anyOrNull(), anyBoolean())
-        doNothing().whenever(danaRKoreanPlugin).setFragmentVisible(anyOrNull(), anyBoolean())
-        doNothing().whenever(danaRPlugin).setFragmentVisible(anyOrNull(), anyBoolean())
         whenever(rh.gs(ArgumentMatchers.anyInt())).thenReturn("")
     }
 
@@ -65,6 +65,7 @@ open class DanaRTestBase : TestBaseWithProfile() {
                 it.uiInteraction = uiInteraction
                 it.notificationManager = notificationManager
                 it.ch = ch
+                it.bolusProgressData = bolusProgressData
             }
         }
     }

@@ -26,8 +26,10 @@ data class StatusBanner(
     val level: StatusLevel = StatusLevel.UNSPECIFIED
 )
 
+/**
+ * Interface for PumpInfo objects (Row, Group)
+ */
 interface PumpInfoInterface
-
 
 /**
  * A single label:value row in the pump info section.
@@ -40,11 +42,12 @@ data class PumpInfoRow(
     val visible: Boolean = true
 ): PumpInfoInterface
 
-
+/**
+ * Group for PumpInfoRow. Group items are displayed together, with divider only at end of group (instead of each item)
+ */
 data class PumpInfoGroup(
     var list: MutableList<PumpInfoRow> = mutableListOf()
 ): PumpInfoInterface
-
 
 
 /**
@@ -62,7 +65,6 @@ enum class ActionCategory {
 @Immutable
 data class PumpAction(
     val label: String,
-    val iconRes: Int = 0,
     val icon: ImageVector? = null,
     val category: ActionCategory = ActionCategory.PRIMARY,
     val enabled: Boolean = true,

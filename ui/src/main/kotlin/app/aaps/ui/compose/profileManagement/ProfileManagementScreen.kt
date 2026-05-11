@@ -45,14 +45,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.aaps.core.graph.profile.ProfileCompareContent
+import app.aaps.core.graph.profile.ProfileSingleContent
 import app.aaps.core.ui.compose.AapsFab
 import app.aaps.core.ui.compose.AapsTheme
 import app.aaps.core.ui.compose.AapsTopAppBar
 import app.aaps.core.ui.compose.ScreenMode
 import app.aaps.core.ui.compose.dialogs.OkCancelDialog
 import app.aaps.core.ui.compose.navigation.ElementType
-import app.aaps.core.ui.compose.navigation.color
-import app.aaps.core.ui.compose.navigation.icon
 import app.aaps.core.ui.compose.navigation.labelResId
 import app.aaps.ui.R
 import app.aaps.ui.compose.components.ContentContainer
@@ -77,7 +77,8 @@ fun ProfileManagementScreen(
     onNavigateBack: () -> Unit = {},
     onRequestEditMode: () -> Unit = {},
     onEditProfile: (Int) -> Unit = {},
-    onActivateProfile: (Int) -> Unit = {}
+    onActivateProfile: (Int) -> Unit = {},
+    onInsulinManager: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isPlayMode = uiState.screenMode == ScreenMode.PLAY
@@ -136,18 +137,7 @@ fun ProfileManagementScreen(
         Scaffold(
             topBar = {
                 AapsTopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = ElementType.PROFILE_MANAGEMENT.icon(),
-                                contentDescription = null,
-                                tint = ElementType.PROFILE_MANAGEMENT.color(),
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.padding(start = 8.dp))
-                            Text(stringResource(ElementType.PROFILE_MANAGEMENT.labelResId()))
-                        }
-                    },
+                    title = { Text(stringResource(ElementType.PROFILE_MANAGEMENT.labelResId())) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
@@ -276,7 +266,6 @@ fun ProfileManagementScreen(
                                         ProfileCompareContent(
                                             profile1 = compareData.baseProfile,
                                             profile2 = compareData.effectiveProfile,
-                                            shortHourUnit = compareData.shortHourUnit,
                                             icsRows = compareData.icRows,
                                             icUnits = compareData.icUnits,
                                             isfsRows = compareData.isfRows,
@@ -295,7 +284,8 @@ fun ProfileManagementScreen(
                                             getIsfList = viewModel::getIsfList,
                                             getBasalList = viewModel::getBasalList,
                                             getTargetList = viewModel::getTargetList,
-                                            formatBasalSum = viewModel::formatBasalSum
+                                            formatBasalSum = viewModel::formatBasalSum,
+                                            onInsulinManager = onInsulinManager
                                         )
                                     }
                                     // Extra space for floating toolbar

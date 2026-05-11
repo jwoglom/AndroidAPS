@@ -4,12 +4,16 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.aaps.core.data.model.TE
+import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.insulin.Insulin
+import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventInitializationChanged
+import app.aaps.core.interfaces.rx.events.EventNsClientStatusUpdated
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.utils.DateUtil
@@ -24,10 +28,12 @@ import app.aaps.core.ui.compose.icons.IcCgmInsert
 import app.aaps.core.ui.compose.icons.IcPatchPump
 import app.aaps.core.ui.compose.icons.IcPumpBattery
 import app.aaps.core.ui.compose.icons.IcPumpCartridge
+import app.aaps.core.ui.compose.pump.tickerFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -42,16 +48,18 @@ class StatusViewModel @Inject constructor(
     private val rh: ResourceHelper,
     private val activePlugin: ActivePlugin,
     private val insulin: Insulin,
+    private val config: Config,
     private val persistenceLayer: PersistenceLayer,
     private val dateUtil: DateUtil,
     private val rxBus: RxBus,
     private val preferences: Preferences,
     private val tddCalculator: TddCalculator,
-    private val decimalFormatter: DecimalFormatter
+    private val decimalFormatter: DecimalFormatter,
+    private val processedDeviceStatusData: ProcessedDeviceStatusData
 ) : ViewModel() {
 
-    val uiState: StateFlow<StatusUiState>
-        field = MutableStateFlow(StatusUiState())
+    private val _uiState = MutableStateFlow(StatusUiState())
+    val uiState: StateFlow<StatusUiState> = _uiState.asStateFlow()
 
     init {
         setupEventListeners()
@@ -63,7 +71,13 @@ class StatusViewModel @Inject constructor(
             .onEach { refreshState() }.launchIn(viewModelScope)
         persistenceLayer.observeChanges(TE::class.java)
             .onEach { refreshState() }.launchIn(viewModelScope)
+        persistenceLayer.databaseClearedFlow
+            .onEach { refreshState() }.launchIn(viewModelScope)
         rxBus.toFlow(EventPumpStatusChanged::class.java)
+            .onEach { refreshState() }.launchIn(viewModelScope)
+        rxBus.toFlow(EventNsClientStatusUpdated::class.java)
+            .onEach { refreshState() }.launchIn(viewModelScope)
+        tickerFlow(60_000L)
             .onEach { refreshState() }.launchIn(viewModelScope)
     }
 
@@ -82,7 +96,7 @@ class StatusViewModel @Inject constructor(
                 buildBatteryStatus()
             } else null
 
-            uiState.update { state ->
+            _uiState.update { state ->
                 state.copy(
                     sensorStatus = sensorStatus,
                     insulinStatus = insulinStatus,
@@ -104,7 +118,7 @@ class StatusViewModel @Inject constructor(
             // Calculate cannula usage in background (expensive operation)
             viewModelScope.launch {
                 val cannulaStatusWithUsage = buildCannulaStatus(isPatchPump, includeTddCalculation = true)
-                uiState.update { state ->
+                _uiState.update { state ->
                     state.copy(cannulaStatus = cannulaStatusWithUsage)
                 }
             }
@@ -116,8 +130,10 @@ class StatusViewModel @Inject constructor(
             persistenceLayer.getLastTherapyRecordUpToNow(TE.Type.SENSOR_CHANGE)
         }
         val bgSource = activePlugin.activeBgSource
-        val level = if (bgSource.sensorBatteryLevel != -1) "${bgSource.sensorBatteryLevel}%" else null
-        val levelPercent = if (bgSource.sensorBatteryLevel != -1) bgSource.sensorBatteryLevel / 100f else -1f
+        // Sensor battery: not shown in Overview (compact), shown in Actions (expanded) unless AAPSCLIENT
+        val hasBattery = !config.AAPSCLIENT && bgSource.sensorBatteryLevel != -1
+        val level = if (hasBattery) "${bgSource.sensorBatteryLevel}%" else null
+        val levelPercent = if (hasBattery) bgSource.sensorBatteryLevel / 100f else -1f
 
         return StatusItem(
             label = rh.gs(R.string.sensor_label),
@@ -126,8 +142,9 @@ class StatusViewModel @Inject constructor(
             agePercent = event?.let { getAgePercent(it.timestamp, IntKey.OverviewSageCritical) } ?: 0f,
             level = level,
             levelStatus = if (levelPercent >= 0) getLevelStatus((levelPercent * 100).toDouble(), IntKey.OverviewSbatWarning, IntKey.OverviewSbatCritical) else StatusLevel.UNSPECIFIED,
-            levelPercent = if (levelPercent >= 0) 1f - levelPercent else -1f, // Invert: 100% battery = 0% toward empty
-            icon = IcCgmInsert
+            levelPercent = if (levelPercent >= 0) 1f - levelPercent else -1f,
+            icon = IcCgmInsert,
+            compactLevel = false // Overview: sensor battery not shown
         )
     }
 
@@ -135,12 +152,17 @@ class StatusViewModel @Inject constructor(
         val event = withContext(Dispatchers.IO) {
             persistenceLayer.getLastTherapyRecordUpToNow(TE.Type.INSULIN_CHANGE)
         }
-        val pump = activePlugin.activePump
-        val reservoirLevel = pump.reservoirLevel.value.iU(insulin.iCfg.concentration)
+        // AAPSCLIENT: local activePump is VirtualPump with a stale hardcoded reservoir.
+        // The followed pump's real reservoir arrives via NS device status (already in display units).
+        val reservoirLevel = if (config.AAPSCLIENT) {
+            processedDeviceStatusData.pumpData?.reservoir ?: 0.0
+        } else {
+            activePlugin.activePump.reservoirLevel.value.iU(insulin.iCfg.concentration)
+        }
         val insulinUnit = rh.gs(R.string.insulin_unit_shortname)
 
         val level: String? = if (reservoirLevel > 0) {
-            if (isPatchPump && reservoirLevel >= maxReading) {
+            if (!config.AAPSCLIENT && isPatchPump && reservoirLevel >= maxReading) {
                 "${decimalFormatter.to0Decimal(maxReading)}+ $insulinUnit"
             } else {
                 decimalFormatter.to0Decimal(reservoirLevel, insulinUnit)
@@ -155,7 +177,8 @@ class StatusViewModel @Inject constructor(
             level = level,
             levelStatus = if (reservoirLevel > 0) getLevelStatus(reservoirLevel, IntKey.OverviewResWarning, IntKey.OverviewResCritical) else StatusLevel.UNSPECIFIED,
             levelPercent = -1f, // No progress bar - reservoir sizes vary by pump
-            icon = IcPumpCartridge
+            icon = IcPumpCartridge,
+            compactAge = !isPatchPump, // Overview: insulin age hidden for patch pumps
         )
     }
 
@@ -183,35 +206,47 @@ class StatusViewModel @Inject constructor(
             level = if (usage > 0) decimalFormatter.to0Decimal(usage, insulinUnit) else null,
             levelStatus = StatusLevel.UNSPECIFIED, // Usage doesn't have warning thresholds
             levelPercent = -1f,
-            icon = icon
+            icon = icon,
+            compactLevel = false // Overview: cannula usage not shown
         )
     }
 
     private suspend fun buildBatteryStatus(): StatusItem? {
         val pump = activePlugin.activePump
-        if (!pump.pumpDescription.isBatteryReplaceable && !pump.isBatteryChangeLoggingEnabled()) {
-            return null
-        }
+        val hasAge = pump.pumpDescription.isBatteryReplaceable || pump.isBatteryChangeLoggingEnabled()
 
-        val event = withContext(Dispatchers.IO) {
+        // Eros doesn't report battery itself, but RileyLink alternatives may
+        val erosBatteryLinkAvailable = pump.model() == PumpType.OMNIPOD_EROS && pump.isUseRileyLinkBatteryLevel()
+        val batteryLevelValue = pump.batteryLevel.value?.toDouble()
+        val hasLevel = batteryLevelValue != null && (pump.model().supportBatteryLevel || erosBatteryLinkAvailable)
+
+        // If neither age nor level can be shown, skip entirely
+        if (!hasAge && !hasLevel) return null
+
+        val event = if (hasAge) withContext(Dispatchers.IO) {
             persistenceLayer.getLastTherapyRecordUpToNow(TE.Type.PUMP_BATTERY_CHANGE)
-        }
-        val batteryLevel = pump.batteryLevel.value
-        val level = if (batteryLevel != null && pump.model().supportBatteryLevel) {
-            "${batteryLevel}%"
-        } else {
-            rh.gs(R.string.value_unavailable_short)
-        }
+        } else null
+
+        // AAPSCLIENT: followed pump's battery is shown in the NSClient status card,
+        // so suppress it here (no "n/a" placeholder cluttering the pill).
+        val showLevel = !config.AAPSCLIENT && hasLevel
+
+        // Overview compact: pbLevel.visibility based on pump model only (Eros OR not Combo/Dash)
+        val useBatteryLevel = pump.model() == PumpType.OMNIPOD_EROS
+            || (pump.model() != PumpType.ACCU_CHEK_COMBO && pump.model() != PumpType.OMNIPOD_DASH)
 
         return StatusItem(
             label = rh.gs(R.string.pb_label),
             age = event?.let { formatAge(it.timestamp) } ?: "-",
             ageStatus = event?.let { getAgeStatus(it.timestamp, IntKey.OverviewBageWarning, IntKey.OverviewBageCritical) } ?: StatusLevel.UNSPECIFIED,
             agePercent = event?.let { getAgePercent(it.timestamp, IntKey.OverviewBageCritical) } ?: 0f,
-            level = level,
-            levelStatus = if (batteryLevel != null) getLevelStatus(batteryLevel.toDouble(), IntKey.OverviewBattWarning, IntKey.OverviewBattCritical) else StatusLevel.UNSPECIFIED,
-            levelPercent = batteryLevel?.let { 1f - (it / 100f) } ?: -1f, // Invert: 100% battery = 0% toward empty
-            icon = IcPumpBattery
+            level = if (showLevel) "${batteryLevelValue.toInt()}%" else null,
+            levelStatus = if (showLevel) getLevelStatus(batteryLevelValue, IntKey.OverviewBattWarning, IntKey.OverviewBattCritical) else StatusLevel.UNSPECIFIED,
+            levelPercent = if (showLevel) 1f - (batteryLevelValue.toFloat() / 100f) else -1f,
+            icon = IcPumpBattery,
+            compactAge = hasAge, // Overview: pbAge shown only if replaceable/logging
+            compactLevel = showLevel && useBatteryLevel, // hidden when no level value (e.g., AAPSCLIENT)
+            expandedLevel = showLevel
         )
     }
 

@@ -14,7 +14,10 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.overview.graph.BgDataPoint
 import app.aaps.core.interfaces.overview.graph.BgInfoData
+import app.aaps.core.interfaces.overview.graph.GraphConfig
+import app.aaps.core.interfaces.overview.graph.GraphConfigRepository
 import app.aaps.core.interfaces.overview.graph.OverviewDataCache
+import app.aaps.core.interfaces.overview.graph.SeriesType
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
@@ -27,19 +30,22 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.extensions.displayText
 import app.aaps.core.objects.extensions.round
 import app.aaps.core.ui.R
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import java.util.Locale
-import javax.inject.Inject
 
 /**
  * ViewModel for Overview graphs (Compose/Vico version).
@@ -103,10 +109,10 @@ data class SensitivityUiState(
     val hasData: Boolean = false
 )
 
-@HiltViewModel
 @Stable
-class GraphViewModel @Inject constructor(
-    cache: OverviewDataCache,
+class GraphViewModel @AssistedInject constructor(
+    @Assisted cache: OverviewDataCache,
+    private val graphConfigRepository: GraphConfigRepository,
     private val aapsLogger: AAPSLogger,
     private val preferences: Preferences,
     private val dateUtil: DateUtil,
@@ -123,24 +129,38 @@ class GraphViewModel @Inject constructor(
     private val activePlugin: ActivePlugin
 ) : ViewModel() {
 
+    @AssistedFactory
+    interface Factory {
+
+        fun create(cache: OverviewDataCache): GraphViewModel
+    }
+
     // Chart config - updates when high/low mark preferences change
-    val chartConfigFlow: StateFlow<ChartConfig>
-        field = MutableStateFlow(
-            ChartConfig(
-                highMark = preferences.get(UnitDoubleKey.OverviewHighMark),
-                lowMark = preferences.get(UnitDoubleKey.OverviewLowMark)
-            )
+    private val _chartConfigFlow = MutableStateFlow(
+        ChartConfig(
+            highMark = preferences.get(UnitDoubleKey.OverviewHighMark),
+            lowMark = preferences.get(UnitDoubleKey.OverviewLowMark)
         )
+    )
+    val chartConfigFlow: StateFlow<ChartConfig> = _chartConfigFlow.asStateFlow()
 
     init {
         // Update chart config when high/low mark preferences change
+        // drop(1) skips the initial emission (already set in field initializer)
         preferences.observe(UnitDoubleKey.OverviewHighMark)
-            .onEach { highMark -> chartConfigFlow.update { it.copy(highMark = highMark) } }
+            .drop(1)
+            .onEach { highMark -> _chartConfigFlow.update { it.copy(highMark = highMark) } }
             .launchIn(viewModelScope)
         preferences.observe(UnitDoubleKey.OverviewLowMark)
-            .onEach { lowMark -> chartConfigFlow.update { it.copy(lowMark = lowMark) } }
+            .drop(1)
+            .onEach { lowMark -> _chartConfigFlow.update { it.copy(lowMark = lowMark) } }
             .launchIn(viewModelScope)
     }
+
+    // Graph configuration (which series on which graph)
+    val graphConfigFlow: StateFlow<GraphConfig> = graphConfigRepository.graphConfigFlow
+
+    fun updateGraphConfig(config: GraphConfig) = graphConfigRepository.update(config)
 
     // Individual series flows - each can trigger independent recomposition
     val bgReadingsFlow: StateFlow<List<BgDataPoint>> = cache.bgReadingsFlow
@@ -149,7 +169,16 @@ class GraphViewModel @Inject constructor(
 
     // Secondary graph flows
     val iobGraphFlow = cache.iobGraphFlow
+    val absIobGraphFlow = cache.absIobGraphFlow
     val cobGraphFlow = cache.cobGraphFlow
+    val activityGraphFlow = cache.activityGraphFlow
+    val bgiGraphFlow = cache.bgiGraphFlow
+    val deviationsGraphFlow = cache.deviationsGraphFlow
+    val ratioGraphFlow = cache.ratioGraphFlow
+    val devSlopeGraphFlow = cache.devSlopeGraphFlow
+    val varSensGraphFlow = cache.varSensGraphFlow
+    val heartRateGraphFlow = cache.heartRateGraphFlow
+    val stepsGraphFlow = cache.stepsGraphFlow
     val treatmentGraphFlow = cache.treatmentGraphFlow
     val epsGraphFlow = cache.epsGraphFlow
     val basalGraphFlow = cache.basalGraphFlow
@@ -266,7 +295,6 @@ class GraphViewModel @Inject constructor(
         val profile = profileFunction.getProfile()
         val request = loop.lastRun?.request
         val isfMgdl = profile?.getProfileIsfMgdl()
-        val isfForCarbs = profile?.getIsfMgdlForCarbs(dateUtil.now(), "Overview", config, processedDeviceStatusData)
         val variableSens =
             if (config.APS) request?.variableSens ?: 0.0
             else if (config.AAPSCLIENT) processedDeviceStatusData.getAPSResult()?.variableSens ?: 0.0
@@ -290,9 +318,10 @@ class GraphViewModel @Inject constructor(
             isfTo = String.format(Locale.getDefault(), "%1$.1f", profileUtil.fromMgdlToUnits(variableSens, units))
             if (ratioUsed != 1.0 && ratioUsed != lastAutosensRatio)
                 dialogText.add(rh.gs(R.string.algorithm_long, ratioUsed * 100))
-            dialogText.add(rh.gs(R.string.isf_for_carbs, profileUtil.fromMgdlToUnits(isfForCarbs ?: 0.0, units)))
+            val isfForCarbs = profile.getIsfMgdlForCarbs(dateUtil.now(), "Overview", config, processedDeviceStatusData)
+            dialogText.add(rh.gs(R.string.isf_for_carbs, profileUtil.fromMgdlToUnits(isfForCarbs, units)))
             if (config.APS) {
-                activePlugin.activeAPS.getSensitivityOverviewString()?.let { dialogText.add(it) }
+                activePlugin.activeAPS?.getSensitivityOverviewString()?.let { dialogText.add(it) }
             }
         } else {
             // Standard autosens-only branch — skip when ratio is exactly 100%
@@ -315,24 +344,29 @@ class GraphViewModel @Inject constructor(
     }
 
     // Derived time range from actual data (recalculates as series arrive)
-    // Includes prediction timestamps so the x-axis extends into the future
+    // When PREDICTIONS overlay is enabled, extends into the future to fit prediction points;
+    // otherwise clamps to toTime so the x-axis doesn't reserve empty future space.
     val derivedTimeRange: StateFlow<Pair<Long, Long>?> = combine(
         cache.bgReadingsFlow,
         cache.bucketedDataFlow,
         cache.predictionsFlow,
-        cache.timeRangeFlow
-    ) { bgReadings, bucketedData, predictions, cacheTimeRange ->
-        // Combine all timestamps from all series including predictions
-        val allTimestamps = (bgReadings + bucketedData + predictions).map { it.timestamp }
+        cache.timeRangeFlow,
+        graphConfigFlow
+    ) { bgReadings, bucketedData, predictions, cacheTimeRange, graphConfig ->
+        val showPredictions = SeriesType.PREDICTIONS in graphConfig.bgOverlays
+        val effectivePredictions = if (showPredictions) predictions else emptyList()
+        val allTimestamps = (bgReadings + bucketedData + effectivePredictions).map { it.timestamp }
 
         if (allTimestamps.isEmpty()) {
-            // Fall back to cache time range if no data yet (use endTime for predictions)
-            cacheTimeRange?.let { Pair(it.fromTime, it.endTime) }
+            cacheTimeRange?.let {
+                val upper = if (showPredictions) it.endTime else it.toTime
+                Pair(it.fromTime, upper)
+            }
         } else {
             val minTime = allTimestamps.minOrNull() ?: return@combine null
             val maxTime = allTimestamps.maxOrNull() ?: return@combine null
-            // Also consider endTime from cache (may extend beyond prediction points)
-            val effectiveMax = if (cacheTimeRange != null) maxOf(maxTime, cacheTimeRange.endTime) else maxTime
+            val cacheUpper = cacheTimeRange?.let { if (showPredictions) it.endTime else it.toTime }
+            val effectiveMax = if (cacheUpper != null) maxOf(maxTime, cacheUpper) else maxTime
             Pair(minTime, effectiveMax)
         }
     }.stateIn(
@@ -343,6 +377,14 @@ class GraphViewModel @Inject constructor(
 
     init {
         aapsLogger.debug(LTag.UI, "GraphViewModel initialized - exposing independent series flows")
+    }
+
+    @Volatile var lastInteractionMs: Long = 0L
+        private set
+
+    fun onGraphInteraction() {
+        preferences.put(BooleanNonKey.ObjectivesScaleUsed, true)
+        lastInteractionMs = System.currentTimeMillis()
     }
 
     override fun onCleared() {

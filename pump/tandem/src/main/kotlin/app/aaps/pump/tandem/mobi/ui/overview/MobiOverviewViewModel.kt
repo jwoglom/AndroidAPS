@@ -40,6 +40,7 @@ import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.compose.StatusLevel
+import app.aaps.core.ui.compose.icons.IcLoopClosed
 import app.aaps.core.ui.compose.pump.ActionCategory
 import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
@@ -470,7 +471,8 @@ open class MobiOverviewViewModel @Inject constructor(
             primaryActions = listOf(
                 PumpAction(
                     label = rh.gs(app.aaps.core.ui.R.string.refresh),
-                    iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
+                    //iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
+                    icon = IcLoopClosed, // TODO dev4
                     category = ActionCategory.PRIMARY,
                     visible = buttonsEnabled.value,
                     onClick = { onRefreshClick() }
@@ -770,7 +772,7 @@ open class MobiOverviewViewModel @Inject constructor(
     private fun updateReservoir() {
         val remaining = tandemPumpStatus.reservoirRemainingUnits
         val full = tandemPumpStatus.reservoirFullUnits
-        reservoirText.value = rh.gs(Rco.string.reservoir_value, remaining, full)
+        reservoirText.value = rh.gs(Rc.string.reservoir_value, remaining, full)
         reservoirLevel.value = when {
             remaining <= 20.0 -> StatusLevel.CRITICAL
             remaining <= 50.0 -> StatusLevel.WARNING

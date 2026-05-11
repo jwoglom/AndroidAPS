@@ -7,8 +7,7 @@ import app.aaps.pump.common.driver.history.PumpHistoryDataProvider
 
 // At the moment this class is not used, but since Medtronic is using PumpPluginAbstract, it needs it
 // and changes could be made to use this, which would deduplicate History and BLE Activity screens
-class MedtronicPumpDriverConfiguration: PumpDriverConfiguration {
-
+class MedtronicPumpDriverConfiguration : PumpDriverConfiguration {
 
     override fun getPumpHistoryDataProvider(): PumpHistoryDataProvider? {
         //TODO("Not yet implemented")

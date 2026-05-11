@@ -15,6 +15,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.PumpEnactResult
 import app.aaps.core.interfaces.pump.PumpSync
@@ -75,6 +76,7 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
     @Mock lateinit var infos: ListenableFuture<List<WorkInfo>>
 
     private val testScope = CoroutineScope(Dispatchers.Unconfined)
+    private val bolusProgressData by lazy { BolusProgressData(ch, rh) }
 
     class CommandQueueMocked(
         injector: HasAndroidInjector,
@@ -84,7 +86,6 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         constraintChecker: ConstraintsChecker,
         profileFunction: ProfileFunction,
         activePlugin: ActivePlugin,
-        context: Context,
         config: Config,
         dateUtil: DateUtil,
         fabricPrivacy: FabricPrivacy,
@@ -95,11 +96,12 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         pumpEnactResultProvider: Provider<PumpEnactResult>,
         jobName: CommandQueueName,
         workManager: WorkManager,
-        appScope: CoroutineScope
+        appScope: CoroutineScope,
+        bolusProgressData: BolusProgressData
     ) : CommandQueueImplementation(
         injector, aapsLogger, rxBus, rh, constraintChecker, profileFunction,
-        activePlugin, context, config, dateUtil, fabricPrivacy,
-        uiInteraction, notificationManager, persistenceLayer, decimalFormatter, pumpEnactResultProvider, jobName, workManager, appScope
+        activePlugin, config, dateUtil, fabricPrivacy,
+        uiInteraction, notificationManager, persistenceLayer, decimalFormatter, pumpEnactResultProvider, jobName, workManager, appScope, bolusProgressData
     ) {
 
         override fun notifyAboutNewCommand(): Boolean = true
@@ -127,12 +129,13 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
                 it.aapsLogger = aapsLogger
                 it.rh = rh
                 it.activePlugin = activePlugin
-                it.rxBus = rxBus
+                it.bolusProgressData = bolusProgressData
             }
             if (it is CommandSMBBolus) {
                 it.aapsLogger = aapsLogger
                 it.rh = rh
                 it.activePlugin = activePlugin
+                it.bolusProgressData = bolusProgressData
             }
             if (it is CommandCustomCommand) {
                 it.aapsLogger = aapsLogger
@@ -183,6 +186,7 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
                 it.rh = rh
                 it.preferences = preferences
                 it.config = config
+                it.bolusProgressData = bolusProgressData
             }
         }
     }
@@ -194,8 +198,8 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         runTest {
             whenever(persistenceLayer.observeChanges(anyOrNull<Class<*>>())).thenReturn(emptyFlow())
             commandQueue = CommandQueueMocked(
-                injector, aapsLogger, rxBus, rh, constraintChecker, profileFunction, activePlugin, context,
-                config, dateUtil, fabricPrivacy, uiInteraction, notificationManager, persistenceLayer, decimalFormatter, pumpEnactResultProvider, jobName, workManager, testScope
+                injector, aapsLogger, rxBus, rh, constraintChecker, profileFunction, activePlugin,
+                config, dateUtil, fabricPrivacy, uiInteraction, notificationManager, persistenceLayer, decimalFormatter, pumpEnactResultProvider, jobName, workManager, testScope, bolusProgressData
             )
             testPumpPlugin.pumpDescription.basalMinimumRate = 0.1
             testPumpPlugin.connected = true
@@ -241,8 +245,8 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
     fun commandIsPickedUp() {
         commandQueue = CommandQueueImplementation(
             injector, aapsLogger, rxBus, rh,
-            constraintChecker, profileFunction, activePlugin, context,
-            config, dateUtil, fabricPrivacy, uiInteraction, notificationManager, persistenceLayer, decimalFormatter, pumpEnactResultProvider, jobName, workManager, testScope
+            constraintChecker, profileFunction, activePlugin,
+            config, dateUtil, fabricPrivacy, uiInteraction, notificationManager, persistenceLayer, decimalFormatter, pumpEnactResultProvider, jobName, workManager, testScope, bolusProgressData
         )
         val handler: Handler = mock()
         whenever(handler.post(anyOrNull())).thenAnswer { invocation: InvocationOnMock ->
@@ -667,5 +671,108 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
 
         override val statusDescription: String
             get() = "CUSTOM COMMAND 3"
+    }
+
+    // --- Running-mode gate tests ---
+    //
+    // These verify the queue rejects commands when the active running mode forbids them.
+    // The gate itself is exhaustively tested in PumpCommandGateTest; here we only verify the queue
+    // calls the gate and propagates its decision to the callback.
+
+    @Test
+    fun `tempBasalAbsolute non-zero is rejected during DISCONNECTED_PUMP`() = runTest {
+        stubActiveMode(app.aaps.core.data.model.RM.Mode.DISCONNECTED_PUMP)
+        var callbackInvoked = false
+        val callback = object : Callback() {
+            override fun run() {
+                callbackInvoked = true
+                assertThat(result.success).isFalse()
+                assertThat(result.enacted).isFalse()
+            }
+        }
+        val queued = commandQueue.tempBasalAbsolute(1.5, 30, true, validProfile, PumpSync.TemporaryBasalType.NORMAL, callback)
+        assertThat(queued).isFalse()
+        assertThat(callbackInvoked).isTrue()
+    }
+
+    @Test
+    fun `tempBasalAbsolute rate zero passes during DISCONNECTED_PUMP`() = runTest {
+        // The reconciler must be able to enact zero-TBR while DISCONNECTED_PUMP is active.
+        stubActiveMode(app.aaps.core.data.model.RM.Mode.DISCONNECTED_PUMP)
+        val queued = commandQueue.tempBasalAbsolute(0.0, 30, true, validProfile, PumpSync.TemporaryBasalType.EMULATED_PUMP_SUSPEND, null)
+        assertThat(queued).isTrue()
+    }
+
+    @Test
+    fun `bolus is rejected during DISCONNECTED_PUMP`() = runTest {
+        stubActiveMode(app.aaps.core.data.model.RM.Mode.DISCONNECTED_PUMP)
+        var callbackInvoked = false
+        val callback = object : Callback() {
+            override fun run() {
+                callbackInvoked = true
+                assertThat(result.success).isFalse()
+            }
+        }
+        val info = DetailedBolusInfo().also { it.insulin = 1.0 }
+        val queued = commandQueue.bolus(info, callback)
+        assertThat(queued).isFalse()
+        assertThat(callbackInvoked).isTrue()
+    }
+
+    @Test
+    fun `extendedBolus is rejected during DISCONNECTED_PUMP`() = runTest {
+        stubActiveMode(app.aaps.core.data.model.RM.Mode.DISCONNECTED_PUMP)
+        var callbackInvoked = false
+        val callback = object : Callback() {
+            override fun run() {
+                callbackInvoked = true
+                assertThat(result.success).isFalse()
+            }
+        }
+        val queued = commandQueue.extendedBolus(2.0, 30, callback)
+        assertThat(queued).isFalse()
+        assertThat(callbackInvoked).isTrue()
+    }
+
+    @Test
+    fun `cancelTempBasal is allowed during DISCONNECTED_PUMP`() = runTest {
+        // Cancel is always allowed — it is the primitive used by RESUME and startup drift.
+        stubActiveMode(app.aaps.core.data.model.RM.Mode.DISCONNECTED_PUMP)
+        val queued = commandQueue.cancelTempBasal(enforceNew = true, autoForced = false, callback = null)
+        assertThat(queued).isTrue()
+    }
+
+    @Test
+    fun `tempBasalAbsolute non-zero is allowed during SUSPENDED_BY_USER`() = runTest {
+        // SUSPENDED_BY_USER is the temporary counterpart of DISABLED_LOOP — manual delivery stays
+        // available; the gate does not block TBR / bolus / EB.
+        stubActiveMode(app.aaps.core.data.model.RM.Mode.SUSPENDED_BY_USER)
+        val queued = commandQueue.tempBasalAbsolute(1.5, 30, true, validProfile, PumpSync.TemporaryBasalType.NORMAL, null)
+        assertThat(queued).isTrue()
+    }
+
+    @Test
+    fun `bolus is allowed during SUSPENDED_BY_USER`() = runTest {
+        stubActiveMode(app.aaps.core.data.model.RM.Mode.SUSPENDED_BY_USER)
+        val info = DetailedBolusInfo().also { it.insulin = 1.0 }
+        val queued = commandQueue.bolus(info, null)
+        assertThat(queued).isTrue()
+    }
+
+    @Test
+    fun `working mode allows all commands`() = runTest {
+        stubActiveMode(app.aaps.core.data.model.RM.Mode.CLOSED_LOOP)
+        assertThat(commandQueue.tempBasalAbsolute(1.5, 30, true, validProfile, PumpSync.TemporaryBasalType.NORMAL, null)).isTrue()
+        assertThat(commandQueue.cancelTempBasal(true, false, null)).isTrue()
+    }
+
+    private suspend fun stubActiveMode(mode: app.aaps.core.data.model.RM.Mode) {
+        whenever(persistenceLayer.getRunningModeActiveAt(anyLong())).thenReturn(
+            app.aaps.core.data.model.RM(timestamp = 0, mode = mode, duration = 0L)
+        )
+        // Resource strings used by the gate's rejection comment.
+        whenever(rh.gs(app.aaps.core.ui.R.string.pump_disconnected)).thenReturn("pump disconnected")
+        whenever(rh.gs(app.aaps.core.ui.R.string.loopsuspended)).thenReturn("loop suspended")
+        whenever(rh.gs(app.aaps.core.ui.R.string.pumpsuspended)).thenReturn("pump suspended")
     }
 }

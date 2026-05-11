@@ -2,14 +2,8 @@ package app.aaps.pump.tandem.mobi
 
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import androidx.preference.Preference
-import androidx.preference.PreferenceCategory
-import androidx.preference.PreferenceManager
-import androidx.preference.PreferenceScreen
-import androidx.room.util.joinIntoString
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.PumpType
@@ -22,6 +16,7 @@ import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.Pump
 import app.aaps.core.interfaces.pump.PumpEnactResult
@@ -43,11 +38,8 @@ import kotlinx.coroutines.runBlocking
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.withActivity
 import app.aaps.core.keys.interfaces.withEntriesProvider
+import app.aaps.core.ui.compose.icons.IcPluginTMobi
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
-import app.aaps.core.validators.preferences.AdaptiveIntPreference
-import app.aaps.core.validators.preferences.AdaptiveListPreference
-import app.aaps.core.validators.preferences.AdaptiveStringPreference
-import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import app.aaps.implementation.pump.PumpEnactResultObject
 import app.aaps.pump.tandem.R
 import app.aaps.pump.common.PumpPluginAbstract
@@ -57,7 +49,6 @@ import app.aaps.pump.common.sync.PumpSyncStorage
 import app.aaps.pump.common.utils.ProfileUtil
 import app.aaps.pump.tandem.common.concurrency.PumpAvailabilitySync
 import app.aaps.pump.tandem.common.concurrency.PumpDispatcherScope
-import app.aaps.pump.tandem.common.concurrency.PumpUnavailableException
 import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.concurrency.cancelBolus
 import app.aaps.pump.tandem.common.concurrency.cancelTemporaryBasal
@@ -76,7 +67,6 @@ import app.aaps.pump.tandem.common.concurrency.setTemporaryBasal
 import app.aaps.pump.tandem.common.concurrency.setTime
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 import app.aaps.pump.common.R as Rc
 
 import app.aaps.pump.common.defs.*
@@ -118,15 +108,12 @@ import app.aaps.pump.tandem.common.keys.TandemIntentPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
-import app.aaps.pump.tandem.common.util.AdaptiveIntentPreference
-import app.aaps.pump.tandem.mobi.ui.TandemMobiPumpFragment
 import app.aaps.pump.tandem.mobi.ui.TandemUiController
 import app.aaps.pump.tandem.mobi.ui.overview.MobiComposeContent
 import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import io.reactivex.rxjava3.kotlin.plusAssign
-import kotlinx.coroutines.flow.StateFlow
 
 import javax.inject.Inject
 import javax.inject.Provider
@@ -162,7 +149,8 @@ class TandemMobiPumpPlugin @Inject constructor(
     val historyRetriever: HistoryRetriever,
     val tandemUiController: TandemUiController,
     val resourceHelper: ResourceHelper,
-    pumpEnactResultProvider: Provider<PumpEnactResult>
+    pumpEnactResultProvider: Provider<PumpEnactResult>,
+    bolusProgressData: BolusProgressData,
 ) : PumpPluginAbstract(
     pluginDescription = PluginDescription() //
         .mainType(PluginType.PUMP) //
@@ -176,10 +164,10 @@ class TandemMobiPumpPlugin @Inject constructor(
             )
         }
         //.fragmentClass(TandemMobiPumpFragment::class.java.name)
-        .pluginIcon(app.aaps.core.ui.R.drawable.ic_tmobi_128)
+        .icon(IcPluginTMobi)
         .pluginName(R.string.tandem_name_mobi)
         .shortName(R.string.tandem_name_mobi_short)
-        .preferencesId(PluginDescription.PREFERENCE_SCREEN)
+        //.preferencesId(PluginDescription.PREFERENCE_SCREEN)  // TODO dev4 preferences ????
         .description(R.string.description_pump_tandem_mobi),
     pumpType = PumpType.TANDEM_MOBI_BT,
     rh = rh,
@@ -198,6 +186,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     decimalFormatter = decimalFormatter,
     //instantiator = instantiator,
     pumpEnactResultProvider = pumpEnactResultProvider,
+    bolusProgressData = bolusProgressData,  // TODO dev4 no idea what this is used for or how to integrate
     ownPreferences = listOf(
         TandemLongNonPreferenceKey::class.java,
         TandemStringPreferenceKey::class.java,
@@ -232,34 +221,34 @@ class TandemMobiPumpPlugin @Inject constructor(
         super.onStart()
     }
 
-
-    override fun updatePreferenceSummary(pref: Preference) {
-        super.updatePreferenceSummary(pref)
-        if (pref.key == TandemStringPreferenceKey.PumpAddress.key) {
-            val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpAddress, null)
-                //sp.getStringOrNull(R.string.key_tandem_address, null)
-            pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
-            aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump address changed (this means bonding/unbonding is happening)")
-        } else if (pref.key == TandemStringPreferenceKey.PumpSerial.key) {
-            val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpSerial, null)
-                //sp.getStringOrNull(R.string.key_tandem_serial, null)
-            pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
-            aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump serial changed (this means bonding/unbonding is happening)")
-        } else if (pref.key == TandemStringPreferenceKey.SharedConnectionData.key) {
-            aapsLogger.error(TAG, "TANDEMDBG: updatePreferenceSummary for SharedConnectionData returned. ")
-            if (tandemService!!.hasConfigurationChanged()) {
-                tandemService!!.reconnectWithDifferentConnectionData()
-            }
-        } else if (pref.key == TandemStringPreferenceKey.QuickBolusTypePref.key) {
-            val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.QuickBolusTypePref, null)
-            aapsLogger.error(LTag.PUMP, "Quick Bolus Setting changed: $value")
-            if (value!=null && value.isNotEmpty()) {
-                newQuickBolusType = QuickBolusType.valueOf(value)
-                scheduleNextRefreshAtSameTimeAsOtherType(refreshType = PumpDataRefreshType.Custom_2,
-                                                         refreshTypeToCopy = PumpDataRefreshType.PumpStatus)
-            }
-        }
-    }
+    // TODO dev4
+    // override fun updatePreferenceSummary(pref: Preference) {
+    //     super.updatePreferenceSummary(pref)
+    //     if (pref.key == TandemStringPreferenceKey.PumpAddress.key) {
+    //         val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpAddress, null)
+    //             //sp.getStringOrNull(R.string.key_tandem_address, null)
+    //         pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
+    //         aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump address changed (this means bonding/unbonding is happening)")
+    //     } else if (pref.key == TandemStringPreferenceKey.PumpSerial.key) {
+    //         val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpSerial, null)
+    //             //sp.getStringOrNull(R.string.key_tandem_serial, null)
+    //         pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
+    //         aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump serial changed (this means bonding/unbonding is happening)")
+    //     } else if (pref.key == TandemStringPreferenceKey.SharedConnectionData.key) {
+    //         aapsLogger.error(TAG, "TANDEMDBG: updatePreferenceSummary for SharedConnectionData returned. ")
+    //         if (tandemService!!.hasConfigurationChanged()) {
+    //             tandemService!!.reconnectWithDifferentConnectionData()
+    //         }
+    //     } else if (pref.key == TandemStringPreferenceKey.QuickBolusTypePref.key) {
+    //         val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.QuickBolusTypePref, null)
+    //         aapsLogger.error(LTag.PUMP, "Quick Bolus Setting changed: $value")
+    //         if (value!=null && value.isNotEmpty()) {
+    //             newQuickBolusType = QuickBolusType.valueOf(value)
+    //             scheduleNextRefreshAtSameTimeAsOtherType(refreshType = PumpDataRefreshType.Custom_2,
+    //                                                      refreshTypeToCopy = PumpDataRefreshType.PumpStatus)
+    //         }
+    //     }
+    // }
 
     var newQuickBolusType : QuickBolusType? = null
 
@@ -994,19 +983,19 @@ class TandemMobiPumpPlugin @Inject constructor(
                     is AlertStatusDto -> {
                         if (!valueOfResponse.alerts.isEmpty()) {
                             notificationFound = true
-                            break;
+                            break
                         }
                     }
                     is AlarmStatusDto -> {
                         if (!valueOfResponse.alarms.isEmpty()) {
                             notificationFound = true
-                            break;
+                            break
                         }
                     }
                     is MalfunctionStatusDto -> {
                         if (valueOfResponse.hasMalfunction() && !valueOfResponse.malfunctionMatchesActiveAlertOrAlarm) {
                             notificationFound = true
-                            break;
+                            break
                         }
                     }
                 }
@@ -1710,7 +1699,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 PumpDataRefreshType.RemainingInsulin -> {
                     val remaining = pumpStatus.reservoirRemainingUnits
 
-                    // TODO(jwoglom): why?
+                    // TODO(jwoglom): why? A:Andy because we want to have more frequent refreshes when we are getting to end of line
                     if (remaining > 50) 60 else if (remaining > 20) 30 else 15
                 }
                 PumpDataRefreshType.BatteryStatus    -> {
@@ -1789,180 +1778,181 @@ class TandemMobiPumpPlugin @Inject constructor(
             )
         )
 
+    // TODO dev4
     // TODO: Remove after full migration to Compose preferences (getPreferenceScreenContent)
-    override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
-        aapsLogger.info(TAG, "addPreferenceScreen: preferenceManager=$preferenceManager, parent=$parent, requiredKey=$requiredKey")
-        if (requiredKey != null) return
-
-        val qeFilterEntries = arrayOf<CharSequence>(rh.gs(QualifyingEventsFilter.ALL.friendlyName),
-                                             rh.gs(QualifyingEventsFilter.AAPS_RELEVANT.friendlyName))
-        val qeRangeEntries = arrayOf<CharSequence>(rh.gs(QualifyingEventsRange.LAST_15_ITEMS.friendlyName),
-                                                   rh.gs(QualifyingEventsRange.LAST_3_HOURS.friendlyName),
-                                                   rh.gs(QualifyingEventsRange.LAST_6_HOURS.friendlyName),
-                                                   rh.gs(QualifyingEventsRange.LAST_12_HOURS.friendlyName),
-                                                   rh.gs(QualifyingEventsRange.LAST_24_HOURS.friendlyName))
-
-        val quickBolusEntries = arrayOf<CharSequence>(rh.gs(QuickBolusType.DISABLED.friendlyName),
-                                                      rh.gs(QuickBolusType.UNITS_0_5.friendlyName),
-                                                      rh.gs(QuickBolusType.UNITS_1_0.friendlyName),
-                                                      rh.gs(QuickBolusType.UNITS_2_O.friendlyName),
-                                                      rh.gs(QuickBolusType.UNITS_5_0.friendlyName),
-                                                      rh.gs(QuickBolusType.CARBS_2G.friendlyName),
-                                                      rh.gs(QuickBolusType.CARBS_5G.friendlyName),
-                                                      rh.gs(QuickBolusType.CARBS_10G.friendlyName),
-                                                      rh.gs(QuickBolusType.CARBS_15G.friendlyName))
-
-        val category = PreferenceCategory(context)
-        parent.addPreference(category)
-        category.apply {
-            key = "tandem_tmobi_settings"
-            title = rh.gs(R.string.tandem_name_mobi)
-            initialExpandedChildrenCount = 0
-
-            //
-            // <EditTextPreference
-            // android:defaultValue="00000000"
-            // android:key="@string/key_tandem_serial"
-            // android:selectAllOnFocus="true"
-            // android:singleLine="false"
-            // android:enabled="false"
-            // android:shouldDisableView="false"
-            // android:title="@string/pump_serial_number"
-            // />
-            // <!--            validate:customRegexp="@string/eightdigitnumber"-->
-            // <!--            validate:testErrorString="@string/error_mustbe8digitnumber"-->
-            // <!--            validate:testType="regexp" -->
-            //
-
-            // TODO enabled false doesn't work/exist
-            // addPreference(
-            //     AdaptiveStringPreference(
-            //         ctx = context,
-            //         stringKey = TandemStringPreferenceKey.PumpSerial,
-            //         title = R.string.pump_serial_number
-            //     )
-            //     // singleLine="false", selectAllOnFocus="true"
-            // )
-
-            addPreference(
-                AdaptiveSwitchPreference(
-                    ctx = context,
-                    booleanKey = TandemBooleanPreferenceKey.UseSharedConnection,
-
-                    title = R.string.tandem_cfg_use_shared_connection,
-                    summary = R.string.tandem_cfg_use_shared_connection_summary
-                )
-            )
-
-            addPreference(
-                AdaptiveStringPreference(
-                    ctx = context,
-                    stringKey = TandemStringPreferenceKey.SharedConnectionData,
-
-                    title = R.string.tandem_cfg_shared_connection_data,
-                    summary = R.string.tandem_cfg_shared_connection_data_summary
-                )
-                // singleLine="false", selectAllOnFocus="true"
-            )
-
-            // TODO the AAPS core AdaptiveIntentPreference doesn't work,
-            // we have forked it in the tandem module with added null pointer checks
-            addPreference(
-                AdaptiveIntentPreference(
-                    ctx = context,
-                    intentKey = TandemIntentPreferenceKey.PumpPairing,
-                    title = R.string.tandem_pump_configuration,
-                    summary = R.string.tandem_pump_configuration_subtitle,
-                    intent = Intent(context, TandemMobiConnectionWizardActivity::class.java)
-                )
-            )
-
-            //
-            // <Preference
-            // android:enabled="false"
-            // android:key="@string/key_tandem_address"
-            // android:summary=""
-            // android:title="Tandem Configuration">
-            // <intent android:action="app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity" />
-            // </Preference>
-            //
-
-            addPreference(
-                AdaptiveIntPreference(
-                    ctx = context,
-                    intKey = TandemIntPreferenceKey.MaxBolus,
-                    title = R.string.tandem_pump_max_bolus
-
-                )
-            )
-
-            addPreference(
-                AdaptiveIntPreference(
-                    ctx = context,
-                    intKey = TandemIntPreferenceKey.MaxBasal,
-                    title = R.string.tandem_pump_max_basal
-                )
-            )
-
-            addPreference(
-                AdaptiveListPreference(
-                    ctx = context,
-                    stringKey = TandemStringPreferenceKey.QualifyingEventsFilterPref,
-                    title = R.string.data_qe_filter_description,
-                    entries = qeFilterEntries,
-                    entryValues = qeFilterValues
-                )
-            )
-
-            addPreference(
-                AdaptiveListPreference(
-                    ctx = context,
-                    stringKey = TandemStringPreferenceKey.QualifyingEventsRangePref,
-                    title = R.string.data_qe_range_description,
-                    entries = qeRangeEntries,
-                    entryValues = qeRangeValues
-                )
-            )
-
-            addPreference(
-                AdaptiveSwitchPreference(
-                    ctx = context,
-                    booleanKey = TandemBooleanPreferenceKey.DisplayDriverVersion,
-                    title = R.string.tandem_cfg_display_driver_version,
-                    summary = R.string.tandem_cfg_display_driver_version_summary
-                )
-            )
-
-            addPreference(
-                AdaptiveSwitchPreference(
-                    ctx = context,
-                    booleanKey = TandemBooleanPreferenceKey.ShowCargoOfUnknownEntries,
-                    title = R.string.tandem_cfg_show_cargo_of_unknown_logs,
-                    summary = R.string.tandem_cfg_show_cargo_of_unknown_logs_summary
-                )
-            )
-
-            addPreference(
-                AdaptiveSwitchPreference(
-                    ctx = context,
-                    booleanKey = TandemBooleanPreferenceKey.AutoConfirmLowBasalDelivery,
-                    title = R.string.tandem_cfg_auto_confirm_low_basal_delivery,
-                    summary = R.string.tandem_cfg_auto_confirm_low_basal_delivery_summary
-                )
-            )
-
-            addPreference(
-                AdaptiveListPreference(
-                    ctx = context,
-                    stringKey = TandemStringPreferenceKey.QuickBolusTypePref,
-                    title = R.string.pump_quick_bolus_description,
-                    entries = quickBolusEntries,
-                    entryValues = quickBolusValues
-                )
-            )
-        }
-
-    }
+    // override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
+    //     aapsLogger.info(TAG, "addPreferenceScreen: preferenceManager=$preferenceManager, parent=$parent, requiredKey=$requiredKey")
+    //     if (requiredKey != null) return
+    //
+    //     val qeFilterEntries = arrayOf<CharSequence>(rh.gs(QualifyingEventsFilter.ALL.friendlyName),
+    //                                          rh.gs(QualifyingEventsFilter.AAPS_RELEVANT.friendlyName))
+    //     val qeRangeEntries = arrayOf<CharSequence>(rh.gs(QualifyingEventsRange.LAST_15_ITEMS.friendlyName),
+    //                                                rh.gs(QualifyingEventsRange.LAST_3_HOURS.friendlyName),
+    //                                                rh.gs(QualifyingEventsRange.LAST_6_HOURS.friendlyName),
+    //                                                rh.gs(QualifyingEventsRange.LAST_12_HOURS.friendlyName),
+    //                                                rh.gs(QualifyingEventsRange.LAST_24_HOURS.friendlyName))
+    //
+    //     val quickBolusEntries = arrayOf<CharSequence>(rh.gs(QuickBolusType.DISABLED.friendlyName),
+    //                                                   rh.gs(QuickBolusType.UNITS_0_5.friendlyName),
+    //                                                   rh.gs(QuickBolusType.UNITS_1_0.friendlyName),
+    //                                                   rh.gs(QuickBolusType.UNITS_2_O.friendlyName),
+    //                                                   rh.gs(QuickBolusType.UNITS_5_0.friendlyName),
+    //                                                   rh.gs(QuickBolusType.CARBS_2G.friendlyName),
+    //                                                   rh.gs(QuickBolusType.CARBS_5G.friendlyName),
+    //                                                   rh.gs(QuickBolusType.CARBS_10G.friendlyName),
+    //                                                   rh.gs(QuickBolusType.CARBS_15G.friendlyName))
+    //
+    //     val category = PreferenceCategory(context)
+    //     parent.addPreference(category)
+    //     category.apply {
+    //         key = "tandem_tmobi_settings"
+    //         title = rh.gs(R.string.tandem_name_mobi)
+    //         initialExpandedChildrenCount = 0
+    //
+    //         //
+    //         // <EditTextPreference
+    //         // android:defaultValue="00000000"
+    //         // android:key="@string/key_tandem_serial"
+    //         // android:selectAllOnFocus="true"
+    //         // android:singleLine="false"
+    //         // android:enabled="false"
+    //         // android:shouldDisableView="false"
+    //         // android:title="@string/pump_serial_number"
+    //         // />
+    //         // <!--            validate:customRegexp="@string/eightdigitnumber"-->
+    //         // <!--            validate:testErrorString="@string/error_mustbe8digitnumber"-->
+    //         // <!--            validate:testType="regexp" -->
+    //         //
+    //
+    //         // TODO enabled false doesn't work/exist
+    //         // addPreference(
+    //         //     AdaptiveStringPreference(
+    //         //         ctx = context,
+    //         //         stringKey = TandemStringPreferenceKey.PumpSerial,
+    //         //         title = R.string.pump_serial_number
+    //         //     )
+    //         //     // singleLine="false", selectAllOnFocus="true"
+    //         // )
+    //
+    //         addPreference(
+    //             AdaptiveSwitchPreference(
+    //                 ctx = context,
+    //                 booleanKey = TandemBooleanPreferenceKey.UseSharedConnection,
+    //
+    //                 title = R.string.tandem_cfg_use_shared_connection,
+    //                 summary = R.string.tandem_cfg_use_shared_connection_summary
+    //             )
+    //         )
+    //
+    //         addPreference(
+    //             AdaptiveStringPreference(
+    //                 ctx = context,
+    //                 stringKey = TandemStringPreferenceKey.SharedConnectionData,
+    //
+    //                 title = R.string.tandem_cfg_shared_connection_data,
+    //                 summary = R.string.tandem_cfg_shared_connection_data_summary
+    //             )
+    //             // singleLine="false", selectAllOnFocus="true"
+    //         )
+    //
+    //         // TODO the AAPS core AdaptiveIntentPreference doesn't work,
+    //         // we have forked it in the tandem module with added null pointer checks
+    //         addPreference(
+    //             AdaptiveIntentPreference(
+    //                 ctx = context,
+    //                 intentKey = TandemIntentPreferenceKey.PumpPairing,
+    //                 title = R.string.tandem_pump_configuration,
+    //                 summary = R.string.tandem_pump_configuration_subtitle,
+    //                 intent = Intent(context, TandemMobiConnectionWizardActivity::class.java)
+    //             )
+    //         )
+    //
+    //         //
+    //         // <Preference
+    //         // android:enabled="false"
+    //         // android:key="@string/key_tandem_address"
+    //         // android:summary=""
+    //         // android:title="Tandem Configuration">
+    //         // <intent android:action="app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity" />
+    //         // </Preference>
+    //         //
+    //
+    //         addPreference(
+    //             AdaptiveIntPreference(
+    //                 ctx = context,
+    //                 intKey = TandemIntPreferenceKey.MaxBolus,
+    //                 title = R.string.tandem_pump_max_bolus
+    //
+    //             )
+    //         )
+    //
+    //         addPreference(
+    //             AdaptiveIntPreference(
+    //                 ctx = context,
+    //                 intKey = TandemIntPreferenceKey.MaxBasal,
+    //                 title = R.string.tandem_pump_max_basal
+    //             )
+    //         )
+    //
+    //         addPreference(
+    //             AdaptiveListPreference(
+    //                 ctx = context,
+    //                 stringKey = TandemStringPreferenceKey.QualifyingEventsFilterPref,
+    //                 title = R.string.data_qe_filter_description,
+    //                 entries = qeFilterEntries,
+    //                 entryValues = qeFilterValues
+    //             )
+    //         )
+    //
+    //         addPreference(
+    //             AdaptiveListPreference(
+    //                 ctx = context,
+    //                 stringKey = TandemStringPreferenceKey.QualifyingEventsRangePref,
+    //                 title = R.string.data_qe_range_description,
+    //                 entries = qeRangeEntries,
+    //                 entryValues = qeRangeValues
+    //             )
+    //         )
+    //
+    //         addPreference(
+    //             AdaptiveSwitchPreference(
+    //                 ctx = context,
+    //                 booleanKey = TandemBooleanPreferenceKey.DisplayDriverVersion,
+    //                 title = R.string.tandem_cfg_display_driver_version,
+    //                 summary = R.string.tandem_cfg_display_driver_version_summary
+    //             )
+    //         )
+    //
+    //         addPreference(
+    //             AdaptiveSwitchPreference(
+    //                 ctx = context,
+    //                 booleanKey = TandemBooleanPreferenceKey.ShowCargoOfUnknownEntries,
+    //                 title = R.string.tandem_cfg_show_cargo_of_unknown_logs,
+    //                 summary = R.string.tandem_cfg_show_cargo_of_unknown_logs_summary
+    //             )
+    //         )
+    //
+    //         addPreference(
+    //             AdaptiveSwitchPreference(
+    //                 ctx = context,
+    //                 booleanKey = TandemBooleanPreferenceKey.AutoConfirmLowBasalDelivery,
+    //                 title = R.string.tandem_cfg_auto_confirm_low_basal_delivery,
+    //                 summary = R.string.tandem_cfg_auto_confirm_low_basal_delivery_summary
+    //             )
+    //         )
+    //
+    //         addPreference(
+    //             AdaptiveListPreference(
+    //                 ctx = context,
+    //                 stringKey = TandemStringPreferenceKey.QuickBolusTypePref,
+    //                 title = R.string.pump_quick_bolus_description,
+    //                 entries = quickBolusEntries,
+    //                 entryValues = quickBolusValues
+    //             )
+    //         )
+    //     }
+    //
+    // }
 
 
 

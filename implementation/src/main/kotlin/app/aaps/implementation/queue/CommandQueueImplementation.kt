@@ -1,12 +1,10 @@
 package app.aaps.implementation.queue
 
 import android.content.Context
-import android.content.Intent
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.SystemClock
 import android.text.Spanned
-import androidx.appcompat.app.AppCompatActivity
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkInfo
@@ -40,7 +38,6 @@ import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.queue.CustomCommand
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventDismissBolusProgressIfRunning
 import app.aaps.core.interfaces.rx.events.EventMobileToWear
 import app.aaps.core.interfaces.rx.events.EventProfileChangeRequested
 import app.aaps.core.interfaces.rx.weardata.EventData
@@ -51,6 +48,7 @@ import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.getCustomizedName
 import app.aaps.core.objects.profile.ProfileSealed
+import app.aaps.core.objects.runningMode.PumpCommandGate
 import app.aaps.core.utils.HtmlHelper
 import app.aaps.implementation.R
 import app.aaps.implementation.queue.commands.CommandBolus
@@ -95,7 +93,6 @@ class CommandQueueImplementation @Inject constructor(
     private val constraintChecker: ConstraintsChecker,
     private val profileFunction: ProfileFunction,
     private val activePlugin: ActivePlugin,
-    private val context: Context,
     private val config: Config,
     private val dateUtil: DateUtil,
     private val fabricPrivacy: FabricPrivacy,
@@ -106,7 +103,8 @@ class CommandQueueImplementation @Inject constructor(
     private val pumpEnactResultProvider: Provider<PumpEnactResult>,
     private val jobName: CommandQueueName,
     private val workManager: WorkManager,
-    @ApplicationScope private val appScope: CoroutineScope
+    @ApplicationScope private val appScope: CoroutineScope,
+    private val bolusProgressData: BolusProgressData
 ) : CommandQueue {
 
     internal var handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
@@ -166,6 +164,40 @@ class CommandQueueImplementation @Inject constructor(
 
     private fun executingNowError(): PumpEnactResult =
         pumpEnactResultProvider.get().success(false).enacted(false).comment(R.string.executing_right_now)
+
+    /**
+     * Running-mode gate: reject commands that contradict the currently active running mode.
+     * Returns true if the command was rejected (caller should return false); false if allowed.
+     * Fails open on read errors — the gate is a belt, not the only line; upstream checks already
+     * handle most suspended-mode paths in [LoopPlugin.invoke] and [applySMBRequest].
+     */
+    private fun rejectedByRunningModeGate(kind: PumpCommandGate.CommandKind, callback: Callback?): Boolean {
+        val mode = try {
+            runBlocking { persistenceLayer.getRunningModeActiveAt(dateUtil.now()) }.mode
+        } catch (e: Throwable) {
+            aapsLogger.warn(LTag.PUMPQUEUE, "Running-mode gate: failed to read active mode, allowing command: ${e.message}")
+            return false
+        }
+        val decision = PumpCommandGate.check(mode, kind)
+        if (decision is PumpCommandGate.Decision.Reject) {
+            val commentRes = when (decision.reason) {
+                PumpCommandGate.Reason.PUMP_DISCONNECTED       -> app.aaps.core.ui.R.string.pump_disconnected
+                PumpCommandGate.Reason.LOOP_SUSPENDED_DST,
+                PumpCommandGate.Reason.SUPER_BOLUS_ACTIVE      -> app.aaps.core.ui.R.string.loopsuspended
+
+                PumpCommandGate.Reason.PUMP_REPORTED_SUSPENDED -> app.aaps.core.ui.R.string.pumpsuspended
+            }
+            aapsLogger.debug(
+                LTag.PUMPQUEUE,
+                "Command rejected by running-mode gate: mode=$mode, kind=$kind, reason=${decision.reason}"
+            )
+            callback?.result(
+                pumpEnactResultProvider.get().success(false).enacted(false).comment(commentRes)
+            )?.run()
+            return true
+        }
+        return false
+    }
 
     override fun isRunning(type: CommandType): Boolean = performing?.commandType == type
 
@@ -228,6 +260,19 @@ class CommandQueueImplementation @Inject constructor(
             for (i in queue.indices) {
                 queue[i].cancel()
 
+            }
+            queue.clear()
+        }
+    }
+
+    @Synchronized
+    override fun completeAllAsNoOp(commentResId: Int) {
+        performing = null
+        synchronized(queue) {
+            for (i in queue.indices) {
+                queue[i].callback?.result(
+                    pumpEnactResultProvider.get().success(true).enacted(false).comment(commentResId)
+                )?.run()
             }
             queue.clear()
         }
@@ -323,6 +368,8 @@ class CommandQueueImplementation @Inject constructor(
             }
 
         }
+        // Running-mode gate: reject bolus if current mode forbids new delivery.
+        if (rejectedByRunningModeGate(PumpCommandGate.CommandKind.BOLUS, callback)) return false
         val type = if (detailedBolusInfo.bolusType == BS.Type.SMB) CommandType.SMB_BOLUS else CommandType.BOLUS
         if (type == CommandType.SMB_BOLUS) {
             if (bolusInQueue()) {
@@ -349,15 +396,12 @@ class CommandQueueImplementation @Inject constructor(
         detailedBolusInfo.carbs =
             constraintChecker.applyCarbsConstraints(ConstraintObject(detailedBolusInfo.carbs.toInt(), aapsLogger)).value().toDouble()
         // add new command to queue
-        BolusProgressData.set(detailedBolusInfo.insulin, isSMB = detailedBolusInfo.bolusType === BS.Type.SMB, id = detailedBolusInfo.id, isPriming = detailedBolusInfo.bolusType == BS.Type.PRIMING)
+        bolusProgressData.start(detailedBolusInfo.insulin, isSMB = detailedBolusInfo.bolusType === BS.Type.SMB, isPriming = detailedBolusInfo.bolusType == BS.Type.PRIMING)
         if (detailedBolusInfo.bolusType == BS.Type.SMB) {
             add(CommandSMBBolus(injector, detailedBolusInfo, callback))
         } else {
             add(CommandBolus(injector, detailedBolusInfo, callback, type, carbsRunnable))
-            if (type == CommandType.BOLUS) { // Bring up bolus progress dialog (start here, so the dialog is shown when the bolus is requested,
-                // not when the Bolus command is starting. The command closes the dialog upon completion).
-                showBolusProgressDialog(detailedBolusInfo)
-                // Notify Wear about upcoming bolus
+            if (type == CommandType.BOLUS) { // Notify Wear about upcoming bolus
                 rxBus.send(EventMobileToWear(EventData.BolusProgress(percent = 0, status = rh.gs(app.aaps.core.ui.R.string.goingtodeliver, detailedBolusInfo.insulin))))
             }
         }
@@ -382,8 +426,10 @@ class CommandQueueImplementation @Inject constructor(
 
     @Synchronized
     override fun cancelAllBoluses(id: Long?) {
-        if (!isRunning(CommandType.BOLUS)) {
-            rxBus.send(EventDismissBolusProgressIfRunning(true, id))
+        if (isRunning(CommandType.BOLUS)) {
+            bolusProgressData.stopPressed()
+        } else {
+            bolusProgressData.clear()
         }
         removeAll(CommandType.BOLUS)
         removeAll(CommandType.SMB_BOLUS)
@@ -392,6 +438,8 @@ class CommandQueueImplementation @Inject constructor(
 
     // returns true if command is queued
     override fun tempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int, enforceNew: Boolean, profile: Profile, tbrType: PumpSync.TemporaryBasalType, callback: Callback?): Boolean {
+        val gateKind = if (absoluteRate == 0.0) PumpCommandGate.CommandKind.TEMP_BASAL_ZERO else PumpCommandGate.CommandKind.TEMP_BASAL_NONZERO
+        if (rejectedByRunningModeGate(gateKind, callback)) return false
         if (!enforceNew && isRunning(CommandType.TEMPBASAL)) {
             callback?.result(executingNowError())?.run()
             return false
@@ -407,6 +455,8 @@ class CommandQueueImplementation @Inject constructor(
 
     // returns true if command is queued
     override fun tempBasalPercent(percent: Int, durationInMinutes: Int, enforceNew: Boolean, profile: Profile, tbrType: PumpSync.TemporaryBasalType, callback: Callback?): Boolean {
+        val gateKind = if (percent == 0) PumpCommandGate.CommandKind.TEMP_BASAL_ZERO else PumpCommandGate.CommandKind.TEMP_BASAL_NONZERO
+        if (rejectedByRunningModeGate(gateKind, callback)) return false
         if (!enforceNew && isRunning(CommandType.TEMPBASAL)) {
             callback?.result(executingNowError())?.run()
             return false
@@ -422,6 +472,7 @@ class CommandQueueImplementation @Inject constructor(
 
     // returns true if command is queued
     override fun extendedBolus(insulin: Double, durationInMinutes: Int, callback: Callback?): Boolean {
+        if (rejectedByRunningModeGate(PumpCommandGate.CommandKind.EXTENDED_BOLUS, callback)) return false
         if (isRunning(CommandType.EXTENDEDBOLUS)) {
             callback?.result(executingNowError())?.run()
             return false
@@ -690,14 +741,4 @@ class CommandQueueImplementation @Inject constructor(
         return result
     }
 
-    private fun showBolusProgressDialog(detailedBolusInfo: DetailedBolusInfo) {
-        if (detailedBolusInfo.context != null) {
-            uiInteraction.runBolusProgressDialog((detailedBolusInfo.context as AppCompatActivity).supportFragmentManager)
-        } else {
-            val i = Intent()
-            i.setClass(context, uiInteraction.bolusProgressHelperActivity)
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(i)
-        }
-    }
 }

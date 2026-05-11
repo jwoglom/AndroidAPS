@@ -4,6 +4,7 @@ import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.PumpRate
 
 interface ConcentrationHelper {
+
     /**
      *  return true if default concentration (U100) is set, false if another concentration has been approved by user
      */
@@ -40,6 +41,20 @@ interface ConcentrationHelper {
      */
     fun basalRateString(rate: PumpRate, isAbsolute: Boolean, decimals: Int = 2): String
 
+    /**
+     * tbr rate with units in U/h if U100 (to be used within Pump driver only)
+     * i.e. "0.6 U/h @10h20 5/30'" or "E 2.6 U/h @10h20 5/30'"
+     * and with both value if other concentration: i.e. for U200 "0.6 U/h (0.3 CU/h) @10h20 5/30'"
+     *
+     * @param rate PumpRate
+     * @param startTime Long
+     * @param durationInMin Int
+     * @param isAbsolute Boolean
+     * @param isExtended Boolean
+     * @return String with units (U100) or with both units if not U100
+     */
+    fun basalTbrString(rate: PumpRate, startTime: Long, durationInMin: Int, isAbsolute: Boolean = true, isExtended: Boolean = false, decimals: Int = 2): String
+
     /** show bolus or reservoir level with units in U if U100 (to be used within Pump driver only)
      * i.e. "4 U", and with both value if other concentration: i.e. for U200 "4 U (2 CU)"
      *
@@ -52,10 +67,23 @@ interface ConcentrationHelper {
      * i.e. "4 U 5 min ago", and with both value if other concentration: i.e. for U200 "4 U (2 CU) 5 min ago"
      *
      * @param amount PumpInsulin
-     * @param ago String
-     * @return String with units (U100) or with both units if not U100
+     * @param lastBolusTime Long
+     * @return String with units (U100) or with both units if not U100 and ago if less than 6 hour ago, else null
      */
-    fun insulinAmountAgoString(amount: PumpInsulin, ago: String): String
+    fun insulinAmountAgoString(amount: PumpInsulin, lastBolusTime: Long): String?
+
+    /** show activebolus amount with totalamount, time and timeago with units in U if U100 (to be used within Pump driver only)
+     * i.e. "5 U/10 U @10h50 15/30'",
+     * and with both value if other concentration: i.e. for U200 "5 U/10 U (2.5 CU/5 CU)\n @10h50 15/30'" (2 rows to fit small screens)
+     * if duration is null ago will be calculated from now "5 U/10 U @10h50 (15')"
+     *
+     * @param amount PumpInsulin
+     * @param totalAmount PumpInsulin
+     * @param startTime Long
+     * @param durationInMin Int
+     * @return String with units (U100) or with both units if not U100 and ago if less than 6 hour ago, else null
+     */
+    fun insulinDeliveryAgoString(amount: PumpInsulin, totalAmount: PumpInsulin,startTime: Long, durationInMin: Int? = null): String
 
     /**
      * show insulinConcentration as a String i.e. "U100", "U200", ...
@@ -69,7 +97,7 @@ interface ConcentrationHelper {
      *
      * @param amount insulin amount in CU
      */
-    fun bolusWithVolume(amount:Double): String
+    fun bolusWithVolume(amount: Double): String
 
     /**
      * Show bolus with volume in µl after conversion due to concentration
@@ -78,19 +106,19 @@ interface ConcentrationHelper {
      *
      * @param amount insulin amount in IU
      */
-    fun bolusWithConvertedVolume(amount:Double): String
+    fun bolusWithConvertedVolume(amount: Double): String
 
-   /**
-     * show bolus Progress information (to be used within EventOverviewBolusProgress)
+    /**
+     * show bolus Progress information (to be used within BolusProgressData.updateProgress)
      *
-     * @param amount PumpInsulin
+     * @param delivered PumpInsulin
      */
     fun bolusProgressString(delivered: PumpInsulin, isPriming: Boolean = false): String
 
     /**
-     * show bolus Progress information for wear (to be used within EventOverviewBolusProgress)
+     * show bolus Progress information for wear (to be used within BolusProgressData.updateProgress)
      *
-     * @param amount PumpInsulin
+     * @param delivered PumpInsulin
      * @param total Double
      */
     fun bolusProgressString(delivered: PumpInsulin, total: Double, isPriming: Boolean = false): String

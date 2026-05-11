@@ -1,10 +1,7 @@
 package app.aaps.pump.eopatch
 
 import android.Manifest
-import android.content.Context
 import android.os.SystemClock
-import androidx.preference.PreferenceCategory
-import androidx.preference.PreferenceScreen
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
@@ -38,15 +35,13 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventAppInitialized
-import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.withEntries
+import app.aaps.core.ui.compose.icons.IcPluginEopatch
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
-import app.aaps.core.validators.preferences.AdaptiveListIntPreference
-import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import app.aaps.pump.eopatch.alarm.IAlarmManager
 import app.aaps.pump.eopatch.ble.IPatchManager
 import app.aaps.pump.eopatch.ble.PatchManagerExecutor
@@ -79,6 +74,7 @@ import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
 import kotlin.math.abs
+import kotlin.math.min
 
 @Singleton
 class EopatchPumpPlugin @Inject constructor(
@@ -101,7 +97,8 @@ class EopatchPumpPlugin @Inject constructor(
     private val normalBasalManager: NormalBasalManager,
     private val protectionCheck: ProtectionCheck,
     private val blePreCheck: BlePreCheck,
-    private val ch: ConcentrationHelper
+    private val ch: ConcentrationHelper,
+    private val bolusProgressData: BolusProgressData
 ) : PumpPluginBase(
     pluginDescription = PluginDescription()
         .mainType(PluginType.PUMP)
@@ -111,10 +108,9 @@ class EopatchPumpPlugin @Inject constructor(
                 blePreCheck = blePreCheck
             )
         }
-        .pluginIcon(app.aaps.core.ui.R.drawable.ic_eopatch2_128)
+        .icon(IcPluginEopatch)
         .pluginName(R.string.eopatch)
         .shortName(R.string.eopatch_shortname)
-        .preferencesId(PluginDescription.PREFERENCE_SCREEN)
         .description(R.string.eopatch_pump_description),
     ownPreferences = listOf(
         EopatchIntKey::class.java, EopatchBooleanKey::class.java, EopatchStringNonKey::class.java
@@ -347,12 +343,12 @@ class EopatchPumpPlugin @Inject constructor(
         do {
             SystemClock.sleep(100)
             if (patchManagerExecutor.patchConnectionState.isConnected) {
-                val delivering = preferenceManager.bolusCurrent.nowBolus.injected.toDouble()
-                rxBus.send(EventOverviewBolusProgress(ch, delivered = PumpInsulin(delivering), id = detailedBolusInfo.id))
+                val delivered = PumpInsulin(preferenceManager.bolusCurrent.nowBolus.injected.toDouble())
+                bolusProgressData.updateProgress(delivered = delivered)
             }
         } while (!preferenceManager.bolusCurrent.nowBolus.endTimeSynced && isSuccess)
 
-        rxBus.send(EventOverviewBolusProgress(rh, percent = 100, id = detailedBolusInfo.id))
+        bolusProgressData.updateProgress(100)
 
         detailedBolusInfo.insulin = preferenceManager.bolusCurrent.nowBolus.injected.toDouble()
         patchManager.addBolusToHistory(detailedBolusInfo)
@@ -371,7 +367,8 @@ class EopatchPumpPlugin @Inject constructor(
                 .subscribeOn(aapsSchedulers.io)
                 .observeOn(aapsSchedulers.main)
                 .subscribe {
-                    rxBus.send(EventOverviewBolusProgress(status = rh.gs(app.aaps.core.interfaces.R.string.bolus_delivered_successfully, (it.injectedBolusAmount * 0.05f)), id = BolusProgressData.id))
+                    val status = rh.gs(app.aaps.core.interfaces.R.string.bolus_delivered_successfully, (it.injectedBolusAmount * 0.05f))
+                    bolusProgressData.updateProgress(bolusProgressData.state.value?.percent ?: 100, status)
                 }
         )
     }
@@ -594,25 +591,4 @@ class EopatchPumpPlugin @Inject constructor(
         icon = pluginDescription.icon
     )
 
-    // TODO: Remove after full migration to Compose preferences (getPreferenceScreenContent)
-    override fun addPreferenceScreen(preferenceManager: androidx.preference.PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
-        if (requiredKey != null) return
-
-        val lowReservoirEntries = arrayOf<CharSequence>("10 U", "15 U", "20 U", "25 U", "30 U", "35 U", "40 U", "45 U", "50 U")
-        val lowReservoirValues = arrayOf<CharSequence>("10", "15", "20", "25", "30", "35", "40", "45", "50")
-        val expirationRemindersEntries =
-            arrayOf<CharSequence>("1 hr", "2 hr", "3 hr", "4 hr", "5 hr", "6 hr", "7 hr", "8 hr", "9 hr", "10 hr", "11 hr", "12 hr", "13 hr", "14 hr", "15 hr", "16 hr", "17 hr", "18 hr", "19 hr", "20 hr", "21 hr", "22 hr", "23 hr", "24 hr")
-        val expirationRemindersValues = arrayOf<CharSequence>("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24")
-
-        val category = PreferenceCategory(context)
-        parent.addPreference(category)
-        category.apply {
-            key = "eopatch_settings"
-            title = rh.gs(R.string.eopatch)
-            initialExpandedChildrenCount = 0
-            addPreference(AdaptiveListIntPreference(ctx = context, intKey = EopatchIntKey.LowReservoirReminder, title = R.string.low_reservoir, entries = lowReservoirEntries, entryValues = lowReservoirValues))
-            addPreference(AdaptiveListIntPreference(ctx = context, intKey = EopatchIntKey.ExpirationReminder, title = R.string.patch_expiration_reminders, entries = expirationRemindersEntries, entryValues = expirationRemindersValues))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = EopatchBooleanKey.BuzzerReminder, title = R.string.patch_buzzer_reminders))
-        }
-    }
 }

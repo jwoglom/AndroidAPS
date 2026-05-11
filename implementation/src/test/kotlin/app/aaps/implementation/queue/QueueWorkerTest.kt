@@ -8,6 +8,7 @@ import androidx.work.testing.TestListenableWorkerBuilder
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.objects.constraints.ConstraintObject
@@ -38,6 +39,7 @@ class QueueWorkerTest : TestBaseWithProfile() {
     @Mock lateinit var workManager: WorkManager
 
     private val testScope = CoroutineScope(Dispatchers.Unconfined)
+    private val bolusProgressData by lazy { BolusProgressData(ch, rh) }
 
     init {
         addInjector {
@@ -55,6 +57,7 @@ class QueueWorkerTest : TestBaseWithProfile() {
                 it.rh = rh
                 it.preferences = preferences
                 it.config = config
+                it.bolusProgressData = bolusProgressData
             }
         }
     }
@@ -67,8 +70,8 @@ class QueueWorkerTest : TestBaseWithProfile() {
         whenever(persistenceLayer.observeChanges(anyOrNull<Class<*>>())).thenReturn(emptyFlow())
         commandQueue = CommandQueueImplementation(
             injector, aapsLogger, rxBus, rh, constraintChecker,
-            profileFunction, activePlugin, context, config, dateUtil, fabricPrivacy,
-            uiInteraction, notificationManager, persistenceLayer, decimalFormatter, pumpEnactResultProvider, jobName, workManager, testScope
+            profileFunction, activePlugin, config, dateUtil, fabricPrivacy,
+            uiInteraction, notificationManager, persistenceLayer, decimalFormatter, pumpEnactResultProvider, jobName, workManager, testScope, bolusProgressData
         )
 
         val pumpDescription = PumpDescription()

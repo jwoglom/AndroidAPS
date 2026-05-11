@@ -77,15 +77,15 @@ class ResourceHelperTest: ResourceHelper {
         return false
     }
 
-    override fun gac(attributeId: Int): Int {
-        return -1
-    }
-
-    override fun gac(context: Context?, attributeId: Int): Int {
-        return -1
-    }
-
-    override fun getThemedCtx(context: Context): Context {
-        TODO("Not yet implemented")
-    }
+    // override fun gac(attributeId: Int): Int {
+    //     return -1
+    // }
+    //
+    // override fun gac(context: Context?, attributeId: Int): Int {
+    //     return -1
+    // }
+    //
+    // override fun getThemedCtx(context: Context): Context {
+    //     TODO("Not yet implemented")
+    // }
 }

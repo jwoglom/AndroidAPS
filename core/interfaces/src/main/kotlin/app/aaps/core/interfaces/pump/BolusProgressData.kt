@@ -1,67 +1,143 @@
 package app.aaps.core.interfaces.pump
 
+import app.aaps.core.interfaces.insulin.ConcentrationHelper
+import app.aaps.core.interfaces.resources.ResourceHelper
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import java.util.concurrent.atomic.AtomicLong
+import javax.inject.Inject
+import javax.inject.Singleton
+
 /**
- * Store data about ongoing bolus. Singleton is used to persist app swipe out.
- * Except `delivered` It's purely UI related because we want to be able restore progress
+ * Core-controlled bolus progress state.
+ *
+ * Lifecycle is managed by the command queue (start/complete/clear),
+ * pump drivers only report progress via [updateProgress].
  */
-object BolusProgressData {
+@Singleton
+class BolusProgressData @Inject constructor(
+    val ch: ConcentrationHelper,
+    val rh: ResourceHelper
+) {
+
+    private val _state = MutableStateFlow<BolusProgressState?>(null)
+    val state: StateFlow<BolusProgressState?> = _state.asStateFlow()
+
+    /** Generation counter — incremented on each [start], used to guard delayed [clearIfSameGeneration]. */
+    private val generation = AtomicLong(0)
+
+    /** Returns the current generation. Use with [clearIfSameGeneration] for delayed cleanup. */
+    val currentGeneration: Long get() = generation.get()
 
     /**
-     * Call this before popping up BolusProgressDialog
-     * @param insulin Initial bolus amount
-     * @param isSMB true for SMB bolus
-     * @param id ID from DetailedBolusInfo for bolus identification. Progress updates with different ID are ignored
+     * Called by CommandQueue before bolus delivery starts.
      */
-    fun set(insulin: Double, isSMB: Boolean, id: Long, isPriming: Boolean = false) {
-        this.insulin = insulin
-        this.isSMB = isSMB
-        this.id = id
-        this.isPriming = isPriming
-        delivered = 0.0
-        bolusEnded = false
-        stopPressed = false
-        status = ""
-        wearStatus = ""
-        percent = 0
+    fun start(insulin: Double, isSMB: Boolean, isPriming: Boolean = false) {
+        generation.incrementAndGet()
+        _state.value = BolusProgressState(
+            insulin = insulin,
+            isSMB = isSMB,
+            isPriming = isPriming,
+            percent = 0,
+            status = "",
+            wearStatus = "",
+            delivered = PumpInsulin(0.0),
+            stopPressed = false,
+            stopDeliveryEnabled = true
+        )
     }
 
     /**
-     * Initial bolus amount
+     * Called by pump drivers to report delivery progress.
+     * Purely informational — does not control dialog lifecycle.
      */
-    var insulin: Double = 0.0
+    fun updateProgress(percent: Int, status: String, delivered: PumpInsulin = PumpInsulin(0.0)) {
+        _state.update { it?.copy(percent = percent, status = status, wearStatus = status, delivered = delivered) }
+    }
 
     /**
-     * Actually delivered bolus amount.
-     * (May not be used by all pumps)
+     * Called by pump drivers to report delivery progress.
+     * Purely informational — does not control dialog lifecycle.
      */
-    var delivered: Double = 0.0
+    fun updateProgress(percent: Int) {
+        _state.value?.insulin?.let { insulin ->
+            val delivered = PumpInsulin(insulin * percent / 100 )
+            val status = if (percent < 100) ch.bolusProgressString(delivered) else rh.gs(app.aaps.core.interfaces.R.string.bolus_delivered_successfully, insulin)
+            val wearStatus = if (percent < 100) ch.bolusProgressString(delivered, insulin) else rh.gs(app.aaps.core.interfaces.R.string.bolus_delivered_successfully, insulin)
+            _state.update { it?.copy(percent = percent, status = status, wearStatus = wearStatus, delivered = delivered) }
+        }
+    }
 
     /**
-     * SMB flag
+     * Called by pump drivers to report delivery progress.
+     * Purely informational — does not control dialog lifecycle.
      */
-    var isSMB: Boolean = false
+    fun updateProgress(delivered: PumpInsulin) {
+        _state.value?.insulin?.let { insulin ->
+            val percent = (ch.fromPump(delivered) / insulin * 100).toInt().coerceAtMost(100)
+            val status = ch.bolusProgressString(delivered)
+            val wearStatus = ch.bolusProgressString(delivered,insulin)
+            _state.update { it?.copy(percent = percent, status = status, wearStatus = wearStatus, delivered = delivered) }
+        }
+    }
 
     /**
-     * PRIMING flag
+     * Called by pump drivers to enable/disable the stop button.
      */
-    var isPriming: Boolean = false
+    fun enableStopDelivery(enabled: Boolean) {
+        _state.update { it?.copy(stopDeliveryEnabled = enabled) }
+    }
 
     /**
-     * ID from DetailedBolusInfo
+     * Called when user presses the stop button.
      */
-    var id: Long = -1
+    fun stopPressed() {
+        _state.update { it?.copy(stopPressed = true) }
+    }
 
     /**
-     * Last received status update
+     * Check if user requested stop. Used by pump drivers.
      */
-    var status = ""
-    var wearStatus = ""
-    var percent = 0
-
-    var bolusEnded = false
+    val isStopPressed: Boolean get() = _state.value?.stopPressed == true
 
     /**
-     * set to true if user press STOP button
+     * Called by CommandQueue when pump reports delivery complete.
+     * Sets percent to 100. UI should show completion state.
+     * Call [clear] after a delay to dismiss.
      */
-    var stopPressed = false
+    fun complete() {
+        _state.update { it?.copy(percent = 100) }
+    }
+
+    /**
+     * Called by CommandQueue to dismiss the UI.
+     * Sets state to null — no bolus in progress.
+     */
+    fun clear() {
+        _state.value = null
+    }
+
+    /**
+     * Clears state only if the generation hasn't changed since [expectedGeneration] was captured.
+     * Used for delayed cleanup after bolus completion to avoid clearing a subsequent bolus's state.
+     */
+    fun clearIfSameGeneration(expectedGeneration: Long) {
+        if (generation.get() == expectedGeneration) {
+            _state.value = null
+        }
+    }
 }
+
+data class BolusProgressState(
+    val insulin: Double,
+    val isSMB: Boolean,
+    val isPriming: Boolean,
+    val percent: Int,
+    val status: String,
+    val wearStatus: String,
+    val delivered: PumpInsulin,
+    val stopPressed: Boolean,
+    val stopDeliveryEnabled: Boolean
+)

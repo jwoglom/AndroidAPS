@@ -33,11 +33,11 @@ android {
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:interfaces"))
-    implementation(project(":core:libraries"))
+    //implementation(project(":core:libraries"))
     implementation(project(":core:objects"))
     implementation(project(":core:utils"))
     implementation(project(":core:ui"))
-    implementation(project(":core:validators"))
+    //implementation(project(":core:validators"))
     implementation(project(":core:keys"))
     implementation(project(":implementation"))
 
@@ -47,10 +47,12 @@ dependencies {
     testImplementation(project(":shared:tests"))
     testImplementation(project(":shared:impl"))
 
-
-    api(libs.androidx.room)
     api(libs.androidx.room.runtime)
-    api(libs.androidx.room.rxjava3)
+    implementation(libs.androidx.room.rxjava3)
+
+    // api(libs.androidx.room)
+    // api(libs.androidx.room.runtime)
+    // api(libs.androidx.room.rxjava3)
 
     ksp(libs.androidx.room.compiler)
     ksp(libs.com.google.dagger.compiler)

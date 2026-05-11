@@ -5,17 +5,15 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.PumpInsulin
-import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.pump.dana.DanaPump
 import app.aaps.pump.danars.encryption.BleEncryption
 import javax.inject.Inject
+import kotlin.math.min
 
 class DanaRSPacketNotifyDeliveryRateDisplay @Inject constructor(
     private val aapsLogger: AAPSLogger,
     private val ch: ConcentrationHelper,
-    private val rxBus: RxBus,
+    private val bolusProgressData: BolusProgressData,
     private val danaPump: DanaPump
 ) : DanaRSPacket() {
 
@@ -27,9 +25,8 @@ class DanaRSPacketNotifyDeliveryRateDisplay @Inject constructor(
     override fun handleMessage(data: ByteArray) {
         val deliveredInsulin = byteArrayToInt(getBytes(data, DATA_START, 2)) / 100.0
         danaPump.bolusProgressLastTimeStamp = System.currentTimeMillis()
-        BolusProgressData.delivered = deliveredInsulin
         failed = deliveredInsulin < danaPump.bolusingDetailedBolusInfo!!.insulin
-        rxBus.send(EventOverviewBolusProgress(ch, delivered = PumpInsulin(deliveredInsulin), id = danaPump.bolusingDetailedBolusInfo?.id))
+        bolusProgressData.updateProgress(PumpInsulin(deliveredInsulin))
         aapsLogger.debug(LTag.PUMPCOMM, "Delivered insulin so far: $deliveredInsulin")
     }
 

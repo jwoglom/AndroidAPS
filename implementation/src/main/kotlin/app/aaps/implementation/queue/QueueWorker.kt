@@ -13,19 +13,19 @@ import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.VirtualPump
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventDismissBolusProgressIfRunning
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.rx.events.EventQueueChanged
+import app.aaps.core.interfaces.rx.events.EventShowSnackbar
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.LongNonKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.workflow.LoggingWorker
 import app.aaps.core.ui.R
-import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.core.utils.extensions.safeDisable
 import app.aaps.core.utils.extensions.safeEnable
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +43,7 @@ class QueueWorker internal constructor(
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var preferences: Preferences
     @Inject lateinit var config: Config
+    @Inject lateinit var bolusProgressData: BolusProgressData
 
     private var connectLogged = false
 
@@ -60,8 +61,8 @@ class QueueWorker internal constructor(
                 val secondsElapsed = (System.currentTimeMillis() - connectionStartTime) / 1000
                 val pump = activePlugin.activePump
                 if (!pump.isConfigured()) {
-                    aapsLogger.debug(LTag.PUMPQUEUE, "pump not configured - clearing queue")
-                    queue.clear()
+                    aapsLogger.debug(LTag.PUMPQUEUE, "pump not configured - completing queue as no-op")
+                    queue.completeAllAsNoOp(R.string.pump_not_configured)
                     rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTED))
                     return Result.success()
                 }
@@ -71,14 +72,14 @@ class QueueWorker internal constructor(
                             Manifest.permission.BLUETOOTH_SCAN
                         ) != PackageManager.PERMISSION_GRANTED
                     ) {
-                        ToastUtils.errorToast(context, R.string.need_connect_permission)
+                        rxBus.send(EventShowSnackbar(rh.gs(R.string.need_connect_permission), EventShowSnackbar.Type.Error))
                         aapsLogger.debug(LTag.PUMPQUEUE, "no permission")
                         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.CONNECTING))
                         SystemClock.sleep(5000)
                         continue
                     }
                 if (!pump.isConnected() && secondsElapsed > Constants.PUMP_MAX_CONNECTION_TIME_IN_SECONDS) {
-                    rxBus.send(EventDismissBolusProgressIfRunning(null, null))
+                    bolusProgressData.clear()
                     rxBus.send(EventPumpStatusChanged(rh.gs(R.string.connectiontimedout)))
                     aapsLogger.debug(LTag.PUMPQUEUE, "timed out")
                     pump.stopConnecting()

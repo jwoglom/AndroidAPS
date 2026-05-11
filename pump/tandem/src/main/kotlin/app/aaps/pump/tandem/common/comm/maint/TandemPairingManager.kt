@@ -337,7 +337,7 @@ class TandemPairingManager constructor(
         // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
 
-        MaterialAlertDialogBuilder(context, app.aaps.core.ui.R.style.DialogTheme)
+        MaterialAlertDialogBuilder(context /*, app.aaps.core.ui.R.style.DialogTheme*/)   // TODO dev4
             .setTitle(resourceHelper.gs(R.string.tandem_ble_config_pairing_title))
             .setMessage(resourceHelper.gs(R.string.tandem_ble_config_pairing_message, btName, btAddress))
             .setView(input)

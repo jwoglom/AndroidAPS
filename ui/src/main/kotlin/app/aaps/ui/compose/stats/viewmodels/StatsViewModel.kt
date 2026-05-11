@@ -1,6 +1,6 @@
 package app.aaps.ui.compose.stats.viewmodels
 
-import android.content.Context
+import androidx.collection.LongSparseArray
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
@@ -17,11 +17,9 @@ import app.aaps.core.interfaces.stats.DexcomTIR
 import app.aaps.core.interfaces.stats.DexcomTirCalculator
 import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.stats.TirCalculator
-import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.IntNonKey
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.ui.R
 import app.aaps.ui.activityMonitor.ActivityMonitor
 import app.aaps.ui.activityMonitor.ActivityStats
 import app.aaps.ui.compose.stats.CycleSeries
@@ -32,6 +30,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -49,15 +48,14 @@ class StatsViewModel @Inject constructor(
     private val activityMonitor: ActivityMonitor,
     private val persistenceLayer: PersistenceLayer,
     val rh: ResourceHelper,
-    val uiInteraction: UiInteraction,
     private val uel: UserEntryLogger,
     val dateUtil: DateUtil,
     val profileUtil: ProfileUtil,
     private val preferences: Preferences
 ) : ViewModel() {
 
-    val uiState: StateFlow<StatsUiState>
-        field = MutableStateFlow(StatsUiState())
+    private val _uiState = MutableStateFlow(StatsUiState())
+    val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
     /** Cached daily TDD entries sorted by timestamp descending (newest first) for cycle computation */
     private var cachedDailyTdds: List<TDD> = emptyList()
@@ -65,11 +63,11 @@ class StatsViewModel @Inject constructor(
 
     init {
         val savedOffset = preferences.get(IntNonKey.TddCycleOffset)
-        uiState.update { it.copy(tddCycleOffset = savedOffset) }
+        _uiState.update { it.copy(tddCycleOffset = savedOffset) }
         loadAllStats()
     }
 
-    private fun loadAllStats() {
+    fun loadAllStats() {
         loadTddStats()
         loadTirStats()
         loadDexcomTirStats()
@@ -78,20 +76,20 @@ class StatsViewModel @Inject constructor(
 
     private fun loadTddStats() {
         viewModelScope.launch {
-            uiState.update { it.copy(tddLoading = true) }
+            _uiState.update { it.copy(tddLoading = true) }
             val data = withContext(Dispatchers.IO) {
                 val tdds = tddCalculator.calculate(7, allowMissingDays = true)
                 val averageTdd = tddCalculator.averageTDD(tdds)
                 val todayTdd = tddCalculator.calculateToday()
                 TddStatsData(tdds = tdds, averageTdd = averageTdd, todayTdd = todayTdd)
             }
-            uiState.update { it.copy(tddStatsData = data, tddLoading = false) }
+            _uiState.update { it.copy(tddStatsData = data, tddLoading = false) }
         }
     }
 
     private fun loadTirStats() {
         viewModelScope.launch {
-            uiState.update { it.copy(tirLoading = true) }
+            _uiState.update { it.copy(tirLoading = true) }
             val data = withContext(Dispatchers.IO) {
                 val lowTirMgdl = Constants.STATS_RANGE_LOW_MMOL * Constants.MMOLL_TO_MGDL
                 val highTirMgdl = Constants.STATS_RANGE_HIGH_MMOL * Constants.MMOLL_TO_MGDL
@@ -115,66 +113,66 @@ class StatsViewModel @Inject constructor(
                     averageTit30 = tirCalculator.averageTIR(tit30)
                 )
             }
-            uiState.update { it.copy(tirStatsData = data, tirLoading = false) }
+            _uiState.update { it.copy(tirStatsData = data, tirLoading = false) }
         }
     }
 
     private fun loadDexcomTirStats() {
         viewModelScope.launch {
-            uiState.update { it.copy(dexcomTirLoading = true) }
+            _uiState.update { it.copy(dexcomTirLoading = true) }
             val data = withContext(Dispatchers.IO) {
                 dexcomTirCalculator.calculate()
             }
-            uiState.update { it.copy(dexcomTirData = data, dexcomTirLoading = false) }
+            _uiState.update { it.copy(dexcomTirData = data, dexcomTirLoading = false) }
         }
     }
 
     private fun loadActivityStats() {
         viewModelScope.launch {
-            uiState.update { it.copy(activityLoading = true) }
+            _uiState.update { it.copy(activityLoading = true) }
             val data = withContext(Dispatchers.IO) {
                 activityMonitor.getActivityStats()
             }
-            uiState.update { it.copy(activityStatsData = data, activityLoading = false) }
+            _uiState.update { it.copy(activityStatsData = data, activityLoading = false) }
         }
     }
 
     fun toggleTddExpanded() {
-        uiState.update { it.copy(tddExpanded = !it.tddExpanded) }
+        _uiState.update { it.copy(tddExpanded = !it.tddExpanded) }
     }
 
     fun toggleTirExpanded() {
-        uiState.update { it.copy(tirExpanded = !it.tirExpanded) }
+        _uiState.update { it.copy(tirExpanded = !it.tirExpanded) }
     }
 
     fun toggleDexcomTirExpanded() {
-        uiState.update { it.copy(dexcomTirExpanded = !it.dexcomTirExpanded) }
+        _uiState.update { it.copy(dexcomTirExpanded = !it.dexcomTirExpanded) }
     }
 
     fun toggleActivityExpanded() {
-        uiState.update { it.copy(activityExpanded = !it.activityExpanded) }
+        _uiState.update { it.copy(activityExpanded = !it.activityExpanded) }
     }
 
     fun toggleTddCycleExpanded() {
         val wasExpanded = uiState.value.tddCycleExpanded
         if (!wasExpanded && cachedDailyTdds.isEmpty()) {
             // Atomic: set expanded + loading in single update so AnimatedVisibility sees loading immediately
-            uiState.update { it.copy(tddCycleExpanded = true, tddCycleLoading = true, tddCycleProgress = 0f) }
+            _uiState.update { it.copy(tddCycleExpanded = true, tddCycleLoading = true, tddCycleProgress = 0f) }
             loadCyclePatternData()
         } else {
-            uiState.update { it.copy(tddCycleExpanded = !wasExpanded) }
+            _uiState.update { it.copy(tddCycleExpanded = !wasExpanded) }
         }
     }
 
     fun updateCycleOffset(offset: Int) {
         preferences.put(IntNonKey.TddCycleOffset, offset)
-        uiState.update { it.copy(tddCycleOffset = offset) }
+        _uiState.update { it.copy(tddCycleOffset = offset) }
         // Recompute cycles from cached data (no DB refetch)
         viewModelScope.launch {
             val data = withContext(Dispatchers.Default) {
                 computeCycleData(cachedDailyTdds, offset)
             }
-            uiState.update { it.copy(tddCyclePatternData = data) }
+            _uiState.update { it.copy(tddCyclePatternData = data) }
         }
     }
 
@@ -182,29 +180,52 @@ class StatsViewModel @Inject constructor(
         cycleLoadJob?.cancel()
         cycleLoadJob = viewModelScope.launch {
             val tddList = mutableListOf<TDD>()
-            val totalChunks = 6
-            // Fetch in 28-day chunks (6 × 28 = 168 days) to report progress
-            for (chunk in 0 until totalChunks) {
+            val now = dateUtil.now()
+            val dayMs = 24 * 3600 * 1000L
+
+            // Phase 1: Load recent 56 days in 7-day chunks (8 chunks) — show graph ASAP
+            val phase1Chunks = 8
+            val totalChunks = phase1Chunks + 4 // 8 + 4 = 12 total
+            for (chunk in 0 until phase1Chunks) {
                 val chunkTdds = withContext(Dispatchers.IO) {
-                    (chunk + 1).toLong() * 28
-                    val timestamp = dateUtil.now() - chunk.toLong() * 28 * 24 * 3600 * 1000
+                    val timestamp = now - chunk.toLong() * 7 * dayMs
+                    tddCalculator.calculate(timestamp, 7, allowMissingDays = true)
+                }
+                addUniqueTdds(tddList, chunkTdds)
+                _uiState.update { it.copy(tddCycleProgress = (chunk + 1).toFloat() / totalChunks) }
+            }
+            // Show graph after phase 1 (56 days = 2 cycles minimum)
+            updateCycleGraph(tddList)
+
+            // Phase 2: Load older data in 28-day chunks (4 × 28 = 112 more days, total 168)
+            for (chunk in 0 until 4) {
+                val chunkTdds = withContext(Dispatchers.IO) {
+                    val timestamp = now - (56 + chunk.toLong() * 28) * dayMs
                     tddCalculator.calculate(timestamp, 28, allowMissingDays = true)
                 }
-                if (chunkTdds != null) {
-                    for (i in 0 until chunkTdds.size()) {
-                        val tdd = chunkTdds.valueAt(i)
-                        if (tddList.none { it.timestamp == tdd.timestamp }) {
-                            tddList.add(tdd)
-                        }
-                    }
-                }
-                uiState.update { it.copy(tddCycleProgress = (chunk + 1).toFloat() / totalChunks) }
+                addUniqueTdds(tddList, chunkTdds)
+                _uiState.update { it.copy(tddCycleProgress = (phase1Chunks + chunk + 1).toFloat() / totalChunks) }
+                updateCycleGraph(tddList)
             }
-            tddList.sortByDescending { it.timestamp }
-            cachedDailyTdds = tddList
-            val data = computeCycleData(tddList, uiState.value.tddCycleOffset)
-            uiState.update { it.copy(tddCyclePatternData = data, tddCycleLoading = false) }
+            _uiState.update { it.copy(tddCycleLoading = false) }
         }
+    }
+
+    private fun addUniqueTdds(target: MutableList<TDD>, source: LongSparseArray<TDD>?) {
+        source ?: return
+        for (i in 0 until source.size()) {
+            val tdd = source.valueAt(i)
+            if (target.none { it.timestamp == tdd.timestamp }) {
+                target.add(tdd)
+            }
+        }
+    }
+
+    private fun updateCycleGraph(tddList: MutableList<TDD>) {
+        tddList.sortByDescending { it.timestamp }
+        cachedDailyTdds = tddList.toList()
+        val data = computeCycleData(cachedDailyTdds, uiState.value.tddCycleOffset)
+        _uiState.update { it.copy(tddCyclePatternData = data) }
     }
 
     private fun computeCycleData(dailyTdds: List<TDD>, offset: Int): TddCyclePatternData? {
@@ -251,32 +272,38 @@ class StatsViewModel @Inject constructor(
         )
     }
 
-    fun recalculateTdd(context: Context) {
-        uiInteraction.showOkCancelDialog(
-            context = context,
-            message = rh.gs(R.string.do_you_want_recalculate_tdd_stats),
-            ok = {
-                uel.log(Action.STAT_RESET, Sources.Stats)
-                viewModelScope.launch {
-                    persistenceLayer.clearCachedTddData(0)
-                    loadTddStats()
-                }
-            }
-        )
+    fun showRecalculateDialog() {
+        _uiState.update { it.copy(showRecalculateDialog = true) }
     }
 
-    fun resetActivityStats(context: Context) {
-        uiInteraction.showOkCancelDialog(
-            context = context,
-            message = rh.gs(R.string.do_you_want_reset_stats),
-            ok = {
-                uel.log(Action.STAT_RESET, Sources.Stats)
-                viewModelScope.launch(Dispatchers.IO) {
-                    activityMonitor.reset()
-                    loadActivityStats()
-                }
-            }
-        )
+    fun dismissRecalculateDialog() {
+        _uiState.update { it.copy(showRecalculateDialog = false) }
+    }
+
+    fun confirmRecalculateTdd() {
+        _uiState.update { it.copy(showRecalculateDialog = false) }
+        uel.log(Action.STAT_RESET, Sources.Stats)
+        viewModelScope.launch {
+            persistenceLayer.clearCachedTddData(0)
+            loadTddStats()
+        }
+    }
+
+    fun showResetActivityDialog() {
+        _uiState.update { it.copy(showResetActivityDialog = true) }
+    }
+
+    fun dismissResetActivityDialog() {
+        _uiState.update { it.copy(showResetActivityDialog = false) }
+    }
+
+    fun confirmResetActivityStats() {
+        _uiState.update { it.copy(showResetActivityDialog = false) }
+        uel.log(Action.STAT_RESET, Sources.Stats)
+        viewModelScope.launch(Dispatchers.IO) {
+            activityMonitor.reset()
+            loadActivityStats()
+        }
     }
 }
 
@@ -301,5 +328,7 @@ data class StatsUiState(
     val dexcomTirExpanded: Boolean = false,
     val activityExpanded: Boolean = false,
     val tddCycleExpanded: Boolean = false,
-    val tddCycleOffset: Int = 0
+    val tddCycleOffset: Int = 0,
+    val showRecalculateDialog: Boolean = false,
+    val showResetActivityDialog: Boolean = false
 )

@@ -27,7 +27,6 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventAppExit
-import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
@@ -103,6 +102,7 @@ class MedtrumService : DaggerService(), BLECommCallback {
     @Inject lateinit var detailedBolusInfoStorage: DetailedBolusInfoStorage
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var ch: ConcentrationHelper
+    @Inject lateinit var bolusProgressData: BolusProgressData
 
     companion object {
 
@@ -263,9 +263,15 @@ class MedtrumService : DaggerService(), BLECommCallback {
     }
 
     fun startActivate(): Boolean {
-        val profile = runBlocking { pumpSync.expectedPumpState() }.profile?.let { medtrumPump.buildMedtrumProfileArray(it) }
-        val packet = profile?.let { ActivatePacket(injector, it) }
-        return packet?.let { sendPacketAndGetResponse(it) } == true
+        val pumpProfile = runBlocking { pumpSync.expectedPumpState() }.profile ?: run {
+            aapsLogger.error(LTag.PUMP, "startActivate: no requested profile, cannot activate patch")
+            return false
+        }
+        val bytes = medtrumPump.buildMedtrumProfileArray(pumpProfile) ?: run {
+            aapsLogger.error(LTag.PUMP, "startActivate: failed to build basal byte array")
+            return false
+        }
+        return sendPacketAndGetResponse(ActivatePacket(injector, bytes))
     }
 
     fun deactivatePatch(): Boolean {
@@ -392,14 +398,13 @@ class MedtrumService : DaggerService(), BLECommCallback {
         medtrumPump.bolusDone = false
         medtrumPump.bolusStopped = false
         medtrumPump.bolusErrorReason = null
-        BolusProgressData.delivered = 0.0
 
         if (!sendBolusCommand(insulin)) {
             medtrumPump.bolusErrorReason = rh.gs(R.string.bolus_error_reason_unable_to_send_command)
             aapsLogger.error(LTag.PUMPCOMM, "Failed to set bolus")
             commandQueue.readStatus(rh.gs(R.string.bolus_error), null) // make sure if anything is delivered (which is highly unlikely at this point) we get it
             medtrumPump.bolusDone = true
-            BolusProgressData.delivered = 0.0
+            bolusProgressData.updateProgress(percent = 0, status = "")
             return false
         }
 
@@ -432,7 +437,7 @@ class MedtrumService : DaggerService(), BLECommCallback {
 
         waitForBolusProgress()
 
-        if (medtrumPump.bolusStopped && BolusProgressData.delivered == 0.0) {
+        if (medtrumPump.bolusStopped && (bolusProgressData.state.value?.delivered?.cU ?: 0.0) == 0.0) {
             // In this case we don't get a bolus end event, so need to remove all the stuff added previously
             val syncOk = runBlocking {
                 pumpSync.syncBolusWithTempId(
@@ -462,7 +467,7 @@ class MedtrumService : DaggerService(), BLECommCallback {
             medtrumPump.bolusErrorReason = rh.gs(R.string.bolus_error_reason_not_connected)
             return false
         }
-        if (BolusProgressData.stopPressed) {
+        if (bolusProgressData.isStopPressed) {
             aapsLogger.warn(LTag.PUMPCOMM, "Bolus stop pressed, not setting bolus")
             medtrumPump.bolusErrorReason = rh.gs(R.string.bolus_error_reason_user)
             return false
@@ -506,10 +511,10 @@ class MedtrumService : DaggerService(), BLECommCallback {
                     disconnect("Communication stopped")
                 }
             } else {
-                val currentBolusAmount = BolusProgressData.delivered
-                if (currentBolusAmount != lastSentBolusAmount) {
-                    rxBus.send(EventOverviewBolusProgress(ch, PumpInsulin(BolusProgressData.delivered)))
-                    lastSentBolusAmount = currentBolusAmount
+                val currentBolusAmount = bolusProgressData.state.value?.delivered ?: PumpInsulin(0.0)
+                if (currentBolusAmount.cU != lastSentBolusAmount) {
+                    bolusProgressData.updateProgress(currentBolusAmount)
+                    lastSentBolusAmount = currentBolusAmount.cU
                 }
             }
         }
@@ -532,7 +537,7 @@ class MedtrumService : DaggerService(), BLECommCallback {
     }
 
     fun stopBolus() {
-        aapsLogger.debug(LTag.PUMPCOMM, "bolusStop >>>>> @ ${BolusProgressData.delivered}")
+        aapsLogger.debug(LTag.PUMPCOMM, "bolusStop >>>>> @ ${bolusProgressData.state.value?.delivered?.cU ?: 0.0}")
         medtrumPump.bolusErrorReason = rh.gs(R.string.bolus_error_reason_user)
         if (isConnected) {
             var success = sendPacketAndGetResponse(CancelBolusPacket(injector))
@@ -683,7 +688,32 @@ class MedtrumService : DaggerService(), BLECommCallback {
             }
 
             MedtrumPumpState.IDLE,
-            MedtrumPumpState.FILLED,
+            MedtrumPumpState.FILLED               -> {
+                notificationManager.dismiss(NotificationId.PUMP_ERROR)
+                notificationManager.dismiss(NotificationId.PUMP_SUSPENDED)
+                medtrumPump.setFakeTBRIfNotSet()
+                medtrumPump.clearAlarmState()
+
+                if (medtrumPump.patchPrimed) {
+                    aapsLogger.error(LTag.PUMP, "handlePumpStateUpdate: Unexpected patch state drop while primed! state: $state")
+                    runBlocking {
+                        pumpSync.insertAnnouncement(
+                            rh.gs(R.string.patch_reset_after_primed_error),
+                            null,
+                            medtrumPump.pumpType(),
+                            medtrumPump.pumpSN.toString(radix = 16)
+                        )
+                    }
+
+                    notificationManager.post(
+                        NotificationId.PUMP_ERROR,
+                        R.string.patch_reset_after_primed_error,
+                        level = NotificationLevel.URGENT,
+                        soundRes = app.aaps.core.ui.R.raw.alarm
+                    )
+                }
+            }
+
             MedtrumPumpState.PRIMING,
             MedtrumPumpState.PRIMED,
             MedtrumPumpState.EJECTING,

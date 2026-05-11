@@ -10,6 +10,7 @@ import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.smoothing.Smoothing
+import app.aaps.core.interfaces.smoothing.SmoothingContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
@@ -22,7 +23,6 @@ class ExponentialSmoothingPlugin @Inject constructor(
 ) : PluginBase(
     PluginDescription()
         .mainType(PluginType.SMOOTHING)
-        .pluginIcon(app.aaps.core.ui.R.drawable.ic_timeline_24)
         .icon(Icons.Default.Timeline)
         .pluginName(R.string.exponential_smoothing_name)
         .shortName(R.string.smoothing_shortname)
@@ -31,7 +31,10 @@ class ExponentialSmoothingPlugin @Inject constructor(
 ), Smoothing {
 
     @Suppress("LocalVariableName")
-    override fun smooth(data: MutableList<InMemoryGlucoseValue>): MutableList<InMemoryGlucoseValue> {
+    override suspend fun smooth(
+        data: MutableList<InMemoryGlucoseValue>,
+        @Suppress("UNUSED_PARAMETER") context: SmoothingContext
+    ): MutableList<InMemoryGlucoseValue> {
         /**
          *  TSUNAMI DATA SMOOTHING CORE
          *
