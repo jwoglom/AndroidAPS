@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +30,6 @@ import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.mobi.ui.util.DottedDivider
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
@@ -136,7 +136,7 @@ fun PumpInfoRow(label: String, value: String, rowModifier: Modifier = Modifier) 
 @Preview(showBackground = true)
 @Composable
 private fun DefaultPreview_PumpInfo() {
-    TMobiScreensTheme() {
+    MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

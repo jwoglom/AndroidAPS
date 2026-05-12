@@ -80,11 +80,6 @@ class QualifyingEventHandler @Inject constructor(
 
         rxBus.send(EventDatabaseAddQEData(listOfEvents))
 
-        // send notifications
-        // TODO custom_1 will be removed when Custom_2 is fully implemented
-        tandemPumpStatus.lastQualifyingEventsInfo = sb.toString()
-        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_1))
-
         tandemPumpStatus.semaphoreEvents = true
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
     }

@@ -58,7 +58,6 @@ import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.mobi.ui.util.LifecycleStateObserver
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.mobi.ui.util.compactTBRDisplay
@@ -79,7 +78,6 @@ import java.time.Instant
 @Composable
 fun Actions(
     innerPadding: PaddingValues = PaddingValues(),
-    //navController: NavHostController? = null,
     sendPumpCommands: (List<Message>) -> Boolean,
     _stopTempRateMenuState: Boolean = false,
     aapsLogger: AAPSLogger,

@@ -49,7 +49,6 @@ import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.mobi.ui.util.AlertBanner
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
@@ -295,7 +294,7 @@ val startStopInsulinScreenCommands = listOf(
 @Preview(showBackground = true)
 @Composable
 private fun StartStopInsulinScreenPreview_Running() {
-    TMobiScreensTheme {
+    MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
@@ -314,7 +313,7 @@ private fun StartStopInsulinScreenPreview_Running() {
 @Preview(showBackground = true)
 @Composable
 private fun StartStopInsulinScreenPreview_Suspended() {
-    TMobiScreensTheme {
+    MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

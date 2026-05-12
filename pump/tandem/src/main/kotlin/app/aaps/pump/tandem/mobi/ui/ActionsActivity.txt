@@ -50,7 +50,7 @@ import app.aaps.pump.tandem.mobi.ui.actions.cartridge.ChangeCartridgeScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.FillCannulaScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.FillTubingScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.SiteReminder
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+
 import app.aaps.shared.tests.AAPSLoggerTest
 import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -135,7 +135,7 @@ class ActionsActivity : DaggerAppCompatActivity() {
                 }
             }
 
-            TMobiScreensTheme(darkTheme = tandemPumpUtil.isAAPSDarkTheme(isSystemDarkTheme = isDarkTheme)) {
+            MaterialTheme(darkTheme = tandemPumpUtil.isAAPSDarkTheme(isSystemDarkTheme = isDarkTheme)) {
                 Scaffold(
                     content = { innerPadding ->
                         BottomSheetScaffold(
@@ -346,8 +346,8 @@ enum class ActionsLandingSection(val label: String, val icon: ImageVector) {
 @Preview(showBackground = true)
 @Composable
 fun ActionsActivity_Preview() {
-    TMobiScreensTheme {
-        TMobiScreensTheme {
+    MaterialTheme {
+        MaterialTheme {
             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                 Actions(
                     innerPadding = PaddingValues(0.dp),

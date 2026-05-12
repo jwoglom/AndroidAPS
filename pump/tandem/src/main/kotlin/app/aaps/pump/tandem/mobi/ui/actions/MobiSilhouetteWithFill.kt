@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 
 private const val VIEWBOX = 128f
 private const val WINDOW_LEFT = 46.17f

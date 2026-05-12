@@ -38,7 +38,7 @@ import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -345,7 +345,7 @@ val changeCartridgeScreenCommands = listOf(
 @Preview(showBackground = true)
 @Composable
 private fun ChangeCartridgeScreenPreview() {
-    TMobiScreensTheme() {
+    MaterialTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

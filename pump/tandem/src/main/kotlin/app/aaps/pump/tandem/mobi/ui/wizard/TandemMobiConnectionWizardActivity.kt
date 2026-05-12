@@ -33,7 +33,7 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+
 import androidx.compose.runtime.collectAsState
 import app.aaps.pump.common.events.EventPumpForceDisconnect
 import dagger.android.support.DaggerAppCompatActivity

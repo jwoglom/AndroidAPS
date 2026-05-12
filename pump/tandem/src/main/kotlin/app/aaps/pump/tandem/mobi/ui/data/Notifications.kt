@@ -17,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -46,7 +47,7 @@ import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
@@ -294,7 +295,7 @@ val notificationsCommands = listOf(
 @Preview(showBackground = true)
 @Composable
 private fun DefaultPreview_Notifications() {
-    TMobiScreensTheme {
+    MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

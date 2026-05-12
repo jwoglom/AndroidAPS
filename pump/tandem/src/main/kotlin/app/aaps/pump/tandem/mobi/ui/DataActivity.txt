@@ -53,7 +53,7 @@ import app.aaps.pump.tandem.mobi.ui.data.DataDisplayMain
 import app.aaps.pump.tandem.mobi.ui.data.History
 import app.aaps.pump.tandem.mobi.ui.data.Notifications
 import app.aaps.pump.tandem.mobi.ui.data.QualifyingEvents
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
@@ -117,7 +117,7 @@ class DataActivity : DaggerAppCompatActivity() {
             }
 
 
-            TMobiScreensTheme(darkTheme = tandemPumpUtil.isAAPSDarkTheme(isSystemDarkTheme = isDarkTheme)) {
+            MaterialTheme(darkTheme = tandemPumpUtil.isAAPSDarkTheme(isSystemDarkTheme = isDarkTheme)) {
                 Scaffold(
                     content = { innerPadding ->
                         BottomSheetScaffold(
@@ -336,8 +336,8 @@ enum class DataLandingSection(val label: String, val icon: ImageVector) {
 @Preview(showBackground = true)
 @Composable
 fun DataActivity_Preview() {
-    TMobiScreensTheme {
-        TMobiScreensTheme {
+    MaterialTheme {
+        MaterialTheme {
             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                 Actions(
                     innerPadding = PaddingValues(0.dp),

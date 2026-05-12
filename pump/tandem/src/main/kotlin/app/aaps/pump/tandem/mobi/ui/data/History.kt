@@ -19,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,7 +57,7 @@ import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
+
 import app.aaps.pump.tandem.mobi.ui.util.DateTimeInTwoLines
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.shared.tests.AAPSLoggerTest
@@ -407,7 +408,7 @@ fun HistoryEventRow(historyRecordDto: TandemHistoryRecordDto, resourceHelper: Re
 @Preview(showBackground = true)
 @Composable
 private fun DefaultPreview_History() {
-    TMobiScreensTheme() {
+    MaterialTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
@@ -439,7 +440,7 @@ private fun DefaultPreview_History() {
 @Preview(showBackground = true)
 @Composable
 private fun DefaultPreview_HistoryDark() {
-    TMobiScreensTheme(darkTheme = true) {
+    MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

@@ -56,7 +56,6 @@ import app.aaps.pump.tandem.mobi.ui.actions.PumpStatusHeader
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.mobi.ui.util.Line
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
-import app.aaps.pump.tandem.mobi.ui.theme.TMobiScreensTheme
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.shared.tests.AAPSLoggerTest
 import app.aaps.pump.tandem.R
@@ -388,7 +387,7 @@ val cartridgeActionsCommands = listOf(
 @Preview(showBackground = true)
 @Composable
 private fun DefaultPreview() {
-    TMobiScreensTheme() {
+    MaterialTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
@@ -411,7 +410,7 @@ private fun DefaultPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
-    TMobiScreensTheme() {
+    MaterialTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
@@ -434,7 +433,7 @@ private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
 @Preview(showBackground = true)
 @Composable
 private fun DefaultPreviewChangeCartridge_InsulinStopped() {
-    TMobiScreensTheme() {
+    MaterialTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
