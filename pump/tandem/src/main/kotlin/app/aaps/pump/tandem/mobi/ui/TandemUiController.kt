@@ -1,6 +1,12 @@
 package app.aaps.pump.tandem.mobi.ui
 
 import android.content.res.Configuration
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BackupTable
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.ui.graphics.vector.ImageVector
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationManager
@@ -210,6 +216,13 @@ class TandemUiController @Inject constructor(
 
     }
 
-
+    // enum class DataLandingSection(val label: String, val icon: ImageVector) {
+    //
+    //     DATA("Data", Icons.Filled.Create),
+    //     DATA_HISTORY("History", Icons.Filled.BackupTable),
+    //     DATA_EVENTS("Events", Icons.Filled.EventAvailable),
+    //     DATA_NOTIFICATIONS("Notifications", Icons.Filled.Notifications),
+    //     ;
+    // }
 
 }

@@ -38,6 +38,7 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color(0xFF1C1B1F),
 )
 
+@Deprecated("Needs to be removed")
 @Composable
 fun TMobiScreensTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

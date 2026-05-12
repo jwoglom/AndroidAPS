@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -53,17 +54,17 @@ fun MobiSilhouetteWithFill(
 @Preview(showBackground = true)
 @Composable
 private fun MobiSilhouetteWithFillPreview_Full() {
-    TMobiScreensTheme { MobiSilhouetteWithFill(fillFraction = 1.0f, modifier = Modifier) }
+    MaterialTheme { MobiSilhouetteWithFill(fillFraction = 1.0f, modifier = Modifier) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun MobiSilhouetteWithFillPreview_Half() {
-    TMobiScreensTheme { MobiSilhouetteWithFill(fillFraction = 0.5f, modifier = Modifier) }
+    MaterialTheme { MobiSilhouetteWithFill(fillFraction = 0.5f, modifier = Modifier) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun MobiSilhouetteWithFillPreview_Empty() {
-    TMobiScreensTheme { MobiSilhouetteWithFill(fillFraction = 0f, modifier = Modifier) }
+    MaterialTheme { MobiSilhouetteWithFill(fillFraction = 0f, modifier = Modifier) }
 }

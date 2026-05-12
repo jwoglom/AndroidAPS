@@ -92,7 +92,7 @@ class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
         }
 
         setContent {
-            TMobiScreensTheme {
+            MaterialTheme {
                 val navController = rememberNavController()
 
                 WizardContent(

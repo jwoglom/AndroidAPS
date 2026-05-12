@@ -4,6 +4,7 @@
     <string name="tandem_name_mobi" translatable="false">Tandem Mobi</string>
     <string name="tandem_name_mobi_short" translatable="false">Mobi</string>
     <string name="description_pump_tandem_mobi">Pump integration for Tandem Mobi</string>
+    <string name="tandem_mobi_pump_settings">Mobi Pump Settings</string>
 
     <!-- Tandem - t:slim Base -->
     <string name="tandem_name_slim" translatable="false">t:slim X2</string>

@@ -23,6 +23,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -411,7 +412,7 @@ val actionsFields = listOf(
 @Preview(showBackground = true)
 @Composable
 private fun PreviewInsulinActive() {
-    TMobiScreensTheme {
+    MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
@@ -431,7 +432,7 @@ private fun PreviewInsulinActive() {
 @Preview(showBackground = true)
 @Composable
 private fun PreviewInsulinSuspended() {
-    TMobiScreensTheme() {
+    MaterialTheme() {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

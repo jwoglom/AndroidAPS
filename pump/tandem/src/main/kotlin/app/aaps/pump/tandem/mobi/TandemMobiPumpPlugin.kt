@@ -221,7 +221,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         super.onStart()
     }
 
-    // TODO dev4
+    // TODO dev4    see MedtronicPump:224
     // override fun updatePreferenceSummary(pref: Preference) {
     //     super.updatePreferenceSummary(pref)
     //     if (pref.key == TandemStringPreferenceKey.PumpAddress.key) {
@@ -1504,20 +1504,6 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    private fun readPumpHistoryAfterAction(bolusInfo: DetailedBolusInfo? = null,
-                                           tempBasalInfo: TempBasalPair? = null,
-                                           profile: Profile? = null) {
-        // TODO readPumpHistoryAfterAction
-        // if (true)
-        //     return
-        aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistoryAfterAction N/A.")
-        // pumpHistoryHandler.getLastEventAndSendItToPumpSync(
-        //     bolusInfo = bolusInfo,
-        //     tempBasalInfo = tempBasalInfo,
-        //     profile = profile
-        // )
-    }
-
 
     private fun PumpDispatcherScope.readTBR(): TempBasalPair? {
         val temporaryBasalResponse = getTemporaryBasal()
@@ -1695,7 +1681,6 @@ class TandemMobiPumpPlugin @Inject constructor(
     override fun getRefreshTime(pumpDataRefreshType: PumpDataRefreshType): Int {
         return (
             when(pumpDataRefreshType) {
-                //PumpDataRefreshType.PumpHistory      -> getHistoryRefreshTime()
                 PumpDataRefreshType.RemainingInsulin -> {
                     val remaining = pumpStatus.reservoirRemainingUnits
 
@@ -1730,23 +1715,6 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     companion object {
-        val qeFilterValues = arrayOf<CharSequence>(QualifyingEventsFilter.ALL.name,
-                                                   QualifyingEventsFilter.AAPS_RELEVANT.name)
-        val qeRangeValues = arrayOf<CharSequence>(QualifyingEventsRange.LAST_15_ITEMS.name,
-                                                  QualifyingEventsRange.LAST_3_HOURS.name,
-                                                  QualifyingEventsRange.LAST_6_HOURS.name,
-                                                  QualifyingEventsRange.LAST_12_HOURS.name,
-                                                  QualifyingEventsRange.LAST_24_HOURS.name)
-
-        val quickBolusValues = arrayOf<CharSequence>(QuickBolusType.DISABLED.name,
-                                                     QuickBolusType.UNITS_0_5.name,
-                                                     QuickBolusType.UNITS_1_0.name,
-                                                     QuickBolusType.UNITS_2_O.name,
-                                                     QuickBolusType.UNITS_5_0.name,
-                                                     QuickBolusType.CARBS_2G.name,
-                                                     QuickBolusType.CARBS_5G.name,
-                                                     QuickBolusType.CARBS_10G.name,
-                                                     QuickBolusType.CARBS_15G.name)
     }
 
 
@@ -1756,7 +1724,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     override fun getPreferenceScreenContent(): PreferenceSubScreenDef =
         PreferenceSubScreenDef(
             key = "tandem_tmobi_settings",
-            titleResId = R.string.tandem_name_mobi,
+            titleResId = R.string.tandem_mobi_pump_settings,
             items = listOf(
                 TandemBooleanPreferenceKey.UseSharedConnection,
                 TandemStringPreferenceKey.SharedConnectionData,
@@ -1777,183 +1745,6 @@ class TandemMobiPumpPlugin @Inject constructor(
                 })
             )
         )
-
-    // TODO dev4
-    // TODO: Remove after full migration to Compose preferences (getPreferenceScreenContent)
-    // override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
-    //     aapsLogger.info(TAG, "addPreferenceScreen: preferenceManager=$preferenceManager, parent=$parent, requiredKey=$requiredKey")
-    //     if (requiredKey != null) return
-    //
-    //     val qeFilterEntries = arrayOf<CharSequence>(rh.gs(QualifyingEventsFilter.ALL.friendlyName),
-    //                                          rh.gs(QualifyingEventsFilter.AAPS_RELEVANT.friendlyName))
-    //     val qeRangeEntries = arrayOf<CharSequence>(rh.gs(QualifyingEventsRange.LAST_15_ITEMS.friendlyName),
-    //                                                rh.gs(QualifyingEventsRange.LAST_3_HOURS.friendlyName),
-    //                                                rh.gs(QualifyingEventsRange.LAST_6_HOURS.friendlyName),
-    //                                                rh.gs(QualifyingEventsRange.LAST_12_HOURS.friendlyName),
-    //                                                rh.gs(QualifyingEventsRange.LAST_24_HOURS.friendlyName))
-    //
-    //     val quickBolusEntries = arrayOf<CharSequence>(rh.gs(QuickBolusType.DISABLED.friendlyName),
-    //                                                   rh.gs(QuickBolusType.UNITS_0_5.friendlyName),
-    //                                                   rh.gs(QuickBolusType.UNITS_1_0.friendlyName),
-    //                                                   rh.gs(QuickBolusType.UNITS_2_O.friendlyName),
-    //                                                   rh.gs(QuickBolusType.UNITS_5_0.friendlyName),
-    //                                                   rh.gs(QuickBolusType.CARBS_2G.friendlyName),
-    //                                                   rh.gs(QuickBolusType.CARBS_5G.friendlyName),
-    //                                                   rh.gs(QuickBolusType.CARBS_10G.friendlyName),
-    //                                                   rh.gs(QuickBolusType.CARBS_15G.friendlyName))
-    //
-    //     val category = PreferenceCategory(context)
-    //     parent.addPreference(category)
-    //     category.apply {
-    //         key = "tandem_tmobi_settings"
-    //         title = rh.gs(R.string.tandem_name_mobi)
-    //         initialExpandedChildrenCount = 0
-    //
-    //         //
-    //         // <EditTextPreference
-    //         // android:defaultValue="00000000"
-    //         // android:key="@string/key_tandem_serial"
-    //         // android:selectAllOnFocus="true"
-    //         // android:singleLine="false"
-    //         // android:enabled="false"
-    //         // android:shouldDisableView="false"
-    //         // android:title="@string/pump_serial_number"
-    //         // />
-    //         // <!--            validate:customRegexp="@string/eightdigitnumber"-->
-    //         // <!--            validate:testErrorString="@string/error_mustbe8digitnumber"-->
-    //         // <!--            validate:testType="regexp" -->
-    //         //
-    //
-    //         // TODO enabled false doesn't work/exist
-    //         // addPreference(
-    //         //     AdaptiveStringPreference(
-    //         //         ctx = context,
-    //         //         stringKey = TandemStringPreferenceKey.PumpSerial,
-    //         //         title = R.string.pump_serial_number
-    //         //     )
-    //         //     // singleLine="false", selectAllOnFocus="true"
-    //         // )
-    //
-    //         addPreference(
-    //             AdaptiveSwitchPreference(
-    //                 ctx = context,
-    //                 booleanKey = TandemBooleanPreferenceKey.UseSharedConnection,
-    //
-    //                 title = R.string.tandem_cfg_use_shared_connection,
-    //                 summary = R.string.tandem_cfg_use_shared_connection_summary
-    //             )
-    //         )
-    //
-    //         addPreference(
-    //             AdaptiveStringPreference(
-    //                 ctx = context,
-    //                 stringKey = TandemStringPreferenceKey.SharedConnectionData,
-    //
-    //                 title = R.string.tandem_cfg_shared_connection_data,
-    //                 summary = R.string.tandem_cfg_shared_connection_data_summary
-    //             )
-    //             // singleLine="false", selectAllOnFocus="true"
-    //         )
-    //
-    //         // TODO the AAPS core AdaptiveIntentPreference doesn't work,
-    //         // we have forked it in the tandem module with added null pointer checks
-    //         addPreference(
-    //             AdaptiveIntentPreference(
-    //                 ctx = context,
-    //                 intentKey = TandemIntentPreferenceKey.PumpPairing,
-    //                 title = R.string.tandem_pump_configuration,
-    //                 summary = R.string.tandem_pump_configuration_subtitle,
-    //                 intent = Intent(context, TandemMobiConnectionWizardActivity::class.java)
-    //             )
-    //         )
-    //
-    //         //
-    //         // <Preference
-    //         // android:enabled="false"
-    //         // android:key="@string/key_tandem_address"
-    //         // android:summary=""
-    //         // android:title="Tandem Configuration">
-    //         // <intent android:action="app.aaps.pump.tandem.common.ui.TandemPumpBLEConfigActivity" />
-    //         // </Preference>
-    //         //
-    //
-    //         addPreference(
-    //             AdaptiveIntPreference(
-    //                 ctx = context,
-    //                 intKey = TandemIntPreferenceKey.MaxBolus,
-    //                 title = R.string.tandem_pump_max_bolus
-    //
-    //             )
-    //         )
-    //
-    //         addPreference(
-    //             AdaptiveIntPreference(
-    //                 ctx = context,
-    //                 intKey = TandemIntPreferenceKey.MaxBasal,
-    //                 title = R.string.tandem_pump_max_basal
-    //             )
-    //         )
-    //
-    //         addPreference(
-    //             AdaptiveListPreference(
-    //                 ctx = context,
-    //                 stringKey = TandemStringPreferenceKey.QualifyingEventsFilterPref,
-    //                 title = R.string.data_qe_filter_description,
-    //                 entries = qeFilterEntries,
-    //                 entryValues = qeFilterValues
-    //             )
-    //         )
-    //
-    //         addPreference(
-    //             AdaptiveListPreference(
-    //                 ctx = context,
-    //                 stringKey = TandemStringPreferenceKey.QualifyingEventsRangePref,
-    //                 title = R.string.data_qe_range_description,
-    //                 entries = qeRangeEntries,
-    //                 entryValues = qeRangeValues
-    //             )
-    //         )
-    //
-    //         addPreference(
-    //             AdaptiveSwitchPreference(
-    //                 ctx = context,
-    //                 booleanKey = TandemBooleanPreferenceKey.DisplayDriverVersion,
-    //                 title = R.string.tandem_cfg_display_driver_version,
-    //                 summary = R.string.tandem_cfg_display_driver_version_summary
-    //             )
-    //         )
-    //
-    //         addPreference(
-    //             AdaptiveSwitchPreference(
-    //                 ctx = context,
-    //                 booleanKey = TandemBooleanPreferenceKey.ShowCargoOfUnknownEntries,
-    //                 title = R.string.tandem_cfg_show_cargo_of_unknown_logs,
-    //                 summary = R.string.tandem_cfg_show_cargo_of_unknown_logs_summary
-    //             )
-    //         )
-    //
-    //         addPreference(
-    //             AdaptiveSwitchPreference(
-    //                 ctx = context,
-    //                 booleanKey = TandemBooleanPreferenceKey.AutoConfirmLowBasalDelivery,
-    //                 title = R.string.tandem_cfg_auto_confirm_low_basal_delivery,
-    //                 summary = R.string.tandem_cfg_auto_confirm_low_basal_delivery_summary
-    //             )
-    //         )
-    //
-    //         addPreference(
-    //             AdaptiveListPreference(
-    //                 ctx = context,
-    //                 stringKey = TandemStringPreferenceKey.QuickBolusTypePref,
-    //                 title = R.string.pump_quick_bolus_description,
-    //                 entries = quickBolusEntries,
-    //                 entryValues = quickBolusValues
-    //             )
-    //         )
-    //     }
-    //
-    // }
-
 
 
 }
