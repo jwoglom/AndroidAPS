@@ -6,6 +6,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmError
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmIncorrectData
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmResult
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleConfirmSuccess
+import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendResult
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.CmdBleIO
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
@@ -30,9 +31,9 @@ class FakeCmdBleIO(
 
     override fun peekCommand(): ByteArray? = incomingPackets.peek()
 
-    override fun hello() {
+    override fun hello(): BleSendResult {
         helloCallCount++
-        sendAndConfirmPacket(BleCommandHello(4242).data)
+        return sendAndConfirmPacket(BleCommandHello(4242).data)
     }
 
     override fun expectCommandType(expected: BleCommand, timeoutMs: Long): BleConfirmResult {

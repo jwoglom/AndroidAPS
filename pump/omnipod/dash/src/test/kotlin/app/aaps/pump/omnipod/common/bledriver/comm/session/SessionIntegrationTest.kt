@@ -218,9 +218,9 @@ class SessionIntegrationTest {
             // receiveMessage needs CTS + SUCCESS sends to succeed,
             // then sendMessage (ACK) needs RTS send to fail
             cmdBleIO.programSendResults(
-                app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendSuccess,   // CTS in receiveMessage
-                app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendSuccess,   // SUCCESS in receiveMessage
-                app.aaps.pump.omnipod.common.bledriver.comm.io.BleSendErrorSending("ACK fail") // RTS in sendMessage
+                app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendSuccess,   // CTS in receiveMessage
+                app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendSuccess,   // SUCCESS in receiveMessage
+                app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendErrorSending("ACK fail") // RTS in sendMessage
             )
 
             val result = session.readAndAckResponse()
