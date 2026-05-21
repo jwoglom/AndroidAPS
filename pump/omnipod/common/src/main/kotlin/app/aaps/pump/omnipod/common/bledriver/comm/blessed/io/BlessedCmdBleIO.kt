@@ -35,9 +35,8 @@ class BlessedCmdBleIO(
 
     override fun peekCommand(): ByteArray? = incomingPackets.peek()
 
-    override fun hello() {
+    override fun hello() =
         sendAndConfirmPacket(BleCommandHello(OmnipodDashBleManagerImpl.CONTROLLER_ID).data)
-    }
 
     override fun expectCommandType(expected: BleCommand, timeoutMs: Long): BleConfirmResult {
         return receivePacket(timeoutMs)?.let {
