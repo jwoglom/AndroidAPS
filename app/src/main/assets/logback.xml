@@ -23,7 +23,7 @@
 
     <!-- Dash BLE driver metrics: one JSON object per line, dedicated file -->
     <appender name="dash-metrics-file" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${EXT_FILES_DIR}/AndroidAPS-dash-metrics.jsonl</file>
+        <file>${EXT_FILES_DIR}/AndroidAPS-dash-metrics.jsonl.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${EXT_FILES_DIR}/AndroidAPS-dash-metrics._%d{yyyy-MM-dd}_%d{HH-mm-ss, aux}_.%i.jsonl.zip
             </fileNamePattern>
