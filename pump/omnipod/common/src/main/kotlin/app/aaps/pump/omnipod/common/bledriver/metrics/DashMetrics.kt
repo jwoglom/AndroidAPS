@@ -265,7 +265,7 @@ object DashMetrics {
         ctx.commandInFlight = commandType
         ctx.tCmdStartMonoNs = System.nanoTime()
         ctx.tSendDoneMonoNs = null
-        ctx.lastSentSeq = seq
+        if (isProgrammingCommand(commandType)) ctx.lastSentProgrammingSeq = seq
         ctx.lifecycle = "cmd"
         val e = base(ctx, "command_attempt")
         e["command_type"] = commandType
@@ -330,7 +330,7 @@ object DashMetrics {
     ) {
         if (!MetricsConfig.METRICS_ENABLED) return
         val ctx = SessionContextHolder.current() ?: return
-        val expected = ctx.lastSentSeq
+        val expected = ctx.lastSentProgrammingSeq
         val e = base(ctx, "pod_status_snapshot")
         e["source"] = source
         e["pod_status"] = podStatus
@@ -341,9 +341,22 @@ object DashMetrics {
         e["minutes_since_activation"] = minutesSinceActivation
         e["active_alerts_count"] = activeAlertsCount
         e["pod_reported_last_seq"] = podReportedLastSeq
-        e["expected_last_seq"] = expected
+        e["expected_last_programming_seq"] = expected
+        // Null (not false) when no programming command has been sent this
+        // session — the comparison is meaningless for pure query workloads.
         e["seq_matches"] = if (expected != null && podReportedLastSeq != null) expected == podReportedLastSeq else null
         MetricsWriter.write(e)
+    }
+
+    /**
+     * Programming commands modify pod state and increment the pod-side
+     * "last programming command" sequence counter. Query commands
+     * (GET_STATUS, GET_VERSION) do not, so they're excluded from the
+     * seq-desync comparison in pod_status_snapshot.
+     */
+    private fun isProgrammingCommand(commandType: String): Boolean = when (commandType) {
+        "GET_STATUS", "GET_VERSION" -> false
+        else                        -> true
     }
 
     fun alarmSnapshot(

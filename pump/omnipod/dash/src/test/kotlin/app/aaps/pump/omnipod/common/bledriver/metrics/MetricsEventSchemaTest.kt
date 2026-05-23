@@ -156,6 +156,72 @@ class MetricsEventSchemaTest {
         assertThat(endObj.get("last_phy_tx").asString).isEqualTo("LE_1M")
     }
 
+    @Test fun `pod_status_snapshot seq_matches is null for query-only sessions`() {
+        val lines = mutableListOf<String>()
+        TestLogCapture.capture(lines) {
+            DashMetrics.sessionStart("test", null, null, null, null, null, null, 1L, null)
+            // GET_STATUS doesn't bump the pod's programming SQN, so a snapshot
+            // taken after only a query has no meaningful expected value.
+            DashMetrics.commandAttempt("GET_STATUS", 6, "DefaultStatusResponse")
+            DashMetrics.podStatusSnapshot(
+                source = "default_status",
+                podStatus = "RUNNING_ABOVE_MIN_VOLUME",
+                deliveryStatus = "BASAL_ACTIVE",
+                totalPulsesDelivered = 100,
+                bolusPulsesRemaining = 0,
+                reservoirPulsesRemaining = 1023,
+                minutesSinceActivation = 60,
+                activeAlertsCount = 0,
+                podReportedLastSeq = 2
+            )
+        }
+        val obj = lines.map { gson.fromJson(it, JsonObject::class.java) }
+            .first { it.get("event").asString == "pod_status_snapshot" }
+        assertThat(obj.get("expected_last_programming_seq").isJsonNull).isTrue()
+        assertThat(obj.get("seq_matches").isJsonNull).isTrue()
+    }
+
+    @Test fun `pod_status_snapshot seq_matches compares programming commands`() {
+        val lines = mutableListOf<String>()
+        TestLogCapture.capture(lines) {
+            DashMetrics.sessionStart("test", null, null, null, null, null, null, 1L, null)
+            DashMetrics.commandAttempt("PROGRAM_BOLUS", 7, "DefaultStatusResponse")
+            DashMetrics.podStatusSnapshot(
+                source = "default_status",
+                podStatus = "RUNNING_ABOVE_MIN_VOLUME",
+                deliveryStatus = "BASAL_ACTIVE",
+                totalPulsesDelivered = 100,
+                bolusPulsesRemaining = 0,
+                reservoirPulsesRemaining = 1023,
+                minutesSinceActivation = 60,
+                activeAlertsCount = 0,
+                podReportedLastSeq = 7
+            )
+            // A later GET_STATUS must not clobber the comparison baseline.
+            DashMetrics.commandAttempt("GET_STATUS", 8, "DefaultStatusResponse")
+            DashMetrics.podStatusSnapshot(
+                source = "default_status",
+                podStatus = "RUNNING_ABOVE_MIN_VOLUME",
+                deliveryStatus = "BASAL_ACTIVE",
+                totalPulsesDelivered = 100,
+                bolusPulsesRemaining = 0,
+                reservoirPulsesRemaining = 1023,
+                minutesSinceActivation = 60,
+                activeAlertsCount = 0,
+                podReportedLastSeq = 7
+            )
+        }
+        val snapshots = lines.map { gson.fromJson(it, JsonObject::class.java) }
+            .filter { it.get("event").asString == "pod_status_snapshot" }
+        assertThat(snapshots).hasSize(2)
+        // First snapshot: programming-cmd seq 7 vs pod-reported 7 → match
+        assertThat(snapshots[0].get("expected_last_programming_seq").asInt).isEqualTo(7)
+        assertThat(snapshots[0].get("seq_matches").asBoolean).isTrue()
+        // Second snapshot: baseline still 7 (GET_STATUS shouldn't have touched it)
+        assertThat(snapshots[1].get("expected_last_programming_seq").asInt).isEqualTo(7)
+        assertThat(snapshots[1].get("seq_matches").asBoolean).isTrue()
+    }
+
     @Test fun `envSampleIfChanged suppresses unchanged samples and emits on change`() {
         val lines = mutableListOf<String>()
         TestLogCapture.capture(lines) {

@@ -17,10 +17,13 @@ class SessionContext(
     @Volatile var tSendDoneMonoNs: Long? = null
     @Volatile var lastSendRetries: Int = 0
     @Volatile var lifecycle: String = "starting"
-    // Last sequence number we sent in commandAttempt. The pod echoes back its
-    // own sequenceNumberOfLastProgrammingCommand on every status response; we
-    // compare against this to spot desyncs (recorded on pod_status_snapshot).
-    @Volatile var lastSentSeq: Int? = null
+    // Last sequence number we sent for a programming command. The pod echoes
+    // back its own sequenceNumberOfLastProgrammingCommand on every status
+    // response; comparing against this spots desyncs (recorded on
+    // pod_status_snapshot). Query commands like GET_STATUS / GET_VERSION
+    // don't bump the pod's programming-SQN counter, so they are excluded
+    // from the comparison.
+    @Volatile var lastSentProgrammingSeq: Int? = null
 
     val cmdSent = java.util.concurrent.atomic.AtomicInteger(0)
     val cmdFailed = java.util.concurrent.atomic.AtomicInteger(0)
