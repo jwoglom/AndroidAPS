@@ -34,8 +34,13 @@ import app.aaps.pump.omnipod.common.bledriver.comm.session.SessionEstablisher
 import app.aaps.pump.omnipod.common.bledriver.comm.session.SessionKeys
 import app.aaps.pump.omnipod.common.bledriver.comm.session.SessionNegotiationResynchronization
 import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
+import app.aaps.pump.omnipod.common.bledriver.metrics.SessionContextHolder
 import app.aaps.pump.omnipod.common.bledriver.pod.state.OmnipodDashPodStateManager
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 class Connection(
     private val podDevice: BluetoothDevice,
@@ -52,6 +57,9 @@ class Connection(
     private val bluetoothManager: BluetoothManager? = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
 
     private var _connectionWaitCond: ConnectionWaitCondition? = null
+
+    private var rssiPollScheduler: ScheduledExecutorService? = null
+    private var rssiPollFuture: ScheduledFuture<*>? = null
 
     @Volatile
     override var session: Session? = null
@@ -155,12 +163,55 @@ class Connection(
         cmdBleIO.hello()
         cmdBleIO.readyToRead()
         dataBleIO.readyToRead()
+        startRssiPolling()
         _connectionWaitCond = null
+    }
+
+    override fun requestRssiSample(sampleContext: String) {
+        val gatt = gattConnection ?: return
+        bleCommCallbacks.enqueueRssiTag(sampleContext)
+        if (!gatt.readRemoteRssi()) {
+            // gatt couldn't queue the op; pop the tag we just pushed
+            aapsLogger.debug(LTag.PUMPBTCOMM, "readRemoteRssi returned false for tag=$sampleContext")
+        }
+    }
+
+    private fun startRssiPolling() {
+        stopRssiPolling()
+        val exec = Executors.newSingleThreadScheduledExecutor { r ->
+            Thread(r, "dash-rssi-poll").apply { isDaemon = true }
+        }
+        rssiPollScheduler = exec
+        // Guard against the timer outliving its session: capture sessionId at
+        // schedule time and skip if SessionContextHolder has moved on.
+        val sessionId = SessionContextHolder.current()?.sessionId
+        rssiPollFuture = exec.scheduleAtFixedRate(
+            {
+                try {
+                    val ctx = SessionContextHolder.current()
+                    if (ctx == null || ctx.sessionId != sessionId) return@scheduleAtFixedRate
+                    // Don't compete with an in-flight command for the GATT op queue.
+                    if (ctx.commandInFlight != null) return@scheduleAtFixedRate
+                    requestRssiSample("idle_poll")
+                } catch (_: Throwable) {
+                    // Never let timer task throw — it would cancel future runs silently.
+                }
+            },
+            RSSI_POLL_INTERVAL_MS, RSSI_POLL_INTERVAL_MS, TimeUnit.MILLISECONDS
+        )
+    }
+
+    private fun stopRssiPolling() {
+        rssiPollFuture?.cancel(false)
+        rssiPollFuture = null
+        rssiPollScheduler?.shutdownNow()
+        rssiPollScheduler = null
     }
 
     @Synchronized
     override fun disconnect(closeGatt: Boolean) {
         aapsLogger.debug(LTag.PUMPBTCOMM, "Disconnecting closeGatt=$closeGatt")
+        stopRssiPolling()
         if (!closeGatt && gattConnection != null) {
             // Disconnect first, then close gatt
             gattConnection?.disconnect()
@@ -266,5 +317,6 @@ class Connection(
         const val MIN_DISCOVERY_TIMEOUT_MS = 10000L
         const val MAX_WAIT_FOR_CONNECTION_SECONDS = Constants.PUMP_MAX_CONNECTION_TIME_IN_SECONDS + 10
         const val SLEEP_WHEN_FAILING_TO_CONNECT_GATT = 10000L
+        private const val RSSI_POLL_INTERVAL_MS = 30_000L
     }
 }

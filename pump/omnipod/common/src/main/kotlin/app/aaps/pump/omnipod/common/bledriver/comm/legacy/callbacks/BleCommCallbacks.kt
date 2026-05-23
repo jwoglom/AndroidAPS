@@ -35,6 +35,16 @@ class BleCommCallbacks(
         @Synchronized set
     private val writeQueue: BlockingQueue<WriteConfirmation> = LinkedBlockingQueue()
 
+    // Tags pushed by readers of RSSI before calling gatt.readRemoteRssi(). The
+    // onReadRemoteRssi callback pops the head and emits the rssi_sample event
+    // with that tag so callers can label samples (ready/pre_cmd/idle_poll).
+    private val rssiTagQueue: java.util.concurrent.ConcurrentLinkedQueue<String> =
+        java.util.concurrent.ConcurrentLinkedQueue()
+
+    fun enqueueRssiTag(tag: String) {
+        rssiTagQueue.offer(tag)
+    }
+
     @Volatile
     var lastConnectionStatus: Int? = null
         private set
@@ -184,6 +194,8 @@ class BleCommCallbacks(
             LTag.PUMPBTCOMM,
             "onReadRemoteRssi with rssi/status: $rssi/$status "
         )
+        val tag = rssiTagQueue.poll() ?: "unsolicited"
+        DashMetrics.rssiSample(rssi, status, tag)
     }
 
     override fun onPhyUpdate(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {

@@ -63,6 +63,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
                 val session = assertSessionEstablished()
 
                 emitter.onNext(PodEvent.CommandSending(cmd))
+                connection?.requestRssiSample("pre_cmd")
                 DashMetrics.commandAttempt(
                     commandType = cmd.commandType.name,
                     seq = cmd.sequenceNumber.toInt(),
@@ -238,6 +239,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
             DashMetrics.eapAkaPhase(durationMs, outcome, resyncCount)
             if (outcome == "success" || outcome == "resync_once") {
                 DashMetrics.sessionReady((System.nanoTime() - (SessionContextHolder.current()?.tStartMonoNs ?: System.nanoTime())) / 1_000_000L)
+                connection?.requestRssiSample("ready")
             }
         }
     }

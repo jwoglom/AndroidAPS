@@ -287,6 +287,20 @@ object DashMetrics {
         MetricsWriter.write(e)
     }
 
+    fun rssiSample(rssiDbm: Int, status: Int, sampleContext: String) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+            ctx.recordRssiSample(rssiDbm)
+        }
+        val e = base(ctx, "rssi_sample")
+        e["rssi_dbm"] = rssiDbm
+        e["gatt_status"] = status
+        e["sample_context"] = sampleContext
+        e["success"] = status == android.bluetooth.BluetoothGatt.GATT_SUCCESS
+        MetricsWriter.write(e)
+    }
+
     fun bleWrite(charType: String, ackMs: Long, gattStatusOnError: String?) {
         if (!MetricsConfig.METRICS_ENABLED) return
         val ctx = SessionContextHolder.current() ?: return
