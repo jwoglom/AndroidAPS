@@ -287,6 +287,53 @@ object DashMetrics {
         MetricsWriter.write(e)
     }
 
+    fun mtuNegotiated(mtu: Int, status: Int) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+            ctx.lastMtuBytes = mtu
+        }
+        val e = base(ctx, "mtu_negotiated")
+        e["mtu_bytes"] = mtu
+        e["gatt_status"] = status
+        e["success"] = status == android.bluetooth.BluetoothGatt.GATT_SUCCESS
+        MetricsWriter.write(e)
+    }
+
+    fun phyUpdate(txPhy: Int, rxPhy: Int, status: Int) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val tx = phyName(txPhy)
+        val rx = phyName(rxPhy)
+        if (status == android.bluetooth.BluetoothGatt.GATT_SUCCESS) {
+            ctx.lastPhyTx = tx
+            ctx.lastPhyRx = rx
+        }
+        val e = base(ctx, "phy_update")
+        e["tx_phy"] = tx
+        e["rx_phy"] = rx
+        e["gatt_status"] = status
+        e["success"] = status == android.bluetooth.BluetoothGatt.GATT_SUCCESS
+        MetricsWriter.write(e)
+    }
+
+    private fun phyName(phy: Int): String = when (phy) {
+        android.bluetooth.BluetoothDevice.PHY_LE_1M    -> "LE_1M"
+        android.bluetooth.BluetoothDevice.PHY_LE_2M    -> "LE_2M"
+        android.bluetooth.BluetoothDevice.PHY_LE_CODED -> "LE_CODED"
+        else                                           -> "UNKNOWN_$phy"
+    }
+
+    fun cccdWrite(charType: String?, outcome: String, gattStatus: Int?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "cccd_write")
+        e["char"] = charType
+        e["outcome"] = outcome
+        e["gatt_status"] = gattStatus
+        MetricsWriter.write(e)
+    }
+
     fun rssiSample(rssiDbm: Int, status: Int, sampleContext: String) {
         if (!MetricsConfig.METRICS_ENABLED) return
         val ctx = SessionContextHolder.current() ?: return

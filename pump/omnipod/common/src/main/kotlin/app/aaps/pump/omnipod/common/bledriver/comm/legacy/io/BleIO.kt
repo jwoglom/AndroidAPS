@@ -132,11 +132,15 @@ open class BleIO(
             DEFAULT_IO_TIMEOUT_MS
         )
         return when (confirmation) {
-            is WriteConfirmationError   ->
+            is WriteConfirmationError   -> {
+                DashMetrics.cccdWrite(type.name, "confirm_error", null)
                 throw ConnectException(confirmation.msg)
+            }
 
-            is WriteConfirmationSuccess ->
+            is WriteConfirmationSuccess -> {
+                DashMetrics.cccdWrite(type.name, "success", android.bluetooth.BluetoothGatt.GATT_SUCCESS)
                 BleSendSuccess
+            }
         }
     }
 

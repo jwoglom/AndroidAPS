@@ -186,6 +186,7 @@ class BleCommCallbacks(
             LTag.PUMPBTCOMM,
             "onMtuChanged with MTU/status: $mtu/$status "
         )
+        DashMetrics.mtuNegotiated(mtu, status)
     }
 
     override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
@@ -204,6 +205,7 @@ class BleCommCallbacks(
             LTag.PUMPBTCOMM,
             "onPhyUpdate with txPhy/rxPhy/status: $txPhy/$rxPhy/$status "
         )
+        DashMetrics.phyUpdate(txPhy, rxPhy, status)
     }
 
     private fun onWrite(status: Int, uuid: UUID?, value: ByteArray?) {
