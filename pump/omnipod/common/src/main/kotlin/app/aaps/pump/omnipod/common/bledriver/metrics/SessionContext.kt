@@ -55,6 +55,7 @@ class SessionContext(
     @Volatile var lastEnvDeviceIdle: Boolean? = null
     @Volatile var lastEnvLocationOn: Boolean? = null
     @Volatile var lastEnvBtAdapterState: String? = null
+    @Volatile var lastEnvIsCharging: Boolean? = null
 
     @Synchronized
     fun recordRssiSample(rssi: Int) {

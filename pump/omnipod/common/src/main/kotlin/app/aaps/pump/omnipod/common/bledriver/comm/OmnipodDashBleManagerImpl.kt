@@ -355,6 +355,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
             deviceIdleMode = EnvProbe.deviceIdleMode(context),
             locationServicesOn = EnvProbe.locationServicesOn(context),
             bluetoothAdapterState = EnvProbe.bluetoothAdapterState(adapter),
+            isCharging = receiverStatusStore.isCharging,
         )
     }
 

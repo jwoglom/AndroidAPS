@@ -168,26 +168,32 @@ class MetricsEventSchemaTest {
                 powerSaveMode = false,
                 deviceIdleMode = false,
                 locationServicesOn = true,
-                bluetoothAdapterState = "ON"
+                bluetoothAdapterState = "ON",
+                isCharging = false
             )
             // No change — must not emit env_sample
-            DashMetrics.envSampleIfChanged(72, "foreground", false, false, true, "ON")
+            DashMetrics.envSampleIfChanged(72, "foreground", false, false, true, "ON", false)
             // Battery drift within the same 5% bucket (70..74) — still no event
-            DashMetrics.envSampleIfChanged(74, "foreground", false, false, true, "ON")
+            DashMetrics.envSampleIfChanged(74, "foreground", false, false, true, "ON", false)
             // App moved to background — must emit
-            DashMetrics.envSampleIfChanged(74, "background", false, false, true, "ON")
+            DashMetrics.envSampleIfChanged(74, "background", false, false, true, "ON", false)
             // Same as previous — no emit
-            DashMetrics.envSampleIfChanged(74, "background", false, false, true, "ON")
+            DashMetrics.envSampleIfChanged(74, "background", false, false, true, "ON", false)
             // Power save flipped — must emit
-            DashMetrics.envSampleIfChanged(74, "background", true, false, true, "ON")
+            DashMetrics.envSampleIfChanged(74, "background", true, false, true, "ON", false)
+            // Charger plugged in — must emit
+            DashMetrics.envSampleIfChanged(74, "background", true, false, true, "ON", true)
         }
         val envEvents = lines.map { gson.fromJson(it, JsonObject::class.java) }
             .filter { it.get("event").asString == "env_sample" }
-        assertThat(envEvents).hasSize(2)
+        assertThat(envEvents).hasSize(3)
         val firstChanged = envEvents[0].get("changed_fields").asJsonArray.map { it.asString }
         assertThat(firstChanged).containsExactly("app_state")
         val secondChanged = envEvents[1].get("changed_fields").asJsonArray.map { it.asString }
         assertThat(secondChanged).containsExactly("power_save_mode")
+        val thirdChanged = envEvents[2].get("changed_fields").asJsonArray.map { it.asString }
+        assertThat(thirdChanged).containsExactly("is_charging")
+        assertThat(envEvents[2].get("is_charging").asBoolean).isTrue()
     }
 
     private fun captureNextWrite(block: () -> Unit): String {

@@ -213,7 +213,8 @@ class Connection(
             powerSaveMode = EnvProbe.powerSaveMode(context),
             deviceIdleMode = EnvProbe.deviceIdleMode(context),
             locationServicesOn = EnvProbe.locationServicesOn(context),
-            bluetoothAdapterState = EnvProbe.bluetoothAdapterState(adapter)
+            bluetoothAdapterState = EnvProbe.bluetoothAdapterState(adapter),
+            isCharging = receiverStatusStore.isCharging
         )
     }
 

@@ -15,7 +15,8 @@ object DashMetrics {
         powerSaveMode: Boolean? = null,
         deviceIdleMode: Boolean? = null,
         locationServicesOn: Boolean? = null,
-        bluetoothAdapterState: String? = null
+        bluetoothAdapterState: String? = null,
+        isCharging: Boolean? = null
     ): SessionContext? {
         if (!MetricsConfig.METRICS_ENABLED) return null
         val ctx = SessionContext()
@@ -35,6 +36,7 @@ object DashMetrics {
         e["device_idle_mode"] = deviceIdleMode
         e["location_services_on"] = locationServicesOn
         e["bluetooth_adapter_state"] = bluetoothAdapterState
+        e["is_charging"] = isCharging
         // Seed env-change-detection baselines so the idle env_sample poll only
         // fires when something has actually changed since session_start.
         ctx.lastEnvBatteryBucket = bucketBattery(batteryLevelPct)
@@ -43,6 +45,7 @@ object DashMetrics {
         ctx.lastEnvDeviceIdle = deviceIdleMode
         ctx.lastEnvLocationOn = locationServicesOn
         ctx.lastEnvBtAdapterState = bluetoothAdapterState
+        ctx.lastEnvIsCharging = isCharging
         MetricsWriter.write(e)
         return ctx
     }
@@ -59,7 +62,8 @@ object DashMetrics {
         powerSaveMode: Boolean?,
         deviceIdleMode: Boolean?,
         locationServicesOn: Boolean?,
-        bluetoothAdapterState: String?
+        bluetoothAdapterState: String?,
+        isCharging: Boolean?
     ) {
         if (!MetricsConfig.METRICS_ENABLED) return
         val ctx = SessionContextHolder.current() ?: return
@@ -71,6 +75,7 @@ object DashMetrics {
         if (deviceIdleMode != ctx.lastEnvDeviceIdle) changed += "device_idle_mode"
         if (locationServicesOn != ctx.lastEnvLocationOn) changed += "location_services_on"
         if (bluetoothAdapterState != ctx.lastEnvBtAdapterState) changed += "bluetooth_adapter_state"
+        if (isCharging != ctx.lastEnvIsCharging) changed += "is_charging"
         if (changed.isEmpty()) return
 
         ctx.lastEnvBatteryBucket = battBucket
@@ -79,6 +84,7 @@ object DashMetrics {
         ctx.lastEnvDeviceIdle = deviceIdleMode
         ctx.lastEnvLocationOn = locationServicesOn
         ctx.lastEnvBtAdapterState = bluetoothAdapterState
+        ctx.lastEnvIsCharging = isCharging
 
         val e = base(ctx, "env_sample")
         e["battery_level_pct"] = batteryLevelPct
@@ -87,6 +93,7 @@ object DashMetrics {
         e["device_idle_mode"] = deviceIdleMode
         e["location_services_on"] = locationServicesOn
         e["bluetooth_adapter_state"] = bluetoothAdapterState
+        e["is_charging"] = isCharging
         e["changed_fields"] = changed
         MetricsWriter.write(e)
     }
