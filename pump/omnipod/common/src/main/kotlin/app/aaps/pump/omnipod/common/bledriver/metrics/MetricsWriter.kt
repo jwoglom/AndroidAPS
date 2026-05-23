@@ -7,6 +7,10 @@ import org.slf4j.LoggerFactory
 object MetricsWriter {
 
     private val logger = LoggerFactory.getLogger("dash-metrics")
+
+    // Routed through the root appender (i.e. AndroidAPS.log) so failures inside the
+    // dedicated metrics pipeline still surface where developers and testers look.
+    private val fallbackLogger = LoggerFactory.getLogger(MetricsWriter::class.java)
     private val gson = GsonBuilder().disableHtmlEscaping().serializeNulls().create()
 
     /**
@@ -22,8 +26,12 @@ object MetricsWriter {
             val json = gson.toJson(event)
             val sink = testSink
             if (sink != null) sink(json) else logger.info(json)
-        } catch (_: Throwable) {
-            // Metrics must never break the driver. Swallow.
+        } catch (t: Throwable) {
+            try {
+                fallbackLogger.error("Failed to write dash-metrics event ${event["event"]}", t)
+            } catch (_: Throwable) {
+                // Even the fallback logger failed — give up to avoid breaking the driver.
+            }
         }
     }
 }

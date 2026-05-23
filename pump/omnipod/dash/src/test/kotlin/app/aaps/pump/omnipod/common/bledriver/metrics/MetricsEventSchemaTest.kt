@@ -36,7 +36,7 @@ class MetricsEventSchemaTest {
         assertThat(keys.subList(0, 7)).containsExactly(
             "ts", "mono_ns", "session_id", "driver", "event", "pod", "mac"
         ).inOrder()
-        assertThat(obj.get("driver").asString).isEqualTo("blessed")
+        assertThat(obj.get("driver").asString).isEqualTo(MetricsConfig.DRIVER_VARIANT)
         assertThat(obj.get("event").asString).isEqualTo("session_start")
         assertThat(obj.get("pod").asString).hasLength(8)
         assertThat(obj.get("mac").asString).hasLength(8)
