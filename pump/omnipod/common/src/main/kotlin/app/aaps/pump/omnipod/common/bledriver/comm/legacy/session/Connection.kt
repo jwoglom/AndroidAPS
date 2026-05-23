@@ -10,6 +10,7 @@ import app.aaps.core.data.configuration.Constants
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.receivers.ReceiverStatusStore
 import app.aaps.core.utils.toHex
 import app.aaps.pump.omnipod.common.bledriver.comm.Ids
 import app.aaps.pump.omnipod.common.bledriver.comm.endecrypt.EnDecrypt
@@ -34,6 +35,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.session.SessionEstablisher
 import app.aaps.pump.omnipod.common.bledriver.comm.session.SessionKeys
 import app.aaps.pump.omnipod.common.bledriver.comm.session.SessionNegotiationResynchronization
 import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
+import app.aaps.pump.omnipod.common.bledriver.metrics.EnvProbe
 import app.aaps.pump.omnipod.common.bledriver.metrics.SessionContextHolder
 import app.aaps.pump.omnipod.common.bledriver.pod.state.OmnipodDashPodStateManager
 import java.util.concurrent.CountDownLatch
@@ -47,7 +49,8 @@ class Connection(
     private val aapsLogger: AAPSLogger,
     private val config: Config,
     private val context: Context,
-    private val podState: OmnipodDashPodStateManager
+    private val podState: OmnipodDashPodStateManager,
+    private val receiverStatusStore: ReceiverStatusStore
 ) : BleConnection, DisconnectHandler {
 
     private val incomingPackets = IncomingPackets()
@@ -193,11 +196,24 @@ class Connection(
                     // Don't compete with an in-flight command for the GATT op queue.
                     if (ctx.commandInFlight != null) return@scheduleAtFixedRate
                     requestRssiSample("idle_poll")
+                    sampleEnvIfChanged()
                 } catch (_: Throwable) {
                     // Never let timer task throw — it would cancel future runs silently.
                 }
             },
             RSSI_POLL_INTERVAL_MS, RSSI_POLL_INTERVAL_MS, TimeUnit.MILLISECONDS
+        )
+    }
+
+    private fun sampleEnvIfChanged() {
+        val adapter = bluetoothManager?.adapter
+        DashMetrics.envSampleIfChanged(
+            batteryLevelPct = receiverStatusStore.batteryLevel.takeIf { it in 0..100 },
+            appState = EnvProbe.appState(context),
+            powerSaveMode = EnvProbe.powerSaveMode(context),
+            deviceIdleMode = EnvProbe.deviceIdleMode(context),
+            locationServicesOn = EnvProbe.locationServicesOn(context),
+            bluetoothAdapterState = EnvProbe.bluetoothAdapterState(adapter)
         )
     }
 

@@ -35,9 +35,63 @@ object DashMetrics {
         e["device_idle_mode"] = deviceIdleMode
         e["location_services_on"] = locationServicesOn
         e["bluetooth_adapter_state"] = bluetoothAdapterState
+        // Seed env-change-detection baselines so the idle env_sample poll only
+        // fires when something has actually changed since session_start.
+        ctx.lastEnvBatteryBucket = bucketBattery(batteryLevelPct)
+        ctx.lastEnvAppState = appState
+        ctx.lastEnvPowerSave = powerSaveMode
+        ctx.lastEnvDeviceIdle = deviceIdleMode
+        ctx.lastEnvLocationOn = locationServicesOn
+        ctx.lastEnvBtAdapterState = bluetoothAdapterState
         MetricsWriter.write(e)
         return ctx
     }
+
+    /**
+     * Emit an env_sample only if any of the supplied fields differs from the
+     * last seen value on the session. Battery is bucketed to 5% to avoid the
+     * idle poll firing every tick as the device discharges. The event lists
+     * which fields changed in `changed_fields` so analysts can filter quickly.
+     */
+    fun envSampleIfChanged(
+        batteryLevelPct: Int?,
+        appState: String?,
+        powerSaveMode: Boolean?,
+        deviceIdleMode: Boolean?,
+        locationServicesOn: Boolean?,
+        bluetoothAdapterState: String?
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val battBucket = bucketBattery(batteryLevelPct)
+        val changed = mutableListOf<String>()
+        if (battBucket != ctx.lastEnvBatteryBucket) changed += "battery_level_pct"
+        if (appState != ctx.lastEnvAppState) changed += "app_state"
+        if (powerSaveMode != ctx.lastEnvPowerSave) changed += "power_save_mode"
+        if (deviceIdleMode != ctx.lastEnvDeviceIdle) changed += "device_idle_mode"
+        if (locationServicesOn != ctx.lastEnvLocationOn) changed += "location_services_on"
+        if (bluetoothAdapterState != ctx.lastEnvBtAdapterState) changed += "bluetooth_adapter_state"
+        if (changed.isEmpty()) return
+
+        ctx.lastEnvBatteryBucket = battBucket
+        ctx.lastEnvAppState = appState
+        ctx.lastEnvPowerSave = powerSaveMode
+        ctx.lastEnvDeviceIdle = deviceIdleMode
+        ctx.lastEnvLocationOn = locationServicesOn
+        ctx.lastEnvBtAdapterState = bluetoothAdapterState
+
+        val e = base(ctx, "env_sample")
+        e["battery_level_pct"] = batteryLevelPct
+        e["app_state"] = appState
+        e["power_save_mode"] = powerSaveMode
+        e["device_idle_mode"] = deviceIdleMode
+        e["location_services_on"] = locationServicesOn
+        e["bluetooth_adapter_state"] = bluetoothAdapterState
+        e["changed_fields"] = changed
+        MetricsWriter.write(e)
+    }
+
+    private fun bucketBattery(pct: Int?): Int? = pct?.let { (it / 5) * 5 }
 
     fun scanPhase(
         durationMs: Long,

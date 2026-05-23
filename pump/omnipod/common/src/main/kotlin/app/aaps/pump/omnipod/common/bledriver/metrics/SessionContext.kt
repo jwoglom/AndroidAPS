@@ -46,6 +46,16 @@ class SessionContext(
     @Volatile var lastPhyTx: String? = null
     @Volatile var lastPhyRx: String? = null
 
+    // Last sampled environment state. Used by env_sample change detection so
+    // the idle poll only emits when something has actually changed since the
+    // previous sample (or since session_start, which seeds these).
+    @Volatile var lastEnvBatteryBucket: Int? = null
+    @Volatile var lastEnvAppState: String? = null
+    @Volatile var lastEnvPowerSave: Boolean? = null
+    @Volatile var lastEnvDeviceIdle: Boolean? = null
+    @Volatile var lastEnvLocationOn: Boolean? = null
+    @Volatile var lastEnvBtAdapterState: String? = null
+
     @Synchronized
     fun recordRssiSample(rssi: Int) {
         lastRssiDbm = rssi

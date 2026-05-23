@@ -151,6 +151,45 @@ class MetricsEventSchemaTest {
         assertThat(endObj.get("last_phy_tx").asString).isEqualTo("LE_1M")
     }
 
+    @Test fun `envSampleIfChanged suppresses unchanged samples and emits on change`() {
+        val lines = mutableListOf<String>()
+        TestLogCapture.capture(lines) {
+            // session_start seeds baseline: battery=72 bucketed to 70, app=foreground
+            DashMetrics.sessionStart(
+                reason = "test",
+                priorSecondsSinceLastSession = null,
+                btAdapterEnabled = true,
+                priorSessionOutcome = null,
+                podAgeMinutes = null,
+                batteryLevelPct = 72,
+                appState = "foreground",
+                podUniqueIdAtStart = 1L,
+                bluetoothAddressAtStart = null,
+                powerSaveMode = false,
+                deviceIdleMode = false,
+                locationServicesOn = true,
+                bluetoothAdapterState = "ON"
+            )
+            // No change — must not emit env_sample
+            DashMetrics.envSampleIfChanged(72, "foreground", false, false, true, "ON")
+            // Battery drift within the same 5% bucket (70..74) — still no event
+            DashMetrics.envSampleIfChanged(74, "foreground", false, false, true, "ON")
+            // App moved to background — must emit
+            DashMetrics.envSampleIfChanged(74, "background", false, false, true, "ON")
+            // Same as previous — no emit
+            DashMetrics.envSampleIfChanged(74, "background", false, false, true, "ON")
+            // Power save flipped — must emit
+            DashMetrics.envSampleIfChanged(74, "background", true, false, true, "ON")
+        }
+        val envEvents = lines.map { gson.fromJson(it, JsonObject::class.java) }
+            .filter { it.get("event").asString == "env_sample" }
+        assertThat(envEvents).hasSize(2)
+        val firstChanged = envEvents[0].get("changed_fields").asJsonArray.map { it.asString }
+        assertThat(firstChanged).containsExactly("app_state")
+        val secondChanged = envEvents[1].get("changed_fields").asJsonArray.map { it.asString }
+        assertThat(secondChanged).containsExactly("power_save_mode")
+    }
+
     private fun captureNextWrite(block: () -> Unit): String {
         val lines = mutableListOf<String>()
         TestLogCapture.capture(lines, block)
