@@ -64,6 +64,93 @@ class MetricsEventSchemaTest {
             .inOrder()
     }
 
+    @Test fun `new events emit canonical leading fields and expected event names`() {
+        val lines = mutableListOf<String>()
+        TestLogCapture.capture(lines) {
+            DashMetrics.sessionStart("test", null, null, null, null, null, null, 1L, null)
+            DashMetrics.rssiSample(-72, 0, "pre_cmd")
+            DashMetrics.mtuNegotiated(247, 0)
+            DashMetrics.phyUpdate(1, 1, 0)
+            DashMetrics.cccdWrite("CMD", "success", 0)
+            DashMetrics.bondPhase("NONE", 1234L, "bonded", true)
+            DashMetrics.podStatusSnapshot(
+                source = "default_status",
+                podStatus = "RUNNING_ABOVE_MIN_VOLUME",
+                deliveryStatus = "NORMAL",
+                totalPulsesDelivered = 100,
+                bolusPulsesRemaining = 0,
+                reservoirPulsesRemaining = 200,
+                minutesSinceActivation = 60,
+                activeAlertsCount = 0,
+                podReportedLastSeq = 7
+            )
+            DashMetrics.alarmSnapshot(
+                alarmType = "NONE",
+                alarmTime = 0,
+                occlusionAlarm = false,
+                pulseInfoInvalid = false,
+                occlusionType = 0,
+                podStatusWhenAlarmOccurred = "UNKNOWN"
+            )
+            DashMetrics.sessionEnd("clean_finish", null, 1, 1, 5L)
+        }
+        for (line in lines) {
+            val obj = gson.fromJson(line, JsonObject::class.java)
+            val keys = obj.keySet().toList()
+            assertThat(keys.subList(0, 7)).containsExactly(
+                "ts", "mono_ns", "session_id", "driver", "event", "pod", "mac"
+            ).inOrder()
+        }
+        assertThat(lines.map { gson.fromJson(it, JsonObject::class.java).get("event").asString })
+            .containsExactly(
+                "session_start", "rssi_sample", "mtu_negotiated", "phy_update",
+                "cccd_write", "bond_phase", "pod_status_snapshot", "alarm_snapshot",
+                "session_end"
+            ).inOrder()
+    }
+
+    @Test fun `session_end gates eap_aka_sequence_number on phase having run`() {
+        val lines = mutableListOf<String>()
+        TestLogCapture.capture(lines) {
+            DashMetrics.sessionStart("test", null, null, null, null, null, null, 1L, null)
+            // No eapAkaPhase() call — session_end must null out the SQN even though
+            // we pass a non-null value through the parameter.
+            DashMetrics.sessionEnd("clean_finish", null, 0, 0, 1L)
+        }
+        val endObj = gson.fromJson(lines.last(), JsonObject::class.java)
+        assertThat(endObj.get("eap_aka_sequence_number").isJsonNull).isTrue()
+    }
+
+    @Test fun `session_end emits eap_aka_sequence_number after phase runs`() {
+        val lines = mutableListOf<String>()
+        TestLogCapture.capture(lines) {
+            DashMetrics.sessionStart("test", null, null, null, null, null, null, 1L, null)
+            DashMetrics.eapAkaPhase(50L, "success", 0)
+            DashMetrics.sessionEnd("clean_finish", null, 1, 1, 7L)
+        }
+        val endObj = gson.fromJson(lines.last(), JsonObject::class.java)
+        assertThat(endObj.get("eap_aka_sequence_number").asLong).isEqualTo(7L)
+    }
+
+    @Test fun `session_end carries rollup fields`() {
+        val lines = mutableListOf<String>()
+        TestLogCapture.capture(lines) {
+            DashMetrics.sessionStart("test", null, null, null, null, null, null, 1L, null)
+            DashMetrics.rssiSample(-70, 0, "ready")
+            DashMetrics.rssiSample(-80, 0, "idle_poll")
+            DashMetrics.mtuNegotiated(185, 0)
+            DashMetrics.phyUpdate(1, 1, 0)
+            DashMetrics.sessionEnd("clean_finish", null, 1, 1, 1L)
+        }
+        val endObj = gson.fromJson(lines.last(), JsonObject::class.java)
+        assertThat(endObj.get("last_rssi_dbm").asInt).isEqualTo(-80)
+        assertThat(endObj.get("min_rssi_dbm").asInt).isEqualTo(-80)
+        assertThat(endObj.get("max_rssi_dbm").asInt).isEqualTo(-70)
+        assertThat(endObj.get("rssi_samples_count").asInt).isEqualTo(2)
+        assertThat(endObj.get("last_mtu_bytes").asInt).isEqualTo(185)
+        assertThat(endObj.get("last_phy_tx").asString).isEqualTo("LE_1M")
+    }
+
     private fun captureNextWrite(block: () -> Unit): String {
         val lines = mutableListOf<String>()
         TestLogCapture.capture(lines, block)
