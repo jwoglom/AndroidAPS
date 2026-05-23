@@ -198,6 +198,7 @@ object DashMetrics {
         ctx.commandInFlight = commandType
         ctx.tCmdStartMonoNs = System.nanoTime()
         ctx.tSendDoneMonoNs = null
+        ctx.lastSentSeq = seq
         ctx.lifecycle = "cmd"
         val e = base(ctx, "command_attempt")
         e["command_type"] = commandType
@@ -247,6 +248,55 @@ object DashMetrics {
         ctx.tCmdStartMonoNs = null
         ctx.tSendDoneMonoNs = null
         ctx.lifecycle = "idle"
+    }
+
+    fun podStatusSnapshot(
+        source: String,
+        podStatus: String?,
+        deliveryStatus: String?,
+        totalPulsesDelivered: Int?,
+        bolusPulsesRemaining: Int?,
+        reservoirPulsesRemaining: Int?,
+        minutesSinceActivation: Int?,
+        activeAlertsCount: Int?,
+        podReportedLastSeq: Int?
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val expected = ctx.lastSentSeq
+        val e = base(ctx, "pod_status_snapshot")
+        e["source"] = source
+        e["pod_status"] = podStatus
+        e["delivery_status"] = deliveryStatus
+        e["total_pulses_delivered"] = totalPulsesDelivered
+        e["bolus_pulses_remaining"] = bolusPulsesRemaining
+        e["reservoir_pulses_remaining"] = reservoirPulsesRemaining
+        e["minutes_since_activation"] = minutesSinceActivation
+        e["active_alerts_count"] = activeAlertsCount
+        e["pod_reported_last_seq"] = podReportedLastSeq
+        e["expected_last_seq"] = expected
+        e["seq_matches"] = if (expected != null && podReportedLastSeq != null) expected == podReportedLastSeq else null
+        MetricsWriter.write(e)
+    }
+
+    fun alarmSnapshot(
+        alarmType: String?,
+        alarmTime: Int?,
+        occlusionAlarm: Boolean,
+        pulseInfoInvalid: Boolean,
+        occlusionType: Int?,
+        podStatusWhenAlarmOccurred: String?
+    ) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "alarm_snapshot")
+        e["alarm_type"] = alarmType
+        e["alarm_time"] = alarmTime
+        e["occlusion_alarm"] = occlusionAlarm
+        e["pulse_info_invalid"] = pulseInfoInvalid
+        e["occlusion_type"] = occlusionType
+        e["pod_status_when_alarm_occurred"] = podStatusWhenAlarmOccurred
+        MetricsWriter.write(e)
     }
 
     fun nakReceived(

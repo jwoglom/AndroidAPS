@@ -762,10 +762,40 @@ class OmnipodDashManagerImpl @Inject constructor(
 
                 is DefaultStatusResponse -> {
                     podStateManager.updateFromDefaultStatusResponse(response)
+                    DashMetrics.podStatusSnapshot(
+                        source = "default_status",
+                        podStatus = response.podStatus.name,
+                        deliveryStatus = response.deliveryStatus.name,
+                        totalPulsesDelivered = response.totalPulsesDelivered.toInt(),
+                        bolusPulsesRemaining = response.bolusPulsesRemaining.toInt(),
+                        reservoirPulsesRemaining = response.reservoirPulsesRemaining.toInt(),
+                        minutesSinceActivation = response.minutesSinceActivation.toInt(),
+                        activeAlertsCount = response.activeAlerts.size,
+                        podReportedLastSeq = response.sequenceNumberOfLastProgrammingCommand.toInt()
+                    )
                 }
 
                 is AlarmStatusResponse   -> {
                     podStateManager.updateFromAlarmStatusResponse(response)
+                    DashMetrics.podStatusSnapshot(
+                        source = "alarm_status",
+                        podStatus = response.podStatus.name,
+                        deliveryStatus = response.deliveryStatus.name,
+                        totalPulsesDelivered = response.totalPulsesDelivered.toInt(),
+                        bolusPulsesRemaining = response.bolusPulsesRemaining.toInt(),
+                        reservoirPulsesRemaining = response.reservoirPulsesRemaining.toInt(),
+                        minutesSinceActivation = response.minutesSinceActivation.toInt(),
+                        activeAlertsCount = response.activeAlerts.size,
+                        podReportedLastSeq = response.sequenceNumberOfLastProgrammingCommand.toInt()
+                    )
+                    DashMetrics.alarmSnapshot(
+                        alarmType = response.alarmType.name,
+                        alarmTime = response.alarmTime.toInt(),
+                        occlusionAlarm = response.occlusionAlarm,
+                        pulseInfoInvalid = response.pulseInfoInvalid,
+                        occlusionType = response.occlusionType.toInt(),
+                        podStatusWhenAlarmOccurred = response.podStatusWhenAlarmOccurred.name
+                    )
                 }
 
                 is NakResponse           -> {
