@@ -90,8 +90,12 @@ class MetricsEventSchemaTest {
                 occlusionAlarm = false,
                 pulseInfoInvalid = false,
                 occlusionType = 0,
-                podStatusWhenAlarmOccurred = "UNKNOWN"
+                podStatusWhenAlarmOccurred = "UNKNOWN",
+                podReportedRssi = 42
             )
+            DashMetrics.connectionStateChange(2, 0)
+            DashMetrics.busyRejected("GET_STATUS")
+            DashMetrics.gattOpRejected("read_rssi", null)
             DashMetrics.sessionEnd("clean_finish", null, 1, 1, 5L)
         }
         for (line in lines) {
@@ -105,6 +109,7 @@ class MetricsEventSchemaTest {
             .containsExactly(
                 "session_start", "rssi_sample", "mtu_negotiated", "phy_update",
                 "cccd_write", "bond_phase", "pod_status_snapshot", "alarm_snapshot",
+                "connection_state_change", "busy_rejected", "gatt_op_rejected",
                 "session_end"
             ).inOrder()
     }

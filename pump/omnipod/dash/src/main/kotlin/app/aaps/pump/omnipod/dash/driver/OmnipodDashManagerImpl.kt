@@ -794,7 +794,8 @@ class OmnipodDashManagerImpl @Inject constructor(
                         occlusionAlarm = response.occlusionAlarm,
                         pulseInfoInvalid = response.pulseInfoInvalid,
                         occlusionType = response.occlusionType.toInt(),
-                        podStatusWhenAlarmOccurred = response.podStatusWhenAlarmOccurred.name
+                        podStatusWhenAlarmOccurred = response.podStatusWhenAlarmOccurred.name,
+                        podReportedRssi = response.rssi.toInt()
                     )
                 }
 

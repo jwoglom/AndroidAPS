@@ -57,6 +57,7 @@ class BleCommCallbacks(
         aapsLogger.debug(LTag.PUMPBTCOMM, "OnConnectionStateChange with status/state: $status/$newState")
         super.onConnectionStateChange(gatt, status, newState)
         lastConnectionStatus = status
+        DashMetrics.connectionStateChange(newState, status)
         if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
             connected.countDown()
         }

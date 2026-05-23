@@ -63,6 +63,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
     override fun sendCommand(cmd: Command, responseType: KClass<out Response>): Observable<PodEvent> =
         Observable.create { emitter ->
             if (!busy.compareAndSet(false, true)) {
+                DashMetrics.busyRejected(cmd.commandType.name)
                 throw BusyException()
             }
             try {
@@ -158,6 +159,7 @@ class OmnipodDashBleManagerImpl @Inject constructor(
     private fun connect(connectionWaitCond: ConnectionWaitCondition): Observable<PodEvent> = Observable
         .create { emitter ->
             if (!busy.compareAndSet(false, true)) {
+                DashMetrics.busyRejected(null)
                 throw BusyException()
             }
             try {

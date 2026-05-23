@@ -174,8 +174,8 @@ class Connection(
         val gatt = gattConnection ?: return
         bleCommCallbacks.enqueueRssiTag(sampleContext)
         if (!gatt.readRemoteRssi()) {
-            // gatt couldn't queue the op; pop the tag we just pushed
             aapsLogger.debug(LTag.PUMPBTCOMM, "readRemoteRssi returned false for tag=$sampleContext")
+            DashMetrics.gattOpRejected("read_rssi", null)
         }
     }
 

@@ -24,6 +24,7 @@ class SessionContext(
 
     val cmdSent = java.util.concurrent.atomic.AtomicInteger(0)
     val cmdFailed = java.util.concurrent.atomic.AtomicInteger(0)
+    val busyRejectedCount = java.util.concurrent.atomic.AtomicInteger(0)
     val endEmitted = AtomicBoolean(false)
 
     // Set to true when DashMetrics.eapAkaPhase() fires. Gates emission of

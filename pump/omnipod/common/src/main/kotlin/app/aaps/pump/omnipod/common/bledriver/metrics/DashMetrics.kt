@@ -37,6 +37,11 @@ object DashMetrics {
         e["location_services_on"] = locationServicesOn
         e["bluetooth_adapter_state"] = bluetoothAdapterState
         e["is_charging"] = isCharging
+        e["process_uptime_ms"] = try {
+            android.os.SystemClock.uptimeMillis() - android.os.Process.getStartUptimeMillis()
+        } catch (_: Throwable) {
+            null
+        }
         // Seed env-change-detection baselines so the idle env_sample poll only
         // fires when something has actually changed since session_start.
         ctx.lastEnvBatteryBucket = bucketBattery(batteryLevelPct)
@@ -232,6 +237,7 @@ object DashMetrics {
         e["commands_sent"] = sent
         e["commands_failed"] = failed
         e["cmd_failure_rate"] = failureRate
+        e["busy_rejected_count"] = ctx.busyRejectedCount.get()
         e["idle_ms_before_end"] = idleGapMs
         e["end_reason"] = endReason
         e["hci_status_at_disconnect"] = hciStatusAtDisconnect
@@ -346,7 +352,8 @@ object DashMetrics {
         occlusionAlarm: Boolean,
         pulseInfoInvalid: Boolean,
         occlusionType: Int?,
-        podStatusWhenAlarmOccurred: String?
+        podStatusWhenAlarmOccurred: String?,
+        podReportedRssi: Int?
     ) {
         if (!MetricsConfig.METRICS_ENABLED) return
         val ctx = SessionContextHolder.current() ?: return
@@ -357,6 +364,7 @@ object DashMetrics {
         e["pulse_info_invalid"] = pulseInfoInvalid
         e["occlusion_type"] = occlusionType
         e["pod_status_when_alarm_occurred"] = podStatusWhenAlarmOccurred
+        e["pod_reported_rssi"] = podReportedRssi
         MetricsWriter.write(e)
     }
 
@@ -530,6 +538,43 @@ object DashMetrics {
         e["hci_status_name"] = HciStatusNames.lookup(hciStatus)
         e["where_in_lifecycle"] = whereInLifecycle ?: ctx.lifecycle
         e["command_in_flight"] = commandInFlight ?: ctx.commandInFlight
+        MetricsWriter.write(e)
+    }
+
+    fun connectionStateChange(newState: Int, status: Int) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "connection_state_change")
+        e["new_state"] = newState
+        e["new_state_name"] = connectionStateName(newState)
+        e["gatt_status"] = status
+        e["hci_status_name"] = HciStatusNames.lookup(status)
+        MetricsWriter.write(e)
+    }
+
+    private fun connectionStateName(state: Int): String = when (state) {
+        android.bluetooth.BluetoothProfile.STATE_DISCONNECTED  -> "DISCONNECTED"
+        android.bluetooth.BluetoothProfile.STATE_CONNECTING    -> "CONNECTING"
+        android.bluetooth.BluetoothProfile.STATE_CONNECTED     -> "CONNECTED"
+        android.bluetooth.BluetoothProfile.STATE_DISCONNECTING -> "DISCONNECTING"
+        else                                                    -> "UNKNOWN_$state"
+    }
+
+    fun busyRejected(commandType: String?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        ctx.busyRejectedCount.incrementAndGet()
+        val e = base(ctx, "busy_rejected")
+        e["command_type"] = commandType
+        MetricsWriter.write(e)
+    }
+
+    fun gattOpRejected(op: String, charType: String?) {
+        if (!MetricsConfig.METRICS_ENABLED) return
+        val ctx = SessionContextHolder.current() ?: return
+        val e = base(ctx, "gatt_op_rejected")
+        e["op"] = op
+        e["char"] = charType
         MetricsWriter.write(e)
     }
 
