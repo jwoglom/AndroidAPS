@@ -22,6 +22,36 @@ class SessionContext(
     val cmdFailed = java.util.concurrent.atomic.AtomicInteger(0)
     val endEmitted = AtomicBoolean(false)
 
+    // Set to true when DashMetrics.eapAkaPhase() fires. Gates emission of
+    // eap_aka_sequence_number in session_end so first sessions that never reach
+    // EAP-AKA don't report a misleading default of 1.
+    @Volatile var eapAkaPhaseOccurred: Boolean = false
+
+    // Updated whenever a command completes with outcome == "ok"; lets sessionEnd
+    // report the idle gap (ms since last successful command) before disconnect.
+    @Volatile var lastCommandOkMonoNs: Long? = null
+
+    // Link-state samples populated from GATT callbacks; surfaced as rollups on
+    // session_end so an analyst can ask "was this session weak?" without folding
+    // the rssi_sample stream.
+    @Volatile var lastRssiDbm: Int? = null
+    @Volatile var minRssiDbm: Int? = null
+    @Volatile var maxRssiDbm: Int? = null
+    val rssiSamplesCount = java.util.concurrent.atomic.AtomicInteger(0)
+    @Volatile var lastMtuBytes: Int? = null
+    @Volatile var lastPhyTx: String? = null
+    @Volatile var lastPhyRx: String? = null
+
+    @Synchronized
+    fun recordRssiSample(rssi: Int) {
+        lastRssiDbm = rssi
+        val cur = minRssiDbm
+        if (cur == null || rssi < cur) minRssiDbm = rssi
+        val curMax = maxRssiDbm
+        if (curMax == null || rssi > curMax) maxRssiDbm = rssi
+        rssiSamplesCount.incrementAndGet()
+    }
+
     private val phaseStarts = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     fun beginPhase(name: String) { phaseStarts[name] = System.nanoTime(); lifecycle = name }

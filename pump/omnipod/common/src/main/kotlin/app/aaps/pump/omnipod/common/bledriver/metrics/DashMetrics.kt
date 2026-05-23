@@ -103,6 +103,7 @@ object DashMetrics {
     ) {
         if (!MetricsConfig.METRICS_ENABLED) return
         val ctx = SessionContextHolder.current() ?: return
+        ctx.eapAkaPhaseOccurred = true
         val e = base(ctx, "eap_aka_phase")
         e["duration_ms"] = durationMs
         e["outcome"] = outcome
@@ -130,16 +131,33 @@ object DashMetrics {
         val ctx = SessionContextHolder.current() ?: return
         if (!ctx.endEmitted.compareAndSet(false, true)) return
         val totalMs = (System.nanoTime() - ctx.tStartMonoNs) / 1_000_000L
+        val sent = ctx.cmdSent.get()
+        val failed = ctx.cmdFailed.get()
+        val total = sent + failed
+        val failureRate = if (total > 0) failed.toDouble() / total else null
+        val idleGapMs = ctx.lastCommandOkMonoNs?.let { (System.nanoTime() - it) / 1_000_000L }
         val e = base(ctx, "session_end")
         e["total_duration_ms"] = totalMs
-        e["commands_sent"] = ctx.cmdSent.get()
-        e["commands_failed"] = ctx.cmdFailed.get()
+        e["commands_sent"] = sent
+        e["commands_failed"] = failed
+        e["cmd_failure_rate"] = failureRate
+        e["idle_ms_before_end"] = idleGapMs
         e["end_reason"] = endReason
         e["hci_status_at_disconnect"] = hciStatusAtDisconnect
         e["hci_status_at_disconnect_name"] = hciStatusAtDisconnect?.let { HciStatusNames.lookup(it) }
         e["successful_connections"] = successfulConnections
         e["connection_attempts"] = connectionAttempts
-        e["eap_aka_sequence_number"] = eapAkaSequenceNumber
+        // Gate the pod's EAP-AKA SQN on the phase actually having run this session;
+        // PodState defaults the field to 1 so otherwise a first/aborted session
+        // would falsely report sqn=1.
+        e["eap_aka_sequence_number"] = if (ctx.eapAkaPhaseOccurred) eapAkaSequenceNumber else null
+        e["last_rssi_dbm"] = ctx.lastRssiDbm
+        e["min_rssi_dbm"] = ctx.minRssiDbm
+        e["max_rssi_dbm"] = ctx.maxRssiDbm
+        e["rssi_samples_count"] = ctx.rssiSamplesCount.get()
+        e["last_mtu_bytes"] = ctx.lastMtuBytes
+        e["last_phy_tx"] = ctx.lastPhyTx
+        e["last_phy_rx"] = ctx.lastPhyRx
         MetricsWriter.write(e)
         SessionContextHolder.clearAfterEnd(endReason)
     }
@@ -181,7 +199,12 @@ object DashMetrics {
         val totalMs = cmdStart?.let { (now - it) / 1_000_000L }
         val sendMs = if (cmdStart != null && sendDone != null) (sendDone - cmdStart) / 1_000_000L else null
         val receiveMs = if (sendDone != null) (now - sendDone) / 1_000_000L else null
-        if (outcome == "ok") ctx.cmdSent.incrementAndGet() else ctx.cmdFailed.incrementAndGet()
+        if (outcome == "ok") {
+            ctx.cmdSent.incrementAndGet()
+            ctx.lastCommandOkMonoNs = now
+        } else {
+            ctx.cmdFailed.incrementAndGet()
+        }
         val e = base(ctx, "command_result")
         e["command_type"] = ctx.commandInFlight
         e["outcome"] = outcome
