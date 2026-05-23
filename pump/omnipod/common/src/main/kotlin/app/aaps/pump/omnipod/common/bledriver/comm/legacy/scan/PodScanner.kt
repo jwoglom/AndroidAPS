@@ -48,11 +48,16 @@ class PodScanner(private val logger: AAPSLogger, private val bluetoothAdapter: B
             pickedRssi = collected[0].scanResult.rssi
             return collected[0]
         } finally {
+            val failureCode = scanCollector.lastScanFailureCode
+            val candidates = scanCollector.allCandidateRssis
             DashMetrics.scanPhase(
                 durationMs = (System.nanoTime() - tStart) / 1_000_000L,
                 candidatesFound = scanCollector.candidatesFound,
                 foundPodRssi = pickedRssi,
-                scanFailureReason = failureReason
+                scanFailureReason = failureReason,
+                scanFailureCode = failureCode,
+                scanFailureClass = DashMetrics.classifyScanFailure(failureCode),
+                candidateRssis = candidates.ifEmpty { null }
             )
         }
     }

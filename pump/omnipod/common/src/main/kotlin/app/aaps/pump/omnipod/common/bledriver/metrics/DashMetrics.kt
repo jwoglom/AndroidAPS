@@ -35,7 +35,10 @@ object DashMetrics {
         durationMs: Long,
         candidatesFound: Int,
         foundPodRssi: Int?,
-        scanFailureReason: String?
+        scanFailureReason: String?,
+        scanFailureCode: Int? = null,
+        scanFailureClass: String? = null,
+        candidateRssis: List<Int>? = null
     ) {
         if (!MetricsConfig.METRICS_ENABLED) return
         val ctx = SessionContextHolder.current() ?: return
@@ -44,7 +47,26 @@ object DashMetrics {
         e["candidates_found"] = candidatesFound
         e["found_pod_rssi"] = foundPodRssi
         e["scan_failure_reason"] = scanFailureReason
+        e["scan_failure_code"] = scanFailureCode
+        e["scan_failure_class"] = scanFailureClass
+        e["candidate_rssis"] = candidateRssis
         MetricsWriter.write(e)
+    }
+
+    /**
+     * Map BluetoothLeScanner.ScanCallback error codes to named categories.
+     * Note SCAN_FAILED_SCANNING_TOO_FREQUENTLY is the Android-throttle case
+     * (5 scans within 30s on API 30+), distinct from "no candidates found".
+     */
+    fun classifyScanFailure(errorCode: Int?): String? = when (errorCode) {
+        null                                                            -> null
+        android.bluetooth.le.ScanCallback.SCAN_FAILED_ALREADY_STARTED   -> "already_started"
+        android.bluetooth.le.ScanCallback.SCAN_FAILED_APPLICATION_REGISTRATION_FAILED -> "app_registration_failed"
+        android.bluetooth.le.ScanCallback.SCAN_FAILED_FEATURE_UNSUPPORTED -> "feature_unsupported"
+        android.bluetooth.le.ScanCallback.SCAN_FAILED_INTERNAL_ERROR    -> "internal_error"
+        android.bluetooth.le.ScanCallback.SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES -> "out_of_hw_resources"
+        android.bluetooth.le.ScanCallback.SCAN_FAILED_SCANNING_TOO_FREQUENTLY -> "throttle"
+        else                                                            -> "unknown_$errorCode"
     }
 
     fun bondPhase(

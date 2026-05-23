@@ -20,6 +20,10 @@ class ScanCollector(private val logger: AAPSLogger, private val podID: Long) : S
 
     val candidatesFound: Int get() = found.size
 
+    /** Snapshot of RSSIs across all candidates seen during the scan window. */
+    val allCandidateRssis: List<Int>
+        get() = found.values.map { it.rssi }
+
 
     override fun onScanResult(callbackType: Int, result: ScanResult) {
         // callbackType will be ALL
