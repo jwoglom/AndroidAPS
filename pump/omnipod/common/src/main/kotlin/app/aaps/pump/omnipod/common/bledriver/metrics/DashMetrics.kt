@@ -11,7 +11,11 @@ object DashMetrics {
         batteryLevelPct: Int?,
         appState: String?,
         podUniqueIdAtStart: Long?,
-        bluetoothAddressAtStart: String?
+        bluetoothAddressAtStart: String?,
+        powerSaveMode: Boolean? = null,
+        deviceIdleMode: Boolean? = null,
+        locationServicesOn: Boolean? = null,
+        bluetoothAdapterState: String? = null
     ): SessionContext? {
         if (!MetricsConfig.METRICS_ENABLED) return null
         val ctx = SessionContext()
@@ -27,6 +31,10 @@ object DashMetrics {
         e["pod_age_minutes"] = podAgeMinutes
         e["battery_level_pct"] = batteryLevelPct
         e["app_state"] = appState
+        e["power_save_mode"] = powerSaveMode
+        e["device_idle_mode"] = deviceIdleMode
+        e["location_services_on"] = locationServicesOn
+        e["bluetooth_adapter_state"] = bluetoothAdapterState
         MetricsWriter.write(e)
         return ctx
     }

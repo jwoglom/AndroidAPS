@@ -1,8 +1,11 @@
 package app.aaps.pump.omnipod.common.bledriver.comm
 
+import android.bluetooth.BluetoothManager
+import android.content.Context
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.receivers.ReceiverStatusStore
 import app.aaps.core.utils.toHex
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.BusyException
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.ConnectException
@@ -30,6 +33,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.session.NotConnected
 import app.aaps.pump.omnipod.common.bledriver.comm.session.Session
 import app.aaps.pump.omnipod.common.bledriver.event.PodEvent
 import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
+import app.aaps.pump.omnipod.common.bledriver.metrics.EnvProbe
 import app.aaps.pump.omnipod.common.bledriver.metrics.SessionContextHolder
 import app.aaps.pump.omnipod.common.bledriver.pod.command.base.Command
 import app.aaps.pump.omnipod.common.bledriver.pod.response.Response
@@ -48,6 +52,8 @@ class OmnipodDashBleManagerImpl @Inject constructor(
     private val config: Config,
     private val bleConnectionFactory: BleConnectionFactory,
     private val bleDeviceManager: BleDeviceManager,
+    private val context: Context,
+    private val receiverStatusStore: ReceiverStatusStore,
 ) : OmnipodDashBleManager {
 
     private val busy = AtomicBoolean(false)
@@ -334,16 +340,21 @@ class OmnipodDashBleManagerImpl @Inject constructor(
         val now = System.currentTimeMillis()
         val priorSecs = SessionContextHolder.lastSessionEndEpochMs?.let { (now - it) / 1000L }
         val podAgeMin = podState.activationTime?.let { (now - it) / 60_000L }
+        val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
         DashMetrics.sessionStart(
             reason = reason,
             priorSecondsSinceLastSession = priorSecs,
             btAdapterEnabled = bleDeviceManager.isBluetoothAvailable(),
             priorSessionOutcome = SessionContextHolder.lastSessionEndReason,
             podAgeMinutes = podAgeMin,
-            batteryLevelPct = null,
-            appState = null,
+            batteryLevelPct = receiverStatusStore.batteryLevel.takeIf { it in 0..100 },
+            appState = EnvProbe.appState(context),
             podUniqueIdAtStart = podState.uniqueId,
-            bluetoothAddressAtStart = podState.bluetoothAddress
+            bluetoothAddressAtStart = podState.bluetoothAddress,
+            powerSaveMode = EnvProbe.powerSaveMode(context),
+            deviceIdleMode = EnvProbe.deviceIdleMode(context),
+            locationServicesOn = EnvProbe.locationServicesOn(context),
+            bluetoothAdapterState = EnvProbe.bluetoothAdapterState(adapter),
         )
     }
 
