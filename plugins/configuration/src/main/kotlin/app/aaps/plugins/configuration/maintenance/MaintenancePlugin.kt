@@ -12,6 +12,7 @@ import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.LoggerUtils
 import app.aaps.core.interfaces.logging.UserEntryLogger
 import app.aaps.core.interfaces.maintenance.FileListProvider
@@ -207,21 +208,44 @@ class MaintenancePlugin @Inject constructor(
 
     private fun zip(zipFile: DocumentFile, files: List<File>) {
         val bufferSize = 2048
-        val out = ZipOutputStream(BufferedOutputStream(FileOutputStream(context.contentResolver.openFileDescriptor(zipFile.uri, "w")?.fileDescriptor)))
-        for (file in files) {
-            val data = ByteArray(bufferSize)
-            FileInputStream(file).use { fileInputStream ->
-                BufferedInputStream(fileInputStream, bufferSize).use { origin ->
-                    val entry = ZipEntry(file.name)
-                    out.putNextEntry(entry)
-                    var count: Int
-                    while (origin.read(data, 0, bufferSize).also { count = it } != -1) {
-                        out.write(data, 0, count)
+        val pfd = context.contentResolver.openFileDescriptor(zipFile.uri, "w") ?: run {
+            aapsLogger.error("Cannot open zip output descriptor for ${zipFile.uri}")
+            return
+        }
+        pfd.use {
+            ZipOutputStream(BufferedOutputStream(FileOutputStream(it.fileDescriptor))).use { out ->
+                val data = ByteArray(bufferSize)
+                for (file in files) {
+                    if (!file.exists()) {
+                        aapsLogger.warn(LTag.CORE, "Skipping ${file.name}: file does not exist")
+                        continue
+                    }
+                    if (!file.canRead()) {
+                        aapsLogger.warn(LTag.CORE, "Skipping ${file.name}: not readable")
+                        continue
+                    }
+                    try {
+                        FileInputStream(file).use { fileInputStream ->
+                            BufferedInputStream(fileInputStream, bufferSize).use { origin ->
+                                out.putNextEntry(ZipEntry(file.name))
+                                var count: Int
+                                while (origin.read(data, 0, bufferSize).also { count = it } != -1) {
+                                    out.write(data, 0, count)
+                                }
+                                out.closeEntry()
+                            }
+                        }
+                        aapsLogger.debug(LTag.CORE, "Added ${file.name} (${file.length()} bytes) to log zip")
+                    } catch (e: IOException) {
+                        // One unreadable file (e.g. a log held open by a writer that
+                        // returns EOF or briefly locks the read side) must not abort
+                        // the entire export — log it and carry on so the rest of the
+                        // archive still makes it to the tester.
+                        aapsLogger.error(LTag.CORE, "Failed to add ${file.name} to log zip", e)
                     }
                 }
             }
         }
-        out.close()
     }
 
     @Suppress("SameParameterValue")
