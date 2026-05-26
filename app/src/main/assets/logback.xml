@@ -47,9 +47,14 @@
         </encoder>
     </appender>
 
-    <!-- Route the dedicated dash-metrics logger only to its own appender; additivity=false
-         prevents double-write into the standard file/logcat appenders. -->
-    <logger name="dash-metrics" level="INFO" additivity="false">
+    <!-- Route the dedicated dash-metrics logger to its own JSONL appender AND let it
+         propagate to the root file/logcat appenders. The dedicated file keeps clean
+         JSONL for offline analysis; the propagation embeds each event inside the
+         regular AndroidAPS.log (and therefore inside every rolled AndroidAPS._*.zip)
+         so a tester sending logs always ships the metrics alongside, regardless of
+         per-group retention. The wrapping log pattern (timestamp + thread +
+         "I/dash-metrics:") is a stable, greppable prefix. -->
+    <logger name="dash-metrics" level="INFO" additivity="true">
         <appender-ref ref="dash-metrics-file" />
     </logger>
 
