@@ -16,6 +16,8 @@ import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.BleSendSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.io.CharacteristicType
 import app.aaps.pump.omnipod.common.bledriver.comm.legacy.callbacks.WriteConfirmationError
 import app.aaps.pump.omnipod.common.bledriver.comm.legacy.callbacks.WriteConfirmationSuccess
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
+import android.bluetooth.BluetoothGatt
 import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.WriteType
 import java.util.concurrent.BlockingQueue
@@ -37,6 +39,7 @@ open class BlessedBleIO(
         return try {
             val packet = incomingPackets.poll(timeoutMs, TimeUnit.MILLISECONDS)
             if (packet == null) {
+                DashMetrics.bleReadTimeout(type.name, timeoutMs)
                 aapsLogger.debug(LTag.PUMPBTCOMM, "Timeout reading $type packet")
             }
             packet
@@ -48,9 +51,12 @@ open class BlessedBleIO(
 
     override fun sendAndConfirmPacket(payload: ByteArray): BleSendResult {
         aapsLogger.debug(LTag.PUMPBTCOMM, "BlessedBleIO: Sending on $type: ${payload.toHex()}")
+        val tStart = System.nanoTime()
         blessedCallbacks.flushConfirmationQueue()
         val sent = peripheral.writeCharacteristic(characteristic, payload, WriteType.WITH_RESPONSE)
         if (!sent) {
+            DashMetrics.bleWrite(type.name, 0, "writeCharacteristic_returned_false")
+            DashMetrics.gattError("write", "writeCharacteristic_returned_false", type.name)
             return BleSendErrorSending("Could not writeCharacteristic on $type")
         }
         return when (val confirmation = blessedCallbacks.confirmWrite(
@@ -58,8 +64,15 @@ open class BlessedBleIO(
             characteristic.uuid.toString(),
             BleCharacteristicIO.DEFAULT_IO_TIMEOUT_MS
         )) {
-            is WriteConfirmationError   -> BleSendErrorConfirming(confirmation.msg)
-            is WriteConfirmationSuccess -> BleSendSuccess
+            is WriteConfirmationError   -> {
+                DashMetrics.bleWrite(type.name, (System.nanoTime() - tStart) / 1_000_000L, "confirm_error")
+                BleSendErrorConfirming(confirmation.msg)
+            }
+
+            is WriteConfirmationSuccess -> {
+                DashMetrics.bleWrite(type.name, (System.nanoTime() - tStart) / 1_000_000L, null)
+                BleSendSuccess
+            }
         }
     }
 
@@ -90,8 +103,15 @@ open class BlessedBleIO(
             BleCharacteristicIO.DEFAULT_IO_TIMEOUT_MS
         )
         return when (confirmation) {
-            is WriteConfirmationError   -> throw ConnectException(confirmation.msg)
-            is WriteConfirmationSuccess -> BleSendSuccess
+            is WriteConfirmationError   -> {
+                DashMetrics.cccdWrite(type.name, "confirm_error", null)
+                throw ConnectException(confirmation.msg)
+            }
+
+            is WriteConfirmationSuccess -> {
+                DashMetrics.cccdWrite(type.name, "success", BluetoothGatt.GATT_SUCCESS)
+                BleSendSuccess
+            }
         }
     }
 }

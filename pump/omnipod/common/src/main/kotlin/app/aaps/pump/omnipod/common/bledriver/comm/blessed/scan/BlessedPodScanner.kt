@@ -11,6 +11,7 @@ import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.ScanFailFoundTooMa
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.scan.PodScanner
 import app.aaps.pump.omnipod.common.bledriver.comm.legacy.scan.BleDiscoveredDevice
 import app.aaps.pump.omnipod.common.bledriver.comm.legacy.scan.DiscoveredInvalidPodException
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import com.welie.blessed.BluetoothCentralManager
 import com.welie.blessed.BluetoothCentralManagerCallback
 import com.welie.blessed.BluetoothPeripheral
@@ -47,6 +48,10 @@ class BlessedPodScanner(
         val handler = Handler(Looper.getMainLooper())
         val centralManager = BluetoothCentralManager(context, callback, handler)
 
+        DashMetrics.setLifecycle("scan")
+        val tStart = System.nanoTime()
+        var failureReason: String? = null
+        var pickedRssi: Int? = null
         try {
             val serviceUuid = UUID.fromString(serviceUUID)
             logger.debug(LTag.PUMPBTCOMM, "Blessed scanning for service: $serviceUuid")
@@ -57,7 +62,10 @@ class BlessedPodScanner(
             // Brief delay for any final onDiscovered callbacks
             Thread.sleep(200)
 
-            scanFailed?.let { throw ScanException(it.value) }
+            scanFailed?.let {
+                failureReason = "scan_failure_${it.value}"
+                throw ScanException(it.value)
+            }
 
             val collected = mutableListOf<BleDiscoveredDevice>()
             for (result in found.values) {
@@ -72,11 +80,33 @@ class BlessedPodScanner(
             }
 
             return when {
-                collected.isEmpty()  -> throw ScanException("Not found")
-                collected.size > 1   -> throw ScanFailFoundTooManyException(collected)
-                else                 -> collected[0]
+                collected.isEmpty()  -> {
+                    if (failureReason == null) failureReason = "not_found"
+                    throw ScanException("Not found")
+                }
+
+                collected.size > 1   -> {
+                    if (failureReason == null) failureReason = "too_many"
+                    throw ScanFailFoundTooManyException(collected)
+                }
+
+                else                 -> {
+                    pickedRssi = collected[0].scanResult.rssi
+                    collected[0]
+                }
             }
         } finally {
+            val failureCode = scanFailed?.value
+            val candidateRssis = found.values.map { it.rssi }
+            DashMetrics.scanPhase(
+                durationMs = (System.nanoTime() - tStart) / 1_000_000L,
+                candidatesFound = found.size,
+                foundPodRssi = pickedRssi,
+                scanFailureReason = failureReason,
+                scanFailureCode = failureCode,
+                scanFailureClass = DashMetrics.classifyScanFailure(failureCode),
+                candidateRssis = candidateRssis.ifEmpty { null }
+            )
             centralManager.close()
         }
     }

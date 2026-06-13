@@ -21,6 +21,21 @@
         </encoder>
     </appender>
 
+    <!-- Dash BLE driver metrics: one JSON object per line, dedicated file.
+         Plain FileAppender with no rollingPolicy: the file is always appended
+         and is never rotated, so testers always see the full BLE-driver event
+         history in a single artifact. Per-event volume is small (a few hundred
+         bytes) and the redundant copy embedded in AndroidAPS.log (via the
+         dash-metrics logger's additivity) carries the rotation/retention
+         story for the regular log pipeline. -->
+    <appender name="dash-metrics-file" class="ch.qos.logback.core.FileAppender">
+        <file>${EXT_FILES_DIR}/AndroidAPS-dash-metrics.jsonl.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
     <appender name="logcat" class="ch.qos.logback.classic.android.LogcatAppender">
         <tagEncoder>
             <pattern>%logger{0}</pattern>
@@ -29,6 +44,17 @@
             <pattern>[%thread]: %msg%n</pattern>
         </encoder>
     </appender>
+
+    <!-- Route the dedicated dash-metrics logger to its own JSONL appender AND let it
+         propagate to the root file/logcat appenders. The dedicated file keeps clean
+         JSONL for offline analysis; the propagation embeds each event inside the
+         regular AndroidAPS.log (and therefore inside every rolled AndroidAPS._*.zip)
+         so a tester sending logs always ships the metrics alongside, regardless of
+         per-group retention. The wrapping log pattern (timestamp + thread +
+         "I/dash-metrics:") is a stable, greppable prefix. -->
+    <logger name="dash-metrics" level="INFO" additivity="true">
+        <appender-ref ref="dash-metrics-file" />
+    </logger>
 
     <!-- Write INFO (and higher-level) messages to the log file -->
     <root level="DEBUG">

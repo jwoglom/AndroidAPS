@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.receivers.ReceiverStatusStore
 import app.aaps.pump.omnipod.common.bledriver.comm.exceptions.ConnectException
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.session.BleConnection
 import app.aaps.pump.omnipod.common.bledriver.comm.interfaces.session.BleConnectionFactory
@@ -18,7 +19,8 @@ class LegacyBleConnectionFactory @Inject constructor(
     private val context: Context,
     private val aapsLogger: AAPSLogger,
     private val config: Config,
-    private val podState: OmnipodDashPodStateManager
+    private val podState: OmnipodDashPodStateManager,
+    private val receiverStatusStore: ReceiverStatusStore
 ) : BleConnectionFactory {
 
     private val bluetoothAdapter: BluetoothAdapter?
@@ -27,6 +29,6 @@ class LegacyBleConnectionFactory @Inject constructor(
     override fun createConnection(podAddress: String): BleConnection {
         val adapter = bluetoothAdapter ?: throw ConnectException("Bluetooth not available")
         val podDevice = adapter.getRemoteDevice(podAddress)
-        return Connection(podDevice, aapsLogger, config, context, podState)
+        return Connection(podDevice, aapsLogger, config, context, podState, receiverStatusStore)
     }
 }

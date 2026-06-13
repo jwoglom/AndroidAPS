@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import com.welie.blessed.BluetoothCentralManager
 import com.welie.blessed.BluetoothCentralManagerCallback
 import com.welie.blessed.BluetoothPeripheral
@@ -56,32 +57,51 @@ object BlessedBondingHelper {
         }
 
         val manager = BluetoothCentralManager(context, centralCallback, handler)
+        val tStart = System.nanoTime()
+        var priorBondState: String? = null
+        var outcome = "peripheral_null"
         try {
             val peripheral = manager.getPeripheral(address)
                 ?: run {
                     aapsLogger.warn(LTag.PUMPBTCOMM, "Blessed createBond: getPeripheral returned null")
                     return false
                 }
+            priorBondState = bondStateName(peripheral.bondState)
             when (peripheral.bondState) {
                 BondState.BONDED  -> {
                     aapsLogger.debug(LTag.PUMPBTCOMM, "Device already bonded")
+                    outcome = "already_bonded"
                     return true
                 }
 
                 BondState.BONDING -> {
-                    bondLatch.await(BOND_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    val signalled = bondLatch.await(BOND_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    outcome = if (bonded) "bonded" else if (!signalled) "timeout" else "failed"
                     return bonded
                 }
 
                 else              -> {
                     manager.createBond(peripheral, peripheralCallback)
-                    bondLatch.await(BOND_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    val signalled = bondLatch.await(BOND_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    outcome = if (bonded) "bonded" else if (!signalled) "timeout" else "failed"
                     return bonded
                 }
             }
         } finally {
+            DashMetrics.bondPhase(
+                priorBondState = priorBondState,
+                durationMs = (System.nanoTime() - tStart) / 1_000_000L,
+                outcome = outcome,
+                useBondingPref = true // helper is only invoked when the UseBonding pref is on
+            )
             manager.close()
         }
+    }
+
+    private fun bondStateName(state: BondState): String = when (state) {
+        BondState.NONE    -> "NONE"
+        BondState.BONDING -> "BONDING"
+        BondState.BONDED  -> "BONDED"
     }
 
     /**

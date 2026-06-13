@@ -11,10 +11,13 @@ import app.aaps.pump.omnipod.common.bledriver.comm.legacy.callbacks.WriteConfirm
 import app.aaps.pump.omnipod.common.bledriver.comm.legacy.callbacks.WriteConfirmationError
 import app.aaps.pump.omnipod.common.bledriver.comm.legacy.callbacks.WriteConfirmationSuccess
 import app.aaps.pump.omnipod.common.bledriver.comm.legacy.io.IncomingPackets
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.BluetoothPeripheralCallback
 import com.welie.blessed.GattStatus
+import com.welie.blessed.PhyType
 import java.util.concurrent.BlockingQueue
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -30,6 +33,15 @@ class BlessedBleCallbacks(
 
     private var serviceDiscoveryComplete: CountDownLatch = CountDownLatch(1)
     private val writeQueue: BlockingQueue<WriteConfirmation> = LinkedBlockingQueue()
+
+    // Tags pushed by readers of RSSI before calling peripheral.readRemoteRssi(). The
+    // onReadRemoteRssi callback pops the head and emits the rssi_sample event with
+    // that tag so callers can label samples (ready/pre_cmd/idle_poll).
+    private val rssiTagQueue: ConcurrentLinkedQueue<String> = ConcurrentLinkedQueue()
+
+    fun enqueueRssiTag(tag: String) {
+        rssiTagQueue.offer(tag)
+    }
 
     fun signalServiceDiscoveryComplete() {
         serviceDiscoveryComplete.countDown()
@@ -72,6 +84,9 @@ class BlessedBleCallbacks(
         characteristic: BluetoothGattCharacteristic,
         status: GattStatus
     ) {
+        if (status != GattStatus.SUCCESS) {
+            DashMetrics.gattError("write", status.value.toString(), charTypeNameOf(characteristic.uuid.toString()))
+        }
         onWrite(status, characteristic.uuid.toString(), value)
     }
 
@@ -81,8 +96,36 @@ class BlessedBleCallbacks(
         descriptor: BluetoothGattDescriptor,
         status: GattStatus
     ) {
+        if (status != GattStatus.SUCCESS) {
+            DashMetrics.gattError("descriptor", status.value.toString(), charTypeNameOf(descriptor.characteristic?.uuid?.toString()))
+        }
         onWrite(status, descriptor.uuid.toString(), value)
     }
+
+    override fun onMtuChanged(peripheral: BluetoothPeripheral, mtu: Int, status: GattStatus) {
+        aapsLogger.debug(LTag.PUMPBTCOMM, "Blessed onMtuChanged mtu/status: $mtu/$status")
+        DashMetrics.mtuNegotiated(mtu, status.value)
+    }
+
+    override fun onReadRemoteRssi(peripheral: BluetoothPeripheral, rssi: Int, status: GattStatus) {
+        aapsLogger.debug(LTag.PUMPBTCOMM, "Blessed onReadRemoteRssi rssi/status: $rssi/$status")
+        val tag = rssiTagQueue.poll() ?: "unsolicited"
+        DashMetrics.rssiSample(rssi, status.value, tag)
+    }
+
+    override fun onPhyUpdate(peripheral: BluetoothPeripheral, txPhy: PhyType, rxPhy: PhyType, status: GattStatus) {
+        aapsLogger.debug(LTag.PUMPBTCOMM, "Blessed onPhyUpdate txPhy/rxPhy/status: $txPhy/$rxPhy/$status")
+        DashMetrics.phyUpdate(txPhy.value, rxPhy.value, status.value)
+    }
+
+    private fun charTypeNameOf(uuid: String?): String? =
+        uuid?.let {
+            try {
+                byValue(it).name
+            } catch (e: IllegalArgumentException) {
+                null
+            }
+        }
 
     private fun onWrite(status: GattStatus, uuid: String, value: ByteArray) {
         val writeConfirmation = when {

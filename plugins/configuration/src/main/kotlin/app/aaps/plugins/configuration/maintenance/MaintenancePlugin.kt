@@ -102,10 +102,14 @@ class MaintenancePlugin @Inject constructor(
     fun deleteLogs(keep: Int) {
         val logDir = File(loggerUtils.logDirectory)
         val files = logDir.listFiles { _: File?, name: String ->
-            (name.startsWith("AndroidAPS") && name.endsWith(".zip"))
+            (name.startsWith("AndroidAPS") && name.endsWith(".zip")
+                && !name.startsWith(DASH_METRICS_PREFIX))
         }
         val autotuneFiles = logDir.listFiles { _: File?, name: String ->
             (name.startsWith("autotune") && name.endsWith(".zip"))
+        }
+        val dashMetricsFiles = logDir.listFiles { _: File?, name: String ->
+            (name.startsWith(DASH_METRICS_PREFIX) && name.endsWith(".zip"))
         }
         val keepIndex = keep - 1
         if (autotuneFiles != null && autotuneFiles.isNotEmpty()) {
@@ -114,6 +118,16 @@ class MaintenancePlugin @Inject constructor(
             if (keepIndex < delAutotuneFiles.size) {
                 delAutotuneFiles = delAutotuneFiles.subList(keepIndex, delAutotuneFiles.size)
                 for (file in delAutotuneFiles) {
+                    file.delete()
+                }
+            }
+        }
+        if (dashMetricsFiles != null && dashMetricsFiles.isNotEmpty()) {
+            Arrays.sort(dashMetricsFiles) { f1: File, f2: File -> f2.name.compareTo(f1.name) }
+            var delDashMetricsFiles = listOf(*dashMetricsFiles)
+            if (keepIndex < delDashMetricsFiles.size) {
+                delDashMetricsFiles = delDashMetricsFiles.subList(keepIndex, delDashMetricsFiles.size)
+                for (file in delDashMetricsFiles) {
                     file.delete()
                 }
             }
@@ -137,7 +151,10 @@ class MaintenancePlugin @Inject constructor(
      * returns a list of log files. The number of returned logs is given via the amount
      * parameter.
      *
-     * The log files are sorted by the name descending.
+     * The log files are sorted by the name descending. Dash-metrics files are kept in
+     * a separate group and always returned in full alongside the regular AAPS logs —
+     * they sort below regular log zips lexicographically (because '-' < '.') so they
+     * would otherwise be silently pushed past the amount limit and never exported.
      *
      * @param amount
      * @return
@@ -147,17 +164,23 @@ class MaintenancePlugin @Inject constructor(
         val logDir = File(loggerUtils.logDirectory)
         val files = logDir.listFiles { _: File?, name: String ->
             (name.startsWith("AndroidAPS")
+                && !name.startsWith(DASH_METRICS_PREFIX)
                 && (name.endsWith(".log")
                 || name.endsWith(".zip") && !name.endsWith(loggerUtils.suffix)))
         } ?: emptyArray()
         Arrays.sort(files) { f1: File, f2: File -> f2.name.compareTo(f1.name) }
-        val result = listOf(*files)
-        var toIndex = amount
-        if (toIndex > result.size) {
-            toIndex = result.size
-        }
-        aapsLogger.debug("returning sublist 0 to $toIndex")
-        return result.subList(0, toIndex)
+        val regular = listOf(*files)
+        val regularSlice = regular.subList(0, amount.coerceAtMost(regular.size))
+
+        val dashMetricsFiles = logDir.listFiles { _: File?, name: String ->
+            (name.startsWith(DASH_METRICS_PREFIX)
+                && (name.endsWith(".log") || name.endsWith(".zip")))
+        } ?: emptyArray()
+        Arrays.sort(dashMetricsFiles) { f1: File, f2: File -> f2.name.compareTo(f1.name) }
+        val metrics = listOf(*dashMetricsFiles)
+
+        aapsLogger.debug("returning ${regularSlice.size} regular logs + ${metrics.size} dash-metrics files")
+        return regularSlice + metrics
     }
 
     fun zipLogs(zipFile: DocumentFile, files: List<File>): DocumentFile {
@@ -374,5 +397,11 @@ class MaintenancePlugin @Inject constructor(
                 // )
             })
         }
+    }
+
+    companion object {
+        // Files written by the Dash BLE driver's metrics pipeline; quota-separated from
+        // the regular AAPS log so size-based rolling of the latter cannot crowd them out.
+        private const val DASH_METRICS_PREFIX = "AndroidAPS-dash-metrics"
     }
 }

@@ -33,8 +33,10 @@ import app.aaps.pump.omnipod.common.bledriver.pod.definition.PodConstants.Compan
 import app.aaps.pump.omnipod.common.bledriver.pod.definition.PodConstants.Companion.POD_PULSE_BOLUS_UNITS
 import app.aaps.pump.omnipod.common.bledriver.pod.definition.PodStatus
 import app.aaps.pump.omnipod.common.bledriver.pod.definition.ProgramReminder
+import app.aaps.pump.omnipod.common.bledriver.metrics.DashMetrics
 import app.aaps.pump.omnipod.common.bledriver.pod.response.AlarmStatusResponse
 import app.aaps.pump.omnipod.common.bledriver.pod.response.DefaultStatusResponse
+import app.aaps.pump.omnipod.common.bledriver.pod.response.NakResponse
 import app.aaps.pump.omnipod.common.bledriver.pod.response.Response
 import app.aaps.pump.omnipod.common.bledriver.pod.response.ResponseType
 import app.aaps.pump.omnipod.common.bledriver.pod.response.SetUniqueIdResponse
@@ -739,6 +741,7 @@ class OmnipodDashManagerImpl @Inject constructor(
 
                 is PodEvent.Paired                  -> {
                     podStateManager.uniqueId = event.uniqueId.toLong()
+                    DashMetrics.fillPodHashIfMissing(event.uniqueId.toLong())
                 }
 
                 else                                -> {
@@ -759,10 +762,50 @@ class OmnipodDashManagerImpl @Inject constructor(
 
                 is DefaultStatusResponse -> {
                     podStateManager.updateFromDefaultStatusResponse(response)
+                    DashMetrics.podStatusSnapshot(
+                        source = "default_status",
+                        podStatus = response.podStatus.name,
+                        deliveryStatus = response.deliveryStatus.name,
+                        totalPulsesDelivered = response.totalPulsesDelivered.toInt(),
+                        bolusPulsesRemaining = response.bolusPulsesRemaining.toInt(),
+                        reservoirPulsesRemaining = response.reservoirPulsesRemaining.toInt(),
+                        minutesSinceActivation = response.minutesSinceActivation.toInt(),
+                        activeAlertsCount = response.activeAlerts.size,
+                        podReportedLastSeq = response.sequenceNumberOfLastProgrammingCommand.toInt()
+                    )
                 }
 
                 is AlarmStatusResponse   -> {
                     podStateManager.updateFromAlarmStatusResponse(response)
+                    DashMetrics.podStatusSnapshot(
+                        source = "alarm_status",
+                        podStatus = response.podStatus.name,
+                        deliveryStatus = response.deliveryStatus.name,
+                        totalPulsesDelivered = response.totalPulsesDelivered.toInt(),
+                        bolusPulsesRemaining = response.bolusPulsesRemaining.toInt(),
+                        reservoirPulsesRemaining = response.reservoirPulsesRemaining.toInt(),
+                        minutesSinceActivation = response.minutesSinceActivation.toInt(),
+                        activeAlertsCount = response.activeAlerts.size,
+                        podReportedLastSeq = response.sequenceNumberOfLastProgrammingCommand.toInt()
+                    )
+                    DashMetrics.alarmSnapshot(
+                        alarmType = response.alarmType.name,
+                        alarmTime = response.alarmTime.toInt(),
+                        occlusionAlarm = response.occlusionAlarm,
+                        pulseInfoInvalid = response.pulseInfoInvalid,
+                        occlusionType = response.occlusionType.toInt(),
+                        podStatusWhenAlarmOccurred = response.podStatusWhenAlarmOccurred.name,
+                        podReportedRssi = response.rssi.toInt()
+                    )
+                }
+
+                is NakResponse           -> {
+                    DashMetrics.nakReceived(
+                        nakErrorType = response.nakErrorType.name,
+                        alarmType = response.alarmType?.name,
+                        podStatus = response.podStatus?.name,
+                        secNakSyncCount = response.securityNakSyncCount.toInt()
+                    )
                 }
             }
         }

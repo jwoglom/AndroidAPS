@@ -22,6 +22,12 @@ interface BleConnection : DisconnectHandler {
     fun connectionState(): ConnectionState
     fun establishSession(ltk: ByteArray, msgSeq: Byte, ids: Ids, eapSqn: ByteArray): EapSqn?
 
+    /**
+     * Issue an async RSSI read tagged with `sampleContext`. The rssi_sample
+     * metric is emitted from the GATT callback. No-op if there's no live GATT.
+     */
+    fun requestRssiSample(sampleContext: String)
+
     companion object {
         const val DEFAULT_CONNECT_TIMEOUT_MS = 30000L
     }
