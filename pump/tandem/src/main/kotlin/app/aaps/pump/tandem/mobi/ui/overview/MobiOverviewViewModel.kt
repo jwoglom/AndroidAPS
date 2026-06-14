@@ -96,6 +96,7 @@ sealed class MobiOverviewEvent {
     data object OpenHistory : MobiOverviewEvent()
 }
 
+@Deprecated("This class was replaced with V2")
 @HiltViewModel
 @Stable
 open class MobiOverviewViewModel @Inject constructor(
@@ -429,16 +430,18 @@ open class MobiOverviewViewModel @Inject constructor(
     }
 
 
-    fun onRefreshClick() {
+    suspend fun onRefreshClick() {
         //aapsLogger.debug(LTag.PUMP, "Clicked connect to pump")
 
         setButtonState(false)
         tandemPump.resetStatusState()
-        commandQueue.readStatus("Clicked refresh", object : Callback() {
-            override fun run() {
-                setButtonState(true)
-            }
-        })
+        // commandQueue.readStatus(rh.gs(Rc.string.requested_by_user), object : Callback() {
+        //     override fun run() {
+        //         setButtonState(true)
+        //     }
+        // })
+        commandQueue.readStatus(rh.gs(Rc.string.requested_by_user))
+        setButtonState(true)
     }
 
     private fun setButtonState(enabled: Boolean) {
@@ -469,14 +472,14 @@ open class MobiOverviewViewModel @Inject constructor(
     private fun buildPrimaryActions(): List<PumpAction> {
         if (primaryActions==null || primaryActions.isEmpty()) {
             primaryActions = listOf(
-                PumpAction(
-                    label = rh.gs(app.aaps.core.ui.R.string.refresh),
-                    //iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
-                    icon = IcLoopClosed, // TODO dev4
-                    category = ActionCategory.PRIMARY,
-                    visible = buttonsEnabled.value,
-                    onClick = { onRefreshClick() }
-                ),
+                // PumpAction(
+                //     label = rh.gs(app.aaps.core.ui.R.string.refresh),
+                //     //iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
+                //     icon = IcLoopClosed, // TODO dev4
+                //     category = ActionCategory.PRIMARY,
+                //     visible = buttonsEnabled.value,
+                //     onClick = { onRefreshClick() }
+                // ),
                 PumpAction(
                     label = rh.gs(R.string.pump_data),
                     icon = Icons.AutoMirrored.Filled.List,

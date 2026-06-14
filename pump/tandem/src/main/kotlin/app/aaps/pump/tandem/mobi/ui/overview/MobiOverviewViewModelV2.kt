@@ -62,6 +62,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
@@ -245,16 +246,18 @@ class MobiOverviewViewModelV2 @Inject constructor(
     }
 
 
-    fun onRefreshClick() {
+    suspend fun onRefreshClick() {
         //aapsLogger.debug(LTag.PUMP, "Clicked connect to pump")
 
         setButtonState(false)
         tandemPlugin.resetStatusState()
-        commandQueue.readStatus(rh.gs(Rc.string.requested_by_user), object : Callback() {
-            override fun run() {
-                setButtonState(true)
-            }
-        })
+        // commandQueue.readStatus(rh.gs(Rc.string.requested_by_user), object : Callback() {
+        //     override fun run() {
+        //         setButtonState(true)
+        //     }
+        // })
+        commandQueue.readStatus(rh.gs(Rc.string.requested_by_user))
+        setButtonState(true)
     }
 
     private fun setButtonState(enabled: Boolean) {
@@ -666,17 +669,14 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
         //  11. Base basal rate
         // TODO fix me
-        // infoGroup.list.add(PumpInfoRow(label = rh.gs(Rco.string.base_basal_rate_label),
-        //                                value = if (baseBasalRate!=null) ch.basalRateString(PumpRate(baseBasalRate), true)
-        //                                        else PLACEHOLDER))
+        infoGroup.list.add(PumpInfoRow(label = rh.gs(Rco.string.base_basal_rate_label),
+                                       value = ch.basalRateString(baseBasalRate, true)))
 
-        var tempBasalValue = if (tempBasal!=null ) {
-            // TODO fixme
-            // ch.basalTbrString(rate = PumpRate(tempBasal.insulinRate),
-            //                   startTime = tempBasal.start!!,
-            //                   durationInMin = tempBasal.durationMinutes,
-            //                   isAbsolute = false)
-            PLACEHOLDER
+        val tempBasalValue = if (tempBasal!=null ) {
+            ch.basalTbrString(rate = PumpRate(tempBasal.insulinRate),
+                              startTime = tempBasal.start!!,
+                              durationInMin = tempBasal.durationMinutes,
+                              isAbsolute = false)
         } else
             PLACEHOLDER
 
@@ -689,7 +689,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
         // 13. Error
 
         if (pumpError!=null) {
-            pumpRows.add(PumpInfoRow(label = rh.gs(app.aaps.pump.tandem.R.string.pump_driver_errors), value = pumpError))
+            pumpRows.add(PumpInfoRow(label = rh.gs(app.aaps.pump.tandem.R.string.pump_driver_errors),
+                                     value = pumpError))
         }
 
         // TODO   Notification   Events    History
@@ -799,7 +800,11 @@ class MobiOverviewViewModelV2 @Inject constructor(
                     icon = IcLoopClosed, // TODO dev4
                     category = ActionCategory.PRIMARY,
                     visible = buttonsEnabled.value,
-                    onClick = { onRefreshClick() }
+                    onClick = {
+                                scope.launch {
+                                    onRefreshClick()
+                                }
+                        }
                 ),
                 PumpAction(
                     label = rh.gs(R.string.pump_data),

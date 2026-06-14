@@ -114,7 +114,12 @@ import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import io.reactivex.rxjava3.kotlin.plusAssign
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 import javax.inject.Inject
 import javax.inject.Provider
@@ -209,7 +214,9 @@ class TandemMobiPumpPlugin @Inject constructor(
     @Suppress("PropertyName")
     private val TAG = LTag.PUMP
 
-    override fun onStart() {
+    private var coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    override suspend fun onStart() {
         aapsLogger.debug(LTag.PUMP, model().model + " started (Tandem Mobi) - $version - dev version: ${versionInternal.devVersion}")
         // dbDataHandler.databaseStatistics() // this is just in case we want to debug database
 
@@ -221,6 +228,12 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         super.onStart()
     }
+
+    override suspend fun onStop() {
+        coroutineScope.cancel()
+        super.onStop()
+    }
+
 
     // TODO dev4    see MedtronicPump:224
     // override fun updatePreferenceSummary(pref: Preference) {
@@ -306,12 +319,18 @@ class TandemMobiPumpPlugin @Inject constructor(
         disposable += rxBus
            .toObservable(EventPumpDataRefresh::class.java)
            .observeOn(aapsSchedulers.io)
-           .subscribe({ refreshDataFull() }, { fabricPrivacy.logException(it) })
+           .subscribe({ refreshDataFull() },
+                      { fabricPrivacy.logException(it) })
 
         disposable += rxBus
             .toObservable(EventRefreshPumpData::class.java)
             .observeOn(aapsSchedulers.io)
-            .subscribe({ refreshAfterUI(it) }, { fabricPrivacy.logException(it) })
+            .subscribe({ event ->
+                            coroutineScope.launch {
+                                refreshAfterUI(event)
+                            }
+                        },
+                       { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventDatabaseAddQEData::class.java)
             .observeOn(aapsSchedulers.io)
@@ -335,7 +354,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    private fun refreshAfterUI(refreshEvent: EventRefreshPumpData) {
+    private suspend fun refreshAfterUI(refreshEvent: EventRefreshPumpData) {
         if (refreshEvent.refreshEvents.contains(RefreshData.SEMAPHORE_EVENTS)) {
             if (pumpStatus.semaphoreNeedsRefresh) {
                 rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
@@ -347,12 +366,12 @@ class TandemMobiPumpPlugin @Inject constructor(
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, System.currentTimeMillis())
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.GetTemporaryBasal, System.currentTimeMillis())
             if (!commandQueue.statusInQueue()) {
-                commandQueue.readStatus("Status Refresh (UI)", null)
+                commandQueue.readStatus("Status Refresh (UI)")
             }
         } else if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_STATUS)) {
             scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, System.currentTimeMillis())
             if (!commandQueue.statusInQueue()) {
-                commandQueue.readStatus("Status Refresh (UI)", null)
+                commandQueue.readStatus("Status Refresh (UI)")
             }
         }
     }
@@ -715,7 +734,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         return isBusy
     }
 
-    override fun getPumpStatus(reason: String) {
+    override suspend fun getPumpStatus(reason: String) {
         var needRefresh = false
 
         aapsLogger.info(LTag.PUMP, "getPumpStatus [first_run=$firstRun]")
@@ -1396,7 +1415,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     // if enforceNew===true current temp basal is canceled and new TBR set (duration is prolonged),
     // if false and the same rate is requested enacted=false and success=true is returned and TBR is not changed
-    override fun setTempBasalPercent(percent: Int, durationInMinutes: Int,
+    override suspend fun setTempBasalPercent(percent: Int, durationInMinutes: Int,
                                      enforceNew: Boolean, tbrType: TemporaryBasalType
     ): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "setTempBasalPercent",
@@ -1483,7 +1502,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
     }
 
-    override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int,
+    override suspend fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int,
                                       enforceNew: Boolean, tbrType: TemporaryBasalType
     ): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "setTempBasalAbsolute",
@@ -1523,7 +1542,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult = tandemDispatcher.submitMutating(
+    override suspend fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "cancelTempBasal",
         maxDuration = 1.minutes,
         unavailable = { e ->
@@ -1629,7 +1648,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult = tandemDispatcher.submitMutating(
+    override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "setNewBasalProfile",
         maxDuration = 2.minutes,
         unavailable = { e ->
@@ -1708,7 +1727,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
+    override suspend fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
         aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed (type=$timeChangeType). ")
         this.timeChangeType = timeChangeType
         this.hasTimeDateOrTimeZoneChanged = true
