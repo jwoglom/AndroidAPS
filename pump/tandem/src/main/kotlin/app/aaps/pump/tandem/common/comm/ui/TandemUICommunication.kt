@@ -1,6 +1,5 @@
 package app.aaps.pump.tandem.common.comm.ui
 
-import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationId
@@ -31,7 +30,6 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartri
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingModeStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateStreamResponse
-// import com.jwoglom.pumpx2.pump.messages.response.controlStream.PumpingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
@@ -51,7 +49,6 @@ import javax.inject.Singleton
 class TandemUICommunication @Inject constructor (
     var dataStore: TandemUIDataStore,
     var pumpStatus: TandemPumpStatus,
-    //var context: Context,
     var aapsLogger: AAPSLogger,
     var pumpUtil: TandemPumpUtil,
     var uiInteraction: UiInteraction,
@@ -62,14 +59,14 @@ class TandemUICommunication @Inject constructor (
 
     var tandemCommunicationManager : TandemCommunicationManager? = null
         set(value) {
-            aapsLogger.error("tandemCommunicationManager set: $value")
+            aapsLogger.debug("tandemCommunicationManager set: $value")
             if (value==null) {
                 if (field!=null) {
                     field!!.communicationListener = null
                 }
             }
             field = value
-            aapsLogger.error("tandemCommunicationManager set: $field")
+            aapsLogger.debug("tandemCommunicationManager set: $field")
         }
 
     lateinit var historyRetriever: HistoryRetriever
