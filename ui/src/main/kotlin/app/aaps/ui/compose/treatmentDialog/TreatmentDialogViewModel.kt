@@ -11,6 +11,7 @@ import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.di.ApplicationScope
 import app.aaps.core.interfaces.insulin.Insulin
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.UserEntryLogger
@@ -18,7 +19,6 @@ import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.defs.determineCorrectBolusStepSize
-import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.utils.DecimalFormatter
@@ -27,6 +27,7 @@ import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.runningMode.PumpCommandGate
 import app.aaps.core.objects.runningMode.RunningModeGuard
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,7 +56,8 @@ class TreatmentDialogViewModel @Inject constructor(
     private val profileFunction: ProfileFunction,
     hardLimits: HardLimits,
     private val runningModeGuard: RunningModeGuard,
-    private val loop: Loop
+    private val loop: Loop,
+    @ApplicationScope private val appScope: CoroutineScope
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TreatmentDialogUiState())
@@ -168,7 +170,10 @@ class TreatmentDialogViewModel @Inject constructor(
     }
 
     fun confirmAndSave() {
-        viewModelScope.launch { confirmAndSaveSuspend() }
+        // appScope, not viewModelScope: the screen navigates back immediately after confirm,
+        // cancelling viewModelScope. Running the whole save on appScope guarantees every write
+        // is reached even when a suspend profile lookup runs before it (e.g. getProfile()).
+        appScope.launch { confirmAndSaveSuspend() }
     }
 
     private suspend fun confirmAndSaveSuspend() {
@@ -202,7 +207,9 @@ class TreatmentDialogViewModel @Inject constructor(
 
         if (recordOnlyChecked) {
             if (detailedBolusInfo.insulin > 0) {
-                viewModelScope.launch {
+                // appScope, not viewModelScope: the screen navigates back immediately after
+                // confirm, which cancels viewModelScope and could drop this direct DB write.
+                appScope.launch {
                     persistenceLayer.insertOrUpdateBolus(
                         bolus = detailedBolusInfo.createBolus(iCfg),
                         action = action,
@@ -212,7 +219,7 @@ class TreatmentDialogViewModel @Inject constructor(
                 }
             }
             if (detailedBolusInfo.carbs > 0) {
-                viewModelScope.launch {
+                appScope.launch {
                     persistenceLayer.insertOrUpdateCarbs(
                         carbs = detailedBolusInfo.createCarbs(),
                         action = action,
@@ -232,16 +239,13 @@ class TreatmentDialogViewModel @Inject constructor(
                         ValueWithUnit.Gram(carbsAfterConstraints).takeIf { carbsAfterConstraints != 0 }
                     )
                 )
-                commandQueue.bolus(detailedBolusInfo, object : Callback() {
-                    override fun run() {
-                        if (!result.success) {
-                            _sideEffect.tryEmit(SideEffect.ShowDeliveryError(result.comment))
-                        }
-                    }
-                })
+                val result = commandQueue.bolus(detailedBolusInfo)
+                if (!result.success) _sideEffect.tryEmit(SideEffect.ShowDeliveryError(result.comment))
             } else {
                 if (detailedBolusInfo.carbs > 0) {
-                    viewModelScope.launch {
+                    // appScope, not viewModelScope: the screen navigates back immediately after
+                    // confirm, which cancels viewModelScope and could drop this direct DB write.
+                    appScope.launch {
                         persistenceLayer.insertOrUpdateCarbs(
                             carbs = detailedBolusInfo.createCarbs(),
                             action = action,

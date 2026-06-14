@@ -2,6 +2,7 @@ package app.aaps.plugins.source.instara
 
 import android.annotation.SuppressLint
 import android.content.Context
+import androidx.hilt.work.HiltWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import app.aaps.core.data.configuration.Constants
@@ -9,6 +10,7 @@ import app.aaps.core.data.model.GV
 import app.aaps.core.data.model.SourceSensor
 import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.data.plugin.PluginType
+import app.aaps.core.data.time.T
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -19,6 +21,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.interfaces.source.BgSource
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.workflow.LoggingWorker
@@ -26,7 +29,8 @@ import app.aaps.core.ui.compose.icons.IcGenericCgm
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.plugins.source.AbstractBgSourcePlugin
 import app.aaps.plugins.source.compose.BgSourceComposeContent
-import dagger.android.HasAndroidInjector
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import org.json.JSONArray
 import org.json.JSONException
@@ -71,33 +75,32 @@ class InstaraPlugin @Inject constructor(
         icon = pluginDescription.icon
     )
 
-    override fun onStart() {
+    override suspend fun onStart() {
         super.onStart()
         // Keep the worker scheduled while this plugin is enabled.
         // The worker itself decides OFF(skip+reschedule) vs ON(run+reschedule).
         InstaraStaleCheckWorker.ensureScheduled(appContext(), enabled = true)
     }
 
-    override fun onStop() {
+    override suspend fun onStop() {
         // Cancel worker when this plugin is disabled.
         InstaraStaleCheckWorker.cancel(appContext())
         super.onStop()
     }
 
-    class InstaraWorker(
-        context: Context,
-        params: WorkerParameters
-    ) : LoggingWorker(context, params, Dispatchers.IO) {
-
-        @Inject lateinit var injector: HasAndroidInjector
-        @Inject lateinit var instaraPlugin: InstaraPlugin
-        @Inject lateinit var persistenceLayer: PersistenceLayer
-
+    @HiltWorker
+    class InstaraWorker @AssistedInject constructor(
+        @Assisted context: Context,
+        @Assisted params: WorkerParameters,
+        aapsLogger: AAPSLogger,
+        fabricPrivacy: FabricPrivacy,
+        private val instaraPlugin: InstaraPlugin,
+        private val persistenceLayer: PersistenceLayer,
         // Request Overview refresh after successful insert/update.
-        @Inject lateinit var rxBus: RxBus
-
+        private val rxBus: RxBus,
         // Persist per-device Instara meta into preferences
-        @Inject lateinit var preferences: Preferences
+        private val preferences: Preferences
+    ) : LoggingWorker(context, params, Dispatchers.IO, aapsLogger, fabricPrivacy) {
 
         @Suppress("SameParameterValue")
         private fun readDouble(json: JSONObject, vararg keys: String): Double {
@@ -198,6 +201,9 @@ class InstaraPlugin @Inject constructor(
                 val nowMs = System.currentTimeMillis()
                 var hasRecentInBatch = false
 
+                // Keep the latest valid sensorStartTime found among insertable records in this batch.
+                var sensorStartTime: Long? = null
+
                 // We only keep latest device meta, so track the *latest* devicePrefix we see in this batch,
                 // and the first sgvId that carries sgvMark for that device.
                 var latestDevicePrefix: Long? = null
@@ -254,6 +260,14 @@ class InstaraPlugin @Inject constructor(
                     val ts = json.getLong("date")
                     if (!hasRecentInBatch && (nowMs - ts) in 0..INSTARA_RECENT_WINDOW_MS) {
                         hasRecentInBatch = true
+                    }
+
+                    // Check start time validity && use the latest valid sensorStartTime in this batch.
+                    if (json.has("sensorStartTime") && !json.isNull("sensorStartTime")) {
+                        val candidateSensorStartTime = json.getLong("sensorStartTime")
+                        if (candidateSensorStartTime in (nowMs - T.days(INSTARA_SENSOR_MAX_VALID_DAYS).msecs())..nowMs) {
+                            if (sensorStartTime == null || candidateSensorStartTime > sensorStartTime) sensorStartTime = candidateSensorStartTime
+                        }
                     }
 
                     val unitsField = json.optString("units")
@@ -321,7 +335,7 @@ class InstaraPlugin @Inject constructor(
                 }
 
                 // Upstream changed this to suspend; call directly and catch exceptions.
-                persistenceLayer.insertCgmSourceData(Sources.Instara, glucoseValues, emptyList(), null)
+                persistenceLayer.insertCgmSourceData(Sources.Instara, glucoseValues, emptyList(), sensorStartTime)
 
                 // Persist latest-device-only meta JSON if we saw a valid mark seed.
                 if (latestDevicePrefix != null && latestDeviceStartWithMark != null && latestDeviceMark != null) {
@@ -353,6 +367,7 @@ class InstaraPlugin @Inject constructor(
         companion object {
 
             private const val INSTARA_RECENT_WINDOW_MS = 3L * 60_000L
+            private const val INSTARA_SENSOR_MAX_VALID_DAYS = 30L
         }
     }
 }

@@ -12,7 +12,6 @@ import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.smoothing.Smoothing
-import app.aaps.core.interfaces.smoothing.SmoothingContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
@@ -31,10 +30,7 @@ class AvgSmoothingPlugin @Inject constructor(
     aapsLogger, rh
 ), Smoothing {
 
-    override suspend fun smooth(
-        data: MutableList<InMemoryGlucoseValue>,
-        @Suppress("UNUSED_PARAMETER") context: SmoothingContext
-    ): MutableList<InMemoryGlucoseValue> {
+    override fun smooth(data: MutableList<InMemoryGlucoseValue>): MutableList<InMemoryGlucoseValue> {
         if (data.lastIndex < 4) {
             aapsLogger.debug(LTag.GLUCOSE, "Not enough value's to smooth!")
             return data
@@ -47,7 +43,7 @@ class AvgSmoothingPlugin @Inject constructor(
                 && abs(data[i].timestamp - data[i - 1].timestamp - (data[i + 1].timestamp - data[i].timestamp)) < T.secs(30).msecs()
             ) {
                 // We could further improve this by adding a weight to the neighbours, for simplicity this is not done.
-                data[i].smoothed = ((data[i - 1].value + data[i].value + data[i + 1].value) / 3.0)
+                data[i].smoothed = ((data[i - 1].calibratedOrValue + data[i].calibratedOrValue + data[i + 1].calibratedOrValue) / 3.0)
                 data[i].trendArrow = TrendArrow.NONE
             } else {
                 // data[i].smoothed = data[i].value

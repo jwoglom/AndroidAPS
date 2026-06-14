@@ -30,9 +30,12 @@
     <string name="no_valid_basal_rate">Nenačítaný žiadny platný bazál z pumpy</string>
     <string name="limiting_iob">IOB obmedzený na %1$.1f U: %2$s</string>
     <string name="loop_disabled">UZAVRETÝ OKRUH DEAKTIVOVANÝ OBMEDZENÍM</string>
+    <string name="loop_disabled_by_user">Uzavretý okruh zakázaný používateľom</string>
     <string name="event_type">Typ udalosti</string>
     <string name="mgdl">mg/dL</string>
     <string name="mmol">mmol/L</string>
+    <string name="bg_mgdl">%1$d mg/dl</string>
+    <string name="bg_mmol">%1$.1f mmol/l</string>
     <string name="save">Uložiť</string>
     <string name="skip">Preskočiť</string>
     <string name="switch_to_edit">Upraviť</string>
@@ -48,6 +51,10 @@
     <string name="patient_name_default" comment="This is default patient display name, when user does not provide real one">Používateľ</string>
     <string name="result">Výsledok</string>
     <string name="settings">Nastavenia</string>
+    <string name="open_plugin">Otvoriť plugin</string>
+    <string name="configbuilder_pick_one_hint">Vyberte jeden. Iba jeden môže byť aktívny.</string>
+    <string name="configbuilder_pick_many_hint">Vyberte, čo sa použije.</string>
+    <string name="configbuilder_no_selection_warning">V tejto kategórii nie je vybraný žiadny plugin.</string>
     <string name="simple_mode">Jednoduchý mód</string>
     <string name="expand">Rozbaliť</string>
     <string name="collapse">Zbaliť</string>
@@ -176,6 +183,9 @@
     <string name="remove_label">Odstrániť</string>
     <string name="activate_profile">Aktivovať profil</string>
     <string name="activate_insulin">Aktivuj inzulín</string>
+    <string name="pump_wizard_profile_gate_title">Vyžaduje sa profil</string>
+    <string name="pump_wizard_profile_gate_pick">Vyberte profil, ktorý sa použije pri aktivácii.</string>
+    <string name="pump_wizard_profile_gate_no_store">Nie je zadefinovaný žiaden profil. Otvorte Správu profilov a vytvorte profil. Potom znova spustite aktiváciu.</string>
     <string name="reset">Resetovať</string>
     <string name="profileswitch_ismissing">Prepnutie profilu chýba. Vykonajte prepnutie profilu, alebo ho aktivujte na záložke lokálneho profilu.</string>
     <string name="profile">Profil</string>
@@ -462,6 +472,7 @@
     <string name="arrow_center">V strede</string>
     <!--    Command-->
     <string name="connectiontimedout">Vypršal čas na pripojenie</string>
+    <string name="command_replaced">Nahradené novším príkazom</string>
     <string name="pump_not_configured">Pumpa nie je nakonfigurovaná</string>
     <!--    PumpEnactResult-->
     <string name="enacted">Vykonané</string>
@@ -603,6 +614,8 @@
     <!-- Profile validation -->
     <string name="no_profile_selected">Nebol vybraný žiadny profil</string>
     <string name="missing_profile_name">Chýba názov profilu</string>
+    <string name="profile_not_saved_activate">Profil nebol uložený. Pred aktiváciou, prosím, uložte profil.</string>
+    <string name="profile_activation_failed">Aktivácie profilu zlyhala</string>
     <string name="error_in_ic_values">Chyba v hodnotách inz./sach. prevodu</string>
     <string name="error_in_isf_values">Chyba v hodnotách citlivosti</string>
     <string name="error_in_basal_values">Chyba v hodnotách bazálu</string>
@@ -637,6 +650,9 @@
     <string name="basalpct">Bazál %</string>
     <string name="sensitivity">Citlivosť</string>
     <string name="isf_for_carbs">ISF pre kalkulačku a vstrebávanie sacharidov: %1$.1f</string>
+    <string name="isf_profile">ISF v profile: %1$.1f</string>
+    <string name="isf_variable">Variabilné ISF: %1$.1f</string>
+    <string name="isf_effective">Efektívne ISF: %1$.1f</string>
     <string name="autosens_long">Hodnota Autosense: %.0f%%</string>
     <string name="autosens_short">%.0f%%</string>
     <string name="algorithm_long">Detekcia citlivosti algoritmu: %.0f%%</string>
@@ -755,7 +771,7 @@
     <string name="message">Správa</string>
     <string name="ok">OK</string>
     <string name="cancel">Zrušiť</string>
-    <string name="dismiss">Zamietnuť</string>
+    <string name="dismiss">Zatvoriť</string>
     <string name="yes">Áno</string>
     <string name="no">Nie</string>
     <string name="close">Zavrieť</string>
@@ -807,7 +823,7 @@
     <string name="maintenance_export_csv_desc">Exportovať históriu ošetrení ako tabuľku</string>
     <string name="maintenance_cleanup_db_desc">Odstrániť staré záznamy z databázy</string>
     <string name="maintenance_reset_aps_results_desc">Vymazať uložené výsledky algoritmu</string>
-    <string name="maintenance_reset_db_desc">Vymaž celú databázu a reštartuj</string>
+    <string name="maintenance_reset_db_desc">Vymaž všetky databázy a načítaj znova</string>
     <!-- Cloud directory dialog (Compose) -->
     <string name="select_storage_type">Vyberte typ úložiska</string>
     <string name="clear_cloud_action">Vymazať nastavenia</string>
@@ -825,8 +841,10 @@
     <string name="need_connect_permission">Aplikácia vyžaduje povolenie Bluetooth</string>
     <!--    Combo-->
     <string name="user_request" comment="26 characters max for translation">Požiadavka používateľa</string>
+    <!--    Pump pair/unpair (shared) -->
     <string name="pump_pair">Spárovať</string>
     <string name="pump_unpair">Zrušiť párovanie</string>
+    <string name="pump_unpair_confirm_title">Odpárovať pumpu?</string>
     <string name="pump_paired" comment="26 characters max for translation">Pumpa spárovaná</string>
     <!--    BlePreCheck-->
     <string name="ble_not_supported">Bluetooth Low Energy nie je podporované.</string>
@@ -834,7 +852,7 @@
     <string name="ble_not_enabled">Bluetooth nie je aktivovaný.</string>
     <string name="ble_permissions_missing">Povolenie Bluetooth nie je udelené. Prosím udeľte ho v nastaveniach aplikácie.</string>
     <!--    Preferences -->
-    <string name="nav_plugin_preferences">Nastavenie modulu</string>
+    <string name="nav_plugin_preferences">Nastavenie pluginu</string>
     <!-- Navigation -->
     <string name="nav_about">O aplikácii</string>
     <string name="nav_about_desc">Zobraz verziu aplikácie a informácie</string>
@@ -997,6 +1015,7 @@
     <string name="database_cleanup">Vyčistenie databázy</string>
     <string name="nav_resetdb">Reset databázy</string>
     <!--    BLE Scan Step (shared pump pairing) -->
+    <string name="step_ble_scan">Vyhľadať pumpu</string>
     <string name="ble_scan_select_pump">Vyberte si Vašu pumpu zo zoznamu nižšie</string>
     <string name="ble_scan_scanning">Vyhľadávam zariadenia...</string>
     <!-- Graph configuration -->

@@ -14,11 +14,10 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationId
 import app.aaps.core.interfaces.notifications.NotificationManager
-import app.aaps.core.interfaces.profile.LocalProfileManager
 import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.profile.ProfileRepository
 import app.aaps.core.interfaces.pump.PumpEnactResult
 import app.aaps.core.interfaces.pump.PumpSync
-import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
@@ -48,8 +47,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.kotlin.subscribeBy
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.rx3.await
+import kotlinx.coroutines.rx3.rxSingle
 import javax.inject.Inject
 import javax.inject.Provider
 import app.aaps.pump.omnipod.common.R as CommonR
@@ -68,12 +70,14 @@ class DashOmnipodWizardViewModel @Inject constructor(
     private val fabricPrivacy: FabricPrivacy,
     private val insulinManager: InsulinManager,
     profileFunction: ProfileFunction,
-    localProfileManager: LocalProfileManager,
+    profileRepository: ProfileRepository,
     private val persistenceLayer: PersistenceLayer,
     pumpEnactResultProvider: Provider<PumpEnactResult>,
     logger: AAPSLogger,
     aapsSchedulers: AapsSchedulers
-) : OmnipodWizardViewModel(logger, aapsSchedulers, pumpEnactResultProvider, profileFunction, localProfileManager) {
+) : OmnipodWizardViewModel(logger, aapsSchedulers, pumpEnactResultProvider, profileFunction, profileRepository) {
+
+    private val _siteRotationEntries = MutableStateFlow<List<TE>>(emptyList())
 
     init {
         viewModelScope.launch {
@@ -96,15 +100,13 @@ class DashOmnipodWizardViewModel @Inject constructor(
     override val showSiteLocationStep: Boolean
         get() = preferences.get(BooleanKey.SiteRotationManagePump)
 
-    private var siteRotationEntriesCache: List<TE> = emptyList()
-
     override fun bodyType(): BodyType =
         BodyType.fromPref(preferences.get(IntKey.SiteRotationUserProfile))
 
-    override fun siteRotationEntries(): List<TE> = siteRotationEntriesCache
+    override fun siteRotationEntries(): List<TE> = _siteRotationEntries.value
 
     private suspend fun loadSiteRotationEntriesInternal() {
-        siteRotationEntriesCache = persistenceLayer.getTherapyEventDataFromTime(
+        _siteRotationEntries.value = persistenceLayer.getTherapyEventDataFromTime(
             System.currentTimeMillis() - T.days(45).msecs(), false
         ).filter { it.type == TE.Type.CANNULA_CHANGE || it.type == TE.Type.SENSOR_CHANGE }
     }
@@ -172,35 +174,25 @@ class DashOmnipodWizardViewModel @Inject constructor(
                 )
         }
 
-    override fun doInsertCannula(): Single<PumpEnactResult> = Single.create { source ->
-        val profile = runBlocking { pumpSync.expectedPumpState() }.profile
-        if (profile == null) {
-            source.onError(IllegalStateException("No profile set"))
-        } else {
-            val basalProgram = mapProfileToBasalProgram(profile)
-            logger.debug(
-                LTag.PUMPCOMM,
-                "Mapped profile to basal program. profile={}, basalProgram={}",
-                profile,
-                basalProgram
-            )
-            val expirationReminderEnabled = preferences.get(OmnipodBooleanPreferenceKey.ExpirationReminder)
-            val expirationReminderHours = preferences.get(OmnipodIntPreferenceKey.ExpirationReminderHours)
+    override fun doInsertCannula(): Single<PumpEnactResult> = rxSingle(Dispatchers.IO) {
+        val profile = pumpSync.expectedPumpState().profile
+            ?: throw IllegalStateException("No profile set")
+        val basalProgram = mapProfileToBasalProgram(profile)
+        logger.debug(
+            LTag.PUMPCOMM,
+            "Mapped profile to basal program. profile={}, basalProgram={}",
+            profile,
+            basalProgram
+        )
+        val expirationReminderEnabled = preferences.get(OmnipodBooleanPreferenceKey.ExpirationReminder)
+        val expirationReminderHours = preferences.get(OmnipodIntPreferenceKey.ExpirationReminderHours)
+        val expirationReminderHoursBeforeShutdown = if (expirationReminderEnabled) expirationReminderHours.toLong() else null
+        val expirationAlarmEnabled = preferences.get(OmnipodBooleanPreferenceKey.ExpirationAlarm)
+        val expirationAlarmHours = preferences.get(OmnipodIntPreferenceKey.ExpirationAlarmHours)
+        val expirationAlarmHoursBeforeShutdown = if (expirationAlarmEnabled) expirationAlarmHours.toLong() else null
 
-            val expirationReminderHoursBeforeShutdown = if (expirationReminderEnabled)
-                expirationReminderHours.toLong()
-            else
-                null
-
-            val expirationAlarmEnabled = preferences.get(OmnipodBooleanPreferenceKey.ExpirationAlarm)
-            val expirationAlarmHours = preferences.get(OmnipodIntPreferenceKey.ExpirationAlarmHours)
-
-            val expirationAlarmHoursBeforeShutdown = if (expirationAlarmEnabled)
-                expirationAlarmHours.toLong()
-            else
-                null
-
-            disposable += omnipodManager.activatePodPart2(basalProgram, expirationReminderHoursBeforeShutdown, expirationAlarmHoursBeforeShutdown)
+        try {
+            omnipodManager.activatePodPart2(basalProgram, expirationReminderHoursBeforeShutdown, expirationAlarmHoursBeforeShutdown)
                 .ignoreElements()
                 .andThen(podStateManager.updateExpirationAlertSettings(expirationReminderEnabled, expirationReminderHours, expirationAlarmEnabled, expirationAlarmHours))
                 .andThen(
@@ -212,57 +204,39 @@ class DashOmnipodWizardViewModel @Inject constructor(
                         resolvedAt = System.currentTimeMillis(),
                     ).ignoreElement()
                 )
-                .subscribeBy(
-                    onError = { throwable ->
-                        logger.error(LTag.PUMP, "Error in Pod activation part 2", throwable)
-                        source.onSuccess(pumpEnactResultProvider.get().success(false).comment(I8n.textFromException(throwable, rh)))
-                    },
-                    onComplete = {
-                        logger.debug("Pod activation part 2 completed")
-                        podStateManager.basalProgram = basalProgram
-
-                        runBlocking {
-                            pumpSync.syncStopTemporaryBasalWithPumpId(
-                                timestamp = System.currentTimeMillis(),
-                                endPumpId = System.currentTimeMillis(),
-                                pumpType = PumpType.OMNIPOD_DASH,
-                                pumpSerial = Constants.PUMP_SERIAL_FOR_FAKE_TBR
-                            )
-                        }
-
-                        pumpSync.connectNewPump()
-
-                        runBlocking {
-                            pumpSync.insertTherapyEventIfNewWithTimestamp(
-                                timestamp = System.currentTimeMillis(),
-                                type = TE.Type.CANNULA_CHANGE,
-                                pumpType = PumpType.OMNIPOD_DASH,
-                                pumpSerial = podStateManager.uniqueId?.toString() ?: "n/a"
-                            )
-                            pumpSync.insertTherapyEventIfNewWithTimestamp(
-                                timestamp = System.currentTimeMillis(),
-                                type = TE.Type.INSULIN_CHANGE,
-                                pumpType = PumpType.OMNIPOD_DASH,
-                                pumpSerial = podStateManager.uniqueId?.toString() ?: "n/a"
-                            )
-                        }
-                        notificationManager.dismiss(NotificationId.OMNIPOD_POD_NOT_ATTACHED)
-                        fabricPrivacy.logCustom("OmnipodDashPodActivated")
-                        source.onSuccess(pumpEnactResultProvider.get().success(true))
-                    }
-                )
+                .await()
+            logger.debug("Pod activation part 2 completed")
+            podStateManager.basalProgram = basalProgram
+            pumpSync.syncStopTemporaryBasalWithPumpId(
+                timestamp = System.currentTimeMillis(),
+                endPumpId = System.currentTimeMillis(),
+                pumpType = PumpType.OMNIPOD_DASH,
+                pumpSerial = Constants.PUMP_SERIAL_FOR_FAKE_TBR
+            )
+            pumpSync.connectNewPump()
+            pumpSync.insertTherapyEventIfNewWithTimestamp(
+                timestamp = System.currentTimeMillis(),
+                type = TE.Type.CANNULA_CHANGE,
+                pumpType = PumpType.OMNIPOD_DASH,
+                pumpSerial = podStateManager.uniqueId?.toString() ?: "n/a"
+            )
+            pumpSync.insertTherapyEventIfNewWithTimestamp(
+                timestamp = System.currentTimeMillis(),
+                type = TE.Type.INSULIN_CHANGE,
+                pumpType = PumpType.OMNIPOD_DASH,
+                pumpSerial = podStateManager.uniqueId?.toString() ?: "n/a"
+            )
+            notificationManager.dismiss(NotificationId.OMNIPOD_POD_NOT_ATTACHED)
+            fabricPrivacy.logCustom("OmnipodDashPodActivated")
+            pumpEnactResultProvider.get().success(true)
+        } catch (throwable: Throwable) {
+            logger.error(LTag.PUMP, "Error in Pod activation part 2", throwable)
+            pumpEnactResultProvider.get().success(false).comment(I8n.textFromException(throwable, rh))
         }
     }
 
-    override fun doDeactivatePod(): Single<PumpEnactResult> = Single.create { source ->
-        commandQueue.customCommand(
-            CommandDeactivatePod(),
-            object : Callback() {
-                override fun run() {
-                    source.onSuccess(result)
-                }
-            }
-        )
+    override fun doDeactivatePod(): Single<PumpEnactResult> = rxSingle {
+        commandQueue.customCommand(CommandDeactivatePod())
     }
 
     // endregion
@@ -290,8 +264,8 @@ class DashOmnipodWizardViewModel @Inject constructor(
         OmnipodWizardStep.START_POD_ACTIVATION   -> CommonR.string.omnipod_common_pod_activation_wizard_start_pod_activation_title
         OmnipodWizardStep.SELECT_INSULIN         -> app.aaps.core.ui.R.string.select_insulin
         OmnipodWizardStep.INITIALIZE_POD         -> CommonR.string.omnipod_common_pod_activation_wizard_initialize_pod_title
-        OmnipodWizardStep.ATTACH_POD             -> CommonR.string.omnipod_common_pod_activation_wizard_attach_pod_title
         OmnipodWizardStep.SITE_LOCATION          -> app.aaps.core.ui.R.string.site_location
+        OmnipodWizardStep.ATTACH_POD             -> CommonR.string.omnipod_common_pod_activation_wizard_attach_pod_title
         OmnipodWizardStep.INSERT_CANNULA         -> CommonR.string.omnipod_common_pod_activation_wizard_insert_cannula_title
         OmnipodWizardStep.POD_ACTIVATED          -> CommonR.string.omnipod_common_pod_activation_wizard_pod_activated_title
         OmnipodWizardStep.START_POD_DEACTIVATION -> CommonR.string.omnipod_common_pod_deactivation_wizard_start_pod_deactivation_title
@@ -307,8 +281,8 @@ class DashOmnipodWizardViewModel @Inject constructor(
         OmnipodWizardStep.START_POD_ACTIVATION   -> R.string.omnipod_dash_pod_activation_wizard_start_pod_activation_text
         OmnipodWizardStep.SELECT_INSULIN         -> app.aaps.core.ui.R.string.select_insulin_description
         OmnipodWizardStep.INITIALIZE_POD         -> R.string.omnipod_dash_pod_activation_wizard_initialize_pod_text
-        OmnipodWizardStep.ATTACH_POD             -> CommonR.string.omnipod_common_pod_activation_wizard_attach_pod_text
         OmnipodWizardStep.SITE_LOCATION          -> app.aaps.core.ui.R.string.select_site_location
+        OmnipodWizardStep.ATTACH_POD             -> CommonR.string.omnipod_common_pod_activation_wizard_attach_pod_text
         OmnipodWizardStep.INSERT_CANNULA         -> CommonR.string.omnipod_common_pod_activation_wizard_insert_cannula_text
         OmnipodWizardStep.POD_ACTIVATED          -> CommonR.string.omnipod_common_pod_activation_wizard_pod_activated_text
         OmnipodWizardStep.START_POD_DEACTIVATION -> CommonR.string.omnipod_common_pod_deactivation_wizard_start_pod_deactivation_text

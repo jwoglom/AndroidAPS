@@ -30,9 +30,12 @@
     <string name="no_valid_basal_rate">Nu s-a citit o rată bazală validă din pompă</string>
     <string name="limiting_iob">Se limitează IOB la %1$.1f U datorită %2$s</string>
     <string name="loop_disabled">BUCLĂ DEZACTIVATĂ DE CONSTRÂNGERI</string>
+    <string name="loop_disabled_by_user">Bucla dezactivată de utilizator</string>
     <string name="event_type">Tip eveniment</string>
     <string name="mgdl">mg/dl</string>
     <string name="mmol">mmol/l</string>
+    <string name="bg_mgdl">%1$d mg/dL</string>
+    <string name="bg_mmol">%1$.1f mmol/l</string>
     <string name="save">Salvați</string>
     <string name="skip">Omiteți</string>
     <string name="switch_to_edit">Editați</string>
@@ -48,6 +51,10 @@
     <string name="patient_name_default" comment="This is default patient display name, when user does not provide real one">Utilizator</string>
     <string name="result">Rezultat</string>
     <string name="settings">Setări</string>
+    <string name="open_plugin">Deschideți modulul</string>
+    <string name="configbuilder_pick_one_hint">Alegeți unul. Doar unul poate fi activ odată.</string>
+    <string name="configbuilder_pick_many_hint">Alegeți oricare care se potrivește.</string>
+    <string name="configbuilder_no_selection_warning">Nu este selectat niciun modul în această categorie.</string>
     <string name="simple_mode">Mod simplu</string>
     <string name="expand">Extindeți</string>
     <string name="collapse">Restrângeți</string>
@@ -61,6 +68,7 @@
     <string name="configbuilder_insulin">Insulină</string>
     <string name="configbuilder_bgsource">Sursă glicemie</string>
     <string name="configbuilder_smoothing">Netezire</string>
+    <string name="configbuilder_calibration">Calibrare</string>
     <string name="configbuilder_pump">Pompă</string>
     <string name="configbuilder_sensitivity">Detectare sensibilitate</string>
     <string name="configbuilder_aps">APS</string>
@@ -176,6 +184,9 @@
     <string name="remove_label">Eliminați</string>
     <string name="activate_profile">Activați profil</string>
     <string name="activate_insulin">Activați insulina</string>
+    <string name="pump_wizard_profile_gate_title">Profil necesar</string>
+    <string name="pump_wizard_profile_gate_pick">Selectați profilul pentru a fi aplicat la activare.</string>
+    <string name="pump_wizard_profile_gate_no_store">Niciun profil definit. Deschideți gestionarea profilului pentru a crea unul, apoi începeți activarea din nou.</string>
     <string name="reset">Resetați</string>
     <string name="profileswitch_ismissing">Lipsă SchimbareProfil. Efectuați o schimbare de profil sau apăsați \"Activare profil\" în ProfilulLocal.</string>
     <string name="profile">Profil</string>
@@ -462,6 +473,7 @@
     <string name="arrow_center">Centru</string>
     <!--    Command-->
     <string name="connectiontimedout">Conexiunea a expirat</string>
+    <string name="command_replaced">Înlocuit de comanda mai nouă</string>
     <string name="pump_not_configured">Pompa nu este configurată</string>
     <!--    PumpEnactResult-->
     <string name="enacted">Executat</string>
@@ -524,6 +536,7 @@
     <string name="uel_tt_ns_refresh">ACTUALIZARE NS TINTE TEMPORARE</string>
     <string name="uel_automation_removed">AUTOMATIZARE ȘTEARSĂ</string>
     <string name="uel_bg_removed">GLICEMIE ELIMINATĂ</string>
+    <string name="uel_calibration_removed">CALIBRARE ELIMINATĂ</string>
     <string name="uel_careportal_removed">CAREPORTAL ELIMINAT</string>
     <string name="uel_bolus_removed">BOLUS ELIMINAT</string>
     <string name="uel_carbs_removed">CARBOHIDRAȚI ELIMINAȚI</string>
@@ -603,6 +616,8 @@
     <!-- Profile validation -->
     <string name="no_profile_selected">Niciun profil selectat</string>
     <string name="missing_profile_name">Lipsește numele profilului</string>
+    <string name="profile_not_saved_activate">Profilul nu a fost salvat. Vă rugăm să salvați profilul înainte de activare.</string>
+    <string name="profile_activation_failed">Activarea profilului a eşuat</string>
     <string name="error_in_ic_values">Eroare în valorile IC</string>
     <string name="error_in_isf_values">Eroare în valorile ISF</string>
     <string name="error_in_basal_values">Eroare în valorile ratei bazale</string>
@@ -636,7 +651,10 @@
     <string name="basal">Rate bazale</string>
     <string name="basalpct">Bazală %</string>
     <string name="sensitivity">Sensibilitate</string>
-    <string name="isf_for_carbs">ISF pentru Calculator și Absorbția Carbohidraților: %1$.1f</string>
+    <string name="isf_for_carbs">Media ISF pentru calculator și absorbția carbohidraților: %1$.1f</string>
+    <string name="isf_profile">Profil ISF: %1$.1f</string>
+    <string name="isf_variable">ISF variabil: %1$.1f</string>
+    <string name="isf_effective">ISF efectiv: %1$.1f</string>
     <string name="autosens_long">Valoare Autosens: %.0f%%</string>
     <string name="autosens_short">%.0f%%</string>
     <string name="algorithm_long">Autosens în algoritm: %.0f%%</string>
@@ -807,7 +825,7 @@
     <string name="maintenance_export_csv_desc">Exportați istoricul tratamentului ca foaie de calcul</string>
     <string name="maintenance_cleanup_db_desc">Eliminați intrările vechi din baza de date</string>
     <string name="maintenance_reset_aps_results_desc">Ștergeți rezultatele stocate ale algoritmului</string>
-    <string name="maintenance_reset_db_desc">Ștergeți toate bazele de date și reporniți</string>
+    <string name="maintenance_reset_db_desc">Ștergeți toate bazele de date și reîncărcați</string>
     <!-- Cloud directory dialog (Compose) -->
     <string name="select_storage_type">Alegeți tipul de stocare</string>
     <string name="clear_cloud_action">Ștergeți setările</string>
@@ -825,8 +843,10 @@
     <string name="need_connect_permission">Aplicația are nevoie de permisiune Bluetooth</string>
     <!--    Combo-->
     <string name="user_request" comment="26 characters max for translation">Cerere utilizator</string>
+    <!--    Pump pair/unpair (shared) -->
     <string name="pump_pair">Asociați</string>
     <string name="pump_unpair">Dezasociați</string>
+    <string name="pump_unpair_confirm_title">Dezasociați pompa?</string>
     <string name="pump_paired" comment="26 characters max for translation">Pompă asociată</string>
     <!--    BlePreCheck-->
     <string name="ble_not_supported">BLE nu este suportat.</string>
@@ -994,6 +1014,7 @@
     <string name="database_cleanup">Curățarea bazei de date</string>
     <string name="nav_resetdb">Resetați bazele de date</string>
     <!--    BLE Scan Step (shared pump pairing) -->
+    <string name="step_ble_scan">Găsiți pompa</string>
     <string name="ble_scan_select_pump">Selectați pompa din lista de mai jos</string>
     <string name="ble_scan_scanning">Se scanează pentru dispozitive…</string>
     <!-- Graph configuration -->

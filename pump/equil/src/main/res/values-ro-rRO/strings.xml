@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="equil_name">Equil 5.3</string>
+    <string name="equil_name">Equil</string>
     <string name="equil_name_short">EQ</string>
     <string name="equil_pump_description">Pompă plasture Equil 5.3 sau mai nouă </string>
     <!--  start  -->
@@ -23,7 +23,6 @@
     <string name="equil_title_attach">Atașați pompa</string>
     <string name="equil_title_air">Amorsați canula</string>
     <string name="equil_title_unpair_detach">Îndepărtați pompa</string>
-    <string name="equil_title_unpair_confirm">Confirmați dezasocierea</string>
     <string name="equil_title_history_events">Evenimente din istoric</string>
     <string name="equil_tone">Sunet alertă</string>
     <string name="equil_tone_mode_mute">Mut</string>

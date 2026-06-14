@@ -12,11 +12,12 @@
     <string name="widget_description">AAPS widget</string>
     <string name="widget_bg_graph_description">Biểu đồ đường huyết AAPS</string>
     <string name="widget_compact_bg_description">AAPS BG + IOB + COB (thu gọn)</string>
+    <string name="widget_small_description">AAPS thu gọn</string>
     <!--     Activities-->
-    <string name="activity_monitor">Màn hình hoạt động</string>
+    <string name="activity_monitor">Theo dõi hoạt động</string>
     <string name="time_range">Khoảng thời gian</string>
-    <string name="dexcom_tir">Dexcom TIR</string>
-    <string name="cgp_title">Glucose Pentagon (CGP) — 14 days</string>
+    <string name="dexcom_tir">Phạm vi mục tiêu của Dexcom</string>
+    <string name="cgp_title">Ngũ giác đường huyết (CGP) — 14 ngày</string>
     <string name="cgp_tor" comment="Glucose Pentagon axis: Time out of Range">ToR</string>
     <string name="cgp_cv" comment="Glucose Pentagon axis: Coefficient of Variation">\%CV</string>
     <string name="cgp_hypo" comment="Glucose Pentagon axis: Hypoglycemia">Hypo</string>
@@ -57,7 +58,7 @@
     <!-- FillDialog -->
     <string name="fill_warning">Hãy chắc chắn rằng liều lượng phù hợp với thông số của bộ dây truyền!</string>
     <string name="record_pump_site_change">Ghi lại việc thay vị trí tiêm</string>
-    <string name="record_insulin_cartridge_change">Ghi lại việc thay ống insulin</string>
+    <string name="record_insulin_cartridge_change">Ghi lại việc thay bình chứa insulin</string>
     <string name="fill_prime_amount">Lượng insulin mồi</string>
     <string name="fill_pump_units_note">Lượng insulin mồi tính theo đơn vị của bơm</string>
     <string name="fill_insulin_change">Chuyển insulin sang: %1$s (sẽ áp dụng chuyển cấu hình)</string>
@@ -83,7 +84,7 @@
     <string name="aaps_tbr_icon_label">Liều nền tạm thời</string>
     <string name="aaps_activity_icon_label">Bài tập luyện</string>
     <string name="aaps_note_icon_label">Ghi chú</string>
-    <string name="aaps_automation_icon_label">Tự động hóa</string>
+    <string name="aaps_automation_icon_label">Tự động</string>
     <string name="aaps_calibration_icon_label">Hiệu chuẩn</string>
     <string name="exercise_icon_label">Chạy</string>
     <string name="fitness_icon_label">Tập luyện</string>
@@ -189,6 +190,7 @@
     <string name="active_profile_indicator">ACTIVE</string>
     <string name="confirm_remove_profile">Xóa cấu hình \"%1$s\"?</string>
     <string name="confirm_clone_profile">Nhân bản cấu hình \"%1$s\"?</string>
+    <string name="profile_no_longer_exists">Danh sách cấu hình đã thay đổi trong lúc thao tác — vui lòng thử lại</string>
     <string name="tbr_type_flag_extended">E</string>
     <string name="tbr_type_flag_suspended">S</string>
     <string name="tbr_type_flag_emulated_suspended">ES</string>
@@ -214,7 +216,7 @@
     <!-- Other dialogs -->
     <!--QuickWizard-->
     <string name="overview_edit_quickwizard_button_text">Nhãn nút</string>
-    <string name="quick_wizard_mode_wizard">Wizard</string>
+    <string name="quick_wizard_mode_wizard">Hướng dẫn</string>
     <string name="quick_wizard_mode_insulin">Insulin</string>
     <string name="quick_wizard_mode_carbs">Carbs</string>
     <string name="overview_edit_quickwizard_use_positive_iob_only">Chỉ tính IOB &gt; 0</string>
@@ -281,11 +283,11 @@
     <string name="quick_launch_category_care">Care Portal</string>
     <string name="quick_launch_category_profile">Cấu hình</string>
     <string name="quick_launch_category_temp_target">Các cài đặt sẵn cho mục tiêu tạm thời</string>
-    <string name="quick_launch_category_quick_wizard">Quick Wizard</string>
-    <string name="quick_launch_category_automation">Tự động hóa</string>
+    <string name="quick_launch_category_quick_wizard">Hướng dẫn nhanh</string>
+    <string name="quick_launch_category_automation">Tự động</string>
     <string name="quick_launch_all_selected">Tất cả mục đã chọn</string>
-    <string name="quick_launch_no_quick_wizard">Thêm Quick Wizard để sử dụng tại đây</string>
-    <string name="quick_launch_no_automation">Tạo hành động tự động để dùng ở đây</string>
+    <string name="quick_launch_no_quick_wizard">Thêm hướng dẫn nhanh để sử dụng tại đây</string>
+    <string name="quick_launch_no_automation">Tạo các hành động tự động hóa người dùng để dùng tại đây</string>
     <string name="quick_launch_no_tt_presets">Thêm cài đặt sẵn Mục tiêu Tạm thời để sử dụng tại đây</string>
     <string name="quick_launch_no_profiles">Tạo Cấu hình trong Cấu hình Cục bộ để dùng ở đây</string>
     <string name="quick_launch_edit_profile_preset">Sửa Cấu hình Cài đặt sẵn</string>
@@ -301,4 +303,15 @@
     <string name="widget_rm_disabled">Vô hiệu hoá</string>
     <string name="widget_rm_suspended">Bị tạm dừng</string>
     <string name="widget_rm_resume">Tiếp tục</string>
+    <!-- Calibration entry rejection reasons -->
+    <string name="cal_reject_delta_too_high">Hiệu chuẩn chưa được lưu: BG đang thay đổi quá nhanh (Δ %1$s %3$s trong 5 phút, giới hạn %2$s). Hãy thử lại khi đường huyết ổn định.</string>
+    <string name="cal_reject_no_pair">Hiệu chuẩn chưa được lưu: không tìm thấy giá trị CGM trong 10 phút gần đây.</string>
+    <string name="cal_reject_warmup">Hiệu chuẩn chưa được lưu: cảm biến vẫn đang trong giai đoạn khởi động 2 giờ.</string>
+    <string name="cal_reject_no_session">Hiệu chuẩn chưa được lưu: không có phiên cảm biến nào đang hoạt động. Hãy thay cảm biến trước.</string>
+    <!-- Calibration preflight messages shown in the dialog before submit -->
+    <string name="cal_precheck_warmup">Cảm biến vẫn đang khởi động. Có thể hiệu chuẩn lúc %1$s.</string>
+    <string name="cal_precheck_no_session">Không có phiên cảm biến nào đang hoạt động.</string>
+    <string name="cal_precheck_no_pair">Không có dữ liệu CGM trong 10 phút gần đây. Hãy kiểm tra kết nối cảm biến.</string>
+    <string name="cal_precheck_delta_too_high">Đường huyết đang thay đổi quá nhanh (Δ %1$s %3$s trong 5 phút, giới hạn %2$s). Hãy chờ đến khi ổn định.</string>
+    <string name="cal_precheck_mark_sensor_change">Ghi nhận thay đổi cảm biến</string>
 </resources>

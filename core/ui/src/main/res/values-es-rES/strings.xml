@@ -30,9 +30,12 @@
     <string name="no_valid_basal_rate">No se leyó una tasa basal válida de la bomba</string>
     <string name="limiting_iob">Limitando IOB a %1$.1f U debido a %2$s</string>
     <string name="loop_disabled">LAZO DESACTIVADO POR RESTRICCIONES</string>
+    <string name="loop_disabled_by_user">Lazo deshabilitado por el usuario</string>
     <string name="event_type">Tipo de evento</string>
     <string name="mgdl">mg/dl</string>
     <string name="mmol">mmol/l</string>
+    <string name="bg_mgdl">%1$d mg/dl</string>
+    <string name="bg_mmol">%1$.1f mmol/l</string>
     <string name="save">Guardar</string>
     <string name="skip">Omitir</string>
     <string name="switch_to_edit">Editar</string>
@@ -48,6 +51,10 @@
     <string name="patient_name_default" comment="This is default patient display name, when user does not provide real one">Usuario</string>
     <string name="result">Resultado</string>
     <string name="settings">Ajustes</string>
+    <string name="open_plugin">Abrir complemento</string>
+    <string name="configbuilder_pick_one_hint">Elija uno. Solo puede haber uno activo a la vez</string>
+    <string name="configbuilder_pick_many_hint">Seleccione todas las opciones que correspondan</string>
+    <string name="configbuilder_no_selection_warning">No se ha seleccionado ningún complemento en esta categoría</string>
     <string name="simple_mode">Modo simple</string>
     <string name="expand">Expandir</string>
     <string name="collapse">Contraer</string>
@@ -61,6 +68,7 @@
     <string name="configbuilder_insulin">Insulina</string>
     <string name="configbuilder_bgsource">Fuente de glucosa</string>
     <string name="configbuilder_smoothing">Suavizado</string>
+    <string name="configbuilder_calibration">Calibración</string>
     <string name="configbuilder_pump">Bomba</string>
     <string name="configbuilder_sensitivity">Detección de sensibilidad</string>
     <string name="configbuilder_aps">APS</string>
@@ -186,8 +194,8 @@
     <string name="overview_treatment_label">Tratamiento</string>
     <string name="copytolocalprofile">¿Deseas crear nuevo perfil con base en éste?</string>
     <string name="wear_wizard_settings">Ajustes del asistente en el reloj</string>
-    <string name="bolus_iob_label">IOB de Bolo</string>
-    <string name="treatments_wizard_basaliob_label">IOB de Basal</string>
+    <string name="bolus_iob_label">IOB de bolo</string>
+    <string name="treatments_wizard_basaliob_label">IOB de basal</string>
     <string name="invalid">INVÁLIDO</string>
     <string name="login">Inicio de sesión</string>
     <string name="logout">Cerrar sesión</string>
@@ -288,7 +296,7 @@
     <!--    Translator-->
     <string name="careportal">Portal de cuidados</string>
     <string name="careportal_bgcheck">Medir glucosa</string>
-    <string name="careportal_mbg">Calibración o BG Manual</string>
+    <string name="careportal_mbg">Glucemia manual o calibración</string>
     <string name="careportal_announcement">Aviso</string>
     <string name="careportal_settings_export">Exportación de configuraciones</string>
     <string name="careportal_note">Nota</string>
@@ -446,6 +454,8 @@
     <string name="location_front_left_lower_abdomen">Abdomen izquierdo inferior, frente</string>
     <string name="location_back_right_buttock">Glúteo derecho</string>
     <string name="location_back_left_buttock">Glúteo izquierdo</string>
+    <string name="location_back_right_lower_back">Parte baja derecha de la espalda</string>
+    <string name="location_back_left_lower_back">Parte baja izquierda de la espalda</string>
     <string name="location_side_right_upper_thigh">Muslo superior derecho, exterior</string>
     <string name="location_side_left_upper_thigh">Muslo superior izquierdo, exterior</string>
     <string name="location_side_right_lower_thigh">Muslo inferior derecho, exterior</string>
@@ -465,6 +475,7 @@
     <string name="arrow_center">Centro</string>
     <!--    Command-->
     <string name="connectiontimedout">Tiempo de conexión agotado</string>
+    <string name="command_replaced">Reemplazado por un comando más reciente</string>
     <string name="pump_not_configured">Bomba no configurada</string>
     <!--    PumpEnactResult-->
     <string name="enacted">Ejecutado</string>
@@ -527,6 +538,7 @@
     <string name="uel_tt_ns_refresh">ACTUALIZAR OBJETIVO TEMPORAL EN NS</string>
     <string name="uel_automation_removed">AUTOMACIÓN ELIMINADA</string>
     <string name="uel_bg_removed">BG ELIMINADO</string>
+    <string name="uel_calibration_removed">CALIBRACIÓN ELIMINADA</string>
     <string name="uel_careportal_removed">PORTAL DE CUIDADOS ELIMINADO</string>
     <string name="uel_bolus_removed">BOLO ELIMINADO</string>
     <string name="uel_carbs_removed">CARBOHIDRATOS ELIMINADOS</string>
@@ -606,6 +618,11 @@
     <!-- Profile validation -->
     <string name="no_profile_selected">Ningún perfil seleccionado</string>
     <string name="missing_profile_name">Falta el nombre del perfil</string>
+    <string name="profile_not_saved_activate">Perfil no guardado. Guarde el perfil antes de activarlo</string>
+    <string name="profile_activation_failed">Error al activar el perfil</string>
+    <string name="profile_switch_save_failed">No se pudo guardar el cambio de perfil. Por favor, inténtalo de nuevo</string>
+    <string name="profile_basal_not_compatible_with_pump">La tasa basal no es compatible con la bomba actual y no se puede activar. Reduce el porcentaje o ajusta la tasa basal</string>
+    <string name="profile_pump_incompatible_label">Límite de la bomba</string>
     <string name="error_in_ic_values">Error en los valores de Ratio de Hidratos (IC)</string>
     <string name="error_in_isf_values">Error en los valores de Sensibilidad (ISF)</string>
     <string name="error_in_basal_values">Error en los valores de basal</string>
@@ -639,8 +656,11 @@
     <string name="basal">Basal</string>
     <string name="basalpct">Basal %</string>
     <string name="sensitivity">Sensibilidad</string>
-    <string name="isf_for_carbs">ISF para Calculadora y Absorción de Carbohidratos: %1$.1f</string>
-    <string name="autosens_long">Valor de Autosens: %.0f%%</string>
+    <string name="isf_for_carbs">ISF promedio para la calculadora y la absorción de carbohidratos: %1$.1f</string>
+    <string name="isf_profile">ISF del perfil: %1$.1f</string>
+    <string name="isf_variable">ISF variable: %1$.1f</string>
+    <string name="isf_effective">ISF efectivo: %1$.1f</string>
+    <string name="autosens_long">Valor de autosens: %.0f%%</string>
     <string name="autosens_short">%.0f%%</string>
     <string name="algorithm_long">Autosens en algoritmo: %.0f%%</string>
     <!-- Autotune -->
@@ -810,12 +830,13 @@
     <string name="maintenance_export_csv_desc">Exportar historial de tratamientos como hoja de cálculo</string>
     <string name="maintenance_cleanup_db_desc">Eliminar entradas antiguas de la base de datos</string>
     <string name="maintenance_reset_aps_results_desc">Borrar resultados de algoritmos almacenados</string>
-    <string name="maintenance_reset_db_desc">Borrar todas las bases de datos y reiniciar</string>
+    <string name="maintenance_reset_db_desc">Borrar todas las bases de datos y recargar</string>
     <!-- Cloud directory dialog (Compose) -->
     <string name="select_storage_type">Seleccionar tipo de almacenamiento</string>
     <string name="clear_cloud_action">Restablecer ajustes</string>
     <string name="clear_cloud_settings">Borrar ajustes en la nube</string>
     <string name="clear_cloud_settings_message">Se cambiará al almacenamiento local y se eliminará la autorización. ¿Continuar?</string>
+    <string name="cloud_revoke_incomplete">Configuración de la nube eliminada en este dispositivo, pero no se pudo conectar con la cuenta para revocar el acceso por completo. Es posible que desees eliminarlo manualmente en los ajustes de tu cuenta</string>
     <string name="cloud_connection_failed">Error de conexión con el almacenamiento en la nube</string>
     <string name="cloud_reauthorize_message">Error de conexión con el almacenamiento en la nube. ¿Te gustaría volver a autenticarte?</string>
     <string name="reauthorize">Volver a autenticar</string>
@@ -828,8 +849,10 @@
     <string name="need_connect_permission">La aplicación necesita permisos de bluetooth</string>
     <!--    Combo-->
     <string name="user_request" comment="26 characters max for translation">Solicitud de usuario</string>
+    <!--    Pump pair/unpair (shared) -->
     <string name="pump_pair">Emparejar</string>
     <string name="pump_unpair">Desemparejar</string>
+    <string name="pump_unpair_confirm_title">¿Desvincular bomba?</string>
     <string name="pump_paired" comment="26 characters max for translation">Bomba emparejada</string>
     <!--    BlePreCheck-->
     <string name="ble_not_supported">Bluetooth de baja energía no soportado.</string>
@@ -994,6 +1017,7 @@
     <string name="database_cleanup">Limpieza de la base de datos</string>
     <string name="nav_resetdb">Restablecer bases de datos</string>
     <!--    BLE Scan Step (shared pump pairing) -->
+    <string name="step_ble_scan">Buscar bomba</string>
     <string name="ble_scan_select_pump">Selecciona tu bomba de la lista de abajo</string>
     <string name="ble_scan_scanning">Buscando dispositivos…</string>
     <!-- Graph configuration -->

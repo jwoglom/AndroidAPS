@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="equil_name">Equil</string>
     <string name="equil_pump_description">Equil 5.3 eller nyere patchpumpe </string>
     <!--  start  -->
     <string name="equil_basal_speed">Grunnbasal</string>
@@ -21,7 +22,6 @@
     <string name="equil_title_attach">Koble til pumpen</string>
     <string name="equil_title_air">Prime kanylen</string>
     <string name="equil_title_unpair_detach">Løsne pumpen</string>
-    <string name="equil_title_unpair_confirm">Bekreft oppheving av paring</string>
     <string name="equil_title_history_events">Historiske hendelser</string>
     <string name="equil_tone">Varseltone</string>
     <string name="equil_tone_mode_mute">Demp lyd</string>

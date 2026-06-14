@@ -22,12 +22,12 @@ import app.aaps.core.interfaces.nsclient.NSClientRepository
 import app.aaps.core.interfaces.nsclient.NSSettingsStatus
 import app.aaps.core.interfaces.nsclient.StoreDataForDb
 import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.profile.ProfileRepository
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventAppExit
 import app.aaps.core.interfaces.rx.events.EventConfigBuilderChange
 import app.aaps.core.interfaces.rx.events.EventNSClientRestart
-import app.aaps.core.interfaces.rx.events.EventProfileStoreChanged
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.LongComposedKey
@@ -98,6 +98,7 @@ class NSClientService : DaggerService() {
     @Inject lateinit var nsClientRepository: NSClientRepository
     @Inject lateinit var persistenceLayer: PersistenceLayer
     @Inject lateinit var receiverDelegate: ReceiverDelegate
+    @Inject lateinit var profileRepository: ProfileRepository
 
     companion object {
 
@@ -173,8 +174,8 @@ class NSClientService : DaggerService() {
             .onEach { ack -> processAuthAck(ack) }.launchIn(scope)
         persistenceLayer.observeAnyChange()
             .onEach { types -> resend("DB_CHANGED(${types.joinToString { it.simpleName ?: "?" }})") }.launchIn(scope)
-        rxBus.toFlow(EventProfileStoreChanged::class.java)
-            .onEach { resend("EventProfileStoreChanged") }.launchIn(scope)
+        profileRepository.profile.drop(1)
+            .onEach { resend("profileRepository.profile changed") }.launchIn(scope)
     }
 
     override fun onDestroy() {
@@ -202,7 +203,7 @@ class NSClientService : DaggerService() {
             nsClientRepository.addLog("◄ ERROR", "Write treatment permission not granted ")
         }
         if (!hasWriteAuth) {
-            notificationManager.post(NotificationId.NSCLIENT_NO_WRITE_PERMISSION, R.string.no_write_permission, level = NotificationLevel.URGENT)
+            notificationManager.post(NotificationId.NSCLIENT_NO_WRITE_PERMISSION, R.string.no_write_permission, level = NotificationLevel.IMPORTANT)
         } else {
             notificationManager.dismiss(NotificationId.NSCLIENT_NO_WRITE_PERMISSION)
         }
@@ -438,7 +439,7 @@ class NSClientService : DaggerService() {
                             // take the newest
                             val profileStoreJson = profiles[profiles.length() - 1] as JSONObject
                             nsClientRepository.addLog("◄ PROFILE", "profile received")
-                            nsIncomingDataProcessor.processProfile(profileStoreJson, false)
+                            scope.launch { nsIncomingDataProcessor.processProfile(profileStoreJson, false) }
                         }
                     }
                     if (data.has("treatments")) {
@@ -664,7 +665,6 @@ class NSClientService : DaggerService() {
             1    -> notificationManager.post(
                 id = NotificationId.NS_ALARM,
                 text = nsAlarm.title,
-                level = NotificationLevel.NORMAL,
                 soundRes = app.aaps.core.ui.R.raw.alarm,
                 actions = snoozeActions(nsAlarm)
             )
@@ -672,7 +672,6 @@ class NSClientService : DaggerService() {
             2    -> notificationManager.post(
                 id = NotificationId.NS_URGENT_ALARM,
                 text = nsAlarm.title,
-                level = NotificationLevel.URGENT,
                 soundRes = app.aaps.core.ui.R.raw.urgentalarm,
                 actions = snoozeActions(nsAlarm)
             )

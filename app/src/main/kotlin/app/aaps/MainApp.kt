@@ -7,10 +7,13 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.work.Configuration
 import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.ICfg
@@ -18,6 +21,7 @@ import app.aaps.core.data.model.RM
 import app.aaps.core.data.model.TE
 import app.aaps.core.data.model.TT
 import app.aaps.core.data.model.TTPreset
+import app.aaps.core.data.time.T
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ue.ValueWithUnit
@@ -40,8 +44,8 @@ import app.aaps.core.interfaces.notifications.NotificationLevel
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginBase
-import app.aaps.core.interfaces.profile.LocalProfileManager
 import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.profile.ProfileRepository
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.protection.ExportPasswordDataStore
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -62,6 +66,7 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.LongComposedKey
+import app.aaps.core.keys.LongNonKey
 import app.aaps.core.keys.ProfileComposedBooleanKey
 import app.aaps.core.keys.ProfileComposedStringKey
 import app.aaps.core.keys.StringKey
@@ -113,10 +118,20 @@ import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.declaredMemberProperties
 
 @HiltAndroidApp
-class MainApp : Application(), HasAndroidInjector {
+class MainApp : Application(), HasAndroidInjector, Configuration.Provider {
 
     @Inject lateinit var androidInjector: DispatchingAndroidInjector<Any>
     override fun androidInjector(): AndroidInjector<Any> = androidInjector
+
+    // WorkManager on-demand initialization. HiltWorkerFactory constructs @HiltWorker workers via
+    // assisted injection; workers not yet migrated return null from it and fall back to WorkManager's
+    // default reflective factory (which self-injects through HasAndroidInjector). The default
+    // androidx.startup WorkManagerInitializer is removed in AndroidManifest.xml so this config wins.
+    @Inject lateinit var hiltWorkerFactory: HiltWorkerFactory
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(hiltWorkerFactory)
+            .build()
 
     @Inject lateinit var pluginStore: PluginStore
     @Inject lateinit var aapsLogger: AAPSLogger
@@ -142,7 +157,7 @@ class MainApp : Application(), HasAndroidInjector {
     @Inject lateinit var repository: AppRepository
     @Inject lateinit var hardLimits: HardLimits
     @Inject lateinit var activePlugin: ActivePlugin
-    @Inject lateinit var localProfileManager: LocalProfileManager
+    @Inject lateinit var profileRepository: ProfileRepository
     @Inject lateinit var localInsulinManager: InsulinManager
     @Inject lateinit var constraintChecker: ConstraintsChecker
     @Inject lateinit var signatureVerifierPlugin: SignatureVerifierPlugin
@@ -210,6 +225,10 @@ class MainApp : Application(), HasAndroidInjector {
                 config.updateInitProgress(getString(R.string.migrating_preferences))
                 doMigrations()
 
+                // Defragment the DB while it is quiescent: plugins, loop, sync and UI all start
+                // later, so the (memory heavy) VACUUM has the DB to itself. Runs at most monthly.
+                vacuumDatabaseIfDue()
+
                 // Register and initialize plugins
                 config.updateInitProgress(getString(R.string.initializing_plugins))
                 pluginStore.plugins = plugins
@@ -230,6 +249,73 @@ class MainApp : Application(), HasAndroidInjector {
                 aapsLogger.error(LTag.CORE, "Fatal initialization error", e)
                 config.initFailed(e.message ?: "Unknown error")
             }
+        }
+    }
+
+    // Perform a full VACUUM at most once a month. VACUUM defragments the DB file and reclaims
+    // space, restoring query performance that degrades after long use. It is heavy and memory
+    // intensive, so it runs only here at startup while nothing else touches the DB (this avoids
+    // the SQLITE_NOMEM crash seen when VACUUM overlapped live DB activity).
+    private suspend fun vacuumDatabaseIfDue() {
+        val lastRun = preferences.get(LongNonKey.LastVacuumRun)
+        if (lastRun >= dateUtil.now() - T.days(30).msecs()) return
+
+        // Crash-loop guard. VACUUM can die below the JVM (native SQLite abort / OOM) in a way no
+        // try/catch can intercept — the process just vanishes, leaving no log. If that happened last
+        // time, the committed flag below is still set (the finally never ran). Detect it, skip
+        // VACUUM so the app can boot, and back off a month instead of re-crashing on every launch.
+        if (preferences.get(BooleanNonKey.VacuumInProgress)) {
+            aapsLogger.error(LTag.CORE, "Previous startup VACUUM did not finish (likely native crash) — skipping for 30 days")
+            // Report to Firebase so we get a fleet-wide count of users hit by a crashing startup VACUUM.
+            fabricPrivacy.logCustom("db_vacuum_crash_recovered", Bundle())
+            preferences.put(BooleanNonKey.VacuumInProgress, false)
+            preferences.put(LongNonKey.LastVacuumRun, dateUtil.now())
+            return
+        }
+
+        config.updateInitProgress(getString(R.string.optimizing_database))
+        try {
+            // Log size + per-table counts (total / older-than-retention backlog / tracked changes)
+            // before VACUUM, so a crash report tells us whether the DB is the problem. 6*31 mirrors
+            // KeepAliveWorker.databaseCleanup's retention so "deletable" reflects the real backlog.
+            val info = persistenceLayer.databaseMaintenanceInfo(retentionDays = 6L * 31)
+            aapsLogger.info(LTag.CORE, "Startup DB maintenance, pre-VACUUM diagnostics:\n${info.report}")
+            // Crashlytics breadcrumb: attaches the diagnostics to any exception logged below.
+            fabricPrivacy.logMessage("Pre-VACUUM: ${info.report}")
+            val dbMb = info.dbSizeBytes / 1_048_576
+            // VACUUM rebuilds the whole DB into a temporary copy, so it needs roughly the DB size
+            // again in free space. Skip (and retry next launch) if there isn't enough, to avoid a
+            // SQLITE_FULL failure mid-rebuild.
+            if (info.availableBytes in 0 until info.dbSizeBytes * 2) {
+                val freeMb = info.availableBytes / 1_048_576
+                aapsLogger.warn(LTag.CORE, "Skipping startup VACUUM: free $freeMb MB < 2x DB $dbMb MB")
+                fabricPrivacy.logCustom("db_vacuum_skip_space", Bundle().apply {
+                    putLong("db_mb", dbMb)
+                    putLong("free_mb", freeMb)
+                })
+                return
+            }
+            // Commit the marker synchronously BEFORE running: a plain put() uses apply() and may not
+            // reach disk before an early native abort (e.g. during the wal_checkpoint VACUUM starts with).
+            sp.edit(commit = true) { putBoolean(BooleanNonKey.VacuumInProgress.key, true) }
+            persistenceLayer.vacuumDatabase()
+            // Only advance the timestamp on success, so a transient failure (e.g. DB busy because a
+            // persisted worker is running) is retried on a future launch instead of suppressed for a month.
+            preferences.put(LongNonKey.LastVacuumRun, dateUtil.now())
+            aapsLogger.debug(LTag.CORE, "Startup VACUUM done")
+            // Fleet overview of DB size / cleanup backlog / change-row volume across users.
+            fabricPrivacy.logCustom("db_vacuum_ok", Bundle().apply {
+                putLong("db_mb", dbMb)
+                putLong("deletable", info.deletableRows)
+                putLong("changes", info.changeRows)
+            })
+        } catch (e: Throwable) {
+            // Throwable, not just Exception: a JVM OutOfMemoryError here must not abort app init.
+            aapsLogger.error(LTag.CORE, "Startup VACUUM failed", e)
+            // Catchable failures (SQLiteException, OOM) → Crashlytics non-fatal for the overview.
+            fabricPrivacy.logException(e)
+        } finally {
+            preferences.put(BooleanNonKey.VacuumInProgress, false)
         }
     }
 
@@ -311,11 +397,11 @@ class MainApp : Application(), HasAndroidInjector {
         fabricPrivacy.setUserProperty("Mode", config.APPLICATION_ID + "-" + closedLoopEnabled)
         fabricPrivacy.setUserProperty("Language", preferences.getIfExists(StringKey.GeneralLanguage) ?: Locale.getDefault().language)
         fabricPrivacy.setUserProperty("Version", config.VERSION_NAME)
-        fabricPrivacy.setUserProperty("HEAD", BuildConfig.HEAD)
+        fabricPrivacy.setUserProperty("HEAD", BuildConfig.BUILDVERSION)
         fabricPrivacy.setUserProperty("Remote", remote)
         val hashes: List<String> = signatureVerifierPlugin.shortHashes()
         if (hashes.isNotEmpty()) fabricPrivacy.setUserProperty("Hash", hashes[0])
-        activePlugin.activePump.let { fabricPrivacy.setUserProperty("Pump", it::class.java.simpleName) }
+        activePlugin.activePumpInternal.let { fabricPrivacy.setUserProperty("Pump", it::class.java.simpleName) }
         if (!config.AAPSCLIENT && !config.PUMPCONTROL)
             activePlugin.activeAPS?.let { fabricPrivacy.setUserProperty("Aps", it::class.java.simpleName) }
         activePlugin.activeBgSource.let { fabricPrivacy.setUserProperty("BgSource", it::class.java.simpleName) }
@@ -738,9 +824,9 @@ class MainApp : Application(), HasAndroidInjector {
             localInsulinManager.addNewInsulin(runningICfg, keepName = true)
 
         val label = runningICfg.insulinLabel
-        val end   = runningICfg.insulinEndTime
-        val peak  = runningICfg.insulinPeakTime
-        val conc  = runningICfg.concentration
+        val end = runningICfg.insulinEndTime
+        val peak = runningICfg.insulinPeakTime
+        val conc = runningICfg.concentration
 
         config.updateInitProgress(rh.get().gs(R.string.migrating_profile_switches))
         val migratedPs = repository.bulkMigrateProfileSwitchInsulinConfig(label, end, peak, conc)

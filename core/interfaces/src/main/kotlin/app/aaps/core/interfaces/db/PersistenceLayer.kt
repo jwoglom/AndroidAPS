@@ -29,6 +29,24 @@ import app.aaps.core.interfaces.aps.APSResult
 import kotlinx.coroutines.flow.Flow
 import kotlin.reflect.KClass
 
+/**
+ * Read-only diagnostics gathered before a startup VACUUM.
+ * @property dbSizeBytes size of the main DB file incl. `-wal`/`-shm` (0 if it could not be read)
+ * @property availableBytes free space on the DB's volume, or -1 if unknown
+ * @property totalRows sum of rows across all tables
+ * @property deletableRows rows older than the retention window (the cleanup backlog)
+ * @property changeRows tracked-change rows (`referenceId IS NOT NULL`) across all tables
+ * @property report human-readable per-table counts (total / older-than-retention / tracked-changes)
+ */
+data class DatabaseMaintenanceInfo(
+    val dbSizeBytes: Long,
+    val availableBytes: Long,
+    val totalRows: Long,
+    val deletableRows: Long,
+    val changeRows: Long,
+    val report: String
+)
+
 interface PersistenceLayer {
 
     /**
@@ -47,6 +65,20 @@ interface PersistenceLayer {
      * @param deleteTrackedChanges delete tracked changes from all tables
      */
     suspend fun cleanupDatabase(keepDays: Long, deleteTrackedChanges: Boolean): String
+
+    /**
+     * Full VACUUM of the database: defragments the file and returns free pages to the OS.
+     * Heavy and memory intensive — only call when nothing else is using the DB (e.g. on startup
+     * before plugins/loop/sync start). May throw if the DB is busy/locked.
+     */
+    suspend fun vacuumDatabase()
+
+    /**
+     * Collect DB size, free space and per-table row counts (total, older-than-retention, tracked
+     * changes) for logging before a startup VACUUM. Read-only and failure-tolerant.
+     * @param retentionDays the cleanup window, used to count the deletable backlog (rows older than it)
+     */
+    suspend fun databaseMaintenanceInfo(retentionDays: Long): DatabaseMaintenanceInfo
 
     // Flow-based change observation
     /**
@@ -1341,12 +1373,14 @@ interface PersistenceLayer {
     suspend fun getHeartRatesFromTimeToTime(startTime: Long, endTime: Long): List<HR>
 
     /**
-     * Insert or update if exists record
+     * Insert or update multiple records in a single DB transaction. Emits one change event
+     * for the whole batch instead of one per row. Callers with a single row should pass
+     * `listOf(row)`.
      *
-     * @param heartRate record
+     * @param heartRates records
      * @return List of inserted/updated records
      */
-    suspend fun insertOrUpdateHeartRate(heartRate: HR): TransactionResult<HR>
+    suspend fun insertOrUpdateHeartRates(heartRates: List<HR>): TransactionResult<HR>
 
     // FD
     /**
@@ -1480,12 +1514,14 @@ interface PersistenceLayer {
     suspend fun getLastStepsCountFromTimeToTime(startTime: Long, endTime: Long): SC?
 
     /**
-     * Insert or update if exists record
+     * Insert or update multiple records in a single DB transaction. Emits one change event
+     * for the whole batch instead of one per row. Callers with a single row should pass
+     * `listOf(row)`.
      *
-     * @param stepsCount record
+     * @param stepsCounts records
      * @return List of inserted/updated records
      */
-    suspend fun insertOrUpdateStepsCount(stepsCount: SC): TransactionResult<SC>
+    suspend fun insertOrUpdateStepsCounts(stepsCounts: List<SC>): TransactionResult<SC>
 
     // VersionChange
 

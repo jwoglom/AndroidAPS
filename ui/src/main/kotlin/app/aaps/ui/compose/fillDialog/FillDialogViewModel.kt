@@ -14,6 +14,7 @@ import app.aaps.core.data.ue.ValueWithUnit
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.di.ApplicationScope
 import app.aaps.core.interfaces.insulin.ConcentrationHelper
 import app.aaps.core.interfaces.insulin.InsulinManager
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -22,7 +23,6 @@ import app.aaps.core.interfaces.logging.UserEntryLogger
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
-import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.utils.DateUtil
@@ -36,6 +36,7 @@ import app.aaps.core.objects.runningMode.PumpCommandGate
 import app.aaps.core.objects.runningMode.RunningModeGuard
 import app.aaps.ui.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,7 +69,8 @@ class FillDialogViewModel @Inject constructor(
     private val ch: ConcentrationHelper,
     insulinManager: InsulinManager,
     private val profileFunction: ProfileFunction,
-    private val runningModeGuard: RunningModeGuard
+    private val runningModeGuard: RunningModeGuard,
+    @ApplicationScope private val appScope: CoroutineScope
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FillDialogUiState())
@@ -139,7 +141,6 @@ class FillDialogViewModel @Inject constructor(
                 val allEntries = persistenceLayer.getTherapyEventDataFromTime(
                     dateUtil.now() - app.aaps.core.data.time.T.days(45).msecs(), false
                 ).filter { it.type == TE.Type.CANNULA_CHANGE || it.type == TE.Type.SENSOR_CHANGE }
-                siteRotationEntriesCache = allEntries
                 val lastEntry = allEntries
                     .filter { it.type == TE.Type.CANNULA_CHANGE && it.location != null && it.location != TE.Location.NONE }
                     .maxByOrNull { it.timestamp }
@@ -215,8 +216,6 @@ class FillDialogViewModel @Inject constructor(
     fun updateSiteArrow(arrow: TE.Arrow) {
         _uiState.update { it.copy(siteArrow = arrow) }
     }
-
-    private var siteRotationEntriesCache: List<TE> = emptyList()
 
     /**
      * A line in the confirmation summary.
@@ -305,25 +304,30 @@ class FillDialogViewModel @Inject constructor(
         val doProfileSwitch = state.insulinChanged
         val hasPrimeBolus = state.insulinAfterConstraints > 0
 
-        // Prime bolus
+        // All work runs on appScope, not viewModelScope: the dialog navigates back the moment
+        // confirm is tapped, which cancels viewModelScope. The prime bolus is also launched
+        // independently so the site/insulin change logging below is never gated behind the
+        // (potentially long) prime completing — previously a prime would drop those records.
         if (hasPrimeBolus) {
             uel.log(
                 action = Action.PRIME_BOLUS, source = Sources.FillDialog,
                 note = notes,
                 value = ValueWithUnit.Insulin(state.insulinAfterConstraints)
             )
-            requestPrimeBolus(state.insulinAfterConstraints, notes) {
-                // After successful prime, do profile switch if insulin changed
-                if (doProfileSwitch) {
-                    viewModelScope.launch {
-                        profileFunction.createProfileSwitchWithNewInsulin(state.selectedInsulin!!, Sources.FillDialog)
+            appScope.launch {
+                requestPrimeBolus(state.insulinAfterConstraints, notes) {
+                    // After successful prime, do profile switch if insulin changed
+                    if (doProfileSwitch) {
+                        appScope.launch {
+                            profileFunction.createProfileSwitchWithNewInsulin(state.selectedInsulin!!, Sources.FillDialog)
+                        }
                     }
                 }
             }
         } else {
             // No prime — do profile switch immediately if insulin changed
             if (doProfileSwitch) {
-                viewModelScope.launch {
+                appScope.launch {
                     profileFunction.createProfileSwitchWithNewInsulin(state.selectedInsulin!!, Sources.FillDialog)
                 }
             }
@@ -331,7 +335,7 @@ class FillDialogViewModel @Inject constructor(
 
         // Site change
         if (state.siteChange) {
-            viewModelScope.launch {
+            appScope.launch {
                 try {
                     val location = state.siteLocation.takeIf { it != TE.Location.NONE }
                     val arrow = state.siteArrow.takeIf { it != TE.Arrow.NONE }
@@ -362,7 +366,7 @@ class FillDialogViewModel @Inject constructor(
 
         // Insulin cartridge change (offset by 1 second if site change also recorded)
         if (state.insulinCartridgeChange) {
-            viewModelScope.launch {
+            appScope.launch {
                 try {
                     persistenceLayer.insertPumpTherapyEventIfNewByTimestamp(
                         therapyEvent = TE(
@@ -388,21 +392,18 @@ class FillDialogViewModel @Inject constructor(
     fun decimalFormat(): DecimalFormat =
         decimalFormatter.pumpSupportedBolusFormat(uiState.value.bolusStep)
 
-    private fun requestPrimeBolus(insulin: Double, notes: String, onSuccess: (() -> Unit)? = null) {
+    private suspend fun requestPrimeBolus(insulin: Double, notes: String, onSuccess: (() -> Unit)? = null) {
         if (runningModeGuard.checkWithSnackbar(PumpCommandGate.CommandKind.BOLUS)) return
         val detailedBolusInfo = DetailedBolusInfo().also {
             it.insulin = insulin
             it.bolusType = BS.Type.PRIMING
             it.notes = notes
         }
-        commandQueue.bolus(detailedBolusInfo, object : Callback() {
-            override fun run() {
-                if (!result.success) {
-                    _sideEffect.tryEmit(SideEffect.ShowDeliveryError(result.comment))
-                } else {
-                    onSuccess?.invoke()
-                }
-            }
-        })
+        val result = commandQueue.bolus(detailedBolusInfo)
+        if (!result.success) {
+            _sideEffect.tryEmit(SideEffect.ShowDeliveryError(result.comment))
+        } else {
+            onSuccess?.invoke()
+        }
     }
 }

@@ -19,6 +19,7 @@ import app.aaps.core.interfaces.receivers.Intents
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.interfaces.rx.events.EventAutosensCalculationFinished
 import app.aaps.core.interfaces.rx.events.EventLoopUpdateGui
 import app.aaps.core.interfaces.rx.events.EventMobileToWear
@@ -54,10 +55,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.rx3.rxCompletable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -83,10 +83,7 @@ class WearPlugin @Inject constructor(
         .pluginName(app.aaps.core.ui.R.string.wear)
         .shortName(R.string.wear_shortname)
         .description(R.string.description_wear)
-        .composeContent { plugin ->
-            WearComposeContent(
-            )
-        },
+        .composeContent { WearComposeContent() },
     aapsLogger = aapsLogger, rh = rh, preferences = preferences
 ) {
 
@@ -109,14 +106,14 @@ class WearPlugin @Inject constructor(
     }
 
     @OptIn(FlowPreview::class)
-    override fun onStart() {
+    override suspend fun onStart() {
         super.onStart()
         val newScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         scope = newScope
         deferredStart.start { dataLayerListenerServiceMobileHelper.startService(context) }
         bolusProgressData.state
             .drop(1) // Skip initial null emission on collection start
-            .onEach { state ->
+            .collectResilient(newScope, aapsLogger, LTag.WEAR) { state ->
                 if (isEnabled()) {
                     if (state != null) {
                         if (!state.isSMB || preferences.get(BooleanKey.WearNotifyOnSmb)) {
@@ -128,7 +125,6 @@ class WearPlugin @Inject constructor(
                     }
                 }
             }
-            .launchIn(newScope)
         merge(
             // Preferences sent to watch via resendData()
             preferences.observe(BooleanKey.WearControl).drop(1).map {},
@@ -144,37 +140,49 @@ class WearPlugin @Inject constructor(
             preferences.observe(StringNonKey.WearCwfWatchfaceName).drop(1).map {},
             preferences.observe(StringNonKey.WearCwfAuthorVersion).drop(1).map {},
             preferences.observe(StringNonKey.WearCwfFileName).drop(1).map {},
-        ).onEach {
+        ).collectResilient(newScope, aapsLogger, LTag.WEAR) {
             dataHandlerMobile.resendData("PreferenceChange")
             checkCustomWatchfacePreferences()
-        }.launchIn(newScope)
+        }
         disposable += rxBus
             .toObservable(EventAutosensCalculationFinished::class.java)
             .observeOn(aapsSchedulers.io)
-            .subscribe({ dataHandlerMobile.resendData("EventAutosensCalculationFinished") }, fabricPrivacy::logException)
+            .concatMapCompletable {
+                rxCompletable { dataHandlerMobile.resendData("EventAutosensCalculationFinished") }
+                    .doOnError(fabricPrivacy::logException)
+                    .onErrorComplete()
+            }
+            .subscribe()
         disposable += rxBus
             .toObservable(EventLoopUpdateGui::class.java)
             .observeOn(aapsSchedulers.io)
-            .subscribe({ dataHandlerMobile.resendData("EventLoopUpdateGui") }, fabricPrivacy::logException)
+            .concatMapCompletable {
+                rxCompletable { dataHandlerMobile.resendData("EventLoopUpdateGui") }
+                    .doOnError(fabricPrivacy::logException)
+                    .onErrorComplete()
+            }
+            .subscribe()
         // Push status to watch quickly when a TT changes, without waiting for the loop's 10s debounce
         persistenceLayer.observeChanges<TT>()
             .drop(1) // Skip initial emission on collection start
             .debounce(2_000L)
-            .onEach { dataHandlerMobile.resendData("TempTargetChange") }
-            .launchIn(newScope)
+            .collectResilient(newScope, aapsLogger, LTag.WEAR) { dataHandlerMobile.resendData("TempTargetChange") }
         // Refresh wear scene tile whenever the scene list changes (add / update / delete)
         scenes.scenesFlow
             .drop(1) // Skip initial replay on subscribe
-            .onEach { dataHandlerMobile.sendScenes() }
-            .launchIn(newScope)
+            .collectResilient(newScope, aapsLogger, LTag.WEAR) { dataHandlerMobile.sendScenes() }
         // Push active-scene flag to wear so the tile can swap between scene list and STOP button
         scenes.activeFlow
-            .onEach { dataHandlerMobile.sendActiveSceneState(it) }
-            .launchIn(newScope)
+            .collectResilient(newScope, aapsLogger, LTag.WEAR) { dataHandlerMobile.sendActiveSceneState(it) }
         disposable += rxBus
             .toObservable(EventWearUpdateTiles::class.java)
             .observeOn(aapsSchedulers.io)
-            .subscribe({ dataHandlerMobile.sendUserActions() }, fabricPrivacy::logException)
+            .concatMapCompletable {
+                rxCompletable { dataHandlerMobile.sendUserActions() }
+                    .doOnError(fabricPrivacy::logException)
+                    .onErrorComplete()
+            }
+            .subscribe({})
         disposable += rxBus
             .toObservable(EventWearUpdateGui::class.java)
             .observeOn(aapsSchedulers.main)
@@ -221,7 +229,7 @@ class WearPlugin @Inject constructor(
         }
     }
 
-    override fun onStop() {
+    override suspend fun onStop() {
         scope?.cancel()
         scope = null
         disposable.clear()

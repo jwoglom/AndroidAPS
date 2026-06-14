@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="equil_name">Equil</string>
     <string name="equil_pump_description">Equil 5.3 alebo novšia pumpa</string>
     <!--  start  -->
     <string name="equil_basal_speed">Základný bazál</string>
@@ -21,7 +22,6 @@
     <string name="equil_title_attach">Pripojiť pumpu</string>
     <string name="equil_title_air">Naplniť kanylu</string>
     <string name="equil_title_unpair_detach">Odpojiť pumpu</string>
-    <string name="equil_title_unpair_confirm">Potvrdiť odpárovanie</string>
     <string name="equil_title_history_events">História udalostí</string>
     <string name="equil_tone">Tón výstrahy</string>
     <string name="equil_tone_mode_mute">Stíšiť</string>

@@ -30,9 +30,12 @@
     <string name="no_valid_basal_rate">从泵中无法读取有效的基础率</string>
     <string name="limiting_iob">由于 %2$s, 将 IOB(活性胰岛素) 限制为 %1$.1f U</string>
     <string name="loop_disabled">按约束条件禁用循环</string>
+    <string name="loop_disabled_by_user">用户禁用闭环</string>
     <string name="event_type">事件类型</string>
     <string name="mgdl">mg/dl</string>
     <string name="mmol">mmol/l</string>
+    <string name="bg_mgdl">%1$d mg/dl</string>
+    <string name="bg_mmol">%1$.1f mmol/l</string>
     <string name="save">保存</string>
     <string name="skip">跳过</string>
     <string name="switch_to_edit">编辑</string>
@@ -48,6 +51,10 @@
     <string name="patient_name_default" comment="This is default patient display name, when user does not provide real one">用户</string>
     <string name="result">结果</string>
     <string name="settings">设置</string>
+    <string name="open_plugin">打开插件</string>
+    <string name="configbuilder_pick_one_hint">请选择一个。一次只能激活一个。</string>
+    <string name="configbuilder_pick_many_hint">选择所有适用的项。</string>
+    <string name="configbuilder_no_selection_warning">此类别中未选择任何插件。</string>
     <string name="simple_mode">简单模式</string>
     <string name="expand">展开</string>
     <string name="collapse">收起</string>
@@ -61,6 +68,7 @@
     <string name="configbuilder_insulin">胰岛素</string>
     <string name="configbuilder_bgsource">血糖来源</string>
     <string name="configbuilder_smoothing">平滑</string>
+    <string name="configbuilder_calibration">校准</string>
     <string name="configbuilder_pump">胰岛素泵</string>
     <string name="configbuilder_sensitivity">灵敏度检测</string>
     <string name="configbuilder_aps">APS</string>
@@ -176,6 +184,9 @@
     <string name="remove_label">删除</string>
     <string name="activate_profile">激活配置文件</string>
     <string name="activate_insulin">启用胰岛素</string>
+    <string name="pump_wizard_profile_gate_title">需要配置文件</string>
+    <string name="pump_wizard_profile_gate_pick">选择激活时应用的配置文件。</string>
+    <string name="pump_wizard_profile_gate_no_store">未定义任何配置文件。请打开配置文件管理创建一个，然后重新开始激活。</string>
     <string name="reset">重置</string>
     <string name="profileswitch_ismissing">配置文件切换缺失。请做一次配置文件切换或者在本地配置文件里按“激活配置文件”</string>
     <string name="profile">配置文件</string>
@@ -443,6 +454,8 @@
     <string name="location_front_left_lower_abdomen">左下腹部前侧</string>
     <string name="location_back_right_buttock">右臀部</string>
     <string name="location_back_left_buttock">左臀部</string>
+    <string name="location_back_right_lower_back">右下背部</string>
+    <string name="location_back_left_lower_back">左下背部</string>
     <string name="location_side_right_upper_thigh">右大腿外侧上部</string>
     <string name="location_side_left_upper_thigh">左大腿外侧上部</string>
     <string name="location_side_right_lower_thigh">右大腿外侧下部</string>
@@ -462,6 +475,7 @@
     <string name="arrow_center">中心</string>
     <!--    Command-->
     <string name="connectiontimedout">连接超时</string>
+    <string name="command_replaced">由较新的命令替换</string>
     <string name="pump_not_configured">泵没有配置</string>
     <!--    PumpEnactResult-->
     <string name="enacted">设定</string>
@@ -524,6 +538,7 @@
     <string name="uel_tt_ns_refresh">从NS刷新临时目标</string>
     <string name="uel_automation_removed">删除自动操作</string>
     <string name="uel_bg_removed">删除血糖数据</string>
+    <string name="uel_calibration_removed">校准已移除</string>
     <string name="uel_careportal_removed">删除护理数据</string>
     <string name="uel_bolus_removed">删除大剂量</string>
     <string name="uel_carbs_removed">删除碳水</string>
@@ -603,6 +618,11 @@
     <!-- Profile validation -->
     <string name="no_profile_selected">未选择配置文件</string>
     <string name="missing_profile_name">缺少配置文件名称</string>
+    <string name="profile_not_saved_activate">配置文件未保存。请在激活前保存配置文件。</string>
+    <string name="profile_activation_failed">配置文件激活失败</string>
+    <string name="profile_switch_save_failed">配置文件切换未能保存，请重试。</string>
+    <string name="profile_basal_not_compatible_with_pump">基础率与当前泵不兼容，无法激活。请降低百分比或调整基础率。</string>
+    <string name="profile_pump_incompatible_label">泵限制</string>
     <string name="error_in_ic_values">IC 数值错误</string>
     <string name="error_in_isf_values">ISF 数值错误</string>
     <string name="error_in_basal_values">基础率数值错误</string>
@@ -636,7 +656,10 @@
     <string name="basal">基础率</string>
     <string name="basalpct">基础率 %</string>
     <string name="sensitivity">灵敏度</string>
-    <string name="isf_for_carbs">ISF（胰岛素敏感系数）计算器和碳水化合物吸收率：%1$.1f</string>
+    <string name="isf_for_carbs">计算器和碳水吸收的平均 ISF：%1$.1f</string>
+    <string name="isf_profile">配置文件 ISF: %1$.1f</string>
+    <string name="isf_variable">变量 ISF: %1$.1f</string>
+    <string name="isf_effective">有效 ISF: %1$.1f</string>
     <string name="autosens_long">Autosens 自动敏感度值：%.0f%%</string>
     <string name="autosens_short">%.0f%%</string>
     <string name="algorithm_long">算法中自动敏感度：%.0f%%</string>
@@ -807,12 +830,13 @@
     <string name="maintenance_export_csv_desc">导出处理历史为电子表格</string>
     <string name="maintenance_cleanup_db_desc">从数据库中删除旧条目</string>
     <string name="maintenance_reset_aps_results_desc">清除已存储的算法结果</string>
-    <string name="maintenance_reset_db_desc">删除所有数据库并重启</string>
+    <string name="maintenance_reset_db_desc">删除所有数据库并重新加载</string>
     <!-- Cloud directory dialog (Compose) -->
     <string name="select_storage_type">选择存储类型</string>
     <string name="clear_cloud_action">清除设置</string>
     <string name="clear_cloud_settings">清除云设置</string>
     <string name="clear_cloud_settings_message">这将切换到本地存储并清除授权。是否继续？</string>
+    <string name="cloud_revoke_incomplete">此设备上的云端设置已清除，但无法连接到帐户以完全撤销访问。 建议您在账户设置中手动移除此设备。</string>
     <string name="cloud_connection_failed">云存储连接失败</string>
     <string name="cloud_reauthorize_message">云存储连接失败。您想要重新验证吗？</string>
     <string name="reauthorize">重新验证</string>
@@ -825,8 +849,10 @@
     <string name="need_connect_permission">应用程序需要蓝牙权限。</string>
     <!--    Combo-->
     <string name="user_request" comment="26 characters max for translation">用户请求</string>
+    <!--    Pump pair/unpair (shared) -->
     <string name="pump_pair">配对</string>
     <string name="pump_unpair">取消配对</string>
+    <string name="pump_unpair_confirm_title">取消配对泵？</string>
     <string name="pump_paired" comment="26 characters max for translation">泵已配对</string>
     <!--    BlePreCheck-->
     <string name="ble_not_supported">不支持蓝牙低能量。</string>
@@ -988,6 +1014,7 @@
     <string name="database_cleanup">数据库清理</string>
     <string name="nav_resetdb">重置数据库</string>
     <!--    BLE Scan Step (shared pump pairing) -->
+    <string name="step_ble_scan">查找泵</string>
     <string name="ble_scan_select_pump">从下面的列表中选择您的泵</string>
     <string name="ble_scan_scanning">正在扫描设备…</string>
     <!-- Graph configuration -->

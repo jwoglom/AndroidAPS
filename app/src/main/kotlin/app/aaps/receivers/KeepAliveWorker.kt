@@ -2,6 +2,7 @@ package app.aaps.receivers
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.hilt.work.HiltWorker
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -39,32 +40,36 @@ import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.objects.workflow.LoggingWorker
 import app.aaps.plugins.constraints.dstHelper.DstHelperPlugin
 import com.google.common.util.concurrent.ListenableFuture
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
+import java.util.concurrent.TimeoutException
 import kotlin.math.abs
 
-class KeepAliveWorker(
-    context: Context,
-    params: WorkerParameters
-) : LoggingWorker(context, params, Dispatchers.Default) {
-
-    @Inject lateinit var localAlertUtils: LocalAlertUtils
-    @Inject lateinit var persistenceLayer: PersistenceLayer
-    @Inject lateinit var config: Config
-    @Inject lateinit var iobCobCalculator: IobCobCalculator
-    @Inject lateinit var loop: Loop
-    @Inject lateinit var dateUtil: DateUtil
-    @Inject lateinit var activePlugin: ActivePlugin
-    @Inject lateinit var profileFunction: ProfileFunction
-    @Inject lateinit var rxBus: RxBus
-    @Inject lateinit var commandQueue: CommandQueue
-    @Inject lateinit var maintenance: Maintenance
-    @Inject lateinit var rh: ResourceHelper
-    @Inject lateinit var preferences: Preferences
-    @Inject lateinit var dstHelperPlugin: DstHelperPlugin
-    @Inject lateinit var workManager: WorkManager
-    @Inject lateinit var ch: ConcentrationHelper
+@HiltWorker
+class KeepAliveWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    aapsLogger: AAPSLogger,
+    fabricPrivacy: FabricPrivacy,
+    private val localAlertUtils: LocalAlertUtils,
+    private val persistenceLayer: PersistenceLayer,
+    private val config: Config,
+    private val iobCobCalculator: IobCobCalculator,
+    private val loop: Loop,
+    private val dateUtil: DateUtil,
+    private val activePlugin: ActivePlugin,
+    private val profileFunction: ProfileFunction,
+    private val rxBus: RxBus,
+    private val commandQueue: CommandQueue,
+    private val maintenance: Maintenance,
+    private val rh: ResourceHelper,
+    private val preferences: Preferences,
+    private val dstHelperPlugin: DstHelperPlugin,
+    private val workManager: WorkManager,
+    private val ch: ConcentrationHelper
+) : LoggingWorker(context, params, Dispatchers.Default, aapsLogger, fabricPrivacy) {
 
     companion object {
 
@@ -148,6 +153,7 @@ class KeepAliveWorker(
         checkAPS()
         maintenance.deleteLogs(30)
         workerDbStatus()
+        workerActiveStatus()
         databaseCleanup()
 
         return Result.success()
@@ -167,15 +173,54 @@ class KeepAliveWorker(
     // When Worker DB grows too much, work operations become slow
     // Library is cleaning DB every 7 days which may not be sufficient for NSClient full sync
     private fun workerDbStatus() {
-        val workQuery = WorkQuery.Builder
-            .fromStates(listOf(WorkInfo.State.FAILED, WorkInfo.State.SUCCEEDED))
-            .build()
-
-        val workInfo: ListenableFuture<List<WorkInfo>> = workManager.getWorkInfos(workQuery)
-        aapsLogger.debug(LTag.CORE, "WorkManager size is ${workInfo.get().size}")
-        if (workInfo.get().size > 1000) {
+        val terminal = getWorkInfosSafe(listOf(WorkInfo.State.FAILED, WorkInfo.State.SUCCEEDED)) ?: return
+        aapsLogger.debug(LTag.CORE, "WorkManager size is ${terminal.size}")
+        if (terminal.size > 1000) {
             workManager.pruneWork()
             aapsLogger.debug(LTag.CORE, "WorkManager pruning ....")
+        }
+    }
+
+    // Report ENQUEUED/RUNNING/BLOCKED counts and the top worker classes by count, so a leaking
+    // chain is identifiable. Useful for the lead-up to a freeze; once WorkManager itself stalls,
+    // KeepAlive stops firing and this stops logging too.
+    private fun workerActiveStatus() {
+        val active = getWorkInfosSafe(listOf(WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING, WorkInfo.State.BLOCKED)) ?: return
+        val byState = active.groupingBy { it.state }.eachCount()
+        aapsLogger.debug(
+            LTag.CORE,
+            "WorkManager active: total=${active.size}" +
+                " enqueued=${byState[WorkInfo.State.ENQUEUED] ?: 0}" +
+                " running=${byState[WorkInfo.State.RUNNING] ?: 0}" +
+                " blocked=${byState[WorkInfo.State.BLOCKED] ?: 0}"
+        )
+        // WorkManager auto-adds the worker's fully-qualified class name as a tag; filter by '.'
+        // to skip user-added tags, then keep the simple name for readability.
+        val topTags = active.asSequence()
+            .flatMap { it.tags.asSequence() }
+            .filter { it.contains('.') }
+            .groupingBy { it.substringAfterLast('.') }
+            .eachCount()
+            .entries
+            .sortedByDescending { it.value }
+            .take(5)
+            .joinToString { "${it.key}=${it.value}" }
+        if (topTags.isNotEmpty()) aapsLogger.debug(LTag.CORE, "WorkManager active top: $topTags")
+    }
+
+    // Bounded blocking get: if WorkManager itself is wedged (the very thing we're diagnosing),
+    // an unbounded .get() would hang the KeepAliveWorker and take the diagnostic down with it.
+    private fun getWorkInfosSafe(states: List<WorkInfo.State>): List<WorkInfo>? {
+        val future: ListenableFuture<List<WorkInfo>> = workManager.getWorkInfos(WorkQuery.Builder.fromStates(states).build())
+        return try {
+            future.get(2, TimeUnit.SECONDS)
+        } catch (e: TimeoutException) {
+            aapsLogger.error(LTag.CORE, "WorkManager getWorkInfos timeout for $states")
+            future.cancel(true)
+            null
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.CORE, "WorkManager getWorkInfos failed for $states", e)
+            null
         }
     }
 
@@ -236,10 +281,10 @@ class KeepAliveWorker(
             rxBus.send(EventProfileChangeRequested())
         } else if (isStatusOutdated && !pump.isBusy()) {
             lastReadStatus = now
-            commandQueue.readStatus(rh.gs(app.aaps.core.ui.R.string.keepalive_status_outdated), null)
+            commandQueue.readStatus(rh.gs(app.aaps.core.ui.R.string.keepalive_status_outdated))
         } else if (isBasalOutdated && !pump.isBusy()) {
             lastReadStatus = now
-            commandQueue.readStatus(rh.gs(app.aaps.core.ui.R.string.keepalive_basal_outdated), null)
+            commandQueue.readStatus(rh.gs(app.aaps.core.ui.R.string.keepalive_basal_outdated))
         }
     }
 }

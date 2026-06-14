@@ -30,6 +30,7 @@
     <string name="no_valid_basal_rate">Z pumpy nepřečten žádný platný bazál</string>
     <string name="limiting_iob">IOB omezeno na %1$.1f U: %2$s</string>
     <string name="loop_disabled">SMYČKA ZAKÁZÁNA OMEZENÍM</string>
+    <string name="loop_disabled_by_user">Smyčka zakázána uživatelem</string>
     <string name="event_type">Typ události</string>
     <string name="mgdl">mg/dL</string>
     <string name="mmol">mmol/L</string>
@@ -48,6 +49,10 @@
     <string name="patient_name_default" comment="This is default patient display name, when user does not provide real one">Uživatel</string>
     <string name="result">Výsledek</string>
     <string name="settings">Nastavení</string>
+    <string name="open_plugin">Otevřít modul</string>
+    <string name="configbuilder_pick_one_hint">Vyberte jeden. Pouze jeden může být aktivní.</string>
+    <string name="configbuilder_pick_many_hint">Zvolte, co se použije.</string>
+    <string name="configbuilder_no_selection_warning">V této kategorii není vybrán žádný plugin.</string>
     <string name="simple_mode">Jednoduchý režim</string>
     <string name="expand">Rozbalit</string>
     <string name="collapse">Sbalit</string>
@@ -465,6 +470,7 @@
     <string name="arrow_center">Uprostřed</string>
     <!--    Command-->
     <string name="connectiontimedout">Vypršel čas připojování</string>
+    <string name="command_replaced">Nahrazeno novějším příkazem</string>
     <string name="pump_not_configured">Pumpa není nakonfigurována</string>
     <!--    PumpEnactResult-->
     <string name="enacted">Provedeno</string>
@@ -606,6 +612,8 @@
     <!-- Profile validation -->
     <string name="no_profile_selected">Nebyl vybrán žádný profil</string>
     <string name="missing_profile_name">Chybí název profilu</string>
+    <string name="profile_not_saved_activate">Profil nebyl uložen. Před aktivací prosím uložte profil.</string>
+    <string name="profile_activation_failed">Aktivace profilu selhala</string>
     <string name="error_in_ic_values">Chyba v hodnotách IC</string>
     <string name="error_in_isf_values">Chyba v hodnotách ISF</string>
     <string name="error_in_basal_values">Chyba v hodnotách bazálu</string>
@@ -640,6 +648,9 @@
     <string name="basalpct">Bazál %</string>
     <string name="sensitivity">Citlivost</string>
     <string name="isf_for_carbs">ISF pro kalkulačku a absorbci sacharidů: %1$.1f</string>
+    <string name="isf_profile">ISF v profilu: %1$.1f</string>
+    <string name="isf_variable">ISF počítané: %1$.1f</string>
+    <string name="isf_effective">Efektivní ISF: %1$.1f</string>
     <string name="autosens_long">Hodnota Autosense: %.0f%%</string>
     <string name="autosens_short">%.0f%%</string>
     <string name="algorithm_long">Detekce citlivosti algoritmu: %.0f%%</string>
@@ -810,7 +821,7 @@
     <string name="maintenance_export_csv_desc">Exportovat historii ošetření jako tabulku</string>
     <string name="maintenance_cleanup_db_desc">Odstranit staré záznamy z databáze</string>
     <string name="maintenance_reset_aps_results_desc">Vymazat uložené výsledky algoritmu</string>
-    <string name="maintenance_reset_db_desc">Smazat všechny databáze a restartovat</string>
+    <string name="maintenance_reset_db_desc">Smazat všechny databáze a znovu načíst</string>
     <!-- Cloud directory dialog (Compose) -->
     <string name="select_storage_type">Vybrat typ úložiště</string>
     <string name="clear_cloud_action">Vymazat nastavení</string>
@@ -828,8 +839,10 @@
     <string name="need_connect_permission">Aplikace potřebuje oprávnění bluetooth</string>
     <!--    Combo-->
     <string name="user_request" comment="26 characters max for translation">Požadavek uživatele</string>
+    <!--    Pump pair/unpair (shared) -->
     <string name="pump_pair">Spárovat</string>
     <string name="pump_unpair">Odpárovat</string>
+    <string name="pump_unpair_confirm_title">Zrušit párování pumpy?</string>
     <string name="pump_paired" comment="26 characters max for translation">Pumpa spárována</string>
     <!--    BlePreCheck-->
     <string name="ble_not_supported">Bluetooth Low Energy nepodporováno.</string>
@@ -1000,6 +1013,7 @@
     <string name="database_cleanup">Vyčištění databáze</string>
     <string name="nav_resetdb">Resetovat databáze</string>
     <!--    BLE Scan Step (shared pump pairing) -->
+    <string name="step_ble_scan">Najít pumpu</string>
     <string name="ble_scan_select_pump">Vyberte svou pumpu ze seznamu níže</string>
     <string name="ble_scan_scanning">Vyhledávání zařízení …</string>
     <!-- Graph configuration -->

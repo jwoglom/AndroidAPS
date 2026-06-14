@@ -31,6 +31,8 @@
     <string name="pref_title_alert_carbs_required">Varsle ved behov for karbo</string>
     <string name="pref_title_alert_urgent_as_android_notification">Vis akutte alarmer som Android-varsler</string>
     <string name="pref_title_alert_increase_volume">Øk varselvolumet gradvis</string>
+    <string name="pref_title_alert_override_dnd">Overstyr ikke forstyrr-modus</string>
+    <string name="pref_summary_alert_override_dnd">Når aktivert spilles AAPS-alarmer av selv i lydløsmodus og ikke forstyrr (alarmkanal). Når deaktivert følger alarmer lydløsmodus/ikke forstyrr (varslingskanal).</string>
     <!-- BG Source preferences -->
     <string name="pref_title_bg_source_upload_to_ns">Last opp BS-data til NS</string>
     <string name="pref_title_bg_source_create_sensor_change">Logg sensorskifte</string>
@@ -254,6 +256,7 @@
     <string name="units_format_mgdl">%1$s mg/dL</string>
     <string name="units_format_double">%1$.1f</string>
     <string name="units_format_double_2">%1$.2f</string>
+    <string name="units_format_double_3">%1$.3f</string>
     <!-- Formatted unit strings with value and range -->
     <string name="units_format_grams_range">%1$d g (%2$d - %3$d)</string>
     <string name="units_format_min_range">%1$d min (%2$d - %3$d)</string>
@@ -268,6 +271,7 @@
     <string name="units_format_mgdl_range">%1$s mg/dL (%2$s - %3$s)</string>
     <string name="units_format_double_range">%1$.1f (%2$.1f - %3$.1f)</string>
     <string name="units_format_double_2_range">%1$.2f (%2$.2f - %3$.2f)</string>
+    <string name="units_format_double_3_range">%1$.3f (%2$.3f - %3$.3f)</string>
     <string name="pref_title_language">Språk</string>
     <string name="lang_default">Systemstandard</string>
     <string name="lang_en">Engelsk</string>

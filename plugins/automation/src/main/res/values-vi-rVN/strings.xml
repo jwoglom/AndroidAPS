@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="automation_short">Auto</string>
-    <string name="automation">Automation</string>
+    <string name="automation">Tự động</string>
     <string name="automation_description">Các tác vụ tự động do người dùng định nghĩa</string>
     <string name="automation_enabled">Đã bật</string>
     <string name="automation_read_only">Chỉ đọc</string>
@@ -48,8 +48,8 @@
     <string name="notification_message">Thông báo: %1$s</string>
     <string name="profilename">Chuyển Cấu hình sang</string>
     <string name="changengetoprofilename">Chuyển Cấu hình sang %1$s</string>
-    <string name="automation_trigger_pump_last_connection_label">Kết nối gần nhất đến bơm</string>
-    <string name="automation_trigger_pump_last_connection_compared">Lần kết nối gần nhất với bơm %1$s %2$s phút trước</string>
+    <string name="automation_trigger_pump_last_connection_label">Kết nối mới nhất đến bơm</string>
+    <string name="automation_trigger_pump_last_connection_compared">Lần kết nối mới nhất với bơm %1$s %2$s phút trước</string>
     <string name="alreadyset">Đã thiết lập</string>
     <string name="profilepercentage">Tỷ lệ phần trăm Cấu hình</string>
     <string name="startprofileforever">Bắt đầu Cấu hình %1$d%%</string>
@@ -114,8 +114,8 @@
     <string name="triggerInsulinAgeDesc">Insulin đã dùng %1$s được %2$.1f giờ</string>
     <string name="triggerPumpBatteryAgeLabel">Pin của Bơm</string>
     <string name="triggerPumpBatteryAgeDesc">Pin của bơm đã dùng %1$s %2$.1f giờ</string>
-    <string name="triggerReservoirLevelLabel">Reservoir level</string>
-    <string name="triggerReservoirLevelDesc">Reservoir level %1$s %2$.0f</string>
+    <string name="triggerReservoirLevelLabel">Insulin còn lại</string>
+    <string name="triggerReservoirLevelDesc">Insulin còn lại %1$s%2$.0f</string>
     <string name="triggerPumpBatteryLevelLabel">Mức pin của Bơm</string>
     <string name="triggerPumpBatteryLevelDesc">Mức pin của Bơm %1$s %2$.0f</string>
     <string name="recurringTime">Thời gian định kỳ</string>

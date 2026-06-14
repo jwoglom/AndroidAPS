@@ -30,9 +30,12 @@
     <string name="no_valid_basal_rate">未從幫浦讀取到有效的基礎率</string>
     <string name="limiting_iob">因 %2$s 限制 IOB 為 %1$.1f U</string>
     <string name="loop_disabled">循環因限制已停用</string>
+    <string name="loop_disabled_by_user">循環已被使用者停用</string>
     <string name="event_type">事件類型</string>
     <string name="mgdl">mg/dl</string>
     <string name="mmol">mmol/l</string>
+    <string name="bg_mgdl">%1$d mg/dl</string>
+    <string name="bg_mmol">%1$.1f mmol/l</string>
     <string name="save">儲存</string>
     <string name="skip">略過</string>
     <string name="switch_to_edit">編輯</string>
@@ -48,6 +51,10 @@
     <string name="patient_name_default" comment="This is default patient display name, when user does not provide real one">使用者</string>
     <string name="result">結果</string>
     <string name="settings">設定</string>
+    <string name="open_plugin">開啟外掛</string>
+    <string name="configbuilder_pick_one_hint">選擇一個。同一時間只能啟用一個。</string>
+    <string name="configbuilder_pick_many_hint">選擇所有適用的。</string>
+    <string name="configbuilder_no_selection_warning">此分類未選擇任何外掛。</string>
     <string name="simple_mode">簡易模式</string>
     <string name="expand">展開</string>
     <string name="collapse">收合</string>
@@ -61,6 +68,7 @@
     <string name="configbuilder_insulin">胰島素</string>
     <string name="configbuilder_bgsource">血糖來源</string>
     <string name="configbuilder_smoothing">平滑處理</string>
+    <string name="configbuilder_calibration">校正</string>
     <string name="configbuilder_pump">幫浦</string>
     <string name="configbuilder_sensitivity">敏感度偵測</string>
     <string name="configbuilder_aps">APS</string>
@@ -176,6 +184,9 @@
     <string name="remove_label">移除</string>
     <string name="activate_profile">啟用設定檔</string>
     <string name="activate_insulin">啟用胰島素</string>
+    <string name="pump_wizard_profile_gate_title">需要設定檔</string>
+    <string name="pump_wizard_profile_gate_pick">請選擇要在啟用時套用的設定檔。</string>
+    <string name="pump_wizard_profile_gate_no_store">未建立任何設定檔。請開啟設定檔管理以建立一個，然後請再次開始啟用。</string>
     <string name="reset">重設</string>
     <string name="profileswitch_ismissing">缺少 ProfileSwitch。請進行設定檔切換或按「啟用設定檔」以進行本地設定檔。</string>
     <string name="profile">設定檔</string>
@@ -443,6 +454,8 @@
     <string name="location_front_left_lower_abdomen">左下腹部前側</string>
     <string name="location_back_right_buttock">右臀部</string>
     <string name="location_back_left_buttock">左臀部</string>
+    <string name="location_back_right_lower_back">右下背部</string>
+    <string name="location_back_left_lower_back">左下背部</string>
     <string name="location_side_right_upper_thigh">右大腿外側上部</string>
     <string name="location_side_left_upper_thigh">左大腿外側上部</string>
     <string name="location_side_right_lower_thigh">右大腿外側下部</string>
@@ -462,6 +475,7 @@
     <string name="arrow_center">中心</string>
     <!--    Command-->
     <string name="connectiontimedout">連線逾時</string>
+    <string name="command_replaced">已被較新的指令取代</string>
     <string name="pump_not_configured">幫浦未設定</string>
     <!--    PumpEnactResult-->
     <string name="enacted">已執行</string>
@@ -524,6 +538,7 @@
     <string name="uel_tt_ns_refresh">臨時目標 NS 重新整理</string>
     <string name="uel_automation_removed">自動化已移除</string>
     <string name="uel_bg_removed">血糖已移除</string>
+    <string name="uel_calibration_removed">校正已移除</string>
     <string name="uel_careportal_removed">照護已移除</string>
     <string name="uel_bolus_removed">注射已移除</string>
     <string name="uel_carbs_removed">碳水化合物已移除</string>
@@ -603,6 +618,8 @@
     <!-- Profile validation -->
     <string name="no_profile_selected">未選擇設定檔</string>
     <string name="missing_profile_name">缺少設定檔名稱</string>
+    <string name="profile_not_saved_activate">設定檔未儲存。請先儲存設定檔再啟用。</string>
+    <string name="profile_activation_failed">設定檔啟用失敗</string>
     <string name="error_in_ic_values">IC 數值錯誤</string>
     <string name="error_in_isf_values">ISF 數值錯誤</string>
     <string name="error_in_basal_values">基礎率數值錯誤</string>
@@ -636,7 +653,10 @@
     <string name="basal">基礎率</string>
     <string name="basalpct">基礎率 %</string>
     <string name="sensitivity">敏感度</string>
-    <string name="isf_for_carbs">計算機和碳水化合物吸收的 ISF：%1$.1f</string>
+    <string name="isf_for_carbs">計算機與碳水化合物吸收的平均 ISF：%1$.1f</string>
+    <string name="isf_profile">設定檔 ISF：%1$.1f</string>
+    <string name="isf_variable">可變 ISF：%1$.1f</string>
+    <string name="isf_effective">有效 ISF：%1$.1f</string>
     <string name="autosens_long">自動靈敏值：%.0f%%</string>
     <string name="autosens_short">%.0f%%</string>
     <string name="algorithm_long">演算法中的自動靈敏值：%.0f%%</string>
@@ -807,12 +827,13 @@
     <string name="maintenance_export_csv_desc">將治療紀錄匯出為試算表</string>
     <string name="maintenance_cleanup_db_desc">從資料庫移除舊的項目</string>
     <string name="maintenance_reset_aps_results_desc">清除已儲存的演算法結果</string>
-    <string name="maintenance_reset_db_desc">清除所有資料庫並重新啟動</string>
+    <string name="maintenance_reset_db_desc">清除所有資料庫並重新載入</string>
     <!-- Cloud directory dialog (Compose) -->
     <string name="select_storage_type">選擇儲存類型</string>
     <string name="clear_cloud_action">清除設定</string>
     <string name="clear_cloud_settings">清除雲端設定</string>
     <string name="clear_cloud_settings_message">這將切換為本機儲存並清除授權。要繼續嗎？</string>
+    <string name="cloud_revoke_incomplete">此裝置上的雲端設定已清除，但無法連線至該帳號以完全撤銷存取權限。您可能需要在帳號設定中手動移除該存取權限。</string>
     <string name="cloud_connection_failed">雲端儲存連線失敗</string>
     <string name="cloud_reauthorize_message">雲端儲存連線失敗。要重新驗證嗎？</string>
     <string name="reauthorize">重新驗證</string>
@@ -825,8 +846,10 @@
     <string name="need_connect_permission">應用程式需要藍牙權限</string>
     <!--    Combo-->
     <string name="user_request" comment="26 characters max for translation">使用者請求</string>
+    <!--    Pump pair/unpair (shared) -->
     <string name="pump_pair">配對</string>
     <string name="pump_unpair">取消配對</string>
+    <string name="pump_unpair_confirm_title">要取消幫浦配對？</string>
     <string name="pump_paired" comment="26 characters max for translation">幫浦已配對</string>
     <!--    BlePreCheck-->
     <string name="ble_not_supported">不支援藍牙低功耗。</string>
@@ -988,6 +1011,7 @@
     <string name="database_cleanup">資料庫清理</string>
     <string name="nav_resetdb">重設資料庫</string>
     <!--    BLE Scan Step (shared pump pairing) -->
+    <string name="step_ble_scan">尋找幫浦</string>
     <string name="ble_scan_select_pump">請從下方清單中選擇你的幫浦</string>
     <string name="ble_scan_scanning">正在掃描裝置…</string>
     <!-- Graph configuration -->

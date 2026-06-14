@@ -34,7 +34,6 @@ import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.defs.determineCorrectBolusStepSize
-import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
@@ -55,7 +54,6 @@ import app.aaps.core.objects.runningMode.RunningModeGuard
 import app.aaps.core.utils.JsonHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.math.abs
@@ -321,7 +319,7 @@ class BolusWizard @Inject constructor(
             wasCOBUsed = useCob,
             cobInsulin = insulinFromCOB,
             carbs = carbs.toDouble(),
-            wereCarbsUsed = cob > 0,
+            wereCarbsUsed = carbs > 0,
             carbsInsulin = insulinFromCarbs,
             otherCorrection = correction,
             wasSuperbolusUsed = useSuperBolus,
@@ -440,7 +438,7 @@ class BolusWizard @Inject constructor(
         }
     }
 
-    fun confirmAndExecute(quickWizardEntry: QuickWizardEntry? = null) {
+    suspend fun confirmAndExecute(quickWizardEntry: QuickWizardEntry? = null) {
         if (calculatedTotalInsulin > 0.0 || carbs > 0.0) {
             // Pre-check the running mode gate for the insulin path; if the mode forbids
             // a new bolus, show a snackbar and skip the confirmation flow entirely so the
@@ -463,7 +461,7 @@ class BolusWizard @Inject constructor(
                         title = rh.gs(app.aaps.core.ui.R.string.bolus_advisor),
                         message = rh.gs(app.aaps.core.ui.R.string.bolus_advisor_message),
                         onYes = { bolusAdvisorProcessing() },
-                        onNo = { commonProcessing(quickWizardEntry) }
+                        onNo = { appScope.launch { commonProcessing(quickWizardEntry) } }
                     )
                 )
             else
@@ -495,14 +493,14 @@ class BolusWizard @Inject constructor(
                     )
                 )
                 if (insulin > 0) {
-                    commandQueue.bolus(this, object : Callback() {
-                        override fun run() {
-                            if (!result.success) {
-                                uiInteraction.runAlarm(result.comment, rh.gs(app.aaps.core.ui.R.string.treatmentdeliveryerror), app.aaps.core.ui.R.raw.boluserror)
-                            } else
-                                automation.scheduleAutomationEventEatReminder()
-                        }
-                    })
+                    val info = this
+                    appScope.launch {
+                        val result = commandQueue.bolus(info)
+                        if (!result.success) {
+                            uiInteraction.runAlarm(result.comment, rh.gs(app.aaps.core.ui.R.string.treatmentdeliveryerror), app.aaps.core.ui.R.raw.boluserror)
+                        } else
+                            automation.scheduleAutomationEventEatReminder()
+                    }
                 }
             }
         }))
@@ -532,8 +530,8 @@ class BolusWizard @Inject constructor(
     }
 
     @SuppressLint("CheckResult")
-    private fun commonProcessing(quickWizardEntry: QuickWizardEntry? = null) {
-        val profile = runBlocking { profileFunction.getProfile() } ?: return
+    private suspend fun commonProcessing(quickWizardEntry: QuickWizardEntry? = null) {
+        val profile = profileFunction.getProfile() ?: return
         val now = dateUtil.now()
 
         val confirmMessage = confirmMessageAfterConstraints(advisor = false, quickWizardEntry)
@@ -589,15 +587,15 @@ class BolusWizard @Inject constructor(
                         if (useAlarm && carbs > 0 && carbTime > 0) {
                             automation.scheduleTimeToEatReminder(T.mins(carbTime.toLong()).secs().toInt())
                         }
-                        commandQueue.bolus(this, object : Callback() {
-                            override fun run() {
-                                if (!result.success) {
-                                    uiInteraction.runAlarm(result.comment, rh.gs(app.aaps.core.ui.R.string.treatmentdeliveryerror), app.aaps.core.ui.R.raw.boluserror)
-                                }
+                        val info = this
+                        appScope.launch {
+                            val result = commandQueue.bolus(info)
+                            if (!result.success) {
+                                uiInteraction.runAlarm(result.comment, rh.gs(app.aaps.core.ui.R.string.treatmentdeliveryerror), app.aaps.core.ui.R.raw.boluserror)
                             }
-                        })
+                        }
                     }
-                    bolusCalculatorResult?.let { runBlocking { persistenceLayer.insertOrUpdateBolusCalculatorResult(it) } }
+                    bolusCalculatorResult?.let { appScope.launch { persistenceLayer.insertOrUpdateBolusCalculatorResult(it) } }
                 }
             }
             if (quickWizardEntry != null) {
@@ -634,17 +632,12 @@ class BolusWizard @Inject constructor(
                         ValueWithUnit.Hour(duration).takeIf { duration != 0 }
                     )
                 )
-                commandQueue.bolus(detailedBolusInfo, object : Callback() {
-                    override fun run() {
-                        if (!result.success) {
-                            uiInteraction.runAlarm(result.comment, rh.gs(app.aaps.core.ui.R.string.treatmentdeliveryerror), app.aaps.core.ui.R.raw.boluserror)
-                            /* } else {
-                                 val messageECarbs =
-                                     rh.gs(app.aaps.core.ui.R.string.uel_extended_carbs) + "\n" + "@" + dateUtil.timeString(eventTime) + " " + carbs2 + "g/" + duration + "h"
-                                 ToastUtils.Long.infoToast(result.context, messageECarbs)*/
-                        }
+                appScope.launch {
+                    val result = commandQueue.bolus(detailedBolusInfo)
+                    if (!result.success) {
+                        uiInteraction.runAlarm(result.comment, rh.gs(app.aaps.core.ui.R.string.treatmentdeliveryerror), app.aaps.core.ui.R.raw.boluserror)
                     }
-                })
+                }
             }
 
         }
@@ -830,13 +823,13 @@ class BolusWizard @Inject constructor(
                             )
                         }
                     } else {
-                        commandQueue.bolus(this, object : Callback() {
-                            override fun run() {
-                                if (!result.success) {
-                                    onError(result.comment)
-                                }
+                        val info = this
+                        appScope.launch {
+                            val result = commandQueue.bolus(info)
+                            if (!result.success) {
+                                onError(result.comment)
                             }
-                        })
+                        }
                     }
                 }
                 bolusCalculatorResult?.let { persistenceLayer.insertOrUpdateBolusCalculatorResult(it) }
@@ -854,7 +847,7 @@ class BolusWizard @Inject constructor(
      * Execute bolus advisor flow (correction-only bolus, no carbs, eat reminder).
      * No UI dependency — errors reported via [onError] callback.
      */
-    fun executeBolusAdvisor(onError: (String) -> Unit, eCarbsGrams: Int = 0, eCarbsDelayMinutes: Int = 0, eCarbsDurationHours: Int = 0, forcedRecordOnly: Boolean = false) {
+    suspend fun executeBolusAdvisor(onError: (String) -> Unit, eCarbsGrams: Int = 0, eCarbsDelayMinutes: Int = 0, eCarbsDurationHours: Int = 0, forcedRecordOnly: Boolean = false) {
         if (accepted) {
             aapsLogger.debug(LTag.UI, "guarding: already accepted")
             return
@@ -901,14 +894,14 @@ class BolusWizard @Inject constructor(
                     }
                     automation.scheduleAutomationEventEatReminder()
                 } else {
-                    commandQueue.bolus(this, object : Callback() {
-                        override fun run() {
-                            if (!result.success) {
-                                onError(result.comment)
-                            } else
-                                automation.scheduleAutomationEventEatReminder()
-                        }
-                    })
+                    val info = this
+                    appScope.launch {
+                        val result = commandQueue.bolus(info)
+                        if (!result.success) {
+                            onError(result.comment)
+                        } else
+                            automation.scheduleAutomationEventEatReminder()
+                    }
                 }
             }
         }
@@ -947,13 +940,13 @@ class BolusWizard @Inject constructor(
                     )
                 }
             } else {
-                commandQueue.bolus(this, object : Callback() {
-                    override fun run() {
-                        if (!result.success) {
-                            onError(result.comment)
-                        }
+                val info = this
+                appScope.launch {
+                    val result = commandQueue.bolus(info)
+                    if (!result.success) {
+                        onError(result.comment)
                     }
-                })
+                }
             }
         }
     }
@@ -997,13 +990,12 @@ class BolusWizard @Inject constructor(
                         )
                     }
                 } else {
-                    commandQueue.bolus(detailedBolusInfo, object : Callback() {
-                        override fun run() {
-                            if (!result.success) {
-                                onError(result.comment)
-                            }
+                    appScope.launch {
+                        val result = commandQueue.bolus(detailedBolusInfo)
+                        if (!result.success) {
+                            onError(result.comment)
                         }
-                    })
+                    }
                 }
             }
         }

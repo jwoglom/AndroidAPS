@@ -11,6 +11,7 @@ import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ue.ValueWithUnit
 import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.di.ApplicationScope
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -25,6 +26,7 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.compose.siteRotation.BodyType
 import app.aaps.ui.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +46,8 @@ class CareDialogViewModel @Inject constructor(
     private val preferences: Preferences,
     val rh: ResourceHelper,
     val dateUtil: DateUtil,
-    private val aapsLogger: AAPSLogger
+    private val aapsLogger: AAPSLogger,
+    @ApplicationScope private val appScope: CoroutineScope
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CareDialogUiState())
@@ -78,22 +81,20 @@ class CareDialogViewModel @Inject constructor(
         }
     }
 
-    private var siteRotationEntriesCache: List<TE> = emptyList()
-
     private fun loadLastSensorLocation() {
         viewModelScope.launch {
             try {
                 val allEntries = persistenceLayer.getTherapyEventDataFromTime(
                     dateUtil.now() - T.days(45).msecs(), false
                 ).filter { it.type == TE.Type.CANNULA_CHANGE || it.type == TE.Type.SENSOR_CHANGE }
-                siteRotationEntriesCache = allEntries
                 val lastEntry = allEntries
                     .filter { it.type == TE.Type.SENSOR_CHANGE && it.location != null && it.location != TE.Location.NONE }
                     .maxByOrNull { it.timestamp }
-                if (lastEntry != null) {
-                    _uiState.update {
-                        it.copy(lastSiteLocationString = translator.translate(lastEntry.location))
-                    }
+                _uiState.update {
+                    it.copy(
+                        siteRotationEntries = allEntries,
+                        lastSiteLocationString = if (lastEntry != null) translator.translate(lastEntry.location) else it.lastSiteLocationString
+                    )
                 }
             } catch (_: Exception) {
                 // ignore
@@ -116,7 +117,7 @@ class CareDialogViewModel @Inject constructor(
 
     fun bodyType(): BodyType = BodyType.fromPref(preferences.get(IntKey.SiteRotationUserProfile))
 
-    fun siteRotationEntries(): List<TE> = siteRotationEntriesCache
+    fun siteRotationEntries(): List<TE> = uiState.value.siteRotationEntries
 
     fun updateMeterType(meterType: TE.MeterType) {
         _uiState.update { it.copy(meterType = meterType) }
@@ -228,7 +229,9 @@ class CareDialogViewModel @Inject constructor(
         valuesWithUnit.add(0, ValueWithUnit.Timestamp(eventTime).takeIf { state.eventTimeChanged })
         valuesWithUnit.add(1, ValueWithUnit.TEType(therapyEvent.type))
 
-        viewModelScope.launch {
+        // appScope, not viewModelScope: the screen navigates back immediately after confirm,
+        // which cancels viewModelScope and could drop this therapy-event write.
+        appScope.launch {
             try {
                 persistenceLayer.insertPumpTherapyEventIfNewByTimestamp(
                     therapyEvent = therapyEvent,

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="equil_name">Equil</string>
     <string name="equil_pump_description">Integración de bomba parche Equil 5.3 o superior</string>
     <!--  start  -->
     <string name="equil_basal_speed">Basal base</string>
@@ -21,7 +22,6 @@
     <string name="equil_title_attach">Acoplar la bomba</string>
     <string name="equil_title_air">Cebado de la cánula</string>
     <string name="equil_title_unpair_detach">Desacoplar la bomba</string>
-    <string name="equil_title_unpair_confirm">Confirmar desvinculación</string>
     <string name="equil_title_history_events">Historial de eventos</string>
     <string name="equil_tone">Tono de alerta</string>
     <string name="equil_tone_mode_mute">Silenciar</string>

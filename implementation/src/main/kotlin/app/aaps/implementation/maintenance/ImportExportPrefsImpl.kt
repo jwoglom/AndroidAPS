@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.FragmentActivity
+import androidx.hilt.work.HiltWorker
 import androidx.lifecycle.lifecycleScope
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
@@ -50,12 +51,14 @@ import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.userEntry.UserEntryPresentationHelper
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.MidnightTime
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.extensions.asSettingsExport
 import app.aaps.core.objects.workflow.LoggingWorker
-import app.aaps.core.utils.receivers.DataWorkerStorage
+import app.aaps.core.utils.receivers.DataInbox
+import app.aaps.core.utils.receivers.Inbox
 import app.aaps.implementation.R
 import app.aaps.implementation.maintenance.cloud.CloudConstants
 import app.aaps.implementation.maintenance.cloud.CloudStorageManager
@@ -66,6 +69,8 @@ import app.aaps.implementation.maintenance.data.PrefsStatusImpl
 import app.aaps.implementation.maintenance.formats.EncryptedPrefsFormat
 import app.aaps.shared.impl.weardata.ZipWatchfaceFormat
 import dagger.Reusable
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -99,7 +104,7 @@ class ImportExportPrefsImpl @Inject constructor(
     private val dateUtil: DateUtil,
     private val uiInteraction: UiInteraction,
     private val context: Context,
-    private val dataWorkerStorage: DataWorkerStorage,
+    private val dataInbox: DataInbox,
     private val activePlugin: ActivePlugin,
     @ApplicationScope private val appScope: CoroutineScope,
     private val cloudStorageManager: CloudStorageManager,
@@ -842,7 +847,7 @@ class ImportExportPrefsImpl @Inject constructor(
                     if (bytes != null) {
                         val content = String(bytes, Charsets.UTF_8)
                         val metadata = encryptedPrefsFormat.loadMetadata(content)
-                        prefsFiles.add(PrefsFile(file.name, content, metadata))
+                        prefsFiles.add(PrefsFile(file.name, content, metadata, id = file.id))
                     }
                 } catch (e: Exception) {
                     aapsLogger.warn(LTag.CORE, "Failed to load cloud file ${file.name}", e)
@@ -850,7 +855,7 @@ class ImportExportPrefsImpl @Inject constructor(
                         val bytes = provider.downloadFile(file.id)
                         if (bytes != null) {
                             val content = String(bytes, Charsets.UTF_8)
-                            prefsFiles.add(PrefsFile(file.name, content, emptyMap()))
+                            prefsFiles.add(PrefsFile(file.name, content, emptyMap(), id = file.id))
                         }
                     } catch (e2: Exception) {
                         aapsLogger.error(LTag.CORE, "Failed to download ${file.name}", e2)
@@ -985,19 +990,21 @@ class ImportExportPrefsImpl @Inject constructor(
         }
     }
 
-    class CsvExportWorker(
-        private val context: Context,
-        params: WorkerParameters
-    ) : LoggingWorker(context, params, Dispatchers.IO) {
-
-        @Inject lateinit var rh: ResourceHelper
-        @Inject lateinit var prefFileList: FileListProvider
-        @Inject lateinit var userEntryPresentationHelper: UserEntryPresentationHelper
-        @Inject lateinit var storage: Storage
-        @Inject lateinit var persistenceLayer: PersistenceLayer
-        @Inject lateinit var cloudStorageManager: CloudStorageManager
-        @Inject lateinit var preferences: Preferences
-        @Inject lateinit var rxBus: RxBus
+    @HiltWorker
+    class CsvExportWorker @AssistedInject constructor(
+        @Assisted private val context: Context,
+        @Assisted params: WorkerParameters,
+        aapsLogger: AAPSLogger,
+        fabricPrivacy: FabricPrivacy,
+        private val rh: ResourceHelper,
+        private val prefFileList: FileListProvider,
+        private val userEntryPresentationHelper: UserEntryPresentationHelper,
+        private val storage: Storage,
+        private val persistenceLayer: PersistenceLayer,
+        private val cloudStorageManager: CloudStorageManager,
+        private val preferences: Preferences,
+        private val rxBus: RxBus
+    ) : LoggingWorker(context, params, Dispatchers.IO, aapsLogger, fabricPrivacy) {
 
         override suspend fun doWorkAndLog(): Result {
             aapsLogger.info(LTag.CORE, "${CloudConstants.LOG_PREFIX} CSV_EXPORT doWorkAndLog started")
@@ -1120,50 +1127,53 @@ class ImportExportPrefsImpl @Inject constructor(
     }
 
     override fun exportApsResult(algorithm: String?, input: JSONObject, output: JSONObject?) {
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            "export",
-            ExistingWorkPolicy.APPEND,
-            OneTimeWorkRequest.Builder(ApsResultExportWorker::class.java)
-                .setInputData(dataWorkerStorage.storeInputData(ApsResultExportWorker.ApsResultData(algorithm, input, output)))
-                .build()
-        )
+        dataInbox.putAndEnqueue(ApsExportInbox, ApsResultExportWorker.ApsResultData(algorithm, input, output))
     }
 
-    class ApsResultExportWorker(
-        context: Context,
-        params: WorkerParameters
-    ) : LoggingWorker(context, params, Dispatchers.IO) {
-
-        @Inject lateinit var prefFileList: FileListProvider
-        @Inject lateinit var storage: Storage
-        @Inject lateinit var config: Config
-        @Inject lateinit var dataWorkerStorage: DataWorkerStorage
+    @HiltWorker
+    class ApsResultExportWorker @AssistedInject constructor(
+        @Assisted context: Context,
+        @Assisted params: WorkerParameters,
+        aapsLogger: AAPSLogger,
+        fabricPrivacy: FabricPrivacy,
+        private val prefFileList: FileListProvider,
+        private val storage: Storage,
+        private val config: Config,
+        private val dataInbox: DataInbox
+    ) : LoggingWorker(context, params, Dispatchers.IO, aapsLogger, fabricPrivacy) {
 
         data class ApsResultData(val algorithm: String?, val input: JSONObject, val output: JSONObject?)
 
         override suspend fun doWorkAndLog(): Result {
             if (!config.isEngineeringMode()) return Result.success(workDataOf("Result" to "Export not enabled"))
-            val apsResultData = dataWorkerStorage.pickupObject(inputData.getLong(DataWorkerStorage.STORE_KEY, -1)) as? ApsResultData?
-                ?: return Result.failure(workDataOf("Error" to "missing input data"))
+            val items = dataInbox.drain(ApsExportInbox)
+            if (items.isEmpty()) return Result.success(workDataOf("Result" to "no data"))
 
             prefFileList.ensureResultDirExists()
-            val newFile = prefFileList.newResultFile()
-            var ret = Result.success()
-            try {
-                val jsonObject = JSONObject().apply {
-                    put("algorithm", apsResultData.algorithm)
-                    put("input", apsResultData.input)
-                    put("output", apsResultData.output)
+            var hadFailure = false
+            for (apsResultData in items) {
+                val newFile = prefFileList.newResultFile()
+                try {
+                    val jsonObject = JSONObject().apply {
+                        put("algorithm", apsResultData.algorithm)
+                        put("input", apsResultData.input)
+                        put("output", apsResultData.output)
+                    }
+                    storage.putFileContents(newFile, jsonObject.toString())
+                } catch (e: FileNotFoundException) {
+                    aapsLogger.error(LTag.CORE, "Unhandled exception", e)
+                    hadFailure = true
+                } catch (e: IOException) {
+                    aapsLogger.error(LTag.CORE, "Unhandled exception", e)
+                    hadFailure = true
                 }
-                storage.putFileContents(newFile, jsonObject.toString())
-            } catch (e: FileNotFoundException) {
-                aapsLogger.error(LTag.CORE, "Unhandled exception", e)
-                ret = Result.failure(workDataOf("Error" to "Error FileNotFoundException"))
-            } catch (e: IOException) {
-                aapsLogger.error(LTag.CORE, "Unhandled exception", e)
-                ret = Result.failure(workDataOf("Error" to "Error IOException"))
             }
-            return ret
+            return if (hadFailure) Result.failure(workDataOf("Error" to "one or more exports failed")) else Result.success()
         }
     }
 }
+
+object ApsExportInbox : Inbox<ImportExportPrefsImpl.ApsResultExportWorker.ApsResultData>(
+    "aps-export",
+    ImportExportPrefsImpl.ApsResultExportWorker::class.java
+)

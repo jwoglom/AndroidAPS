@@ -30,9 +30,12 @@
     <string name="no_valid_basal_rate">Aucun débit basal valide lu depuis la pompe</string>
     <string name="limiting_iob">Limiter l’IA %1$.1f U en raison de la %2$s</string>
     <string name="loop_disabled">BOUCLE DÉSACTIVÉE PAR RESTRICTIONS</string>
+    <string name="loop_disabled_by_user">Boucle désactivée par l\'utilisateur</string>
     <string name="event_type">Type d\'évènement</string>
     <string name="mgdl">mg/dl</string>
     <string name="mmol">mmol/l</string>
+    <string name="bg_mgdl">%1$d mg/dl</string>
+    <string name="bg_mmol">%1$.1f mmol/l</string>
     <string name="save">Enregistrer</string>
     <string name="skip">Ignorer</string>
     <string name="switch_to_edit">Éditer</string>
@@ -48,6 +51,10 @@
     <string name="patient_name_default" comment="This is default patient display name, when user does not provide real one">Patient</string>
     <string name="result">Résultat</string>
     <string name="settings">Paramètres</string>
+    <string name="open_plugin">Ouvrir le plugin</string>
+    <string name="configbuilder_pick_one_hint">Choisissez-en un. Un seul peut être actif à la fois.</string>
+    <string name="configbuilder_pick_many_hint">Choisissez toutes les options qui s\'appliquent.</string>
+    <string name="configbuilder_no_selection_warning">Aucun plugin n\'est sélectionné dans cette catégorie.</string>
     <string name="simple_mode">Mode simple</string>
     <string name="expand">Développer</string>
     <string name="collapse">Replier</string>
@@ -61,6 +68,7 @@
     <string name="configbuilder_insulin">Insuline</string>
     <string name="configbuilder_bgsource">Source GLY</string>
     <string name="configbuilder_smoothing">Lissage</string>
+    <string name="configbuilder_calibration">Calibration</string>
     <string name="configbuilder_pump">Pompe</string>
     <string name="configbuilder_sensitivity">Calcul de Sensibilité</string>
     <string name="configbuilder_aps">APS</string>
@@ -176,6 +184,9 @@
     <string name="remove_label">Supprimer</string>
     <string name="activate_profile">Activer le profil</string>
     <string name="activate_insulin">Activer l\'insuline</string>
+    <string name="pump_wizard_profile_gate_title">Profil nécessaire</string>
+    <string name="pump_wizard_profile_gate_pick">Sélectionnez le profil à appliquer lors de l\'activation.</string>
+    <string name="pump_wizard_profile_gate_no_store">Aucun profil défini. Ouvrez la gestionnaire de profil pour en créer un, puis recommencez l\'activation.</string>
     <string name="reset">Réinitialiser</string>
     <string name="profileswitch_ismissing">ProfileSwitch manquant. S’il vous plaît faire un changement de profil ou appuyez sur « Activer le profil » dans le LocalProfile.</string>
     <string name="profile">Profil</string>
@@ -443,6 +454,8 @@
     <string name="location_front_left_lower_abdomen">Abdomen Gauche Avant Bas</string>
     <string name="location_back_right_buttock">Fesse Droite</string>
     <string name="location_back_left_buttock">Fesse Gauche</string>
+    <string name="location_back_right_lower_back">Bas du Dos Droit</string>
+    <string name="location_back_left_lower_back">Bas du Dos Gauche</string>
     <string name="location_side_right_upper_thigh">Cuisse Droite Extérieur Haut</string>
     <string name="location_side_left_upper_thigh">Cuisse Gauche Extérieur Haut</string>
     <string name="location_side_right_lower_thigh">Cuisse Droite Extérieur Bas</string>
@@ -462,6 +475,7 @@
     <string name="arrow_center">Centre</string>
     <!--    Command-->
     <string name="connectiontimedout">Connexion expirée</string>
+    <string name="command_replaced">Remplacé par une commande plus récente</string>
     <string name="pump_not_configured">Pompe non configurée</string>
     <!--    PumpEnactResult-->
     <string name="enacted">Activé</string>
@@ -524,6 +538,7 @@
     <string name="uel_tt_ns_refresh">RÉGÉNÉRATION NS CIBLES TEMP</string>
     <string name="uel_automation_removed">AUTOMATISATION SUPPRIMÉE</string>
     <string name="uel_bg_removed">GLY SUPPRIMÉE</string>
+    <string name="uel_calibration_removed">CALIBRATION SUPPRIMÉE</string>
     <string name="uel_careportal_removed">CAREPORTAL SUPPRIMÉ</string>
     <string name="uel_bolus_removed">BOLUS SUPPRIMÉ</string>
     <string name="uel_carbs_removed">GLUCIDES SUPPRIMÉS</string>
@@ -603,6 +618,8 @@
     <!-- Profile validation -->
     <string name="no_profile_selected">Aucun profil séléctionné</string>
     <string name="missing_profile_name">Nom de profil manquant</string>
+    <string name="profile_not_saved_activate">Profil non enregistré. Veuillez enregistrer le profil avant de l\'activer.</string>
+    <string name="profile_activation_failed">L\'activation du profil a échoué</string>
     <string name="error_in_ic_values">Erreur dans les valeurs de G/I</string>
     <string name="error_in_isf_values">Erreur dans les valeurs de SI</string>
     <string name="error_in_basal_values">Erreur dans les valeurs de basal</string>
@@ -636,7 +653,10 @@
     <string name="basal">Basal</string>
     <string name="basalpct">Basal %</string>
     <string name="sensitivity">Sensibilité</string>
-    <string name="isf_for_carbs">SI pour l\'Assistant et le calcul GA: %1$.1f</string>
+    <string name="isf_for_carbs">SI moyen pour l\'Assistant et le calcul GA: %1$.1f</string>
+    <string name="isf_profile">SI Profil : %1$.1f</string>
+    <string name="isf_variable">SI Variable : %1$.1f</string>
+    <string name="isf_effective">SI Effective : %1$.1f</string>
     <string name="autosens_long">Valeur Autosens: %.0f%%</string>
     <string name="autosens_short">%.0f%%</string>
     <string name="algorithm_long">Autosens dans l\'algorithme: %.0f%%</string>
@@ -807,12 +827,13 @@
     <string name="maintenance_export_csv_desc">Exporter l\'historique des traitements en feuille de calcul</string>
     <string name="maintenance_cleanup_db_desc">Supprimer les anciennes entrées de la base de données</string>
     <string name="maintenance_reset_aps_results_desc">Effacer les résultats des algorithmes</string>
-    <string name="maintenance_reset_db_desc">Effacer toutes les bases de données et redémarrer</string>
+    <string name="maintenance_reset_db_desc">Effacer toutes les bases de données et les recharger</string>
     <!-- Cloud directory dialog (Compose) -->
     <string name="select_storage_type">Sélectionnez le type de stockage</string>
     <string name="clear_cloud_action">Effacer les paramètres</string>
     <string name="clear_cloud_settings">Effacer les paramètres du Cloud</string>
     <string name="clear_cloud_settings_message">Cela passera au stockage local et effacera les autorisations. Continuer ?</string>
+    <string name="cloud_revoke_incomplete">Les paramètres du cloud ont été effacés sur cet appareil, mais le compte n\'a pas pu être atteint pour révoquer complètement l\'accès. Vous pouvez le supprimer manuellement dans les paramètres de votre compte.</string>
     <string name="cloud_connection_failed">Échec de la connexion au stockage cloud</string>
     <string name="cloud_reauthorize_message">La connexion au stockage cloud a échoué. Voulez-vous vous authentifier à nouveau ?</string>
     <string name="reauthorize">Se réauthentifier</string>
@@ -825,8 +846,10 @@
     <string name="need_connect_permission">L\'application a besoin de l\'autorisation Bluetooth</string>
     <!--    Combo-->
     <string name="user_request" comment="26 characters max for translation">Demande utilisateur</string>
+    <!--    Pump pair/unpair (shared) -->
     <string name="pump_pair">Appairer</string>
     <string name="pump_unpair">Dissocier</string>
+    <string name="pump_unpair_confirm_title">Désappairer la pompe ?</string>
     <string name="pump_paired" comment="26 characters max for translation">Pompe appairée</string>
     <!--    BlePreCheck-->
     <string name="ble_not_supported">Bluetooth Low Energy non pris en charge.</string>
@@ -991,6 +1014,7 @@
     <string name="database_cleanup">Nettoyer la base de données</string>
     <string name="nav_resetdb">Réinitialiser les Bases de Données</string>
     <!--    BLE Scan Step (shared pump pairing) -->
+    <string name="step_ble_scan">Trouver la Pompe</string>
     <string name="ble_scan_select_pump">Sélectionnez votre pompe dans la liste ci-dessous</string>
     <string name="ble_scan_scanning">Recherche d\'appareils…</string>
     <!-- Graph configuration -->

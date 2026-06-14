@@ -78,6 +78,7 @@ fun ProfileEditorScreen(
 
     if (showUnsavedChangesDialog) {
         UnsavedChangesDialog(
+            saveEnabled = state.isValid,
             onSave = {
                 focusManager.clearFocus()
                 viewModel.saveProfile()
@@ -179,7 +180,6 @@ fun ProfileEditorScreen(
                 Spacer(Modifier.height(12.dp))
 
                 // Tab layout with error indication
-                state.tabErrors.containsKey(ProfileErrorType.DIA)
                 val icHasError = state.tabErrors.containsKey(ProfileErrorType.IC)
                 val isfHasError = state.tabErrors.containsKey(ProfileErrorType.ISF)
                 val basalHasError = state.tabErrors.containsKey(ProfileErrorType.BASAL)
@@ -224,13 +224,12 @@ fun ProfileEditorScreen(
 
                 // Tab content with error display
                 state.currentProfile?.let { profile ->
-                    // Get error message for current tab
+                    // Get error message for current tab — tabs are 0=IC, 1=ISF, 2=BASAL, 3=TARGET
                     val currentTabError = when (state.selectedTab) {
-                        0 -> state.tabErrors[ProfileErrorType.DIA]
-                        1 -> state.tabErrors[ProfileErrorType.IC]
-                        2 -> state.tabErrors[ProfileErrorType.ISF]
-                        3 -> state.tabErrors[ProfileErrorType.BASAL]
-                        4 -> state.tabErrors[ProfileErrorType.TARGET]
+                        0 -> state.tabErrors[ProfileErrorType.IC]
+                        1 -> state.tabErrors[ProfileErrorType.ISF]
+                        2 -> state.tabErrors[ProfileErrorType.BASAL]
+                        3 -> state.tabErrors[ProfileErrorType.TARGET]
                         else -> null
                     }
 
@@ -240,6 +239,19 @@ fun ProfileEditorScreen(
                             text = error,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    // Non-blocking pump-compatibility warning, shown on the basal tab only (basal is
+                    // the only pump-dependent value). Distinct from the red blocking errors above:
+                    // the profile can still be saved and synced — it just can't be activated on the
+                    // current pump until the basal fits the pump's limits.
+                    if (state.pumpIncompatible && state.selectedTab == 2) {
+                        Text(
+                            text = stringResource(app.aaps.core.ui.R.string.profile_basal_not_compatible_with_pump),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
@@ -377,6 +389,7 @@ private fun ProfileNameHeader(
 
 @Composable
 private fun UnsavedChangesDialog(
+    saveEnabled: Boolean,
     onSave: () -> Unit,
     onDiscard: () -> Unit,
     onCancel: () -> Unit
@@ -386,7 +399,9 @@ private fun UnsavedChangesDialog(
         title = { Text(stringResource(R.string.unsaved_changes)) },
         text = { Text(stringResource(R.string.unsaved_changes_message)) },
         confirmButton = {
-            FilledTonalButton(onClick = onSave) {
+            // Disabled when the profile is invalid — an incomplete/invalid profile must not be saved
+            // (e.g. an unfinished new draft); the user can still Discard or Cancel.
+            FilledTonalButton(onClick = onSave, enabled = saveEnabled) {
                 Text(stringResource(R.string.save))
             }
         },
@@ -489,7 +504,7 @@ private fun IcContent(
         Spacer(Modifier.height(16.dp))
 
         // Graph
-        viewModel.getEditedProfile()?.let { pureProfile ->
+        state.editedProfile?.let { pureProfile ->
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
@@ -546,7 +561,7 @@ private fun IsfContent(
         Spacer(Modifier.height(16.dp))
 
         // Graph
-        viewModel.getEditedProfile()?.let { pureProfile ->
+        state.editedProfile?.let { pureProfile ->
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
@@ -586,7 +601,7 @@ private fun BasalContent(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "∑ ${stringResource(R.string.format_insulin_units, viewModel.getBasalSum())}",
+                        text = "∑ ${stringResource(R.string.format_insulin_units, state.basalSum)}",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -612,7 +627,7 @@ private fun BasalContent(
         Spacer(Modifier.height(16.dp))
 
         // Graph
-        viewModel.getEditedProfile()?.let { pureProfile ->
+        state.editedProfile?.let { pureProfile ->
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
@@ -662,7 +677,7 @@ private fun TargetContent(
         Spacer(Modifier.height(16.dp))
 
         // Graph
-        viewModel.getEditedProfile()?.let { pureProfile ->
+        state.editedProfile?.let { pureProfile ->
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)

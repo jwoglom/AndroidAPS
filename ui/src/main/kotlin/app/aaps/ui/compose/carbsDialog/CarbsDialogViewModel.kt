@@ -15,6 +15,7 @@ import app.aaps.core.interfaces.automation.Automation
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.di.ApplicationScope
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -22,20 +23,20 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
-import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.tempTargets.ttDurationMinutes
+import app.aaps.core.interfaces.tempTargets.ttTargetMgdl
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.HardLimits
-import app.aaps.core.interfaces.tempTargets.ttDurationMinutes
-import app.aaps.core.interfaces.tempTargets.ttTargetMgdl
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.ui.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,7 +46,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.math.ceil
@@ -57,7 +57,7 @@ class CarbsDialogViewModel @Inject constructor(
     private val constraintChecker: ConstraintsChecker,
     private val profileUtil: ProfileUtil,
     private val iobCobCalculator: IobCobCalculator,
-    glucoseStatusProvider: GlucoseStatusProvider,
+    private val glucoseStatusProvider: GlucoseStatusProvider,
     private val uel: UserEntryLogger,
     private val automation: Automation,
     private val commandQueue: CommandQueue,
@@ -67,7 +67,8 @@ class CarbsDialogViewModel @Inject constructor(
     private val decimalFormatter: DecimalFormatter,
     val rh: ResourceHelper,
     val dateUtil: DateUtil,
-    private val aapsLogger: AAPSLogger
+    private val aapsLogger: AAPSLogger,
+    @ApplicationScope private val appScope: CoroutineScope
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CarbsDialogUiState())
@@ -86,6 +87,10 @@ class CarbsDialogViewModel @Inject constructor(
     val sideEffect: SharedFlow<SideEffect> = _sideEffect.asSharedFlow()
 
     init {
+        viewModelScope.launch { initialize() }
+    }
+
+    private suspend fun initialize() {
         val now = dateUtil.now()
         val maxCarbs = constraintChecker.getMaxCarbsAllowed().value()
         val units = profileUtil.units
@@ -131,14 +136,14 @@ class CarbsDialogViewModel @Inject constructor(
         }
     }
 
-    private fun detectAutoHypo(now: Long): Boolean {
+    private suspend fun detectAutoHypo(now: Long): Boolean {
         val bgReading = iobCobCalculator.ads.actualBg() ?: return false
         if (bgReading.recalculated >= 72) return false
 
         val hypoTTDuration = preferences.ttDurationMinutes(TT.Reason.HYPOGLYCEMIA)
 
         val activeTT = try {
-            runBlocking { persistenceLayer.getTemporaryTargetActiveAt(now) }
+            persistenceLayer.getTemporaryTargetActiveAt(now)
         } catch (_: Exception) {
             null
         }
@@ -383,7 +388,9 @@ class CarbsDialogViewModel @Inject constructor(
         }
 
         if (reason != TT.Reason.CUSTOM) {
-            viewModelScope.launch {
+            // appScope, not viewModelScope: the screen navigates back immediately after confirm,
+            // which cancels viewModelScope and could drop this direct DB write.
+            appScope.launch {
                 try {
                     persistenceLayer.insertAndCancelCurrentTemporaryTarget(
                         temporaryTarget = TT(
@@ -428,16 +435,15 @@ class CarbsDialogViewModel @Inject constructor(
                     ValueWithUnit.Hour(duration).takeIf { duration != 0 }
                 )
             )
-            commandQueue.bolus(detailedBolusInfo, object : Callback() {
-                override fun run() {
-                    automation.removeAutomationEventEatReminder()
-                    if (!result.success) {
-                        _sideEffect.tryEmit(SideEffect.ShowDeliveryError(result.comment))
-                    } else if (preferences.get(BooleanKey.OverviewUseBolusReminder) && remindBolus) {
-                        automation.scheduleAutomationEventBolusReminder()
-                    }
+            viewModelScope.launch {
+                val result = commandQueue.bolus(detailedBolusInfo)
+                automation.removeAutomationEventEatReminder()
+                if (!result.success) {
+                    _sideEffect.tryEmit(SideEffect.ShowDeliveryError(result.comment))
+                } else if (preferences.get(BooleanKey.OverviewUseBolusReminder) && remindBolus) {
+                    automation.scheduleAutomationEventBolusReminder()
                 }
-            })
+            }
         }
 
         // Schedule eat reminder alarm

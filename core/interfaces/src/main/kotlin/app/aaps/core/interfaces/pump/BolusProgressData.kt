@@ -1,11 +1,15 @@
 package app.aaps.core.interfaces.pump
 
+import app.aaps.core.interfaces.di.ApplicationScope
 import app.aaps.core.interfaces.insulin.ConcentrationHelper
 import app.aaps.core.interfaces.resources.ResourceHelper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,17 +23,15 @@ import javax.inject.Singleton
 @Singleton
 class BolusProgressData @Inject constructor(
     val ch: ConcentrationHelper,
-    val rh: ResourceHelper
+    val rh: ResourceHelper,
+    @ApplicationScope private val appScope: CoroutineScope,
 ) {
 
     private val _state = MutableStateFlow<BolusProgressState?>(null)
     val state: StateFlow<BolusProgressState?> = _state.asStateFlow()
 
-    /** Generation counter — incremented on each [start], used to guard delayed [clearIfSameGeneration]. */
+    /** Generation counter — incremented on each [start]; guards the delayed clear in [completeAndAutoClear]. */
     private val generation = AtomicLong(0)
-
-    /** Returns the current generation. Use with [clearIfSameGeneration] for delayed cleanup. */
-    val currentGeneration: Long get() = generation.get()
 
     /**
      * Called by CommandQueue before bolus delivery starts.
@@ -62,10 +64,14 @@ class BolusProgressData @Inject constructor(
      * Purely informational — does not control dialog lifecycle.
      */
     fun updateProgress(percent: Int) {
-        _state.value?.insulin?.let { insulin ->
-            val delivered = PumpInsulin(insulin * percent / 100 )
-            val status = if (percent < 100) ch.bolusProgressString(delivered) else rh.gs(app.aaps.core.interfaces.R.string.bolus_delivered_successfully, insulin)
-            val wearStatus = if (percent < 100) ch.bolusProgressString(delivered, insulin) else rh.gs(app.aaps.core.interfaces.R.string.bolus_delivered_successfully, insulin)
+        _state.value?.let { state ->
+            val insulin = state.insulin
+            val delivered = if (state.isPriming) PumpInsulin(insulin * percent / 100)
+                            else PumpInsulin(insulin / ch.concentration * percent / 100)
+            val status = if (percent < 100) ch.bolusProgressString(delivered, state.isPriming)
+                         else rh.gs(app.aaps.core.interfaces.R.string.bolus_delivered_successfully, insulin)
+            val wearStatus = if (percent < 100) ch.bolusProgressString(delivered, insulin, state.isPriming)
+                             else rh.gs(app.aaps.core.interfaces.R.string.bolus_delivered_successfully, insulin)
             _state.update { it?.copy(percent = percent, status = status, wearStatus = wearStatus, delivered = delivered) }
         }
     }
@@ -75,10 +81,11 @@ class BolusProgressData @Inject constructor(
      * Purely informational — does not control dialog lifecycle.
      */
     fun updateProgress(delivered: PumpInsulin) {
-        _state.value?.insulin?.let { insulin ->
-            val percent = (ch.fromPump(delivered) / insulin * 100).toInt().coerceAtMost(100)
-            val status = ch.bolusProgressString(delivered)
-            val wearStatus = ch.bolusProgressString(delivered,insulin)
+        _state.value?.let { state ->
+            val insulin = state.insulin
+            val percent = (ch.fromPump(delivered, state.isPriming) / insulin * 100).toInt().coerceAtMost(100)
+            val status = ch.bolusProgressString(delivered, state.isPriming)
+            val wearStatus = ch.bolusProgressString(delivered, insulin, state.isPriming)
             _state.update { it?.copy(percent = percent, status = status, wearStatus = wearStatus, delivered = delivered) }
         }
     }
@@ -104,11 +111,21 @@ class BolusProgressData @Inject constructor(
 
     /**
      * Called by CommandQueue when pump reports delivery complete.
-     * Sets percent to 100. UI should show completion state.
-     * Call [clear] after a delay to dismiss.
+     *
+     * Sets percent to 100 so the UI shows the success state, then auto-clears after [delayMs]
+     * — but only if no newer bolus has started in the meantime (guarded by the generation
+     * counter). The clear runs on the application scope so it survives the queue worker
+     * finishing the current command.
      */
-    fun complete() {
+    fun completeAndAutoClear(delayMs: Long = AUTO_CLEAR_DELAY_MS) {
         _state.update { it?.copy(percent = 100) }
+        val expectedGeneration = generation.get()
+        appScope.launch {
+            delay(delayMs)
+            if (generation.get() == expectedGeneration) {
+                _state.value = null
+            }
+        }
     }
 
     /**
@@ -119,14 +136,8 @@ class BolusProgressData @Inject constructor(
         _state.value = null
     }
 
-    /**
-     * Clears state only if the generation hasn't changed since [expectedGeneration] was captured.
-     * Used for delayed cleanup after bolus completion to avoid clearing a subsequent bolus's state.
-     */
-    fun clearIfSameGeneration(expectedGeneration: Long) {
-        if (generation.get() == expectedGeneration) {
-            _state.value = null
-        }
+    companion object {
+        private const val AUTO_CLEAR_DELAY_MS = 5_000L
     }
 }
 
