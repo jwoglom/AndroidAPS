@@ -337,42 +337,11 @@ class MobiOverviewViewModelV2 @Inject constructor(
             }
         }
 
+        // TODO
         //updatePumpStatus()
     }
 
 
-
-    //
-    // fun onClickResetAlarms() {
-    //     commandQueue.clearAlarms(null)
-    // }
-
-    // fun onClickChangePatch() {
-    //     aapsLogger.debug(LTag.PUMP, "ChangePatch clicked!")
-    //     viewModelScope.launch {
-    //         val profile = profileFunction.getProfile()
-    //         if (profile == null) {
-    //             _events.tryEmit(
-    //                 MedtrumOverviewEvent.ShowDialog(
-    //                     title = rh.gs(CoreUiR.string.message),
-    //                     message = rh.gs(R.string.no_profile_selected)
-    //                 )
-    //             )
-    //         } else {
-    //             val nextStep = when {
-    //                 medtrumPump.pumpState in listOf(MedtrumPumpState.STOPPED, MedtrumPumpState.NONE)                                                    ->
-    //                     PatchStep.PREPARE_PATCH
-    //
-    //                 medtrumPump.pumpState <= MedtrumPumpState.EJECTED && !(medtrumPump.pumpState < MedtrumPumpState.PRIMING && medtrumPump.patchPrimed) ->
-    //                     PatchStep.RETRY_ACTIVATION
-    //
-    //                 else                                                                                                                                ->
-    //                     PatchStep.START_DEACTIVATION
-    //             }
-    //             _events.tryEmit(MedtrumOverviewEvent.StartPatchWorkflow(nextStep))
-    //         }
-    //     }
-    // }
 
     private fun buildInitialState(): PumpOverviewUiState {
 
