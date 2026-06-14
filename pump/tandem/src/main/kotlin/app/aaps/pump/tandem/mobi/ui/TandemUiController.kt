@@ -130,9 +130,11 @@ class TandemUiController @Inject constructor(
         // completes once the wire send fires; responses arrive asynchronously via the listener
         // path (TandemUICommunication.onReceiveMessage).
         for (msg in msgs) {
-            tandemDispatcher.submitUser("ui:${msg.javaClass.simpleName}") {
-                tandemUICommunication.sendCommand(msg)
-            }
+            // TODO this doesn't work
+            // tandemDispatcher.submitUser("ui:${msg.javaClass.simpleName}") {
+            //     this.tandemUICommunication.sendCommand(msg)
+            // }
+            this.tandemUICommunication.sendCommand(msg)
         }
 
         return true

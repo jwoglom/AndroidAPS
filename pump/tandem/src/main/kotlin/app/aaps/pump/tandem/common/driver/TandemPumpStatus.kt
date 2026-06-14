@@ -23,6 +23,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusRespon
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,8 +38,24 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
 
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
-    var tandemPumpFirmware: TandemPumpApiVersion = TandemPumpApiVersion.Unknown
-    var serialNumber: Long = 0
+
+    // tandem pump firmware
+    val tandemPumpFirmwareFlow = MutableStateFlow<TandemPumpApiVersion>(TandemPumpApiVersion.Unknown)
+    var tandemPumpFirmware: TandemPumpApiVersion
+        get() = tandemPumpFirmwareFlow.value
+        set(value) {
+            tandemPumpFirmwareFlow.value = value
+        }
+
+
+    // serial Number
+    val serialNumberFlow = MutableStateFlow<Long>(0)
+    var serialNumber: Long
+        get() = serialNumberFlow.value
+        set(value) {
+            serialNumberFlow.value = value
+        }
+
 
 
     var pumpDriverMode : PumpDriverMode? = null
@@ -79,7 +96,7 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
         }
         batteryRemaining = 50
         lastConnection = 0L //sp.getLong(TandemPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
-        lastDataTime = lastConnection
+        //lastDataTime = lastConnection
     }
 
     fun resetPumpSettings() {

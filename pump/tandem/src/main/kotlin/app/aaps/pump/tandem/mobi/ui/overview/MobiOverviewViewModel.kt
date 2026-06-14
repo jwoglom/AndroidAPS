@@ -430,7 +430,7 @@ open class MobiOverviewViewModel @Inject constructor(
 
 
     fun onRefreshClick() {
-        aapsLogger.debug(LTag.PUMP, "Clicked connect to pump")
+        //aapsLogger.debug(LTag.PUMP, "Clicked connect to pump")
 
         setButtonState(false)
         tandemPump.resetStatusState()
@@ -861,6 +861,12 @@ open class MobiOverviewViewModel @Inject constructor(
                                                            tandemPumpStatus.currentTempBasal!!.insulinRate.toInt(), min.toInt())
         }
     }
+
+
+
+    // looking into adding different implementattion
+
+
 
 
 }

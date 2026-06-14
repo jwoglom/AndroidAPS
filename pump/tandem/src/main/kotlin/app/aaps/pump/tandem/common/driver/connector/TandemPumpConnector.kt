@@ -366,6 +366,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<BolusData?> {
 
+        // TODO Bolus handling for current bolus seems to have changed, extend this method with activeBolus updating
+
         // 1. send BolusPermissionRequest(), get BolusPermissionResponse() which contains a bolusId
         // 2. send InitiateBolusRequest() with:
         //

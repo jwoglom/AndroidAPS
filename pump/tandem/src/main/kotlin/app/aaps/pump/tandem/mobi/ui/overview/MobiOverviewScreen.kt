@@ -3,7 +3,6 @@ package app.aaps.pump.tandem.mobi.ui.overview
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -11,14 +10,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.ui.compose.pump.PumpOverviewScreen
-import app.aaps.pump.tandem.R
 import app.aaps.core.ui.R as Rco
 
 @Composable
 fun MobiOverviewScreen(
-    viewModel: MobiOverviewViewModel
+    viewModel: MobiOverviewViewModelV2
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 

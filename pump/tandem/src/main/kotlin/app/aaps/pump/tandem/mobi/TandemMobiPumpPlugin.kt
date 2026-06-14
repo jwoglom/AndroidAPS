@@ -114,6 +114,7 @@ import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import io.reactivex.rxjava3.kotlin.plusAssign
+import kotlinx.coroutines.flow.MutableStateFlow
 
 import javax.inject.Inject
 import javax.inject.Provider
@@ -257,7 +258,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         //pumpStatus.lastConnection = sp.getLong(TandemPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         if (preferences.getIfExists(TandemLongNonPreferenceKey.LastGoodPumpCommunicationTime) != null) {
             pumpStatus.lastConnection = preferences.get(TandemLongNonPreferenceKey.LastGoodPumpCommunicationTime)
-            pumpStatus.lastDataTime = pumpStatus.lastConnection
+            //pumpStatus.lastDataTime = pumpStatus.lastConnection
             pumpStatus.previousConnection = pumpStatus.lastConnection
         }
         aapsLogger.debug(TAG, "initPumpStatusData: " + pumpStatus)
@@ -1122,16 +1123,19 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
+    val baseBasalRateFlow = MutableStateFlow<PumpRate?>(null)
     override val baseBasalRate: PumpRate
         get() = if (pumpStatus.basalsByHour == null) {
                 aapsLogger.debug(LTag.PUMP, "Profile is not set !")
                 pumpStatus.baseBasalRate = 0.0
-                PumpRate(pumpStatus.baseBasalRate)
+                baseBasalRateFlow.value = PumpRate(pumpStatus.baseBasalRate)
+                baseBasalRateFlow.value!!
             } else {
                 val basal = pumpStatus.basalProfileForHour
                 aapsLogger.debug(LTag.PUMP, "Basal for this hour is: $basal")
                 pumpStatus.baseBasalRate = basal
-                PumpRate(basal)
+                baseBasalRateFlow.value = PumpRate(basal)
+                baseBasalRateFlow.value!!
             }
 
 
@@ -1301,7 +1305,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                     detailedBolusInfo.insulin = bolusData.amountImmediateDelivered!!
                 }
 
-                pumpStatus.lastBolus = detailedBolusInfo
+                pumpStatus.lastBolusData = bolusData
 
                 // we subtract insulin, exact amount will be visible with next remainingInsulin update.
                 pumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin

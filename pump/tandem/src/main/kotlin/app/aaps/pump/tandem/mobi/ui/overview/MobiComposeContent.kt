@@ -1,11 +1,8 @@
 package app.aaps.pump.tandem.mobi.ui.overview
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -75,7 +72,7 @@ class MobiComposeContent(
         onNavigateBack: () -> Unit,
         onSettings: (() -> Unit)?
     ) {
-        val overviewViewModel: MobiOverviewViewModel = hiltViewModel()
+        val overviewViewModel: MobiOverviewViewModelV2 = hiltViewModel()
 
         // Navigation state
         var currentScreen by remember { mutableStateOf(MobiScreen.OVERVIEW) }
@@ -201,11 +198,11 @@ class MobiComposeContent(
         LaunchedEffect(overviewViewModel) {
             overviewViewModel.events.collect { event ->
                 when (event) {
-                    MobiOverviewEvent.OpenEvents           -> currentScreen = MobiScreen.DATA_EVENTS
-                    MobiOverviewEvent.OpenHistory          -> currentScreen = MobiScreen.DATA_HISTORY
-                    MobiOverviewEvent.OpenNotification     -> currentScreen = MobiScreen.DATA_NOTIFICATIONS
-                    MobiOverviewEvent.StartActions         -> currentScreen = MobiScreen.ACTIONS
-                    MobiOverviewEvent.StartData            -> currentScreen = MobiScreen.DATA
+                    MobiOverviewEventv2.OpenEvents           -> currentScreen = MobiScreen.DATA_EVENTS
+                    MobiOverviewEventv2.OpenHistory          -> currentScreen = MobiScreen.DATA_HISTORY
+                    MobiOverviewEventv2.OpenNotification     -> currentScreen = MobiScreen.DATA_NOTIFICATIONS
+                    MobiOverviewEventv2.StartActions         -> currentScreen = MobiScreen.ACTIONS
+                    MobiOverviewEventv2.StartData            -> currentScreen = MobiScreen.DATA
                 }
             }
         }

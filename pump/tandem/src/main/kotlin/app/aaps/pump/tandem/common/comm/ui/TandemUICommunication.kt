@@ -62,12 +62,14 @@ class TandemUICommunication @Inject constructor (
 
     var tandemCommunicationManager : TandemCommunicationManager? = null
         set(value) {
+            aapsLogger.error("tandemCommunicationManager set: $value")
             if (value==null) {
                 if (field!=null) {
                     field!!.communicationListener = null
                 }
             }
             field = value
+            aapsLogger.error("tandemCommunicationManager set: $field")
         }
 
     lateinit var historyRetriever: HistoryRetriever
@@ -79,7 +81,9 @@ class TandemUICommunication @Inject constructor (
 
         aapsLogger.warn(TAG, "Send command $request")
 
-        if (tandemCommunicationManager==null) {
+        aapsLogger.warn(TAG, "Send command ${this.tandemCommunicationManager}")
+
+        if (this.tandemCommunicationManager==null) {
             aapsLogger.error(TAG, "Command ${request.javaClass.name} couldn't be executed because tandemCommunicationManager is null.")
             return false
         }
