@@ -1,12 +1,5 @@
 package app.aaps.pump.tandem.mobi.ui
 
-import android.content.res.Configuration
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BackupTable
-import androidx.compose.material.icons.filled.Create
-import androidx.compose.material.icons.filled.EventAvailable
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.ui.graphics.vector.ImageVector
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationManager
@@ -58,7 +51,7 @@ class TandemUiController @Inject constructor(
                                                       uiInteraction = uiInteraction,
                                                       notificationManager = notificationManager)
 
-        this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
+        this.tandemUICommunication.tandemPumpCommunicationManager = tandemPumpConnector.getCommunicationManager()
     }
 
     /**
@@ -91,7 +84,7 @@ class TandemUiController @Inject constructor(
             tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.SEMAPHORE_EVENTS))
         }
 
-        this.tandemUICommunication.tandemCommunicationManager = null
+        this.tandemUICommunication.tandemPumpCommunicationManager = null
     }
 
     enum class AdditionalConfigurationScreens {
@@ -120,8 +113,8 @@ class TandemUiController @Inject constructor(
         if (!::tandemUICommunication.isInitialized) {
             createTandemUiCommunication()
         } else {
-            if (this.tandemUICommunication.tandemCommunicationManager==null) {
-                this.tandemUICommunication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
+            if (this.tandemUICommunication.tandemPumpCommunicationManager==null) {
+                this.tandemUICommunication.tandemPumpCommunicationManager = tandemPumpConnector.getCommunicationManager()
             }
         }
 

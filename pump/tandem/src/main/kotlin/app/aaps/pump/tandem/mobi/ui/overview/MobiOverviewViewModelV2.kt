@@ -34,6 +34,7 @@ import app.aaps.core.ui.compose.icons.IcLoopClosed
 import app.aaps.core.ui.compose.pump.PumpInfoGroup
 import app.aaps.core.ui.compose.pump.PumpInfoInterface
 import app.aaps.pump.common.defs.BolusData
+import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.TempBasalPair
@@ -247,15 +248,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
 
     suspend fun onRefreshClick() {
-        //aapsLogger.debug(LTag.PUMP, "Clicked connect to pump")
-
         setButtonState(false)
         tandemPlugin.resetStatusState()
-        // commandQueue.readStatus(rh.gs(Rc.string.requested_by_user), object : Callback() {
-        //     override fun run() {
-        //         setButtonState(true)
-        //     }
-        // })
         commandQueue.readStatus(rh.gs(Rc.string.requested_by_user))
         setButtonState(true)
     }
@@ -342,9 +336,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
     }
 
 
-
     private fun buildInitialState(): PumpOverviewUiState {
-
         return buildUiState(
             currentActivity = currentActivity,
             pumpRunningState = tandemPumpStatus.pumpRunningState,
@@ -360,25 +352,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
             lastConnectionTime = tandemPumpStatus.lastConnection,
             pumpError = pumpError
         )
-
-        // return buildUiState(
-        //
-        //
-        //     connectionState = tandemPumpStatus.connectionState,
-        //     pumpState = tandemPumpStatus.pumpState,
-        //     basalRate = tandemPumpStatus.baseBasalRate,
-        //
-        //     //basalType = medtrumPump.lastBasalType,
-        //     tempBasalRate = tandemPumpStatus.lastBasalRate.takeIf { tandemPumpStatus.tempBasalInProgress }, // only show temp basal if it is in progress
-        //     tempBasalStartTime = tandemPumpStatus.lastBasalStartTime,
-        //     tempBasalDuration = tandemPumpStatus.lastBasalDuration,
-        //     reservoir = tandemPumpStatus.reservoirRemainingUnits,
-        //     batteryVoltage = tandemPumpStatus.batteryRemaining,
-        //     bolusDelivered = tandemPumpStatus.bolusAmountDeliveredFlow.value,
-        //     lastBolusTime = tandemPumpStatus.lastBolusTime,
-        //     lastBolusAmount = tandemPumpStatus.lastBolusAmount,
-        //     lastConnectionTime = tandemPumpStatus.lastConnection
-        // )
     }
 
     // private fun buildUiState(
@@ -568,6 +541,17 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
         var infoGroup = PumpInfoGroup()
 
+        // TODO firmware
+        // if (tandemPumpStatus.pumpDriverMode == PumpDriverMode.Demo) {
+        //     pumpFirmware.value = rh.gs(R.string.pump_firmware_demo)
+        // } else {
+        //     if (tandemPumpStatus.tandemPumpFirmware.isClosedLoopPossible) {
+        //         pumpFirmware.value = tandemPumpStatus.tandemPumpFirmware.description
+        //     } else {
+        //         pumpFirmware.value = rh.gs(R.string.pump_firmware_open_loop_only, tandemPumpStatus.tandemPumpFirmware.description)
+        //     }
+        // }
+
 
         //  1. Pump Firmware
         infoGroup.list.add(PumpInfoRow(label = rh.gs(app.aaps.pump.tandem.R.string.pump_firmware_label),
@@ -594,8 +578,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
         //  4. BT State
         infoGroup.list.add(PumpInfoRow(label = rh.gs(R.string.pump_bt_state_label),
                                        value = currentActivity))
-
-        // X 5. Queue
 
         //  6. Pump Status TODO maybe use StatusBanner ?
         infoGroup.list.add(PumpInfoRow(label = rh.gs(R.string.pump_status_label),
@@ -637,7 +619,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
         }
 
         //  11. Base basal rate
-        // TODO fix me
         infoGroup.list.add(PumpInfoRow(label = rh.gs(Rco.string.base_basal_rate_label),
                                        value = ch.basalRateString(baseBasalRate, true)))
 
@@ -657,12 +638,14 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
         // 13. Error
 
+        // TODO this needs to be extended (with live value)
         if (pumpError!=null) {
-            pumpRows.add(PumpInfoRow(label = rh.gs(app.aaps.pump.tandem.R.string.pump_driver_errors),
+            pumpRows.add(PumpInfoRow(label = rh.gs(R.string.pump_driver_errors),
                                      value = pumpError))
         }
 
         // TODO   Notification   Events    History
+        //   fhh need to better update semaphore...
         updateDataSemaphore()
         pumpRows.add(PumpInfoRow(label = "     ", value = semaphoreTexts.value))
 
@@ -707,8 +690,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
         }
     }
 
+
     private fun updateBattery(batteryPercent: Int?) {
-        //val remaining = tandemPumpStatus.batteryRemaining
         batteryText.value = "${batteryPercent}%"
         batteryStatus.value = when {
             batteryPercent == null -> StatusLevel.NORMAL
@@ -718,12 +701,9 @@ class MobiOverviewViewModelV2 @Inject constructor(
         }
     }
 
+
     private fun updateReservoir(remaining: Double?) {
-        //val remaining = tandemPumpStatus.reservoirRemainingUnits
-        // TODO ch
-        //val reservoirText = if (reservoir > 0.0) ch.insulinAmountString(PumpInsulin(reservoir)) else null
-        val full = tandemPumpStatus.reservoirFullUnits
-        reservoirText.value = rh.gs(Rc.string.reservoir_value, remaining ?: 0, full)
+        reservoirText.value = if (remaining!=null && remaining > 0.0) ch.insulinAmountString(PumpInsulin(remaining)) else PLACEHOLDER
         reservoirLevel.value = when {
             remaining == null -> StatusLevel.NORMAL
             remaining <= 20.0 -> StatusLevel.CRITICAL
@@ -757,7 +737,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
         // updateLabelColor(binding.pumpDataStatusEvents, pumpStatus.semaphoreEvents, Color.GREEN)
         // updateLabelColor(binding.pumpDataStatusHistory, pumpStatus.semaphoreHistory, Color.BLUE)
     }
-
 
 
     private fun buildPrimaryActions(): List<PumpAction> {

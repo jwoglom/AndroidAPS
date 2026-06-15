@@ -5,7 +5,6 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
-import app.aaps.core.interfaces.pump.PumpProfile
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 // import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
@@ -27,9 +26,8 @@ import app.aaps.pump.common.driver.connector.commands.parameters.PumpHistoryFilt
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
-import app.aaps.pump.tandem.R
 import app.aaps.pump.common.R as Rpc
-import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
+import app.aaps.pump.tandem.common.comm.TandemPumpCommunicationManager
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
 import app.aaps.pump.tandem.common.data.IDPSegmentDto
@@ -158,15 +156,15 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                               private var tandemDataConverter: TandemDataConverter
 ): PumpDummyConnector(tandemPumpStatus, tandemPumpUtil, aapsLogger) {
 
-    private var tandemCommunicationManager: TandemCommunicationManager? = null
+    private var tandemPumpCommunicationManager: TandemPumpCommunicationManager? = null
     var btAddressUsed: String? = null
 
     private var TAG = LTag.PUMPCOMM
 
     // TODO Better Error response handling
 
-    fun getCommunicationManager(): TandemCommunicationManager? {
-        return tandemCommunicationManager
+    fun getCommunicationManager(): TandemPumpCommunicationManager? {
+        return tandemPumpCommunicationManager
     }
 
 
@@ -190,10 +188,10 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         if (!newBtAddress.isNullOrEmpty()) {
             // Disconnect any existing connection before creating a new manager
             // This ensures we start fresh, especially important after pairing
-            if (tandemCommunicationManager != null) {
+            if (tandemPumpCommunicationManager != null) {
                 aapsLogger.info(TAG, "Disconnecting existing connection before creating new manager for $newBtAddress")
-                tandemCommunicationManager!!.disconnect()
-                tandemCommunicationManager = null
+                tandemPumpCommunicationManager!!.disconnect()
+                tandemPumpCommunicationManager = null
                 btAddressUsed = null
             }
 
@@ -205,7 +203,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 // TODO(jwoglom): this should be configurable to allow for old firmware tslim x2 pump simulation
                 .withPairingCodeType(PairingCodeType.SHORT_6CHAR)
 
-            this.tandemCommunicationManager = TandemCommunicationManager(
+            this.tandemPumpCommunicationManager = TandemPumpCommunicationManager(
                 context = context,
                 aapsLogger = aapsLogger,
                 pumpUtil = tandemPumpUtil,
@@ -218,6 +216,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 tandemConnectionFixer = tandemConnectionFixer
             )
             this.btAddressUsed = newBtAddress
+            tandemPumpStatus.pumpAddress = newBtAddress
         }
 
         return getCommunicationManager()!!.connect()
@@ -236,7 +235,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         val result = c.disconnect()
         // Release the cached manager/address so the next connect builds a fresh one.
         // Without this, a subsequent wizard-driven re-pair reuses the torn-down instance.
-        tandemCommunicationManager = null
+        tandemPumpCommunicationManager = null
         btAddressUsed = null
         return result
     }
@@ -1666,7 +1665,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     fun isConnected(): Boolean {
-        return if (tandemCommunicationManager==null) {
+        return if (tandemPumpCommunicationManager==null) {
             false
         } else {
             getCommunicationManager()?.connected == true

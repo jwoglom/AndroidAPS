@@ -169,11 +169,9 @@ class TandemMobiPumpPlugin @Inject constructor(
                 tandemUiController = tandemUiController
             )
         }
-        //.fragmentClass(TandemMobiPumpFragment::class.java.name)
         .icon(IcPluginTMobi)
         .pluginName(R.string.tandem_name_mobi)
         .shortName(R.string.tandem_name_mobi_short)
-        //.preferencesId(PluginDescription.PREFERENCE_SCREEN)  // TODO dev4 preferences ????
         .description(R.string.description_pump_tandem_mobi),
     pumpType = PumpType.TANDEM_MOBI_BT,
     rh = rh,
@@ -1706,13 +1704,10 @@ class TandemMobiPumpPlugin @Inject constructor(
             when(pumpDataRefreshType) {
                 PumpDataRefreshType.RemainingInsulin -> {
                     val remaining = pumpStatus.reservoirRemainingUnits
-
-                    // TODO(jwoglom): why? A:Andy because we want to have more frequent refreshes when we are getting to end of line
                     if (remaining > 50) 60 else if (remaining > 20) 30 else 15
                 }
                 PumpDataRefreshType.BatteryStatus    -> {
                     val power = pumpStatus.batteryRemaining ?: 0
-                    // TODO(jwoglom): why?
                     if (power > 30) 55 else if (power > 20) 30 else 15
                 }
                 PumpDataRefreshType.PumpTime         -> 300
@@ -1734,10 +1729,6 @@ class TandemMobiPumpPlugin @Inject constructor(
         val timeRefresh = System.currentTimeMillis() + (20*1000)  // 20s in future
         scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.PumpTime, timeRefresh)
         // TODO timezoneOrDSTChanged: this might not work as expected, needs to be tested again...
-    }
-
-
-    companion object {
     }
 
 

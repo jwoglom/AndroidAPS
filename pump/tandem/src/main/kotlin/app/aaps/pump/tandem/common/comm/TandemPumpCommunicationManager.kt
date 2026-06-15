@@ -45,13 +45,11 @@ import org.joda.time.DateTime
 /**
  * This is low-level driver that does all communication with pump, with exception of pairing.
  */
-// TODO(jwoglom): rename to TandemPumpCommunicationManager for name consistency with superclass
-class TandemCommunicationManager(
+class TandemPumpCommunicationManager(
     context: Context,
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,
     var rxBus: RxBus,
-    //var sp: SP,
     var preferences: Preferences,
     var pumpUtil: TandemPumpUtil,
     var pumpStatus: TandemPumpStatus,
@@ -212,7 +210,7 @@ class TandemCommunicationManager(
     @Synchronized
     fun sendCommand(request: Message, forceSend: Boolean = false): Message? {
 
-        aapsLogger.info(TAG, "sendCommand: ${request.javaClass.simpleName}")  // TODO
+        aapsLogger.info(TAG, "sendCommand: ${request.javaClass.simpleName}")
 
         operationMode = OperationMode.StandardOperation
 
@@ -393,12 +391,9 @@ class TandemCommunicationManager(
             this.operationMode = OperationMode.StandardOperation
 
         } else if (message is PumpVersionResponse) {
-            // TODO TAF - this needs to be added and this request removed from InitPump
-
             runOnUiThread  {
                 dataStore.pumpVersionResponse.value = message
             }
-
         }
     }
 

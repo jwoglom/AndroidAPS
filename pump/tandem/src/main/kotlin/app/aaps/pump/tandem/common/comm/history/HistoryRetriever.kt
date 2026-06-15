@@ -121,7 +121,7 @@ class HistoryRetriever @Inject constructor(
                                               notificationManager = notificationManager)
 
         communication.historyRetriever = this
-        this.communication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
+        this.communication.tandemPumpCommunicationManager = tandemPumpConnector.getCommunicationManager()
 
         this.silentDownload = false
         val startTime = System.currentTimeMillis()
@@ -153,7 +153,7 @@ class HistoryRetriever @Inject constructor(
             }
         }
 
-        this.communication.tandemCommunicationManager = null
+        this.communication.tandemPumpCommunicationManager = null
 
         setSemaphore()
         endProgress()
@@ -192,7 +192,7 @@ class HistoryRetriever @Inject constructor(
                                               notificationManager = notificationManager)
 
         communication.historyRetriever = this
-        this.communication.tandemCommunicationManager = tandemPumpConnector.getCommunicationManager()
+        this.communication.tandemPumpCommunicationManager = tandemPumpConnector.getCommunicationManager()
 
         this.silentDownload = true
         val startTime = System.currentTimeMillis()
@@ -212,7 +212,7 @@ class HistoryRetriever @Inject constructor(
             }
         }
 
-        this.communication.tandemCommunicationManager = null
+        this.communication.tandemPumpCommunicationManager = null
 
         setSemaphore()
         endProgress()

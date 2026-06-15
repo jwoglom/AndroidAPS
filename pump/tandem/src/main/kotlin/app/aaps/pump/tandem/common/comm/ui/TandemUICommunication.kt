@@ -7,7 +7,7 @@ import app.aaps.core.interfaces.notifications.NotificationLevel
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.pump.common.defs.PumpRunningState
-import app.aaps.pump.tandem.common.comm.TandemCommunicationManager
+import app.aaps.pump.tandem.common.comm.TandemPumpCommunicationManager
 import app.aaps.pump.tandem.common.comm.data.CommunicationListener
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
@@ -57,7 +57,7 @@ class TandemUICommunication @Inject constructor (
 
     var TAG = LTag.PUMPCOMM
 
-    var tandemCommunicationManager : TandemCommunicationManager? = null
+    var tandemPumpCommunicationManager : TandemPumpCommunicationManager? = null
         set(value) {
             aapsLogger.debug("tandemCommunicationManager set: $value")
             if (value==null) {
@@ -78,23 +78,23 @@ class TandemUICommunication @Inject constructor (
 
         aapsLogger.warn(TAG, "Send command $request")
 
-        aapsLogger.warn(TAG, "Send command ${this.tandemCommunicationManager}")
+        aapsLogger.warn(TAG, "Send command ${this.tandemPumpCommunicationManager}")
 
-        if (this.tandemCommunicationManager==null) {
+        if (this.tandemPumpCommunicationManager==null) {
             aapsLogger.error(TAG, "Command ${request.javaClass.name} couldn't be executed because tandemCommunicationManager is null.")
             return false
         }
 
-        if (!tandemCommunicationManager!!.isListenerEnabled()) {
-            tandemCommunicationManager!!.communicationListener = this
+        if (!tandemPumpCommunicationManager!!.isListenerEnabled()) {
+            tandemPumpCommunicationManager!!.communicationListener = this
         }
 
-        if (!tandemCommunicationManager!!.isPumpFullyConnected()) {
+        if (!tandemPumpCommunicationManager!!.isPumpFullyConnected()) {
             aapsLogger.warn(TAG, "Command ${request::javaClass.name} couldn't be executed because pump is not fully connected yet.")
             return false
         }
 
-        tandemCommunicationManager!!.sendCommandWithListener(request)
+        tandemPumpCommunicationManager!!.sendCommandWithListener(request)
 
         return true
 

@@ -39,7 +39,6 @@ import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
-import app.aaps.pump.tandem.common.driver.config.TandemPumpConfig
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
@@ -231,7 +230,7 @@ class TandemPairingManager constructor(
         rxBus.send(EventTandemPairingStatus.WaitingForCode)
 
         // Use the pairing code provided via startPairingWithCode, or fall back to empty string
-        val code = pairingCodeToUse ?: TandemPumpConfig.pumpPin
+        val code = pairingCodeToUse ?: ""
 
         preferences.put(TandemStringPreferenceKey.PumpPairCode, code)
         preferences.put(TandemIntPreferenceKey.PumpPairStatus, 40)

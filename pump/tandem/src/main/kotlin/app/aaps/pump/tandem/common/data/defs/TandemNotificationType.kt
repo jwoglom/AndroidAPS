@@ -16,7 +16,6 @@ enum class TandemNotificationType(override var notificationType: NotificationId,
                                   override val notificationUrgency: NotificationLevel,
                                   override val validMinutes: Int? = null) : NotificationTypeInterface {
 
-    // TODO TandemNotificationType - InvalidPairingCodeReconfigure this might be removed
     InvalidPairingCodeReconfigure(resourceId = R.string.tandem_notification_wrong_pairing_code,
                                   notificationUrgency = NotificationLevel.URGENT),
 
@@ -45,5 +44,6 @@ enum class TandemNotificationType(override var notificationType: NotificationId,
                             validMinutes = 24*60
     );
 
-    constructor(resourceId: Int, notificationUrgency: NotificationLevel) : this(NotificationId.COMBO_PUMP_ALARM, resourceId, notificationUrgency, -1) {}
+    constructor(resourceId: Int, notificationUrgency: NotificationLevel) :
+        this(NotificationId.COMBO_PUMP_ALARM, resourceId, notificationUrgency, -1) {}
 }

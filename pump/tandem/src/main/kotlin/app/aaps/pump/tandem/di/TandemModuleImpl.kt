@@ -35,7 +35,6 @@ open class TandemModuleImpl {
         commSuspend: CommSuspendGate
     ): PumpOpQueue = PumpOpQueue(logger, availability, commSuspend)
 
-    // TODO dev4 not sure about that, but hilt is being weird
     @Provides
     @Singleton
     fun provideTandemUIDataStore(): TandemUIDataStore = TandemUIDataStore()
