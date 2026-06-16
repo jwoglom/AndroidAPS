@@ -16,6 +16,7 @@ import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.data.DisconnectDataDto
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
+import app.aaps.pump.tandem.common.data.SemaphoreInfoDto
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
@@ -56,7 +57,13 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
             serialNumberFlow.value = value
         }
 
-
+    // semaphore info
+    val semaphoreInfoFlow = MutableStateFlow<SemaphoreInfoDto>(SemaphoreInfoDto())
+    var semaphoreInfo: SemaphoreInfoDto
+        get() = semaphoreInfoFlow.value
+        set(value) {
+            semaphoreInfoFlow.value = value
+        }
 
     var pumpDriverMode : PumpDriverMode? = null
 
@@ -79,10 +86,26 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     var tandemSiteReminder: Long? = null
     var apiVersionResponse: ApiVersionResponse? = null
 
-    var semaphoreNotifications = false
+    var semaphoreNotifications: Boolean = false
+        set(value) {
+            field = value
+            semaphoreInfo = SemaphoreInfoDto(value, semaphoreEvents, semaphoreHistory, semaphoreNeedsRefresh)
+        }
     var semaphoreEvents = false
+        set(value) {
+            field = value
+            semaphoreInfo = SemaphoreInfoDto(semaphoreNotifications, value, semaphoreHistory, semaphoreNeedsRefresh)
+        }
     var semaphoreHistory = false
+        set(value) {
+            field = value
+            semaphoreInfo = SemaphoreInfoDto(semaphoreNotifications, semaphoreEvents, value, semaphoreNeedsRefresh)
+        }
     var semaphoreNeedsRefresh = false
+        set(value) {
+            field = value
+            semaphoreInfo = SemaphoreInfoDto(semaphoreNotifications, semaphoreEvents, semaphoreHistory, value)
+        }
 
     var disconnectData: DisconnectDataDto? = null
 

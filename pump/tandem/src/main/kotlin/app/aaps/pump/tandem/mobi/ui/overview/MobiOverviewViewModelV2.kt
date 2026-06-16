@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import app.aaps.core.ui.compose.pump.ActionCategory
 import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpInfoRow
-import app.aaps.core.ui.compose.pump.PumpOverviewStateBuilder
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
 import app.aaps.core.ui.compose.pump.PumpOverviewUiState
 import app.aaps.core.ui.compose.pump.StatusBanner
@@ -26,7 +25,6 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.runtime.mutableStateOf
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.PumpRate
-import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
 import app.aaps.core.keys.interfaces.Preferences
@@ -40,8 +38,8 @@ import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
-import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.SemaphoreInfoDto
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
@@ -71,10 +69,6 @@ import app.aaps.core.ui.R as Rco
 import app.aaps.pump.common.R as Rc
 import app.aaps.core.interfaces.R as Rci
 
-// sealed class MedtrumOverviewEvent {
-//     data class StartPatchWorkflow(val startStep: PatchStep) : MedtrumOverviewEvent()
-//     data class ShowDialog(val title: String, val message: String) : MedtrumOverviewEvent()
-// }
 
 sealed class MobiOverviewEventv2 {
     data object StartData : MobiOverviewEventv2()
@@ -113,9 +107,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
     var displayDriver = true
     var buttonsEnabled = mutableStateOf<Boolean>(true)
-
-    // TODO temporary solution until we have pressable buttons
-    var semaphoreTexts = mutableStateOf("")
 
     var mapSemaphore = mapOf(
         Pair("NOTIFICATIONS", rh.gs(R.string.pump_data_status_notification)),
@@ -167,6 +158,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
         tandemPumpStatus.activeBolusDataFlow,
         tandemPumpStatus.lastConnectionFlow,
         pumpErrorFlow,
+        tandemPumpStatus.semaphoreInfoFlow,
         communicationStatus.refreshTrigger,
         tickerFlow(60_000L)
     ) { values ->
@@ -184,6 +176,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
         val activeBolus= values[10] as BolusData?
         val lastConnectionTime = values[11] as Long
         val pumpError = values[12] as String?
+        val semaphoreInfo = values[13] as SemaphoreInfoDto
 
         buildUiState(
             currentActivity = currentActivity,
@@ -198,7 +191,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
             batteryPercent = batteryPercent,
             activeBolusData = activeBolus,
             lastConnectionTime = lastConnectionTime,
-            pumpError = pumpError
+            pumpError = pumpError,
+            semaphoreInfo = semaphoreInfo
         )
     }.stateIn(scope, SharingStarted.WhileSubscribed(5000), buildInitialState())
 
@@ -265,7 +259,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
     fun onActionClick() {
         _events.tryEmit(MobiOverviewEventv2.StartActions)
     }
-
 
 
     @Synchronized
@@ -350,152 +343,10 @@ class MobiOverviewViewModelV2 @Inject constructor(
             batteryPercent = tandemPumpStatus.batteryRemaining,
             activeBolusData = tandemPumpStatus.activeBolusData,
             lastConnectionTime = tandemPumpStatus.lastConnection,
-            pumpError = pumpError
+            pumpError = pumpError,
+            semaphoreInfo = tandemPumpStatus.semaphoreInfo
         )
     }
-
-    // private fun buildUiState(
-    //     currentActivity: String,
-    //     pumpRunningState: PumpRunningState,
-    //     baseBasalRate: Double,
-    //     lastBolus: BolusData?,
-    //     tempBasal: TempBasalPair?,
-    //     pumpFirmware: String,
-    //     pumpSerialNo: String,
-    //     pumpAddress: String,
-    //     reservoir: Double,
-    //     batteryPercent: Double,
-    //     bolusDelivered: Double,
-    //     lastConnectionTime: Long
-    // ): PumpOverviewUiState {
-    //     // Status banner: communication status from shared helper, or pump-specific warning
-    //     val statusBanner = buildStatusBanner(pumpState) ?: communicationStatus.statusBanner()
-    //     val queueStatus = communicationStatus.queueStatus()
-    //
-    //     // Connection state for action button enablement
-    //     // val isDisconnected = connectionState == ConnectionState.DISCONNECTED
-    //     // val isPumpActive = pumpState > MedtrumPumpState.EJECTED && pumpState < MedtrumPumpState.STOPPED
-    //     val canRefresh = isDisconnected && isPumpActive
-    //
-    //     // Last connection
-    //     val lastConnection = if (lastConnectionTime != 0L) {
-    //         val agoMinutes = (System.currentTimeMillis() - lastConnectionTime) / 1000 / 60
-    //         rh.gs(R.string.minago, agoMinutes)
-    //     } else ""
-    //
-    //     // Last bolus
-    //     val lastBolus = if (lastBolus != null) {
-    //         ch.insulinAmountAgoString(
-    //             PumpInsulin(lastBolus.amountImmediateRequested!!),
-    //             lastBolus.timestamp
-    //         )
-    //     } else null
-    //
-    //     // Active bolus
-    //     val activeBolusText = if (!tandemPumpStatus.lastBolus!=null && tandemPlugin.isInitialized() && bolusDelivered > 0.0) {
-    //         ch.insulinDeliveryAgoString(
-    //             amount = PumpInsulin(bolusDelivered),
-    //             totalAmount = PumpInsulin(tandemPumpStatus.bolusAmountToBeDelivered),
-    //             startTime = tandemPumpStatus.bolusStartTime
-    //         )
-    //     } else null
-    //
-    //     // Battery voltage
-    //     val batteryText = if (batteryPercent > 0.0) String.format("%d %%", batteryPercent) else null
-    //
-    //     // Reservoir
-    //     val reservoirText = if (reservoir > 0.0) ch.insulinAmountString(PumpInsulin(reservoir)) else null
-    //
-    //     // Common rows from builder
-    //     val commonRows = stateBuilder.buildCommonRows(
-    //         lastConnection = lastConnection,
-    //         lastBolus = lastBolus,
-    //         battery = batteryText,
-    //         reservoir = reservoirText,
-    //         serialNumber = tandemPumpStatus.serialNumber.toString()
-    //     )
-    //
-    //     // Medtrum-specific rows
-    //     val specificRows = buildList {
-    //         // Pump state
-    //         add(PumpInfoRow(label = rh.gs(R.string.pump_state_label), value = pumpState.toString()))
-    //         // tempBasal rate
-    //         add(PumpInfoRow(label = rh.gs(CoreUiR.string.base_basal_rate_label), value = ch.basalRateString(PumpRate(basalRate), true)))
-    //         tempBasalRate?.let {
-    //             // Basal type
-    //             // add(PumpInfoRow(label = rh.gs(R.string.basal_type_label), value = basalType.toString()))
-    //             // tempBasal rate
-    //             add(PumpInfoRow(label = rh.gs(CoreUiR.string.tempbasal_label), value = ch.basalTbrString(PumpRate(it), tempBasalStartTime, tempBasalDuration, basalType != BasalType.RELATIVE_TEMP)))
-    //         }
-    //             // Active bolus
-    //         activeBolusText?.let {
-    //             add(PumpInfoRow(label = rh.gs(R.string.active_bolus_label), value = it))
-    //         }
-    //         // Active alarms
-    //         // val activeAlarmStrings = tandemPumpStatus.activeAlarms.map { tandemPumpStatus.alarmStateToString(it) }
-    //         // val alarmsText = activeAlarmStrings.joinToString("\n")
-    //         // if (alarmsText.isNotEmpty()) {
-    //         //     add(PumpInfoRow(label = rh.gs(R.string.active_alarms_label), value = alarmsText, level = StatusLevel.WARNING))
-    //         // }
-    //         // Pump type
-    //         // add(PumpInfoRow(label = rh.gs(R.string.pump_type_label), value = ModelType.fromValue(medtrumPump.deviceType).toString()))
-    //         // // FW version
-    //         // if (medtrumPump.swVersion.isNotEmpty()) {
-    //         //     add(PumpInfoRow(label = rh.gs(R.string.fw_version_label), value = medtrumPump.swVersion))
-    //         // }
-    //         // Patch no
-    //         add(PumpInfoRow(label = rh.gs(R.string.patch_no_label), value = tandemPumpStatus.patchId.toString()))
-    //         // Patch age
-    //         // if (medtrumPump.patchStartTime != 0L) {
-    //         //     val age = System.currentTimeMillis() - medtrumPump.patchStartTime
-    //         //     val agoString = dateUtil.timeAgoFullString(age, rh)
-    //         //     val ageString = dateUtil.dateAndTimeString(medtrumPump.patchStartTime) + "\n" + agoString
-    //         //     add(PumpInfoRow(label = rh.gs(R.string.patch_activation_time_label), value = ageString))
-    //         // }
-    //         // // Patch expiry
-    //         // val expiryText = buildExpiryText()
-    //         // if (expiryText.isNotEmpty()) {
-    //         //     add(PumpInfoRow(label = rh.gs(R.string.patch_expiry_label), value = expiryText))
-    //         // }
-    //     }
-    //
-    //     // Primary actions
-    //     val primaryActions = listOf(
-    //         PumpAction(
-    //             label = rh.gs(CoreUiR.string.refresh),
-    //             icon = Icons.Filled.Refresh,
-    //             category = ActionCategory.PRIMARY,
-    //             enabled = canRefresh,
-    //             onClick = { onClickRefresh() }
-    //         ),
-    //         // PumpAction(
-    //         //     label = rh.gs(R.string.reset_alarms_label),
-    //         //     icon = Icons.Filled.PlayArrow,
-    //         //     category = ActionCategory.PRIMARY,
-    //         //     enabled = pumpState.isSuspendedByPump(),
-    //         //     visible = pumpState.isSuspendedByPump(),
-    //         //     onClick = { onClickResetAlarms() }
-    //         // )
-    //     )
-    //
-    //     // Management actions
-    //     // val managementActions = listOf(
-    //     //     PumpAction(
-    //     //         label = rh.gs(R.string.change_patch_label),
-    //     //         icon = Icons.Filled.SwapHoriz,
-    //     //         category = ActionCategory.MANAGEMENT,
-    //     //         onClick = { onClickChangePatch() }
-    //     //     )
-    //     // )
-    //
-    //     return PumpOverviewUiState(
-    //         statusBanner = statusBanner,
-    //         queueStatus = queueStatus,
-    //         infoRows = commonRows + specificRows,
-    //         primaryActions = primaryActions,
-    //         //managementActions = managementActions
-    //     )
-    // }
 
 
     private fun buildUiState(
@@ -511,7 +362,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
         batteryPercent: Int?,
         activeBolusData: BolusData?,
         lastConnectionTime: Long,
-        pumpError: String?
+        pumpError: String?,
+        semaphoreInfo: SemaphoreInfoDto
     ): PumpOverviewUiState {
 
         // Status banner: communication status from shared helper, or pump-specific warning
@@ -541,21 +393,20 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
         var infoGroup = PumpInfoGroup()
 
-        // TODO firmware
-        // if (tandemPumpStatus.pumpDriverMode == PumpDriverMode.Demo) {
-        //     pumpFirmware.value = rh.gs(R.string.pump_firmware_demo)
-        // } else {
-        //     if (tandemPumpStatus.tandemPumpFirmware.isClosedLoopPossible) {
-        //         pumpFirmware.value = tandemPumpStatus.tandemPumpFirmware.description
-        //     } else {
-        //         pumpFirmware.value = rh.gs(R.string.pump_firmware_open_loop_only, tandemPumpStatus.tandemPumpFirmware.description)
-        //     }
-        // }
+        val firmwareString = if (tandemPumpStatus.pumpDriverMode == PumpDriverMode.Demo) {
+            rh.gs(R.string.pump_firmware_demo)
+        } else {
+            if (tandemPumpStatus.tandemPumpFirmware.isClosedLoopPossible) {
+                tandemPumpStatus.tandemPumpFirmware.description
+            } else {
+                rh.gs(R.string.pump_firmware_open_loop_only, tandemPumpStatus.tandemPumpFirmware.description)
+            }
+        }
 
 
         //  1. Pump Firmware
         infoGroup.list.add(PumpInfoRow(label = rh.gs(app.aaps.pump.tandem.R.string.pump_firmware_label),
-                                       value = pumpFirmware.description))
+                                       value = firmwareString))
 
         //  2. Serial Nr
         infoGroup.list.add(PumpInfoRow(label = rh.gs(Rco.string.serial_number),
@@ -646,9 +497,10 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
         // TODO   Notification   Events    History
         //   fhh need to better update semaphore...
-        updateDataSemaphore()
-        pumpRows.add(PumpInfoRow(label = "     ", value = semaphoreTexts.value))
+        //updateDataSemaphore()
+        //pumpRows.add(PumpInfoRow(label = "     ", value = semaphoreTexts.value))
 
+        pumpRows.add(MobiSemaphorePumpInfoRow(_events, semaphoreInfo, mapSemaphore))
 
         return PumpOverviewUiState(
             statusBanner = statusBanner,
@@ -661,7 +513,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
 
     private fun updateLastConnection(lastConnection: Long) {
-        val lastConnection = tandemPumpStatus.lastConnection
 
         lastConnectionStatus.value = StatusLevel.NORMAL
 
@@ -710,32 +561,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
             remaining <= 50.0 -> StatusLevel.WARNING
             else              -> StatusLevel.NORMAL
         }
-    }
-
-
-    private fun updateDataSemaphore() {
-        val sb = StringBuilder()
-
-        if (tandemPumpStatus.semaphoreNotifications) {
-            sb.append("   ")
-            sb.append(mapSemaphore.get("NOTIFICATIONS"))
-        }
-
-        if (tandemPumpStatus.semaphoreEvents) {
-            sb.append("   ")
-            sb.append(mapSemaphore.get("EVENTS"))
-        }
-
-        if (tandemPumpStatus.semaphoreHistory) {
-            sb.append("   ")
-            sb.append(mapSemaphore.get("HISTORY"))
-        }
-
-        semaphoreTexts.value = sb.toString().trim()
-
-        // updateLabelColor(binding.pumpDataStatusNotification, pumpStatus.semaphoreNotifications, Color.RED)
-        // updateLabelColor(binding.pumpDataStatusEvents, pumpStatus.semaphoreEvents, Color.GREEN)
-        // updateLabelColor(binding.pumpDataStatusHistory, pumpStatus.semaphoreHistory, Color.BLUE)
     }
 
 
