@@ -409,20 +409,25 @@ class TandemHistoryConverter @Inject constructor(
 
 
     fun getRawData(historyLog: HistoryLog) : String {
-        val historyLogData = tandemPumpUtil.gsonRegular.toJson(historyLog)
+        try {
+            val historyLogData = tandemPumpUtil.gsonRegular.toJson(historyLog)
 
-        //val elementRoot: JsonElement = JsonParser.parseString(historyLogData)
+            //val elementRoot: JsonElement = JsonParser.parseString(historyLogData)
 
-        val elementMap : MutableMap<String,String> = getJsonTopLevelValues(historyLogData, historyLog)
+            val elementMap: MutableMap<String, String> = getJsonTopLevelValues(historyLogData, historyLog)
 
-        if (elementMap.isEmpty()) {
-            return "-"
-        } else {
-            val result: String = elementMap.entries
-                .stream()
-                .map { entry -> entry.key + ": " + entry.value }
-                .collect(Collectors.joining(", "))
-            return result
+            if (elementMap.isEmpty()) {
+                return "-"
+            } else {
+                val result: String = elementMap.entries
+                    .stream()
+                    .map { entry -> entry.key + ": " + entry.value }
+                    .collect(Collectors.joining(", "))
+                return result
+            }
+        } catch (ex: Exception) {
+            aapsLogger.error(LTag.PUMPCOMM, "Failed parse: [type=${historyLog.typeId()}, sequence=${historyLog.sequenceNum}]")
+            return "Failed parse"
         }
     }
 

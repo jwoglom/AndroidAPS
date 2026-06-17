@@ -228,13 +228,16 @@ fun History(
                 .padding(horizontal = 0.dp),
             content = {
 
-                item {
-                    HeaderLineWithBackButton(text = resourceHelper.gs(R.string.data_pump_history),
-                                             onBackClick=navigateBack,
-                                             resourceHelper = resourceHelper)
-                    HorizontalDivider()
+                if (showHeader) {
+                    item {
+                        HeaderLineWithBackButton(
+                            text = resourceHelper.gs(R.string.data_pump_history),
+                            onBackClick = navigateBack,
+                            resourceHelper = resourceHelper
+                        )
+                        HorizontalDivider()
+                    }
                 }
-
 
                 item {
 

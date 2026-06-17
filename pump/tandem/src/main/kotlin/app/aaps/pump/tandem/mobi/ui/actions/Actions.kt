@@ -54,6 +54,7 @@ import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.mobi.ui.util.LifecycleStateObserver
@@ -84,6 +85,7 @@ fun Actions(
     resourceHelper: ResourceHelper,
     navigateToCartridgeActions: () -> Unit,
     navigateToPumpInfo: () -> Unit,
+    refreshMainAppData: (RefreshData) -> Unit,
     showHeader: Boolean = true
 ) {
 
@@ -389,6 +391,7 @@ fun Actions(
                 sendPumpCommands = sendPumpCommands,
                 resourceHelper = resourceHelper,
                 aapsLogger = aapsLogger,
+                refreshMainAppData = refreshMainAppData,
                 navigateBack = { showStartStopInsulinSheet = false }
             )
         }
@@ -421,7 +424,8 @@ private fun PreviewInsulinActive() {
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 resourceHelper = ResourceHelperTest(),
-                navigateToPumpInfo = {}
+                navigateToPumpInfo = {},
+                refreshMainAppData = {}
             )
         }
     }
@@ -442,7 +446,8 @@ private fun PreviewInsulinSuspended() {
                 aapsLogger = AAPSLoggerTest(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = ResourceHelperTest(),
+                refreshMainAppData = {}
             )
         }
     }

@@ -47,6 +47,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.util.AlertBanner
@@ -70,6 +71,7 @@ fun StartStopInsulinScreen(
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
     navigateBack: () -> Unit,
+    refreshMainAppData: (RefreshData) -> Unit,
     showHeader: Boolean = true
 ) {
     val ds = LocalTandemDataStore.current
@@ -220,6 +222,7 @@ fun StartStopInsulinScreen(
                                         sendPumpCommands(listOf(HomeScreenMirrorRequest()))
                                     }
                                     navigateBack()
+                                    refreshMainAppData(RefreshData.PUMP_STATE_CHANGED)
                                     isStartingOrStopping = false
                                 }
                             },
@@ -257,6 +260,7 @@ fun StartStopInsulinScreen(
                                         sendPumpCommands(listOf(HomeScreenMirrorRequest()))
                                     }
                                     navigateBack()
+                                    refreshMainAppData(RefreshData.PUMP_STATE_CHANGED)
                                     isStartingOrStopping = false
                                 }
                             },
@@ -304,7 +308,8 @@ private fun StartStopInsulinScreenPreview_Running() {
                 sendPumpCommands = { _ -> true },
                 navigateBack = {},
                 resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest()
+                aapsLogger = AAPSLoggerTest(),
+                refreshMainAppData = {}
             )
         }
     }
@@ -324,7 +329,8 @@ private fun StartStopInsulinScreenPreview_Suspended() {
                 sendPumpCommands = { _ -> true },
                 navigateBack = {},
                 resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest()
+                aapsLogger = AAPSLoggerTest(),
+                refreshMainAppData = {}
             )
         }
     }

@@ -39,6 +39,7 @@ class TandemUiController @Inject constructor(
 
     val ds = tandemDataStore
 
+    val setOfActions : MutableSet<RefreshData> = mutableSetOf()
 
     lateinit var tandemUICommunication: TandemUICommunication
 
@@ -76,8 +77,14 @@ class TandemUiController @Inject constructor(
             }
 
             // we might be able to specify more exactly what here happens but for now this is ok, see DataActivity and method refreshMainAppData
-            tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS,
-                                                    RefreshData.PUMP_INSULIN_LEVEL))
+            // tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS,
+            //                                         RefreshData.PUMP_INSULIN_LEVEL))
+            val list: MutableList<RefreshData> = mutableListOf()
+            list.addAll(setOfActions)
+
+            tandemPumpUtil.refreshPumpStatus(list)
+
+            setOfActions.clear()
 
         } else if (disposeType== AdditionalConfigurationScreens.Data) {
             aapsLogger.info(LTag.PUMP, "Data Activity was closed. Sending event to refresh.")
@@ -123,7 +130,7 @@ class TandemUiController @Inject constructor(
         // completes once the wire send fires; responses arrive asynchronously via the listener
         // path (TandemUICommunication.onReceiveMessage).
         for (msg in msgs) {
-            // TODO this doesn't work
+            // TODO this doesn't work - jwoglom
             // tandemDispatcher.submitUser("ui:${msg.javaClass.simpleName}") {
             //     this.tandemUICommunication.sendCommand(msg)
             // }
@@ -151,6 +158,11 @@ class TandemUiController @Inject constructor(
             RefreshData.SEMAPHORE_NOTIFICATIONS -> {
                 tandemPumpStatus.semaphoreNotifications = false
                 tandemPumpStatus.semaphoreNeedsRefresh = true
+            }
+            RefreshData.PUMP_STATE_CHANGED,
+            RefreshData.PUMP_SITE_CHANGED,
+            RefreshData.PUMP_CANNULA_CHANGED -> {
+                setOfActions.add(refreshData)
             }
             else -> {}
         }

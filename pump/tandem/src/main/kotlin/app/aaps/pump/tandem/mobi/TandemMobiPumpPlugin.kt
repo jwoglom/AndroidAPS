@@ -359,15 +359,27 @@ class TandemMobiPumpPlugin @Inject constructor(
             }
         }
 
-        if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_INSULIN_LEVEL)) {
-            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.RemainingInsulin, System.currentTimeMillis())
-            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, System.currentTimeMillis())
-            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.GetTemporaryBasal, System.currentTimeMillis())
-            if (!commandQueue.statusInQueue()) {
-                commandQueue.readStatus("Status Refresh (UI)")
-            }
-        } else if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_STATUS)) {
-            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, System.currentTimeMillis())
+        //PUMP_CANNULA_CHANGED,
+        //PUMP_SITE_CHANGED,
+        //PUMP_STATE_CHANGED
+
+        var statusChanged = false
+        val currentTime = System.currentTimeMillis() - 5000
+
+        if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_STATE_CHANGED)) {
+            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, currentTime)
+            statusChanged = true
+        }
+
+        if (refreshEvent.refreshEvents.contains(RefreshData.PUMP_CANNULA_CHANGED) ||
+            refreshEvent.refreshEvents.contains(RefreshData.PUMP_SITE_CHANGED)) {
+            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.RemainingInsulin, currentTime)
+            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.Custom_1, currentTime)
+            scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.GetTemporaryBasal, currentTime)
+            statusChanged = true
+        }
+
+        if (statusChanged) {
             if (!commandQueue.statusInQueue()) {
                 commandQueue.readStatus("Status Refresh (UI)")
             }
@@ -932,7 +944,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                             timestamp = System.currentTimeMillis(),
                             pumpSerial = serialNumber(),
                             pumpType = PumpType.TANDEM_MOBI_BT,
-                            endPumpId = getPrefixedIdForDb(pumpEventId = tbrId, isBolus = false)
+                            endPumpId = tandemPumpUtil.getPrefixedIdForDb(pumpEventId = tbrId, isBolus = false)
                         )
                     }
 
@@ -1337,7 +1349,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                         pumpSync.syncCarbsWithTimestamp(
                             timestamp = now,
                             amount = detailedBolusInfo.carbs,
-                            pumpId = getPrefixedIdForDb(pumpEventId = bolusData.bolusId!!, isBolus = true),
+                            pumpId = tandemPumpUtil.getPrefixedIdForDb(pumpEventId = bolusData.bolusId!!, isBolus = true),
                             pumpType = pumpType,
                             pumpSerial = serialNumber()
                         )
@@ -1349,7 +1361,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                         pumpSync.syncBolusWithPumpId(
                             timestamp = now,
                             amount = PumpInsulin(detailedBolusInfo.insulin),
-                            pumpId = getPrefixedIdForDb(pumpEventId = bolusData.bolusId!!, isBolus = true),
+                            pumpId = tandemPumpUtil.getPrefixedIdForDb(pumpEventId = bolusData.bolusId!!, isBolus = true),
                             pumpType = pumpType,
                             pumpSerial = serialNumber(),
                             type = detailedBolusInfo.bolusType
@@ -1483,7 +1495,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                         type = tbrType,
                         duration = (controlCommandResponse.durationMinutes * 60 * 1000).toLong(),
                         rate = PumpRate(percent.toDouble()),
-                        pumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id!!, isBolus = false)
+                        pumpId = tandemPumpUtil.getPrefixedIdForDb(pumpEventId = controlCommandResponse.id!!, isBolus = false)
                     )
                 }
 
@@ -1612,7 +1624,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                     timestamp = System.currentTimeMillis(),
                     pumpSerial = serialNumber(),
                     pumpType = PumpType.TANDEM_MOBI_BT,
-                    endPumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus = false)
+                    endPumpId = tandemPumpUtil.getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus = false)
                 )
             }
 
@@ -1633,17 +1645,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    val TBR_PREFIX: Int = 100000000;
 
-    val BOLUS_PREFIX: Int = 500000000;
-
-
-    // we don't use real pumpId, because each of items would have a lot of entries, but each of boluses or tbr has
-    // also uniqueId, which is the one we use, prefixed, so that we differentiate
-    fun getPrefixedIdForDb(pumpEventId: Long, isBolus: Boolean): Long {
-        val newNumber = if (isBolus) BOLUS_PREFIX else TBR_PREFIX
-        return newNumber + pumpEventId
-    }
 
 
     override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult = tandemDispatcher.submitMutating(

@@ -278,6 +278,7 @@ class MobiComposeContent(
                     aapsLogger = aapsLogger,
                     resourceHelper = resourceHelper,
                     showHeader = false,
+                    refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
                     navigateToPumpInfo = {
                         currentScreen = MobiScreen.ACTIONS_PUMP_INFO
                     },
@@ -344,6 +345,7 @@ class MobiComposeContent(
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     resourceHelper = resourceHelper,
                     showHeader = false,
+                    refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     },
@@ -357,6 +359,7 @@ class MobiComposeContent(
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     resourceHelper = resourceHelper,
                     showHeader = false,
+                    refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     },

@@ -3,6 +3,7 @@ package app.aaps.pump.tandem.di
 import app.aaps.core.interfaces.di.PumpDriver
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
+import app.aaps.pump.tandem.common.comm.history.HistoryPostProcessor
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
@@ -57,7 +58,7 @@ abstract class TandemModule {
     // Database Related (QE and History)
     @ContributesAndroidInjector abstract fun contributesQualifyingEventHandler(): QualifyingEventHandler
     @ContributesAndroidInjector abstract fun contributesHistoryRetriever(): HistoryRetriever
-
+    @ContributesAndroidInjector abstract fun contributesHistoryPostProcessor(): HistoryPostProcessor
 
 
     // T-Mobi Package - Activites and Fragments

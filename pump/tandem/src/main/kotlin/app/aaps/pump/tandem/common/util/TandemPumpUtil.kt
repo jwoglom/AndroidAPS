@@ -256,6 +256,19 @@ class TandemPumpUtil @Inject constructor(
     }
 
 
+    val TBR_PREFIX: Int = 100000000;
+
+    val BOLUS_PREFIX: Int = 500000000;
+
+    // we don't use real pumpId, because each of items would have a lot of entries, but each of boluses or tbr has
+    // also uniqueId, which is the one we use, prefixed, so that we differentiate
+    fun getPrefixedIdForDb(pumpEventId: Long, isBolus: Boolean): Long {
+        val newNumber = if (isBolus) BOLUS_PREFIX else TBR_PREFIX
+        return newNumber + pumpEventId
+    }
+
+
+
     companion object {
 
         const val MAX_RETRY = 2

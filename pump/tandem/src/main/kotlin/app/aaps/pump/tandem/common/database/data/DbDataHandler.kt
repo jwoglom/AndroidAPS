@@ -92,18 +92,24 @@ class DbDataHandler @Inject constructor(
     //     tandemPumpDatabase.historyRecordDao().saveAll(listOfHistoryEntries)
     // }
 
-    fun addHistoryLogs(listOfHistoryEntries: MutableCollection<HistoryLog>) {
+    fun addHistoryLogs(listOfHistoryEntries: MutableCollection<HistoryLog>, debugHistoryDownload: Boolean = false) {
+
+        val logPrefix =  if (debugHistoryDownload) "HST: " else ""
+
+        aapsLogger.debug(TAG, "${logPrefix}Received entries: ${listOfHistoryEntries.size}")
 
         val entities = listOfHistoryEntries.stream()
             .map { item -> tandemHistoryConverter.getTandemHistoryRecordEntity(item) }
             .collect(Collectors.toList())
 
+        aapsLogger.debug(TAG, "${logPrefix}Mapped entities: ${entities.size}")
+
         tandemPumpDatabase.historyRecordDao().saveAll(entities)
             .subscribeOn(aapsSchedulers.io)
             .observeOn(aapsSchedulers.main)
             .subscribe(
-                { aapsLogger.debug(TAG, "Inserted TandemHistoryRecordEntity/HistoryLog: ${entities.size} ") },
-                { error -> aapsLogger.error(TAG, "Failed to insert TandemHistoryRecordEntity: ${error.message}", error) }
+                { aapsLogger.debug(TAG, "HST: Inserted TandemHistoryRecordEntity/HistoryLog: ${entities.size} ") },
+                { error -> aapsLogger.error(TAG, "HST: Failed to insert TandemHistoryRecordEntity: ${error.message}", error) }
             )
     }
 
@@ -206,8 +212,12 @@ class DbDataHandler @Inject constructor(
             }
         }
 
+        aapsLogger.error(TAG, "HST: Get History (serial=${pumpStatus.serialNumber.toInt()}, since=${gc.timeInMillis}")
+
         val entities = tandemPumpDatabase.historyRecordDao()
             .allSinceWithSerialBlocking(pumpStatus.serialNumber.toInt(), gc.timeInMillis)
+
+        aapsLogger.error(TAG, "HST: Get Entities: ${entities.size}")
 
         val listOut = mutableListOf<TandemHistoryRecordDto>()
 
@@ -222,6 +232,8 @@ class DbDataHandler @Inject constructor(
                 listOut.add(historyRecordDto)
             }
         }
+
+        aapsLogger.error(TAG, "HST: List Out: ${listOut.size}")
 
         return listOut.toList()
     }
