@@ -45,7 +45,7 @@ import app.aaps.pump.tandem.R
 
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.driver.tandemUiDataStore
 
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
@@ -257,7 +257,7 @@ private fun DataDisplayPreview_WithNotification() {
             color = Color.White,
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
-            tandemDataStore.notificationsPresent.value = true
+            tandemUiDataStore.notificationsPresent.value = true
             DataDisplayMain(
                 sendPumpCommands = { _ -> true},
                 //refreshDatabase = { _,_ -> },

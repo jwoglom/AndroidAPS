@@ -16,7 +16,7 @@ import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.data.CommunicationListener
 import app.aaps.pump.tandem.common.comm.data.DisconnectDataDto
 import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
-import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
+import app.aaps.pump.tandem.common.comm.ui.TandemUiStateWriter
 import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
@@ -64,7 +64,7 @@ class TandemPumpCommunicationManager(
     var commandRequestModeRunning: Boolean = false
         get() { return inFlightRequests.isNotEmpty() }
 
-    var dataStore: TandemUIDataStore = tandemDataStore
+    var dataStore: TandemUiStateWriter = tandemDataStore
 
     var communicationListener : CommunicationListener? = null
         set(value) {  if (value==null)
@@ -129,9 +129,7 @@ class TandemPumpCommunicationManager(
         this.pumpStatus.disconnectData = null
 
         pumpStatus.pumpConnectedFlow.value = connected
-        runOnUiThread  {
-            tandemDataStore.pumpConnected.value = connected
-        }
+        tandemDataStore.postPumpConnected(connected)
 
 
         return connected
@@ -153,9 +151,7 @@ class TandemPumpCommunicationManager(
         operationMode = OperationMode.None
 
         pumpStatus.pumpConnectedFlow.value = false
-        runOnUiThread {
-            tandemDataStore.pumpConnected.value = false
-        }
+        tandemDataStore.postPumpConnected(false)
 
         return connected
     }
@@ -267,9 +263,7 @@ class TandemPumpCommunicationManager(
             connected = false
             pumpUtil.driverStatus = PumpDriverState.Disconnected
             pumpStatus.pumpConnectedFlow.value = false
-            runOnUiThread {
-                dataStore.pumpConnected.value = false
-            }
+            dataStore.postPumpConnected(false)
         }
         return bleConnected && connected
     }
@@ -280,9 +274,7 @@ class TandemPumpCommunicationManager(
 
         pumpUtil.driverStatus = PumpDriverState.Connecting
         pumpStatus.pumpConnectedFlow.value = false
-        runOnUiThread {
-            dataStore.pumpConnected.value = false
-        }
+        dataStore.postPumpConnected(false)
 
         errorConnecting = false
         connected = false
@@ -296,9 +288,7 @@ class TandemPumpCommunicationManager(
             aapsLogger.error(TAG, "Reconnect attempt failed.")
             pumpUtil.driverStatus = PumpDriverState.Disconnected
             pumpStatus.pumpConnectedFlow.value = false
-            runOnUiThread {
-                dataStore.pumpConnected.value = false
-            }
+            dataStore.postPumpConnected(false)
         }
 
         return reconnectResult
@@ -373,9 +363,7 @@ class TandemPumpCommunicationManager(
             //sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
             preferences.put(TandemStringPreferenceKey.PumpApiVersion, apiVersion.name)
 
-            runOnUiThread  {
-                dataStore.apiVersionResponse.value = message
-            }
+            dataStore.postApiVersionResponse(message)
 
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
 
@@ -396,9 +384,7 @@ class TandemPumpCommunicationManager(
             this.operationMode = OperationMode.StandardOperation
 
         } else if (message is PumpVersionResponse) {
-            runOnUiThread  {
-                dataStore.pumpVersionResponse.value = message
-            }
+            dataStore.postPumpVersionResponse(message)
         }
     }
 
@@ -455,7 +441,7 @@ class TandemPumpCommunicationManager(
 
     override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
         aapsLogger.error(TAG, "CF: Pump Critical Error: ${reason}")
-        dataStore.debugLastTandemError.postValue(reason)
+        dataStore.postDebugLastTandemError(reason)
 
         // When a status response message has code non-zero
         // This can occur just because a precondition isn't met

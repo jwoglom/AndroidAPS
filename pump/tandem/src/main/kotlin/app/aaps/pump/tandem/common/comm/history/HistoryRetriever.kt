@@ -21,7 +21,7 @@ import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
-import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.driver.tandemUiDataStore
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -121,7 +121,7 @@ class HistoryRetriever @Inject constructor(
             return false
         }
 
-        communication = TandemUICommunication(dataStore = tandemDataStore,
+        communication = TandemUICommunication(dataStore = tandemUiDataStore,
                                               pumpStatus = pumpStatus,
                                               pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,
@@ -186,7 +186,7 @@ class HistoryRetriever @Inject constructor(
     // this is not used at the moment, but might be needed in the future
     fun downloadHistoryRecentItems(): MutableList<HistoryLog> {
 
-        communication = TandemUICommunication(dataStore = tandemDataStore,
+        communication = TandemUICommunication(dataStore = tandemUiDataStore,
                                               pumpStatus = pumpStatus,
                                               pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,

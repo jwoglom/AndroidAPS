@@ -1253,7 +1253,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             else PumpRunningState.Running
             tandemPumpStatus.pumpRunningState = runningState
             // Mirror to UI LiveData so the UI reflects loop-observed state.
-            tandemDataStore.pumpRunningState.postValue(runningState)
+            tandemDataStore.postPumpRunningState(runningState)
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
 
             return DataCommandResponse(
