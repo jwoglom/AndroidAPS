@@ -44,6 +44,7 @@ import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.AlertStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
+import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.tandem.common.driver.connector.response.MalfunctionStatusDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpGlobalsDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
@@ -1247,9 +1248,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             homeScreenMirrorDto.parse(responseMessage.cargo)
 
             tandemPumpStatus.pumpStatusMirror = homeScreenMirrorDto
-            tandemPumpStatus.pumpRunningState = if (homeScreenMirrorDto.basalStatusIcon ==
+            val runningState = if (homeScreenMirrorDto.basalStatusIcon ==
                 HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) PumpRunningState.Suspended
             else PumpRunningState.Running
+            tandemPumpStatus.pumpRunningState = runningState
+            // Mirror to UI LiveData so the UI reflects loop-observed state.
+            tandemDataStore.pumpRunningState.postValue(runningState)
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
 
             return DataCommandResponse(

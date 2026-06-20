@@ -128,6 +128,7 @@ class TandemPumpCommunicationManager(
 
         this.pumpStatus.disconnectData = null
 
+        pumpStatus.pumpConnectedFlow.value = connected
         runOnUiThread  {
             tandemDataStore.pumpConnected.value = connected
         }
@@ -151,6 +152,7 @@ class TandemPumpCommunicationManager(
         connected = false
         operationMode = OperationMode.None
 
+        pumpStatus.pumpConnectedFlow.value = false
         runOnUiThread {
             tandemDataStore.pumpConnected.value = false
         }
@@ -264,6 +266,7 @@ class TandemPumpCommunicationManager(
             aapsLogger.warn(TAG, "BLE no longer connected; updating state.")
             connected = false
             pumpUtil.driverStatus = PumpDriverState.Disconnected
+            pumpStatus.pumpConnectedFlow.value = false
             runOnUiThread {
                 dataStore.pumpConnected.value = false
             }
@@ -276,6 +279,7 @@ class TandemPumpCommunicationManager(
         aapsLogger.warn(TAG, "Attempting to reconnect to pump.")
 
         pumpUtil.driverStatus = PumpDriverState.Connecting
+        pumpStatus.pumpConnectedFlow.value = false
         runOnUiThread {
             dataStore.pumpConnected.value = false
         }
@@ -291,6 +295,7 @@ class TandemPumpCommunicationManager(
         if (!reconnectResult) {
             aapsLogger.error(TAG, "Reconnect attempt failed.")
             pumpUtil.driverStatus = PumpDriverState.Disconnected
+            pumpStatus.pumpConnectedFlow.value = false
             runOnUiThread {
                 dataStore.pumpConnected.value = false
             }

@@ -48,6 +48,10 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
             tandemPumpFirmwareFlow.value = value
         }
 
+    // Connection state — backend source of truth for delivery availability.
+    // Mirrored to tandemDataStore.pumpConnected for the UI.
+    val pumpConnectedFlow = MutableStateFlow(false)
+
 
     // serial Number
     val serialNumberFlow = MutableStateFlow<Long>(0)
