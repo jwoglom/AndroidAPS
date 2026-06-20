@@ -27,6 +27,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -79,7 +80,7 @@ fun DataDisplayMain(
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
-    var notificationsPresent by remember { mutableStateOf(false) }
+    val notificationsPresent by ds.notificationsPresent.observeAsState(false)
 
 
     fun refresh() = refreshScope.launch {
@@ -104,9 +105,6 @@ fun DataDisplayMain(
     }
 
 
-    ds.notificationsPresent.observe(androidx.lifecycle.compose.LocalLifecycleOwner.current, {
-        notificationsPresent = ds.notificationsPresent.value!!
-    })
 
 
     Box(

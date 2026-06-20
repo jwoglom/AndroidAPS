@@ -92,11 +92,14 @@ class HistoryRetriever @Inject constructor(
     }
 
     private var maxDateTimeInSec: Int = 0
-    private var historySummaryDto : HistorySummaryDto? = null
-    private var currentRequest: HistoryRequestInfo?  = null
+    // Read on the TandemPumpOpQueue thread (busy-wait / result read), written on the BLE callback
+    // thread (response handlers). @Volatile gives the busy-wait visibility of completion and
+    // safe-publishes the collections below, which are otherwise confined to the response handlers.
+    @Volatile private var historySummaryDto : HistorySummaryDto? = null
+    @Volatile private var currentRequest: HistoryRequestInfo?  = null
     private var listOfRequests = ArrayDeque<HistoryRequestInfo>()
     private var listOfMissingItemsInChunk = ArrayDeque<HistoryRequestInfo>()
-    private var downloadRunning = false
+    @Volatile private var downloadRunning = false
     private var listOfReturnedItems = mutableListOf<HistoryLog>()
 
     // added
