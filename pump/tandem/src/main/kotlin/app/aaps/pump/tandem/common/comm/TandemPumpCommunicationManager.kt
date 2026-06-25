@@ -103,8 +103,8 @@ class TandemPumpCommunicationManager(
             createBluetoothHandler()
         }
 
-        val handler = bluetoothHandler
-        if (handler == null) {
+        val btHandler = bluetoothHandler
+        if (btHandler == null) {
             // createBluetoothHandler() failed/timed out posting to the main thread (it was
             // likely blocked). Fail the connect cleanly instead of NPEing on bluetoothHandler!!.
             aapsLogger.error(TAG, "connect(): bluetoothHandler unavailable, aborting connect")
@@ -117,7 +117,7 @@ class TandemPumpCommunicationManager(
         connected = false
         val connectStartTime = System.currentTimeMillis()
         operationMode = OperationMode.ConnectionMode
-        handler.startScan()
+        btHandler.startScan()
 
         while (operationMode == OperationMode.ConnectionMode) {
 
