@@ -43,6 +43,8 @@ import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.HciStatus
 import org.joda.time.DateTime
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * This is low-level driver that does all communication with pump, with exception of pairing.
@@ -78,7 +80,7 @@ class TandemPumpCommunicationManager(
 
     //var responses: MutableMap<Int, Message> = mutableMapOf()
 
-    var bluetoothHandler: TandemBluetoothHandler? = null
+    @Volatile var bluetoothHandler: TandemBluetoothHandler? = null
 
 
 
@@ -89,6 +91,7 @@ class TandemPumpCommunicationManager(
         val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout for receiving pump command response
         val HANDSHAKE_TIMEOUT = 30 * 1000L  // 30s (in ms) timeout for handshake (pairing) connecting flow
         val CONNECT_TIMEOUT = 60 * 1000L // 60s (in ms) timeout for complete connecting flow
+        val CREATE_HANDLER_TIMEOUT = 10 * 1000L // 10s (in ms) timeout for constructing the BLE handler on the main thread
     }
 
 
@@ -96,14 +99,25 @@ class TandemPumpCommunicationManager(
 
         aapsLogger.info(TAG, "connect() ")
 
-        if (bluetoothHandler==null) {
+        if (bluetoothHandler == null) {
             createBluetoothHandler()
+        }
+
+        val handler = bluetoothHandler
+        if (handler == null) {
+            // createBluetoothHandler() failed/timed out posting to the main thread (it was
+            // likely blocked). Fail the connect cleanly instead of NPEing on bluetoothHandler!!.
+            aapsLogger.error(TAG, "connect(): bluetoothHandler unavailable, aborting connect")
+            errorConnecting = true
+            operationMode = OperationMode.None
+            publishDisconnectedState()
+            return false
         }
 
         connected = false
         val connectStartTime = System.currentTimeMillis()
         operationMode = OperationMode.ConnectionMode
-        bluetoothHandler!!.startScan()
+        handler.startScan()
 
         while (operationMode == OperationMode.ConnectionMode) {
 
@@ -169,18 +183,36 @@ class TandemPumpCommunicationManager(
 
 
     private fun createBluetoothHandler(): TandemBluetoothHandler? {
-        if (bluetoothHandler != null) {
-            return bluetoothHandler
-        }
+        bluetoothHandler?.let { return it }
         aapsLogger.info(TAG, "createBluetoothHandler for Communication")
 
+        // getInstance() must run on a thread with a Looper: pumpx2 builds its
+        // BluetoothCentralManager with a bare `new Handler()`, which binds to the calling
+        // thread's Looper. We run on the OpQueue worker thread (no Looper), so construction
+        // is posted to the main thread. We then wait on a bounded latch rather than the old
+        // unbounded `while (bluetoothHandler == null) { sleep(500) }` poll: if the main thread
+        // is blocked (e.g. inside the BLE handshake), the post never runs and the old loop
+        // spun forever, hanging the OpQueue and ANR-ing the app. Now we give up after a timeout
+        // and let the caller fail the connect cleanly.
+        val latch = CountDownLatch(1)
         runOnUiThread {
-            bluetoothHandler = TandemBluetoothHandler.getInstance(context, this, timberTree)
+            try {
+                bluetoothHandler = TandemBluetoothHandler.getInstance(context, this, timberTree)
+            } catch (e: Exception) {
+                aapsLogger.error(TAG, "createBluetoothHandler: getInstance failed", e)
+            } finally {
+                latch.countDown()
+            }
         }
 
-        while (bluetoothHandler == null) {
-            aapsLogger.debug(TAG, "Waiting for bluetoothHandler on ui thread")
-            pumpUtil.sleep(500)
+        val completed = try {
+            latch.await(CREATE_HANDLER_TIMEOUT, TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
+        if (!completed) {
+            aapsLogger.error(TAG, "createBluetoothHandler: timed out after ${CREATE_HANDLER_TIMEOUT}ms waiting for the main thread; it is likely blocked")
         }
 
         return bluetoothHandler
