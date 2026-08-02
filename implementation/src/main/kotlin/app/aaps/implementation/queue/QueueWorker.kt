@@ -34,6 +34,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 
 @HiltWorker
@@ -56,10 +57,12 @@ class QueueWorker @AssistedInject internal constructor(
     override suspend fun doWorkAndLog(): Result {
         queue.waitingForDisconnect = false
         // Defensive: a previous worker may have been canceled mid-execute (e.g. blocking sleep
-        // not honoring coroutine cancellation), leaving `performing` set. Without this reset the
-        // new worker's main loop has no matching branch (performing != null AND queue non-empty)
-        // and spins.
-        queue.resetPerforming()
+        // not honoring coroutine cancellation), leaving `performing` set. Without this the new
+        // worker's main loop has no matching branch (performing != null AND queue non-empty) and
+        // spins. Cancel rather than reset: that command's callback never ran, so anything awaiting
+        // it (CommandQueue.setProfile, bolus, readStatus) would otherwise hang until its own
+        // timeout — the "Failed to update basal profile" 10-minute stall.
+        queue.cancelPerforming(R.string.error)
         val wakeLock = (context.getSystemService(Context.POWER_SERVICE) as PowerManager?)?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, rh.gs(config.appName) + ":" + this::class.simpleName)
         wakeLock?.acquire(T.mins(10).msecs())
         rxBus.send(EventQueueChanged())
@@ -68,7 +71,13 @@ class QueueWorker @AssistedInject internal constructor(
         var connectionStartTime = lastCommandTime
         try {
             while (true) {
-                if (isStopped) return Result.failure()
+                // Stopped mid-flight (WorkManager quota, cancellation): resume whatever we were
+                // performing before walking away, so its caller isn't left awaiting a callback
+                // that can never run.
+                if (isStopped) {
+                    queue.cancelPerforming(R.string.error)
+                    return Result.failure()
+                }
                 val secondsElapsed = (System.currentTimeMillis() - connectionStartTime) / 1000
                 val pump = activePlugin.activePump
                 if (!pump.isConfigured()) {
@@ -164,6 +173,18 @@ class QueueWorker @AssistedInject internal constructor(
                             rxBus.send(EventPumpStatusChanged(it.status()))
                             try {
                                 it.executeWithCallback()
+                            } catch (e: TimeoutCancellationException) {
+                                // A driver-side withTimeout is a *command* failure, not worker
+                                // cancellation, even though kotlinx types it as one. Without this
+                                // branch it hits the rethrow below, the callback never runs, and
+                                // the caller's deferred hangs until its own timeout (a Tandem
+                                // profile push surfacing as "Failed to update basal profile" ten
+                                // minutes later). Drivers should not let this reach us — see
+                                // PumpOpTimeoutException in the Tandem dispatcher — but the queue
+                                // must not depend on every driver getting that right.
+                                aapsLogger.error(LTag.PUMPQUEUE, "Command timed out in driver: " + it.log(), e)
+                                fabricPrivacy.logException(e)
+                                it.cancel(R.string.error, success = false)
                             } catch (e: CancellationException) {
                                 throw e // honor coroutine cancellation (worker stopped)
                             } catch (e: Exception) {

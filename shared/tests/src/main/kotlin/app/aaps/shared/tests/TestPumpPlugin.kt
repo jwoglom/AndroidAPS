@@ -15,8 +15,10 @@ import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.PumpWithConcentration
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.implementation.pump.PumpEnactResultObject
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.withTimeout
 
 @Suppress("MemberVisibilityCanBePrivate")
 class TestPumpPlugin(val rh: ResourceHelper) : PumpWithConcentration {
@@ -24,6 +26,13 @@ class TestPumpPlugin(val rh: ResourceHelper) : PumpWithConcentration {
     var connected = false
     var isProfileSet = true
     var pumpSuspended = false
+
+    /**
+     * When true, [setNewBasalProfile] lets a `withTimeout` expire, so it fails with kotlinx's
+     * `TimeoutCancellationException`. Models a driver whose own timeout fires mid-write (the
+     * Tandem profile push), which is a *command* failure even though it is typed as cancellation.
+     */
+    var setNewBasalProfileTimesOut = false
 
     override fun isConnected() = connected
     override fun isConnecting() = false
@@ -57,8 +66,13 @@ class TestPumpPlugin(val rh: ResourceHelper) : PumpWithConcentration {
     override suspend fun getPumpStatus(reason: String) { /* not needed */
     }
 
-    override suspend fun setNewBasalProfile(profile: EffectiveProfile): PumpEnactResult = PumpEnactResultObject(rh)
-    override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult = PumpEnactResultObject(rh)
+    override suspend fun setNewBasalProfile(profile: EffectiveProfile): PumpEnactResult = setNewBasalProfileResult()
+    override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult = setNewBasalProfileResult()
+
+    private suspend fun setNewBasalProfileResult(): PumpEnactResult {
+        if (setNewBasalProfileTimesOut) withTimeout(1) { awaitCancellation() }
+        return PumpEnactResultObject(rh)
+    }
     override fun isThisProfileSet(profile: EffectiveProfile): Boolean = isProfileSet
     override fun isThisProfileSet(profile: PumpProfile): Boolean = isProfileSet
     private val _lastBolusTime = MutableStateFlow<Long?>(null)

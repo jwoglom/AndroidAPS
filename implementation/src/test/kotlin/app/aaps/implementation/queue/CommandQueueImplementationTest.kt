@@ -673,6 +673,116 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         testPumpPlugin.isProfileSet = true
     }
 
+    // region lost-callback regressions
+    //
+    // Every suspend method on the queue enqueues a Command and awaits a Deferred that only its
+    // callback completes. Any path that removes a command without running that callback leaves the
+    // caller awaiting forever: setProfile then blocks the sequential ProfileSwitch collector for
+    // its full 10-minute guard and reports a reasonless "Failed to update basal profile", and a
+    // bolus caller is never told what happened. These tests pin the two paths that used to do that.
+
+    /** Builds the real QueueWorker over the test's queue and runs one pass, synchronously. */
+    private suspend fun runQueueWorkerOnce() {
+        TestListenableWorkerBuilder<QueueWorker>(context)
+            .setWorkerFactory(object : WorkerFactory() {
+                override fun createWorker(appContext: Context, workerClassName: String, workerParameters: WorkerParameters): ListenableWorker =
+                    QueueWorker(
+                        appContext, workerParameters, aapsLogger, fabricPrivacy, commandQueue,
+                        rxBus, activePlugin, rh, preferences, config, bolusProgressData
+                    )
+            })
+            .build()
+            .doWorkAndLog()
+    }
+
+    @Test
+    fun `abandoning a performing command resumes its caller with a failure`() = runTest {
+        whenever(rh.gs(app.aaps.core.ui.R.string.error)).thenReturn("Error")
+        testPumpPlugin.isProfileSet = false
+        var result: PumpEnactResult? = null
+        backgroundScope.launch { result = commandQueue.setProfile(effectiveProfile, false) }
+        yield()
+        commandQueue.pickup()
+        assertThat(commandQueue.performing?.commandType).isEqualTo(Command.CommandType.BASAL_PROFILE)
+        assertThat(result).isNull()
+
+        // What a stopped / restarted worker now does instead of silently dropping the command.
+        commandQueue.cancelPerforming(app.aaps.core.ui.R.string.error)
+        yield()
+
+        assertThat(commandQueue.performing).isNull()
+        assertThat(result).isNotNull()
+        // Never success: the command did not run, so the caller must not be told the profile landed.
+        assertThat(result!!.success).isFalse()
+        testPumpPlugin.isProfileSet = true
+    }
+
+    @Test
+    fun `cancelPerforming is a no-op when nothing is performing`() = runTest {
+        assertThat(commandQueue.performing).isNull()
+        commandQueue.cancelPerforming(app.aaps.core.ui.R.string.error)
+        assertThat(commandQueue.performing).isNull()
+    }
+
+    @Test
+    fun `resetPerforming does not resume the caller - which is why cancelPerforming exists`() = runTest {
+        // Characterisation, not endorsement: resetPerforming is only correct after a command has
+        // already completed. Using it on an in-flight command is exactly the lost-callback bug, so
+        // this test exists to stop anyone "simplifying" cancelPerforming back into it.
+        testPumpPlugin.isProfileSet = false
+        var result: PumpEnactResult? = null
+        backgroundScope.launch { result = commandQueue.setProfile(effectiveProfile, false) }
+        yield()
+        commandQueue.pickup()
+
+        commandQueue.resetPerforming()
+        yield()
+
+        assertThat(commandQueue.performing).isNull()
+        assertThat(result).isNull()
+        testPumpPlugin.isProfileSet = true
+    }
+
+    @Test
+    fun `a driver timeout during execute fails the command instead of killing the worker`() = runTest {
+        // TimeoutCancellationException is a CancellationException, so it used to hit QueueWorker's
+        // "honour worker cancellation" rethrow: the callback never ran and the caller hung.
+        whenever(rh.gs(app.aaps.core.ui.R.string.error)).thenReturn("Error")
+        testPumpPlugin.isProfileSet = false
+        testPumpPlugin.setNewBasalProfileTimesOut = true
+        var result: PumpEnactResult? = null
+        backgroundScope.launch { result = commandQueue.setProfile(effectiveProfile, false) }
+        yield()
+        assertThat(commandQueue.size()).isEqualTo(1)
+
+        runQueueWorkerOnce()
+        yield()
+
+        assertThat(result).isNotNull()
+        assertThat(result!!.success).isFalse()
+        assertThat(commandQueue.size()).isEqualTo(0)
+        assertThat(commandQueue.performing).isNull()
+        testPumpPlugin.setNewBasalProfileTimesOut = false
+        testPumpPlugin.isProfileSet = true
+    }
+
+    @Test
+    fun `a command completing normally still resolves its caller through the worker`() = runTest {
+        // Control for the test above: same path, no driver timeout.
+        testPumpPlugin.isProfileSet = false
+        var result: PumpEnactResult? = null
+        backgroundScope.launch { result = commandQueue.setProfile(effectiveProfile, false) }
+        yield()
+
+        runQueueWorkerOnce()
+        yield()
+
+        assertThat(result).isNotNull()
+        assertThat(commandQueue.performing).isNull()
+        testPumpPlugin.isProfileSet = true
+    }
+    // endregion
+
     @Test
     fun isStopCommandInQueue() = runTest {
         // given
