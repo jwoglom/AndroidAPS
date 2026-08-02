@@ -356,6 +356,16 @@ class CommandQueueImplementation @Inject constructor(
         performing = null
     }
 
+    @Synchronized
+    override fun cancelPerforming(commentResId: Int) {
+        val abandoned = performing ?: return
+        performing = null
+        aapsLogger.debug(LTag.PUMPQUEUE, "Abandoning performing command, resuming its caller: " + abandoned.log())
+        // success = false: the command did not run to completion, so a caller must not be told
+        // its dose / profile was applied.
+        abandoned.cancel(commentResId, success = false)
+    }
+
     private fun workIsRunning(): Boolean {
         for (workInfo in workManager.getWorkInfosForUniqueWork(jobName.name).get())
             if (workInfo.state == WorkInfo.State.BLOCKED || workInfo.state == WorkInfo.State.ENQUEUED || workInfo.state == WorkInfo.State.RUNNING)
