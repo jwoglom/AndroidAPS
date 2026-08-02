@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.ServiceConnection
 import android.os.IBinder
+import androidx.annotation.StringRes
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.PumpType
@@ -49,6 +50,7 @@ import app.aaps.pump.common.sync.PumpSyncStorage
 import app.aaps.pump.common.utils.ProfileUtil
 import app.aaps.pump.tandem.common.concurrency.PumpAvailabilitySync
 import app.aaps.pump.tandem.common.concurrency.PumpDispatcherScope
+import app.aaps.pump.tandem.common.concurrency.PumpOpFailure
 import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.concurrency.cancelBolus
 import app.aaps.pump.tandem.common.concurrency.cancelTemporaryBasal
@@ -1366,12 +1368,20 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
+    /**
+     * User-visible comment for a pump op that never produced a driver result: the translated
+     * sentence for [messageResId] plus [failure]'s short diagnostic token, joined by a format
+     * resource so translators control the separator.
+     */
+    private fun failureComment(@StringRes messageResId: Int, failure: PumpOpFailure): String =
+        rh.gs(Rc.string.pump_cmd_err_reason, rh.gs(messageResId), failure.diagnostic)
+
     override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "deliverBolus",
         maxDuration = 10.minutes,
-        unavailable = { e ->
+        failed = { f ->
             PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_bolus_could_not_be_delivered) + " (${e.availability})")
+                .comment(failureComment(Rc.string.pump_cmd_err_bolus_could_not_be_delivered, f))
         }
     ) {
         deliverBolusBody(detailedBolusInfo)
@@ -1508,9 +1518,9 @@ class TandemMobiPumpPlugin @Inject constructor(
     ): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "setTempBasalPercent",
         maxDuration = 2.minutes,
-        unavailable = { e ->
+        failed = { f ->
             PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_tbr_could_not_be_delivered) + " (${e.availability})")
+                .comment(failureComment(Rc.string.pump_cmd_err_tbr_could_not_be_delivered, f))
         }
     ) {
         setTempBasalPercentBody(percent, durationInMinutes, enforceNew, tbrType)
@@ -1595,9 +1605,9 @@ class TandemMobiPumpPlugin @Inject constructor(
     ): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "setTempBasalAbsolute",
         maxDuration = 2.minutes,
-        unavailable = { e ->
+        failed = { f ->
             PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_tbr_could_not_be_delivered) + " (${e.availability})")
+                .comment(failureComment(Rc.string.pump_cmd_err_tbr_could_not_be_delivered, f))
         }
     ) {
         aapsLogger.info(LTag.PUMP, "TBR setTempBasalAbsolute called with a rate of $absoluteRate for $durationInMinutes min [enforce=$enforceNew,tbrType=${tbrType.name}].")
@@ -1633,9 +1643,9 @@ class TandemMobiPumpPlugin @Inject constructor(
     override suspend fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "cancelTempBasal",
         maxDuration = 1.minutes,
-        unavailable = { e ->
+        failed = { f ->
             PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_cant_cancel_tbr) + " (${e.availability})")
+                .comment(failureComment(Rc.string.pump_cmd_err_cant_cancel_tbr, f))
         }
     ) {
         cancelTempBasalBody(enforceNew)
@@ -1726,9 +1736,9 @@ class TandemMobiPumpPlugin @Inject constructor(
     override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "setNewBasalProfile",
         maxDuration = 2.minutes,
-        unavailable = { e ->
+        failed = { f ->
             PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_basal_profile_could_not_be_set) + " (${e.availability})")
+                .comment(failureComment(Rc.string.pump_cmd_err_basal_profile_could_not_be_set, f))
         }
     ) {
         setNewBasalProfileBody(profile)

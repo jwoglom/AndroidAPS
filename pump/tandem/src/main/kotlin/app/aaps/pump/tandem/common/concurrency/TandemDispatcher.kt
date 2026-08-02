@@ -50,14 +50,29 @@ class TandemDispatcher @Inject constructor(
 
     /**
      * AAPS-side mutating ops (bolus, TBR, profile). Routes via [Priority.DEFAULT] with
-     * `requiresDeliveryEnabled = true`. On [PumpUnavailableException] (delivery gated by the
-     * pump being suspended / in cartridge change), produces a descriptive failed
-     * [PumpEnactResult] via [unavailable] so AAPS can re-request next cycle.
+     * `requiresDeliveryEnabled = true`.
+     *
+     * Neither queue-manufactured failure is allowed to escape into AAPS's command queue; both are
+     * mapped onto [failed] so the caller always returns a [PumpEnactResult] carrying a reason:
+     *  - [PumpUnavailableException] → [PumpOpFailure.Unavailable] — delivery gated by the pump
+     *    being suspended / in cartridge change / not yet observed. AAPS re-requests next cycle.
+     *  - [PumpOpTimeoutException] → [PumpOpFailure.TimedOut] — the op overran [maxDuration].
+     *
+     * The timeout mapping is load-bearing. Before it, the queue completed the Deferred with
+     * kotlinx's `TimeoutCancellationException`; that is a `CancellationException`, so it was
+     * rethrown by `QueueWorker` as worker cancellation instead of being handled as a failed
+     * command. The command's callback never ran and `CommandQueue.setProfile` hung on its
+     * `Deferred` for the full 10-minute guard before posting a reasonless
+     * "Failed to update basal profile" — while the pump had in fact already been written.
+     *
+     * Exceptions thrown by [block] itself are deliberately *not* caught: a driver bug should
+     * surface as a driver bug, and `QueueWorker` already completes the command's callback for
+     * ordinary exceptions.
      */
     internal fun <T : PumpEnactResult> submitMutating(
         name: String,
         maxDuration: Duration = 2.minutes,
-        unavailable: (PumpUnavailableException) -> T,
+        failed: (PumpOpFailure) -> T,
         block: PumpDispatcherScope.() -> T
     ): T = runBlocking {
         assertNotOnQueueThread(name)
@@ -68,13 +83,23 @@ class TandemDispatcher @Inject constructor(
             ).await()
         } catch (e: PumpUnavailableException) {
             logger.warn(LTag.PUMP, "$name: ${e.message}")
-            unavailable(e)
+            failed(PumpOpFailure.Unavailable(e.availability))
+        } catch (e: PumpOpTimeoutException) {
+            // The op body is not interruptible, so the wire work may still be running — or may
+            // have succeeded. Log loudly: this is the case where AAPS and the pump can disagree.
+            logger.error(LTag.PUMP, "$name: ${e.message}; pump state may have changed regardless")
+            failed(PumpOpFailure.TimedOut(e.maxDuration))
         }
     }
 
     /**
      * Reads / config writes that don't require delivery to be enabled. Routes via
      * [Priority.DEFAULT].
+     *
+     * [T] is unconstrained, so there is no failure value to synthesise — a timeout propagates as
+     * [PumpOpTimeoutException]. That is an ordinary exception rather than a `CancellationException`
+     * (see [PumpOpTimeoutException]), so `QueueWorker` completes the command's callback and the
+     * awaiting caller is resolved instead of hanging.
      */
     internal fun <T> submitDefault(
         name: String,
