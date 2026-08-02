@@ -3,6 +3,7 @@ package app.aaps.pump.tandem.common.concurrency
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import com.jwoglom.pumpx2.pump.messages.Message
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -20,10 +21,36 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.ArrayDeque
 import java.util.EnumMap
 import java.util.concurrent.Executors
+import kotlin.time.Duration
 
 /** Thrown into a fast-failing op's Deferred when delivery is gated by [PumpAvailability]. */
 class PumpUnavailableException(val availability: PumpAvailability, val opName: String) :
     RuntimeException("Pump op '$opName' rejected: availability=$availability")
+
+/**
+ * Thrown into an op's Deferred when it overran its [PumpOp.maxDuration].
+ *
+ * Deliberately a plain [RuntimeException] and **not** kotlinx's `TimeoutCancellationException`,
+ * which is a `CancellationException`. AAPS's `QueueWorker` rethrows `CancellationException` to
+ * honour worker cancellation, which bypasses the handler that completes a failed command's
+ * callback — the caller's `Deferred` then never completes and `CommandQueue.setProfile` hangs
+ * until its own 10-minute timeout, surfacing as a bare "Failed to update basal profile" with no
+ * reason. Handing back a normal exception keeps the command-failed path intact.
+ *
+ * Note the op body is not interruptible (see [BlockingPumpOp]), so the underlying wire work may
+ * still be in flight — or may have *succeeded* — when this is raised.
+ */
+class PumpOpTimeoutException(val opName: String, val maxDuration: Duration) :
+    RuntimeException("Pump op '$opName' timed out after $maxDuration")
+
+/**
+ * Wraps a [CancellationException] raised by an op body (or by [PumpOpQueue.shutdown] cancelling
+ * the dispatcher scope) so it reaches the caller as an ordinary failure. Same rationale as
+ * [PumpOpTimeoutException]: cancellation must not propagate out of the queue and be mistaken for
+ * AAPS worker cancellation.
+ */
+class PumpOpFailedException(val opName: String, cause: Throwable) :
+    RuntimeException("Pump op '$opName' was cancelled: ${cause.message}", cause)
 
 /**
  * Single-dispatcher pump op queue with four-tier priority and per-tier rate limiting.
@@ -187,10 +214,15 @@ class PumpOpQueue(
             deferred.complete(result)
         } catch (t: TimeoutCancellationException) {
             logger.error(LTag.PUMP, "PumpOpQueue: '${op.name}' timed out after ${op.maxDuration}")
-            deferred.completeExceptionally(t)
+            deferred.completeExceptionally(PumpOpTimeoutException(op.name, op.maxDuration))
         } catch (t: Throwable) {
             logger.error(LTag.PUMP, "PumpOpQueue: '${op.name}' threw: ${t.message}", t)
-            deferred.completeExceptionally(t)
+            // Same reasoning as the timeout branch: a CancellationException from the op body (or
+            // from shutdown() cancelling the scope) must not reach the caller as cancellation, or
+            // its callback is lost and the awaiting command hangs.
+            deferred.completeExceptionally(
+                if (t is CancellationException) PumpOpFailedException(op.name, t) else t
+            )
         } finally {
             synchronized(lock) {
                 inFlight = null
