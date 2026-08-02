@@ -34,6 +34,7 @@ import app.aaps.pump.tandem.common.comm.TandemPumpCommunicationManager
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
 import app.aaps.pump.tandem.common.data.IDPSegmentDto
+import app.aaps.pump.tandem.common.data.IdpSegmentComparison
 import app.aaps.pump.tandem.common.data.PumpProfileDto
 import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 import app.aaps.pump.tandem.common.data.defs.TandemCommandType
@@ -1008,6 +1009,18 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         val gsonText = pumpUtil.gson.toJson(idpSegments)
         aapsLogger.debug(LTag.PUMPCOMM, "sendBasalProfile - Converted segments: $gsonText")
+
+        // Idempotence guard. AAPS re-pushes a profile whenever a previous push failed to be
+        // *recorded* even though it reached the pump, so the retry would delete and rewrite ~16
+        // segments (~30 s of BLE) to arrive at the state already on the pump — and would leave a
+        // partially deleted profile behind if it failed part-way. The read-back above already told
+        // us what the pump holds; if it matches, there is nothing to write.
+        if (!pumpProfileDto.isNewScenario &&
+            IdpSegmentComparison.pumpAlreadyHas(idpSegments, pumpProfileDto.mapSegments)
+        ) {
+            aapsLogger.info(LTag.PUMPCOMM, "sendBasalProfile - pump already holds the requested profile, nothing to write")
+            return DataCommandResponse(PumpCommandType.SetBasalProfile, true, null, true)
+        }
 
         var responseText : String?
         var success = false
