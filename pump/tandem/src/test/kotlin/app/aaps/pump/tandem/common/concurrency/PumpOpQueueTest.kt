@@ -3,6 +3,7 @@ package app.aaps.pump.tandem.common.concurrency
 import app.aaps.shared.tests.AAPSLoggerTest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -23,6 +24,10 @@ import kotlin.time.Duration.Companion.seconds
  *  - rate-limit preemption (regression risk: history sync starves user taps)
  *  - timeout failure *type* (regression risk: a queue timeout read as coroutine cancellation
  *    loses the AAPS command callback and hangs the caller — see the timeout tests below)
+ *  - the deadline bounding the caller rather than the body (regression risk: running ops on the
+ *    dispatch thread makes withTimeout unable to preempt them, so maxDuration stops meaning
+ *    anything)
+ *  - every op completing its Deferred (regression risk: the general form of the hang above)
  *
  * Skipped as too trivial / tautological:
  *  - in-tier FIFO (tests the backing deque)
@@ -160,7 +165,7 @@ class PumpOpQueueTest {
     private class OverrunningOp(
         override val name: String = "setNewBasalProfile",
         override val maxDuration: Duration = 100.milliseconds,
-        private val blockFor: Long = 600
+        private val blockFor: Long = 1_500
     ) : PumpOp<Unit>() {
         override val requiresDeliveryEnabled = true
         override suspend fun run(ctx: PumpOpContext) {
@@ -168,10 +173,20 @@ class PumpOpQueueTest {
         }
     }
 
+    /** Minimal op whose body is whatever [body] does. */
+    private fun simpleOp(opName: String, body: () -> Unit): PumpOp<Unit> = object : PumpOp<Unit>() {
+        override val name = opName
+        override val maxDuration = 5.seconds
+        override val requiresDeliveryEnabled = false
+        override suspend fun run(ctx: PumpOpContext) = body()
+    }
+
     @Test
     fun `op exceeding maxDuration fails with PumpOpTimeoutException, never a CancellationException`() = runBlocking {
         val q = PumpOpQueue(logger, availability(), gate(), rateLimits = emptyMap())
+        val startedAt = System.currentTimeMillis()
         val thrown = runCatching { q.submit(OverrunningOp(), Priority.DEFAULT).await() }.exceptionOrNull()
+        val elapsed = System.currentTimeMillis() - startedAt
 
         assertTrue(thrown is PumpOpTimeoutException, "expected PumpOpTimeoutException, got $thrown")
         // The load-bearing assertion. A CancellationException here means QueueWorker rethrows it,
@@ -182,6 +197,36 @@ class PumpOpQueueTest {
         )
         assertEquals("setNewBasalProfile", (thrown as PumpOpTimeoutException).opName)
         assertEquals(100.milliseconds, thrown.maxDuration)
+        // maxDuration must bound the *caller*. This is the assertion that catches the real defect:
+        // while bodies ran on the dispatch thread, withTimeout's cancellation had to be dispatched
+        // onto the very thread the body was blocking, so it never arrived and no timeout was ever
+        // raised - the caller just waited out the full 1.5s body (or, in production, forever).
+        // Bound generously: what must be caught is the caller waiting out the entire 1.5s body,
+        // not a few hundred ms of scheduler jitter on a loaded CI machine.
+        assertTrue(elapsed < 1_000, "caller should be released at the 100ms deadline but waited ${elapsed}ms")
+        q.shutdown()
+    }
+
+    @Test
+    fun `every submitted op completes its Deferred, whatever the outcome`() = runBlocking {
+        // The invariant behind this whole bug class: a caller blocked on a Deferred that is never
+        // completed waits forever, and every fix so far has been about one specific way to leave
+        // one uncompleted. Assert the general property over every way an op can end.
+        val q = PumpOpQueue(logger, availability(), gate(), rateLimits = emptyMap())
+        val ops: List<PumpOp<Unit>> = listOf(
+            simpleOp("succeeds") { },
+            simpleOp("throws") { throw IllegalStateException("driver bug") },
+            simpleOp("cancels") { throw CancellationException("driver cancelled") },
+            OverrunningOp(name = "overruns", blockFor = 400)
+        )
+        val deferreds = ops.map { q.submit(it, Priority.DEFAULT) }
+
+        // withTimeout, not a bare await: an uncompleted Deferred must fail this test, not hang it.
+        withTimeout(10.seconds) { deferreds.forEach { runCatching { it.await() } } }
+
+        deferreds.forEachIndexed { i, d ->
+            assertTrue(d.isCompleted, "'${ops[i].name}' left its Deferred uncompleted - its caller would block forever")
+        }
         q.shutdown()
     }
 
@@ -206,11 +251,15 @@ class PumpOpQueueTest {
 
     @Test
     fun `a timed-out op does not wedge the queue - later ops still dispatch`() = runBlocking {
-        // The op body is not interruptible, so the timeout fires while the thread is still blocked.
-        // The dispatcher must recover once the body returns rather than stalling forever.
+        // The op body is not interruptible, so the queue deliberately holds the next op back until
+        // the overrunning body really finishes (the comm layer is not re-entrant). What must not
+        // happen is the dispatcher stalling permanently.
         val q = PumpOpQueue(logger, availability(), gate(), rateLimits = emptyMap())
+        // Default 1.5s body against a 100ms deadline: wide enough that scheduler jitter cannot let
+        // the body land inside the deadline-handling window, where the queue would rightly keep its
+        // result instead of failing it.
         val timedOut = runCatching { q.submit(OverrunningOp(), Priority.DEFAULT).await() }.exceptionOrNull()
-        assertTrue(timedOut is PumpOpTimeoutException)
+        assertTrue(timedOut is PumpOpTimeoutException, "expected the op to time out, got $timedOut")
 
         val ran = AtomicInteger(0)
         val next = object : PumpOp<Int>() {
@@ -219,7 +268,9 @@ class PumpOpQueueTest {
             override val requiresDeliveryEnabled = false
             override suspend fun run(ctx: PumpOpContext): Int = ran.incrementAndGet()
         }
-        assertEquals(1, q.submit(next, Priority.DEFAULT).await())
+        // withTimeout, not a bare await: a wedged queue must fail this test rather than hang the
+        // build, which is what the assertion is here to detect in the first place.
+        assertEquals(1, withTimeout(10.seconds) { q.submit(next, Priority.DEFAULT).await() })
         assertEquals(1, ran.get())
         q.shutdown()
     }

@@ -38,12 +38,14 @@ class TandemDispatcher @Inject constructor(
     }
 
     /**
-     * The blocking submit* helpers must never be called from the queue thread: runBlocking would
-     * wait for an op only that same thread can run → deadlock. Fail fast instead.
+     * The blocking submit* helpers must never be called from one of the queue's own threads:
+     * runBlocking would wait for an op that cannot be dispatched until the caller returns →
+     * deadlock. Matches on prefix so both the dispatch thread and the op-body thread
+     * ([PumpOpQueue.BODY_THREAD_NAME]) are rejected. Fail fast instead.
      */
     private fun assertNotOnQueueThread(name: String) {
-        check(Thread.currentThread().name != PumpOpQueue.THREAD_NAME) {
-            "$name called on the ${PumpOpQueue.THREAD_NAME} thread; runBlocking would deadlock the queue. " +
+        check(!Thread.currentThread().name.startsWith(PumpOpQueue.THREAD_NAME)) {
+            "$name called on the ${Thread.currentThread().name} thread; runBlocking would deadlock the queue. " +
                 "Do not call submit* from inside a pump op block."
         }
     }
@@ -52,18 +54,24 @@ class TandemDispatcher @Inject constructor(
      * AAPS-side mutating ops (bolus, TBR, profile). Routes via [Priority.DEFAULT] with
      * `requiresDeliveryEnabled = true`.
      *
-     * Neither queue-manufactured failure is allowed to escape into AAPS's command queue; both are
-     * mapped onto [failed] so the caller always returns a [PumpEnactResult] carrying a reason:
+     * No queue-manufactured failure is allowed to escape into AAPS's command queue; each is mapped
+     * onto [failed] so the caller always returns a [PumpEnactResult] carrying a reason:
      *  - [PumpUnavailableException] → [PumpOpFailure.Unavailable] — delivery gated by the pump
      *    being suspended / in cartridge change / not yet observed. AAPS re-requests next cycle.
      *  - [PumpOpTimeoutException] → [PumpOpFailure.TimedOut] — the op overran [maxDuration].
+     *  - [PumpOpFailedException] → [PumpOpFailure.Cancelled] — the body raised a
+     *    `CancellationException`, or the queue shut down around it.
      *
-     * The timeout mapping is load-bearing. Before it, the queue completed the Deferred with
-     * kotlinx's `TimeoutCancellationException`; that is a `CancellationException`, so it was
-     * rethrown by `QueueWorker` as worker cancellation instead of being handled as a failed
-     * command. The command's callback never ran and `CommandQueue.setProfile` hung on its
-     * `Deferred` for the full 10-minute guard before posting a reasonless
-     * "Failed to update basal profile" — while the pump had in fact already been written.
+     * The timeout mapping is load-bearing, and worth stating precisely because the first attempt
+     * at this fix described the failure wrongly. `maxDuration` used to be *inert* for the ops this
+     * driver actually submits: their bodies never suspend, so while they ran on the queue's
+     * dispatch thread `withTimeout` could not deliver its cancellation and no timeout was ever
+     * raised. `CommandQueue.setProfile` simply waited on its `Deferred` for the full 10-minute
+     * guard and then posted a reasonless "Failed to update basal profile" — while the pump had in
+     * fact already been written. [PumpOpQueue] now runs bodies off the dispatch thread, so the
+     * deadline genuinely fires; that in turn makes the *type* it fires as matter, because a
+     * `CancellationException` would be rethrown by `QueueWorker` as worker cancellation and the
+     * command's callback would be lost instead of completed.
      *
      * Exceptions thrown by [block] itself are deliberately *not* caught: a driver bug should
      * surface as a driver bug, and `QueueWorker` already completes the command's callback for
@@ -89,6 +97,9 @@ class TandemDispatcher @Inject constructor(
             // have succeeded. Log loudly: this is the case where AAPS and the pump can disagree.
             logger.error(LTag.PUMP, "$name: ${e.message}; pump state may have changed regardless")
             failed(PumpOpFailure.TimedOut(e.maxDuration))
+        } catch (e: PumpOpFailedException) {
+            logger.error(LTag.PUMP, "$name: ${e.message}; pump state may have changed regardless", e)
+            failed(PumpOpFailure.Cancelled)
         }
     }
 

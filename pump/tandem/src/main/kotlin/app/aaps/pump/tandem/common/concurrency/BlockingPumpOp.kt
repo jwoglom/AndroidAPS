@@ -5,12 +5,15 @@ import kotlin.time.Duration
 /**
  * Wraps an existing blocking call site as a [PumpOp]. Used by the Phase A migration to route
  * legacy synchronous methods (e.g. `pumpConnectionManager.deliverBolus(...)`) through the queue
- * without rewriting their bodies. The block runs on the dispatcher's single thread, so blocking
- * is safe relative to other queued ops.
+ * without rewriting their bodies. Ops are serialised by the queue, so blocking here is safe
+ * relative to other queued ops.
  *
- * Note: [block] is plain Java/Kotlin code and is not interruptible — `withTimeout` will fail the
- * Deferred at [maxDuration] but cannot abort an in-progress BLE round-trip. This matches existing
- * driver behaviour; the COMMAND_TIMEOUT inside TandemCommunicationManager is the real bound.
+ * Note: [block] is plain Java/Kotlin code and never suspends, so it cannot be preempted by
+ * `withTimeout` at all — run on the dispatch thread it made [maxDuration] inert. [PumpOpQueue]
+ * therefore runs it on a thread of its own, where the deadline really does bound how long the
+ * *caller* waits. It still cannot abort an in-progress BLE round-trip: the queue holds the next
+ * op back until the body finishes, and the COMMAND_TIMEOUT inside TandemCommunicationManager
+ * remains the bound on the wire.
  */
 class BlockingPumpOp<T>(
     override val name: String,
