@@ -1376,11 +1376,23 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     /**
      * User-visible comment for a pump op that never produced a driver result: the translated
-     * sentence for [messageResId] plus [failure]'s short diagnostic token, joined by a format
-     * resource so translators control the separator.
+     * sentence for [messageResId] qualified by why it failed, always via a format resource so
+     * translators control the wording and the separator.
+     *
+     * The distinction matters for what the user does next. A gated op never reached the pump, so
+     * nothing changed. A timed-out or cancelled op was abandoned by the app while the driver body
+     * was still running and *cannot* be reported as "nothing happened" — the write may already
+     * have landed on the pump, so the user is told the outcome is unknown rather than being left
+     * to assume a clean failure and retry blind.
+     *
+     * The `when` is exhaustive on purpose: a new [PumpOpFailure] case breaks this build until it
+     * has been given its own explanation.
      */
-    private fun failureComment(@StringRes messageResId: Int, failure: PumpOpFailure): String =
-        rh.gs(Rc.string.pump_cmd_err_reason, rh.gs(messageResId), failure.diagnostic)
+    private fun failureComment(@StringRes messageResId: Int, failure: PumpOpFailure): String = when (failure) {
+        is PumpOpFailure.Unavailable -> rh.gs(Rc.string.pump_cmd_err_reason, rh.gs(messageResId), failure.diagnostic)
+        is PumpOpFailure.TimedOut    -> rh.gs(Rc.string.pump_cmd_err_outcome_unknown_timeout, rh.gs(messageResId), failure.maxDuration.toString())
+        PumpOpFailure.Cancelled      -> rh.gs(Rc.string.pump_cmd_err_outcome_unknown, rh.gs(messageResId))
+    }
 
     override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "deliverBolus",

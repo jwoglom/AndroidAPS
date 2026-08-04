@@ -129,6 +129,8 @@
     <string name="pump_cmd_err_cant_cancel_tbr_stop_op">Could not cancel current TBR. Stopping operation.</string>
     <string name="pump_cmd_err_cant_cancel_tbr">Could not cancel current TBR.</string>
     <string name="pump_cmd_err_reason" comment="%1$s=error sentence, %2$s=short untranslated diagnostic token identifying the driver state. Example: Bolus could not be delivered. (Unknown)">%1$s (%2$s)</string>
+    <string name="pump_cmd_err_outcome_unknown_timeout" comment="%1$s=error sentence, %2$s=how long the app waited, e.g. 2m or 30s. Shown when the app gave up waiting and cannot tell whether the pump carried the command out.">%1$s The app stopped waiting after %2$s and cannot tell whether the pump applied the change. Check the pump before trying again.</string>
+    <string name="pump_cmd_err_outcome_unknown" comment="%1$s=error sentence. Shown when a command was interrupted and the app cannot tell whether the pump carried it out.">%1$s The app cannot tell whether the pump applied the change. Check the pump before trying again.</string>
 
     <!-- Pump Time -->
     <string name="pump_time_difference_too_big">Time difference between pump and phone is over %1$d s (%2$d)</string>

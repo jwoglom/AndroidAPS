@@ -8,14 +8,17 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.ArrayDeque
@@ -37,8 +40,11 @@ class PumpUnavailableException(val availability: PumpAvailability, val opName: S
  * until its own 10-minute timeout, surfacing as a bare "Failed to update basal profile" with no
  * reason. Handing back a normal exception keeps the command-failed path intact.
  *
- * Note the op body is not interruptible (see [BlockingPumpOp]), so the underlying wire work may
- * still be in flight — or may have *succeeded* — when this is raised.
+ * Note the op body is not interruptible (see [BlockingPumpOp]). The deadline bounds how long the
+ * *caller* waits, not the wire: the body keeps running on its own thread and the underlying pump
+ * write may still land after this is raised. Callers that mutate pump state must treat a timeout
+ * as "outcome unknown", not as "nothing happened" — [PumpOpFailure.TimedOut] carries that to the
+ * user.
  */
 class PumpOpTimeoutException(val opName: String, val maxDuration: Duration) :
     RuntimeException("Pump op '$opName' timed out after $maxDuration")
@@ -74,8 +80,15 @@ class PumpOpQueue(
 ) {
 
     companion object {
-        /** Name of the single thread all ops run on. Callers must never block on it (deadlock). */
+        /** Name of the single thread the dispatch loop runs on. Callers must never block on it (deadlock). */
         const val THREAD_NAME = "TandemPumpOpQueue"
+
+        /**
+         * Name of the single thread op bodies run on. Shares [THREAD_NAME]'s prefix so
+         * `TandemDispatcher.assertNotOnQueueThread` rejects a re-entrant submit from either
+         * thread — both would deadlock.
+         */
+        const val BODY_THREAD_NAME = "$THREAD_NAME-body"
 
         /** Default: BACKGROUND throttled at 1 msg/s, burst 2. Other tiers unrate-limited. */
         fun defaultRateLimits(): Map<Priority, RateLimit> = mapOf(
@@ -114,6 +127,25 @@ class PumpOpQueue(
     }
     private val dispatcher = executor.asCoroutineDispatcher()
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+
+    /**
+     * Op bodies run here, never on the dispatch thread.
+     *
+     * [BlockingPumpOp] bodies never suspend, so a body sharing the dispatch thread made
+     * [PumpOp.maxDuration] **inert**, not merely late: `withTimeout` delivers its cancellation by
+     * dispatching onto the coroutine's own dispatcher, and that dispatch queues behind the body
+     * already blocking the single thread. The block then ran to completion and `withTimeout`
+     * returned its value, so no timeout was ever raised however long the op took — the caller
+     * simply waited, which is the hang this queue kept producing. Off the dispatch thread the
+     * deadline is real; see [runEntry].
+     *
+     * Still a single thread: the comm layer matches responses against shared in-flight lists and
+     * is not re-entrant, so bodies must not overlap even when one has outlived its deadline.
+     */
+    private val bodyExecutor = Executors.newSingleThreadExecutor { r ->
+        Thread(r, BODY_THREAD_NAME).apply { isDaemon = true }
+    }
+    private val bodyScope = CoroutineScope(SupervisorJob() + bodyExecutor.asCoroutineDispatcher())
 
     /** Single mutex around the wire so awaitable comm-suspend gating composes naturally. */
     private val wireMutex = Mutex()
@@ -160,10 +192,21 @@ class PumpOpQueue(
 
     private suspend fun dispatchLoop() {
         while (true) {
-            when (val pick = pickNext()) {
-                is Pick.Ready  -> runEntry(pick.entry)
-                is Pick.WaitMs -> withTimeoutOrNull(pick.ms) { wakeup.receive() }
-                is Pick.Idle   -> wakeup.receive()
+            try {
+                when (val pick = pickNext()) {
+                    is Pick.Ready  -> runEntry(pick.entry)
+                    is Pick.WaitMs -> withTimeoutOrNull(pick.ms) { wakeup.receive() }
+                    is Pick.Idle   -> wakeup.receive()
+                }
+            } catch (t: CancellationException) {
+                throw t // shutdown() cancelled the scope — stop dispatching.
+            } catch (t: Throwable) {
+                // This is the only dispatcher. Letting a throw escape kills it silently, and
+                // every queued and future op's Deferred then stays uncompleted with its caller
+                // blocked forever — the same class of hang PumpOpTimeoutException exists to
+                // prevent. Log it and keep going.
+                logger.error(LTag.PUMP, "PumpOpQueue: dispatch loop error, continuing: ${t.message}", t)
+                synchronized(lock) { inFlight = null }
             }
         }
     }
@@ -200,6 +243,7 @@ class PumpOpQueue(
     private suspend fun <T> runEntry(entry: Entry<T>) {
         val op = entry.op
         val deferred = entry.deferred
+        var body: Deferred<T>? = null
         try {
             if (op.requiresDeliveryEnabled && !availability.current.allowsDelivery) {
                 logger.warn(
@@ -210,11 +254,23 @@ class PumpOpQueue(
                 return
             }
             val ctx = Ctx(op)
-            val result = withTimeout(op.maxDuration) { op.run(ctx) }
-            deferred.complete(result)
+            // Run the body on bodyScope, not here: only then can withTimeout actually release the
+            // caller at maxDuration rather than after the (uninterruptible) body has finished.
+            val running = bodyScope.async { op.run(ctx) }
+            body = running
+            deferred.complete(withTimeout(op.maxDuration) { running.await() })
         } catch (t: TimeoutCancellationException) {
-            logger.error(LTag.PUMP, "PumpOpQueue: '${op.name}' timed out after ${op.maxDuration}")
-            deferred.completeExceptionally(PumpOpTimeoutException(op.name, op.maxDuration))
+            // The body may have finished in the same instant the deadline fired. Prefer its result
+            // over a manufactured failure — reporting "failed" for an op that succeeded is exactly
+            // how AAPS and the pump ended up disagreeing.
+            val landed = body?.takeIf { it.isCompleted }?.let { runCatching { it.getCompleted() } }
+            if (landed != null && landed.isSuccess) {
+                logger.warn(LTag.PUMP, "PumpOpQueue: '${op.name}' completed as its ${op.maxDuration} deadline fired; keeping the result")
+                deferred.complete(landed.getOrThrow())
+            } else {
+                logger.error(LTag.PUMP, "PumpOpQueue: '${op.name}' timed out after ${op.maxDuration}; releasing caller, body may still be running")
+                deferred.completeExceptionally(PumpOpTimeoutException(op.name, op.maxDuration))
+            }
         } catch (t: Throwable) {
             logger.error(LTag.PUMP, "PumpOpQueue: '${op.name}' threw: ${t.message}", t)
             // Same reasoning as the timeout branch: a CancellationException from the op body (or
@@ -224,11 +280,37 @@ class PumpOpQueue(
                 if (t is CancellationException) PumpOpFailedException(op.name, t) else t
             )
         } finally {
+            body?.let { drainOverrunningBody(op, it) }
             synchronized(lock) {
                 inFlight = null
                 op.coalesceKey?.let { pendingByKey.remove(it) }
             }
+            // Backstop for the whole class of bug this queue keeps hitting: a caller blocked on a
+            // Deferred that is never completed waits forever. Every exit from runEntry must leave
+            // the Deferred completed, however it got here.
+            if (!deferred.isCompleted) {
+                logger.error(LTag.PUMP, "PumpOpQueue: '${op.name}' left its result uncompleted")
+                deferred.completeExceptionally(
+                    PumpOpFailedException(op.name, IllegalStateException("op produced no result"))
+                )
+            }
         }
+    }
+
+    /**
+     * Hold the next op back until a body that outlived its deadline really finishes.
+     *
+     * The body is not interruptible and the comm layer is not re-entrant, so overlapping it with
+     * the next op would interleave traffic on the wire. The caller has already been released —
+     * that is the point: [PumpOp.maxDuration] bounds the caller, this bounds the wire. Returns
+     * immediately in the normal case, where the body is already done.
+     */
+    private suspend fun drainOverrunningBody(op: PumpOp<*>, body: Deferred<*>) {
+        if (body.isCompleted) return
+        logger.warn(LTag.PUMP, "PumpOpQueue: holding the queue until '${op.name}' body finishes")
+        // NonCancellable so the wire is still handed over cleanly during shutdown().
+        withContext(NonCancellable) { body.join() }
+        logger.warn(LTag.PUMP, "PumpOpQueue: '${op.name}' body finished after its deadline; wire free")
     }
 
     /** Per-op context. Created fresh per op so the [PumpOp.name] is captured for logs. */
@@ -244,6 +326,8 @@ class PumpOpQueue(
 
     fun shutdown() {
         scope.cancel()
+        bodyScope.cancel()
         executor.shutdown()
+        bodyExecutor.shutdown()
     }
 }
