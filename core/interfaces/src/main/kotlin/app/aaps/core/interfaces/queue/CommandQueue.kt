@@ -35,13 +35,17 @@ interface CommandQueue {
     fun performing(): Command?
 
     /**
-     * Clear `performing` after its command completed normally. The command's callback has already
-     * run, so nothing is resumed here.
+     * Clear `performing` after [command] completed normally. Its callback has already run, so
+     * nothing is resumed here.
+     *
+     * A no-op unless [command] is still the performing one. That guard matters when a worker is
+     * canceled but keeps unwinding while its replacement has already picked up the next command:
+     * an unconditional clear would detach *that* command instead, and its callback would never run.
      *
      * Do **not** use this to discard a command that did *not* complete — its callback would never
      * run and any caller awaiting it would hang until its own timeout. Use [cancelPerforming].
      */
-    fun resetPerforming()
+    fun resetPerforming(command: Command)
 
     /**
      * Clear `performing` for a command that is being abandoned without completing (worker stopped,
@@ -51,8 +55,13 @@ interface CommandQueue {
      * Abandoning a performing command silently is how a lost callback happens: the caller's
      * `Deferred` never completes, and e.g. `CommandQueue.setProfile` then blocks the sequential
      * ProfileSwitch collector for its full 10-minute guard before reporting a reasonless failure.
+     *
+     * Unlike [resetPerforming] this takes no command: callers abandon whatever is in flight
+     * without knowing what it is.
+     *
+     * @return true if a command was abandoned, false if nothing was performing.
      */
-    fun cancelPerforming(commentResId: Int)
+    fun cancelPerforming(commentResId: Int): Boolean
     fun bolusInQueue(): Boolean
     suspend fun bolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult
     fun cancelAllBoluses(id: Long?)

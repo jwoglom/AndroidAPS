@@ -540,6 +540,8 @@
     <string name="connectiontimedout">Connection timed out</string>
     <string name="command_replaced">Replaced by newer command</string>
     <string name="pump_not_configured">Pump not configured</string>
+    <string name="command_interrupted_outcome_unknown">Command was interrupted before it finished. It is not known whether the pump applied it. Check the pump before repeating.</string>
+    <string name="command_timeout_outcome_unknown">The pump did not respond in time. It is not known whether the pump applied the command. Check the pump before repeating.</string>
 
     <!--    PumpEnactResult-->
     <string name="enacted">Enacted</string>

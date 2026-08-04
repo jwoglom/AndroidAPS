@@ -45,6 +45,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import org.junit.jupiter.api.BeforeEach
@@ -173,6 +174,11 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
             whenever(rh.gs(app.aaps.core.ui.R.string.connectiontimedout)).thenReturn("Connection timed out")
             whenever(rh.gs(app.aaps.implementation.R.string.executing_right_now)).thenReturn("Executing right now")
             whenever(rh.gs(app.aaps.core.ui.R.string.command_replaced)).thenReturn("Replaced by newer command")
+            // Reasons the queue attaches when it abandons a command. Stubbed here rather than per
+            // test: Command.cancel() feeds them straight into PumpEnactResult.comment, which is
+            // non-null, so a missing stub NPEs inside the code under test.
+            whenever(rh.gs(app.aaps.core.ui.R.string.command_interrupted_outcome_unknown)).thenReturn("Interrupted")
+            whenever(rh.gs(app.aaps.core.ui.R.string.pump_not_configured)).thenReturn("Pump not configured")
             whenever(rh.gs(eq(app.aaps.core.ui.R.string.format_insulin_units), anyOrNull())).thenReturn("%1\$.2f U")
             whenever(rh.gs(app.aaps.core.ui.R.string.goingtodeliver)).thenReturn("Going to deliver %1\$.2f U")
             whenever(workManager.getWorkInfosForUniqueWork(anyOrNull())).thenReturn(infos)
@@ -442,7 +448,7 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         assertThat(commandQueue.size()).isEqualTo(0)
         assertThat(commandQueue.performing).isNotNull()
         assertThat(commandQueue.performing?.commandType).isEqualTo(Command.CommandType.TEMPBASAL)
-        commandQueue.resetPerforming()
+        commandQueue.resetPerforming(commandQueue.performing!!)
         assertThat(commandQueue.performing).isNull()
     }
 
@@ -679,25 +685,13 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
     // callback completes. Any path that removes a command without running that callback leaves the
     // caller awaiting forever: setProfile then blocks the sequential ProfileSwitch collector for
     // its full 10-minute guard and reports a reasonless "Failed to update basal profile", and a
-    // bolus caller is never told what happened. These tests pin the two paths that used to do that.
+    // bolus caller - which has no timeout of its own - is never told anything at all.
+    //
+    // These cover the queue's own detach paths. The QueueWorker paths that call into them live in
+    // QueueWorkerTest, where the worker harness is.
 
-    /** Builds the real QueueWorker over the test's queue and runs one pass, synchronously. */
-    private suspend fun runQueueWorkerOnce() {
-        TestListenableWorkerBuilder<QueueWorker>(context)
-            .setWorkerFactory(object : WorkerFactory() {
-                override fun createWorker(appContext: Context, workerClassName: String, workerParameters: WorkerParameters): ListenableWorker =
-                    QueueWorker(
-                        appContext, workerParameters, aapsLogger, fabricPrivacy, commandQueue,
-                        rxBus, activePlugin, rh, preferences, config, bolusProgressData
-                    )
-            })
-            .build()
-            .doWorkAndLog()
-    }
-
-    @Test
-    fun `abandoning a performing command resumes its caller with a failure`() = runTest {
-        whenever(rh.gs(app.aaps.core.ui.R.string.error)).thenReturn("Error")
+    /** Enqueues a profile set and picks it up, so `performing` holds a command with a live caller. */
+    private suspend fun TestScope.startPerformingSetProfile(): () -> PumpEnactResult? {
         testPumpPlugin.isProfileSet = false
         var result: PumpEnactResult? = null
         backgroundScope.launch { result = commandQueue.setProfile(effectiveProfile, false) }
@@ -705,22 +699,31 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         commandQueue.pickup()
         assertThat(commandQueue.performing?.commandType).isEqualTo(Command.CommandType.BASAL_PROFILE)
         assertThat(result).isNull()
+        return { result }
+    }
+
+    @Test
+    fun `abandoning a performing command resumes its caller with a failure`() = runTest {
+        val result = startPerformingSetProfile()
 
         // What a stopped / restarted worker now does instead of silently dropping the command.
-        commandQueue.cancelPerforming(app.aaps.core.ui.R.string.error)
+        assertThat(commandQueue.cancelPerforming(app.aaps.core.ui.R.string.command_interrupted_outcome_unknown)).isTrue()
         yield()
 
         assertThat(commandQueue.performing).isNull()
-        assertThat(result).isNotNull()
+        assertThat(result()).isNotNull()
         // Never success: the command did not run, so the caller must not be told the profile landed.
-        assertThat(result!!.success).isFalse()
+        assertThat(result()!!.success).isFalse()
+        // The reason has to reach the caller - it is what the FAILED_UPDATE_PROFILE notification
+        // shows, and a bare "Error" is what made the original incident unreadable.
+        assertThat(result()!!.comment).isEqualTo("Interrupted")
         testPumpPlugin.isProfileSet = true
     }
 
     @Test
     fun `cancelPerforming is a no-op when nothing is performing`() = runTest {
         assertThat(commandQueue.performing).isNull()
-        commandQueue.cancelPerforming(app.aaps.core.ui.R.string.error)
+        assertThat(commandQueue.cancelPerforming(app.aaps.core.ui.R.string.command_interrupted_outcome_unknown)).isFalse()
         assertThat(commandQueue.performing).isNull()
     }
 
@@ -729,57 +732,93 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         // Characterisation, not endorsement: resetPerforming is only correct after a command has
         // already completed. Using it on an in-flight command is exactly the lost-callback bug, so
         // this test exists to stop anyone "simplifying" cancelPerforming back into it.
-        testPumpPlugin.isProfileSet = false
-        var result: PumpEnactResult? = null
-        backgroundScope.launch { result = commandQueue.setProfile(effectiveProfile, false) }
-        yield()
-        commandQueue.pickup()
+        val result = startPerformingSetProfile()
+        val performing = commandQueue.performing!!
 
-        commandQueue.resetPerforming()
+        commandQueue.resetPerforming(performing)
         yield()
 
         assertThat(commandQueue.performing).isNull()
-        assertThat(result).isNull()
+        assertThat(result()).isNull()
         testPumpPlugin.isProfileSet = true
     }
 
     @Test
-    fun `a driver timeout during execute fails the command instead of killing the worker`() = runTest {
-        // TimeoutCancellationException is a CancellationException, so it used to hit QueueWorker's
-        // "honour worker cancellation" rethrow: the callback never ran and the caller hung.
-        whenever(rh.gs(app.aaps.core.ui.R.string.error)).thenReturn("Error")
-        testPumpPlugin.isProfileSet = false
-        testPumpPlugin.setNewBasalProfileTimesOut = true
-        var result: PumpEnactResult? = null
-        backgroundScope.launch { result = commandQueue.setProfile(effectiveProfile, false) }
+    fun `resetPerforming leaves a newer command alone`() = runTest {
+        // A canceled worker unwinding late must not detach the command its replacement just picked
+        // up - that would lose the newer command's callback instead of the stale one's.
+        val stale = startPerformingSetProfile()
+        val staleCommand = commandQueue.performing!!
+        assertThat(commandQueue.cancelPerforming(app.aaps.core.ui.R.string.command_interrupted_outcome_unknown)).isTrue()
         yield()
-        assertThat(commandQueue.size()).isEqualTo(1)
+        assertThat(stale()).isNotNull()
 
-        runQueueWorkerOnce()
+        // Replacement worker picks up the next command.
+        backgroundScope.launch { commandQueue.readStatus("newer") }
+        yield()
+        commandQueue.pickup()
+        val newer = commandQueue.performing
+        assertThat(newer?.commandType).isEqualTo(Command.CommandType.READSTATUS)
+
+        commandQueue.resetPerforming(staleCommand)
+
+        assertThat(commandQueue.performing).isSameInstanceAs(newer)
+        testPumpPlugin.isProfileSet = true
+    }
+
+    @Test
+    fun `clear resumes the caller of a performing command`() = runTest {
+        // clear() cancels every queued command but used to null `performing` silently - the same
+        // lost callback, reachable from the worker's connection-timeout branch and from the Dana
+        // pairing wizard.
+        val result = startPerformingSetProfile()
+
+        commandQueue.clear()
+        yield()
+
+        assertThat(commandQueue.performing).isNull()
+        assertThat(result()).isNotNull()
+        assertThat(result()!!.success).isFalse()
+        testPumpPlugin.isProfileSet = true
+    }
+
+    @Test
+    fun `completeAllAsNoOp resumes the caller of a performing command as a failure`() = runTest {
+        // Queued commands legitimately complete as a successful no-op here (nothing ran). The
+        // performing one was already in flight, so it must not claim success.
+        val result = startPerformingSetProfile()
+
+        commandQueue.completeAllAsNoOp(app.aaps.core.ui.R.string.pump_not_configured)
+        yield()
+
+        assertThat(commandQueue.performing).isNull()
+        assertThat(result()).isNotNull()
+        assertThat(result()!!.success).isFalse()
+        assertThat(result()!!.comment).isEqualTo("Pump not configured")
+        testPumpPlugin.isProfileSet = true
+    }
+
+    @Test
+    fun `abandoning a performing bolus fails the caller and clears bolus progress`() = runTest {
+        // The highest-stakes case: CommandBolus overrides cancel() to also drop the progress dialog,
+        // and telling the caller the dose succeeded when it may not have is the one thing the queue
+        // must never do.
+        var result: PumpEnactResult? = null
+        backgroundScope.launch { result = commandQueue.bolus(DetailedBolusInfo().also { it.insulin = 1.0 }) }
+        yield()
+        commandQueue.pickup()
+        assertThat(commandQueue.performing?.commandType).isEqualTo(Command.CommandType.BOLUS)
+        assertThat(bolusProgressData.state.value).isNotNull()
+
+        assertThat(commandQueue.cancelPerforming(app.aaps.core.ui.R.string.command_interrupted_outcome_unknown)).isTrue()
         yield()
 
         assertThat(result).isNotNull()
         assertThat(result!!.success).isFalse()
-        assertThat(commandQueue.size()).isEqualTo(0)
-        assertThat(commandQueue.performing).isNull()
-        testPumpPlugin.setNewBasalProfileTimesOut = false
-        testPumpPlugin.isProfileSet = true
-    }
-
-    @Test
-    fun `a command completing normally still resolves its caller through the worker`() = runTest {
-        // Control for the test above: same path, no driver timeout.
-        testPumpPlugin.isProfileSet = false
-        var result: PumpEnactResult? = null
-        backgroundScope.launch { result = commandQueue.setProfile(effectiveProfile, false) }
-        yield()
-
-        runQueueWorkerOnce()
-        yield()
-
-        assertThat(result).isNotNull()
-        assertThat(commandQueue.performing).isNull()
-        testPumpPlugin.isProfileSet = true
+        assertThat(result!!.enacted).isFalse()
+        // CommandBolus.cancel() drops the progress dialog; leaving it up is what the old silent
+        // abandon did.
+        assertThat(bolusProgressData.state.value).isNull()
     }
     // endregion
 

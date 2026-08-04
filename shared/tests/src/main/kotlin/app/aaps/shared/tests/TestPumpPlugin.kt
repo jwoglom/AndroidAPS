@@ -15,6 +15,7 @@ import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.PumpWithConcentration
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.implementation.pump.PumpEnactResultObject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +34,13 @@ class TestPumpPlugin(val rh: ResourceHelper) : PumpWithConcentration {
      * Tandem profile push), which is a *command* failure even though it is typed as cancellation.
      */
     var setNewBasalProfileTimesOut = false
+
+    /**
+     * When true, [setNewBasalProfile] throws a bare `CancellationException`. Models the other half
+     * of the contract: real coroutine cancellation must still propagate out of the queue worker
+     * (it is not a command failure), while the abandoned command's caller is resumed anyway.
+     */
+    var setNewBasalProfileThrowsCancellation = false
 
     override fun isConnected() = connected
     override fun isConnecting() = false
@@ -71,6 +79,7 @@ class TestPumpPlugin(val rh: ResourceHelper) : PumpWithConcentration {
 
     private suspend fun setNewBasalProfileResult(): PumpEnactResult {
         if (setNewBasalProfileTimesOut) withTimeout(1) { awaitCancellation() }
+        if (setNewBasalProfileThrowsCancellation) throw CancellationException("driver canceled")
         return PumpEnactResultObject(rh)
     }
     override fun isThisProfileSet(profile: EffectiveProfile): Boolean = isProfileSet

@@ -123,7 +123,14 @@ class CommandQueueImplementation @Inject constructor(
     private val enqueueLock = Any()
     override var waitingForDisconnect = false
 
-    @Volatile var performing: Command? = null
+    // Write-restricted on purpose. Every path that detaches a command from here must run its
+    // callback, otherwise the caller awaiting that command's Deferred is never resumed - the
+    // lost-callback bug. A private backing field confines those paths to this class, where they are
+    // pickup / resetPerforming / cancelPerforming / clear / completeAllAsNoOp and nothing else.
+    // (`private set` is not an option: @OpenForTesting makes the property open in test builds, and
+    // Kotlin prohibits a private setter on an open property.)
+    @Volatile private var _performing: Command? = null
+    val performing: Command? get() = _performing
 
     // Upper bound for a single pump profile push. A normal connection failure resolves the command
     // (and the awaited deferred) on its own; this only guards the pathological lost-callback case so a
@@ -318,12 +325,15 @@ class CommandQueueImplementation @Inject constructor(
 
     @Synchronized
     override fun pickup() {
-        synchronized(queue) { performing = queue.poll() }
+        synchronized(queue) { _performing = queue.poll() }
     }
 
     @Synchronized
     override fun clear() {
-        performing = null
+        // The performing command is abandoned exactly like the queued ones, and for the same
+        // reason: dropping it without running its callback leaves its caller awaiting forever.
+        val abandoned = _performing
+        _performing = null
         synchronized(queue) {
             for (i in queue.indices) {
                 // Connection-timeout drop: the pump was never reached, so the command was not
@@ -333,11 +343,15 @@ class CommandQueueImplementation @Inject constructor(
             }
             queue.clear()
         }
+        // The performing one may already have reached the pump, so its outcome is unknown - never
+        // success, and a reason that says so rather than the queued commands' "connection timed out".
+        abandoned?.cancel(app.aaps.core.ui.R.string.command_interrupted_outcome_unknown, success = false)
     }
 
     @Synchronized
     override fun completeAllAsNoOp(commentResId: Int) {
-        performing = null
+        val abandoned = _performing
+        _performing = null
         synchronized(queue) {
             for (i in queue.indices) {
                 queue[i].callback?.result(
@@ -346,24 +360,43 @@ class CommandQueueImplementation @Inject constructor(
             }
             queue.clear()
         }
+        // Queued commands never started, so a successful no-op is the truth for them. The performing
+        // one was already in flight and cannot claim that, so it is resumed as a failure carrying
+        // the same reason.
+        abandoned?.cancel(commentResId, success = false)
     }
 
     override fun size(): Int = queue.size
 
     override fun performing(): Command? = performing
 
-    override fun resetPerforming() {
-        performing = null
+    @Synchronized
+    override fun resetPerforming(command: Command) {
+        if (_performing !== command) {
+            // A canceled worker still unwinding, whose replacement already picked up the next
+            // command. Clearing unconditionally here would detach that newer command and lose its
+            // callback, which is the bug this whole area exists to prevent.
+            aapsLogger.debug(LTag.PUMPQUEUE, "resetPerforming ignored, no longer performing: " + command.log())
+            return
+        }
+        _performing = null
     }
 
+    /**
+     * Detach the performing command under the lock so its callback can be run *outside* the monitor.
+     * A callback resumes the coroutine awaiting the command, which may re-enter the queue; doing
+     * that while holding this monitor is a stall waiting to happen.
+     */
     @Synchronized
-    override fun cancelPerforming(commentResId: Int) {
-        val abandoned = performing ?: return
-        performing = null
+    private fun takePerforming(): Command? = _performing?.also { _performing = null }
+
+    override fun cancelPerforming(commentResId: Int): Boolean {
+        val abandoned = takePerforming() ?: return false
         aapsLogger.debug(LTag.PUMPQUEUE, "Abandoning performing command, resuming its caller: " + abandoned.log())
         // success = false: the command did not run to completion, so a caller must not be told
         // its dose / profile was applied.
         abandoned.cancel(commentResId, success = false)
+        return true
     }
 
     private fun workIsRunning(): Boolean {
@@ -806,7 +839,14 @@ class CommandQueueImplementation @Inject constructor(
         synchronized(queue) {
             for (i in queue.indices.reversed()) {
                 val command = queue[i]
-                if (command is CustomCommand && targetType.isInstance(command.commandType)) {
+                // Was `command is CustomCommand && targetType.isInstance(command.commandType)`, which
+                // could never match: the queue holds CommandCustomCommand (not CustomCommand), and
+                // commandType is a Command.CommandType enum, never a CustomCommand. The removal also
+                // ran without cancel(), so had it ever matched it would have lost the caller's
+                // callback. Matching the shape used by isCustomCommandInQueue and cancelling like
+                // removeAll does.
+                if (command is CommandCustomCommand && targetType.isInstance(command.customCommand)) {
+                    command.cancel(app.aaps.core.ui.R.string.command_replaced)
                     queue.removeAt(i)
                 }
             }

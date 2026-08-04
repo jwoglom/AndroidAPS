@@ -56,13 +56,13 @@ class QueueWorker @AssistedInject internal constructor(
 
     override suspend fun doWorkAndLog(): Result {
         queue.waitingForDisconnect = false
-        // Defensive: a previous worker may have been canceled mid-execute (e.g. blocking sleep
-        // not honoring coroutine cancellation), leaving `performing` set. Without this the new
-        // worker's main loop has no matching branch (performing != null AND queue non-empty) and
-        // spins. Cancel rather than reset: that command's callback never ran, so anything awaiting
-        // it (CommandQueue.setProfile, bolus, readStatus) would otherwise hang until its own
-        // timeout — the "Failed to update basal profile" 10-minute stall.
-        queue.cancelPerforming(R.string.error)
+        // Defensive: a previous worker may have died without running its own finally (process kill),
+        // leaving `performing` set. Without this the new worker's main loop has no matching branch
+        // (performing != null AND queue non-empty) and spins. Cancel rather than reset: that
+        // command's callback never ran, so anything awaiting it (CommandQueue.setProfile, bolus,
+        // readStatus) would otherwise hang until its own timeout — the "Failed to update basal
+        // profile" 10-minute stall.
+        queue.cancelPerforming(R.string.command_interrupted_outcome_unknown)
         val wakeLock = (context.getSystemService(Context.POWER_SERVICE) as PowerManager?)?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, rh.gs(config.appName) + ":" + this::class.simpleName)
         wakeLock?.acquire(T.mins(10).msecs())
         rxBus.send(EventQueueChanged())
@@ -71,13 +71,11 @@ class QueueWorker @AssistedInject internal constructor(
         var connectionStartTime = lastCommandTime
         try {
             while (true) {
-                // Stopped mid-flight (WorkManager quota, cancellation): resume whatever we were
-                // performing before walking away, so its caller isn't left awaiting a callback
-                // that can never run.
-                if (isStopped) {
-                    queue.cancelPerforming(R.string.error)
-                    return Result.failure()
-                }
+                // Stopped mid-flight (WorkManager quota, cancellation). Anything left performing is
+                // resumed by the finally below, which also covers the far more common shape of this
+                // exit: WorkManager's stop cancels the coroutine, so the cancellation surfaces at a
+                // suspension point inside executeWithCallback and unwinds straight past this check.
+                if (isStopped) return Result.failure()
                 val secondsElapsed = (System.currentTimeMillis() - connectionStartTime) / 1000
                 val pump = activePlugin.activePump
                 if (!pump.isConfigured()) {
@@ -179,12 +177,19 @@ class QueueWorker @AssistedInject internal constructor(
                                 // branch it hits the rethrow below, the callback never runs, and
                                 // the caller's deferred hangs until its own timeout (a Tandem
                                 // profile push surfacing as "Failed to update basal profile" ten
-                                // minutes later). Drivers should not let this reach us — see
-                                // PumpOpTimeoutException in the Tandem dispatcher — but the queue
+                                // minutes later). A driver should convert its own timeout into an
+                                // ordinary exception rather than let kotlinx's escape, but the queue
                                 // must not depend on every driver getting that right.
+                                //
+                                // Keep this branch ABOVE the CancellationException one: kotlinx types
+                                // TimeoutCancellationException as a CancellationException, and Kotlin
+                                // (unlike Java) does not reject a subclass caught after its
+                                // superclass, so swapping them silently makes this unreachable.
                                 aapsLogger.error(LTag.PUMPQUEUE, "Command timed out in driver: " + it.log(), e)
                                 fabricPrivacy.logException(e)
-                                it.cancel(R.string.error, success = false)
+                                // The write may well have landed before the driver gave up, so the
+                                // outcome is genuinely unknown - report that, never success.
+                                it.cancel(R.string.command_timeout_outcome_unknown, success = false)
                             } catch (e: CancellationException) {
                                 throw e // honor coroutine cancellation (worker stopped)
                             } catch (e: Exception) {
@@ -197,7 +202,7 @@ class QueueWorker @AssistedInject internal constructor(
                                 fabricPrivacy.logException(e)
                                 it.cancel(R.string.error, success = false)
                             }
-                            queue.resetPerforming()
+                            queue.resetPerforming(it)
                             rxBus.send(EventQueueChanged())
                             lastCommandTime = System.currentTimeMillis()
                             delay(timeMillis = 100)
@@ -231,6 +236,15 @@ class QueueWorker @AssistedInject internal constructor(
                 }
             }
         } finally {
+            // Single backstop for the lost-callback bug, covering every way out of the loop above:
+            // isStopped, worker cancellation surfacing mid-execute, a driver throwing a bare
+            // CancellationException that the rethrow above honors. A command still marked performing
+            // at this point has not run its callback, so its caller would await a result that can
+            // never arrive - bolus() has no timeout of its own, so that wait is unbounded. Resuming
+            // it here rather than leaving it to the next worker also means recovery does not depend
+            // on another command arriving to start one.
+            if (queue.cancelPerforming(R.string.command_interrupted_outcome_unknown))
+                rxBus.send(EventQueueChanged())
             if (wakeLock?.isHeld == true) wakeLock.release()
             aapsLogger.debug(LTag.PUMPQUEUE, "work end")
         }
