@@ -13,14 +13,14 @@ import app.aaps.shared.impl.utils.DateUtilImpl
 import app.aaps.shared.tests.TestBase
 import app.aaps.shared.tests.TestPumpPlugin
 import org.json.JSONObject
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.mockito.Mock
 import org.mockito.Mockito
 import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.anyString
 import org.mockito.Mockito.`when`
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class ProfileUtilTest : TestBase() {
 

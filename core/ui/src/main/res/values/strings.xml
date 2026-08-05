@@ -266,6 +266,7 @@
     <string name="basalprofilenotaligned">Basal values not aligned to hours: %1$s</string>
     <string name="minimalbasalvaluereplaced">Basal value replaced by minimum supported value: %1$s</string>
     <string name="maximumbasalvaluereplaced">Basal value replaced by maximum supported value: %1$s</string>
+    <string name="profile_per_unit">/U</string>
     <string name="profile_ins_units_per_hour">U/h</string>
     <string name="profile_carbs_per_unit">g/U</string>
 

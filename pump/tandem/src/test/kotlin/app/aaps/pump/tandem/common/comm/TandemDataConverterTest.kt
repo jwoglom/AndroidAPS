@@ -2,6 +2,7 @@ package app.aaps.pump.tandem.common.comm
 
 import android.content.Context
 import android.content.SharedPreferences
+import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -60,6 +61,9 @@ class TandemDataConverterTest : TestBase() {
         sp = Mockito.mock(SP::class.java)
         tandemPumpUtil = Mockito.mock(TandemPumpUtil::class.java)
         tandemPumpStatus = Mockito.mock(TandemPumpStatus::class.java)
+        // getIDPSegmentsFromProfile rounds basal values per pump type; an unstubbed mock hands
+        // back a null PumpType and determineCorrectBasalSize then NPEs on its receiver.
+        `when`(tandemPumpStatus.pumpType).thenReturn(PumpType.TANDEM_MOBI_BT)
 
 
         //sharedPreferences = PreferenceManager(context)
