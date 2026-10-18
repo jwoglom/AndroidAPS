@@ -149,6 +149,10 @@ class CommandQueueImplementation(
     @Suppress("PrivatePropertyName")
     private val PROFILE_SET_TIMEOUT_MS = 10 * 60 * 1000
 
+    // Minimum time between two forced re-uploads of the same PS.
+    @Suppress("PrivatePropertyName")
+    private val FORCED_UPLOAD_COOLDOWN_MS = 15 * 60 * 1000L
+
     init {
         // collectResilient guarantees a single failed onProfileChanged() can never permanently wedge
         // profile switching (an unguarded collector would be canceled for the whole process lifetime,
@@ -169,11 +173,16 @@ class CommandQueueImplementation(
         aapsLogger.debug(LTag.PROFILE, "onProfileChanged (silent=$silent)")
         // Exceptions are handled by collectResilient at the call site; here we only guard the hang vector.
         profileFunction.getRequestedProfile()?.let {
-            // Skip if the active EPS was already triggered by this PS (e.g. NSClient updating PS with nsId
-            // retriggers observeChanges(PS)). The previous onProfileChanged already pushed the profile to the pump.
+            // The active EPS may already come from this PS (e.g. NSClient updating the PS with nsId retriggers
+            // observeChanges(PS)). Skip only if the pump also still holds the profile.
             val active = persistenceLayer.getEffectiveProfileSwitchActiveAt(dateUtil.now())
-            if (active != null && active.originalPsId != null && active.originalPsId == it.id) {
-                aapsLogger.debug(LTag.PROFILE, "Skipping onProfileChanged: active EPS id=${active.id} already represents PS id=${it.id}")
+            val epsState = checkEpsState(it, active)
+            if (epsState == EpsState.ON_PUMP) {
+                aapsLogger.debug(LTag.PROFILE, "Skipping onProfileChanged: active EPS id=${active?.id} already represents PS id=${it.id}")
+                return@let
+            }
+            if (epsState == EpsState.UPLOAD_ON_COOLDOWN) {
+                aapsLogger.warn(LTag.PROFILE, "Skipping onProfileChanged: PS id=${it.id} was uploaded recently but the pump still reports a different profile")
                 return@let
             }
             // Bound the pump round-trip. setProfile() awaits a CommandSetProfile callback; if that
@@ -185,9 +194,16 @@ class CommandQueueImplementation(
             }
             if (result == null)
                 aapsLogger.error(LTag.PROFILE, "setProfile timed out after $PROFILE_SET_TIMEOUT_MS ms for PS id=${it.id}")
+            // Failed or accepted: do not push the same PS again before the cooldown ends.
+            if (epsState == EpsState.MISSING_ON_PUMP && result?.cancelled != true) {
+                forcedUploadPsId = it.id
+                forcedUploadTime = dateUtil.now()
+            }
             // Central profile-set notification lifecycle (unified across all pump drivers). Returns true on a
             // successful write, in which case we persist the EffectiveProfileSwitch below.
             if (postProfileWriteResult(result, silent)) {
+                // The EPS for this PS already exists. Only the pump write was missing, so no second EPS.
+                if (epsState == EpsState.MISSING_ON_PUMP) return@let
                 // Pump may return enacted == false if basal profile is the same, but IC/ISF can be different
                 val nonCustomized = ProfileSealed.PS(it, activePlugin).convertToNonCustomizedProfile(dateUtil)
                 val eps = EPS(
@@ -209,6 +225,33 @@ class CommandQueueImplementation(
                 persistenceLayer.insertOrUpdateEffectiveProfileSwitch(eps)
             }
         }
+    }
+
+    /** How the active EPS relates to the requested PS, and whether the pump still has that profile. */
+    internal enum class EpsState {
+        /** No active EPS comes from this PS: normal upload. */
+        NOT_FROM_THIS_PS,
+        /** The EPS comes from this PS and the pump has the profile: nothing to do. */
+        ON_PUMP,
+        /** The EPS comes from this PS but the pump has a different profile: upload again. */
+        MISSING_ON_PUMP,
+        /** Same as MISSING_ON_PUMP, but a re-upload was tried a moment ago: wait, do not loop. */
+        UPLOAD_ON_COOLDOWN
+    }
+
+    // PS id of the last forced re-upload and when. Stops an upload loop if the pump keeps reporting a
+    // different profile (the write is refused, or accepted but not reported).
+    internal var forcedUploadPsId: Long? = null
+    internal var forcedUploadTime = 0L
+
+    internal suspend fun checkEpsState(ps: PS, active: EPS?): EpsState {
+        if (active?.originalPsId == null || active.originalPsId != ps.id) return EpsState.NOT_FROM_THIS_PS
+        if (activePlugin.activePump.isThisProfileSet(ProfileSealed.PS(ps, activePlugin))) {
+            forcedUploadPsId = null
+            return EpsState.ON_PUMP
+        }
+        val recentlyForced = forcedUploadPsId == ps.id && dateUtil.now() - forcedUploadTime < FORCED_UPLOAD_COOLDOWN_MS
+        return if (recentlyForced) EpsState.UPLOAD_ON_COOLDOWN else EpsState.MISSING_ON_PUMP
     }
 
     /**

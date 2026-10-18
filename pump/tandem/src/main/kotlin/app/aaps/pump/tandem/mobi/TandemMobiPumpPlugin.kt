@@ -1662,13 +1662,25 @@ class TandemMobiPumpPlugin(
                 pumpEnactResultProvider()
                     .success(true).enacted(true)
             } else {
+                aapsLogger.error(LTag.PUMP, "setNewBasalProfile - failed: ${resultCommandResponse.errorDescription}")
+                refreshPumpProfileCache()
                 pumpEnactResultProvider()
                     .success(false).enacted(false)
-                    .comment(rh.gs(TextRef.AndroidRes(Rc.string.pump_cmd_err_basal_profile_could_not_be_set)))
+                    .comment(rh.gs(TextRef.AndroidRes(R.string.tandem_error_profile_write_failed), resultCommandResponse.errorDescription ?: ""))
             }
         } finally {
             finishAction("Set Basal Profile")
             refreshBasalRateDisplay()  // this forces refresh of basal value
+        }
+    }
+
+
+    // After a failed write the pump can hold a part of the profile, so read what it really has.
+    private fun refreshPumpProfileCache() {
+        try {
+            pumpConnectionManager.getBasalProfile()
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.PUMP, "Could not read the pump profile after a failed write: ${e.message}")
         }
     }
 

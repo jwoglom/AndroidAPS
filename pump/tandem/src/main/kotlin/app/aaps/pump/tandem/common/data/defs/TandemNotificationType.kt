@@ -42,7 +42,17 @@ enum class TandemNotificationType(override var notificationType: NotificationId,
                             resourceId = R.string.tandem_error_profile_only_16_segments,
                             notificationUrgency = NotificationLevel.URGENT,
                             validMinutes = 24*60
-    );
+    ),
+
+    TandemResumeNoProfile(notificationType = NotificationId.TANDEM_PUMP_MESSAGE_ERROR,
+                          resourceId = R.string.tandem_error_resume_no_profile,
+                          notificationUrgency = NotificationLevel.URGENT,
+                          validMinutes = 60),
+
+    TandemResumeProfileCheckFailed(notificationType = NotificationId.TANDEM_PUMP_MESSAGE_ERROR,
+                                   resourceId = R.string.tandem_error_resume_profile_check_failed,
+                                   notificationUrgency = NotificationLevel.URGENT,
+                                   validMinutes = 60);
 
     constructor(resourceId: Int, notificationUrgency: NotificationLevel) :
         this(NotificationId.COMBO_PUMP_ALARM, resourceId, notificationUrgency, -1) {}

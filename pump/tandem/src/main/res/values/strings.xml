@@ -42,6 +42,9 @@
     <string name="tandem_error_pump_error_response">Sending %s command failed. Check Tandem Mobi pump notifications.</string>
     <string name="tandem_error_no_shared_conn_data">Missing Shared Connection Data (connection sharing enabled)</string>
     <string name="tandem_error_profile_only_16_segments">Tandem Mobi supports only 16 basal segments, adjust your profile accordingly.</string>
+    <string name="tandem_error_profile_write_failed" comment="%1$s=technical reason from the pump driver. Example: Pump rejected SetIDPSegmentRequest (status=1).">The basal profile could not be set on the pump. The pump may have no valid profile. Reason: %1$s</string>
+    <string name="tandem_error_resume_no_profile">Insulin was not resumed: there is no personal profile on the pump. Set the profile from AAPS first.</string>
+    <string name="tandem_error_resume_profile_check_failed">Insulin was not resumed: the pump profile could not be checked. Try again.</string>
 
 
     <!-- UI Common -->

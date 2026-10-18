@@ -10,6 +10,7 @@ import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.common.comm.TandemPumpCommunicationManager
 import app.aaps.pump.tandem.common.comm.data.CommunicationListener
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
+import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -17,6 +18,7 @@ import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.models.StatusMessage
+import com.jwoglom.pumpx2.pump.messages.request.control.ResumePumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import com.jwoglom.pumpx2.pump.messages.response.control.DismissNotificationResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.EnterChangeCartridgeModeResponse
@@ -38,11 +40,14 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ProfileStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
 import dev.zacsweers.metro.AppScope
 import java.time.Instant
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 
@@ -76,7 +81,36 @@ class TandemUICommunication(
     var messageCount = 0
 
 
+    private val timeoutExecutor by lazy {
+        Executors.newSingleThreadScheduledExecutor { runnable -> Thread(runnable, "TandemResumeCheck").also { it.isDaemon = true } }
+    }
+
+    // Resume is only sent after the pump confirmed that it has a personal profile.
+    private val resumeGate = ResumeProfileGate(
+        aapsLogger = aapsLogger,
+        send = { message -> sendCommandNow(message) },
+        onBlocked = { reason -> resumeBlocked(reason) },
+        scheduleTimeout = { delayMs, task -> timeoutExecutor.schedule({ task() }, delayMs, TimeUnit.MILLISECONDS) }
+    )
+
     fun sendCommand(request: Message): Boolean {
+        if (request is ResumePumpingRequest) {
+            dataStore.resumeBlockedReason.value = null
+            return resumeGate.requestResume(request)
+        }
+        return sendCommandNow(request)
+    }
+
+    private fun resumeBlocked(reason: ResumeBlockedReason) {
+        dataStore.resumeBlockedReason.value = reason
+        when (reason) {
+            ResumeBlockedReason.NO_PERSONAL_PROFILE  -> pumpUtil.sendNotification(TandemNotificationType.TandemResumeNoProfile)
+            ResumeBlockedReason.PROFILE_CHECK_FAILED -> pumpUtil.sendNotification(TandemNotificationType.TandemResumeProfileCheckFailed)
+            ResumeBlockedReason.PUMP_REJECTED        -> {} // reported by unsuccessfulAlert
+        }
+    }
+
+    private fun sendCommandNow(request: Message): Boolean {
 
         aapsLogger.warn(TAG, "Send command $request ")
 
@@ -238,13 +272,19 @@ class TandemUICommunication(
                     historyRetriever.receivedLogStreamResponse(message)
                 }
             }
+            is ProfileStatusResponse    -> {
+                resumeGate.onProfileStatus(message)
+            }
             is ResumePumpingResponse    -> {
                 aapsLogger.error(TAG, "ResumePumpingResponse received with status=${message.isStatusOK}")
                 if (message.isStatusOK) {
                     //dataStore.basalStatus.value = BasalStatus.ON
                     dataStore.pumpRunningState.value = PumpRunningState.Running
                     pumpStatus.pumpRunningState = PumpRunningState.Running
+                    dataStore.resumeBlockedReason.value = null
                 } else {
+                    aapsLogger.error(TAG, "Pump refused Resume, status=${message.status}")
+                    dataStore.resumeBlockedReason.value = ResumeBlockedReason.PUMP_REJECTED
                     unsuccessfulAlert(message.messageName())
                 }
             }

@@ -26,6 +26,7 @@ import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CompletedCartridgeAction
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -67,6 +68,9 @@ class TandemUIDataStore : TandemUiState, TandemUiStateWriter {
 
     // Running State
     override var pumpRunningState = MutableLiveData<PumpRunningState>()
+
+    // Why the last Resume insulin attempt did not work. Null if it was allowed or nothing was tried yet.
+    val resumeBlockedReason = MutableStateFlow<ResumeBlockedReason?>(null)
 
     // Notifications
     val notificationBundle = MutableLiveData<NotificationBundle>(NotificationBundle())

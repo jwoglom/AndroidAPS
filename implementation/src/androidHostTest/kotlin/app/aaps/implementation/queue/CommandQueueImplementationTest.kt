@@ -273,6 +273,80 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         verify(profileFunction, times(2)).getRequestedProfile()
     }
 
+    // region profile change when the active EPS already comes from the requested PS
+
+    private fun epsFromRequestedPs() = effectiveProfileSwitch.copy(originalPsId = profileSwitch.id)
+
+    @Test
+    fun checkEpsState_noEpsFromThisPs_isNormalUpload() = runTest {
+        testPumpPlugin.isProfileSet = false
+
+        assertThat(commandQueue.checkEpsState(profileSwitch, null)).isEqualTo(CommandQueueImplementation.EpsState.NOT_FROM_THIS_PS)
+        assertThat(commandQueue.checkEpsState(profileSwitch, effectiveProfileSwitch)).isEqualTo(CommandQueueImplementation.EpsState.NOT_FROM_THIS_PS)
+    }
+
+    @Test
+    fun checkEpsState_pumpHasProfile_isSkipped() = runTest {
+        testPumpPlugin.isProfileSet = true
+
+        assertThat(commandQueue.checkEpsState(profileSwitch, epsFromRequestedPs())).isEqualTo(CommandQueueImplementation.EpsState.ON_PUMP)
+    }
+
+    @Test
+    fun checkEpsState_pumpMissesProfile_isUploadedAgain() = runTest {
+        testPumpPlugin.isProfileSet = false
+
+        assertThat(commandQueue.checkEpsState(profileSwitch, epsFromRequestedPs())).isEqualTo(CommandQueueImplementation.EpsState.MISSING_ON_PUMP)
+    }
+
+    @Test
+    fun checkEpsState_recentForcedUpload_waitsThenRetries() = runTest {
+        testPumpPlugin.isProfileSet = false
+        val eps = epsFromRequestedPs()
+        commandQueue.forcedUploadPsId = profileSwitch.id
+        commandQueue.forcedUploadTime = dateUtil.now()
+
+        assertThat(commandQueue.checkEpsState(profileSwitch, eps)).isEqualTo(CommandQueueImplementation.EpsState.UPLOAD_ON_COOLDOWN)
+
+        commandQueue.forcedUploadTime = dateUtil.now() - 16 * 60 * 1000L
+        assertThat(commandQueue.checkEpsState(profileSwitch, eps)).isEqualTo(CommandQueueImplementation.EpsState.MISSING_ON_PUMP)
+    }
+
+    @Test
+    fun checkEpsState_pumpConfirms_clearsForcedUpload() = runTest {
+        testPumpPlugin.isProfileSet = true
+        commandQueue.forcedUploadPsId = profileSwitch.id
+        commandQueue.forcedUploadTime = dateUtil.now()
+
+        assertThat(commandQueue.checkEpsState(profileSwitch, epsFromRequestedPs())).isEqualTo(CommandQueueImplementation.EpsState.ON_PUMP)
+        assertThat(commandQueue.forcedUploadPsId).isNull()
+    }
+
+    @Test
+    fun profileChange_epsFromSamePsButPumpMissesProfile_queuesProfileWrite() = runTest {
+        // Regression: the pump has no profile, but the EPS already points at the PS. It used to be skipped.
+        testPumpPlugin.isProfileSet = false
+        whenever(persistenceLayer.getEffectiveProfileSwitchActiveAt(anyLong())).thenReturn(epsFromRequestedPs())
+        whenever(profileFunction.getRequestedProfile()).thenReturn(profileSwitch)
+
+        rxBus.send(EventProfileChangeRequested())
+
+        assertThat(commandQueue.size()).isEqualTo(1)
+    }
+
+    @Test
+    fun profileChange_epsFromSamePsAndPumpHasProfile_isStillSkipped() = runTest {
+        testPumpPlugin.isProfileSet = true
+        whenever(persistenceLayer.getEffectiveProfileSwitchActiveAt(anyLong())).thenReturn(epsFromRequestedPs())
+        whenever(profileFunction.getRequestedProfile()).thenReturn(profileSwitch)
+
+        rxBus.send(EventProfileChangeRequested())
+
+        assertThat(commandQueue.size()).isEqualTo(0)
+        assertThat(commandQueue.isRunning(Command.CommandType.BASAL_PROFILE)).isFalse()
+    }
+    // endregion
+
     // region postProfileWriteResult — the central, driver-agnostic profile-set notification contract.
     // Drivers now only return (success, enacted, comment); every notification decision lives here.
 
